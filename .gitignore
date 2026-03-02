@@ -173,3 +173,12 @@ products_vectorstore/
 
 # ignore venv
 tech2ai/
+
+# Ignore PyTorch model weights (large binary files)
+*.pth
+
+# Ignore node_modules
+node_modules/
+
+# Ignore memory/session files
+memory.json

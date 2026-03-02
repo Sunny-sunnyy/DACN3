@@ -16,5 +16,32 @@
     },
     "estimate": 930.8824204895075,
     "discount": 225.88242048950747
+  },
+  {
+    "deal": {
+      "product_description": "Apple Mac mini (2024) with the M4 chip is a compact desktop featuring Apple Intelligence, 16GB of unified RAM, and a 256GB SSD. It runs macOS and provides a small-footprint workstation suitable for general productivity, media tasks, and light creative work, offering modern Apple silicon performance in a mini tower design.",
+      "price": 400.0,
+      "url": "https://www.dealnews.com/products/Apple/Apple-Mac-mini-M4-Desktop-2024-w-256-GB-SSD/484139.html?iref=rss-c39"
+    },
+    "estimate": 776.7235740661621,
+    "discount": 376.7235740661621
+  },
+  {
+    "deal": {
+      "product_description": "Refurbished Apple 7th\u2011Generation iPad 10.2\" 32GB Wi\u2011Fi (2019 model MW742LL/A) with 1-year Allstate warranty for $99, estimated true value ~$187.54.",
+      "price": 99.0,
+      "url": "https://www.dealnews.com/products/Apple/Apple-7-th-Gen-iPad-10-2-32-GB-Wi-Fi-Tablet-2019/69733.html?iref=rss-c39"
+    },
+    "estimate": 187.54228515625002,
+    "discount": 88.54228515625002
+  },
+  {
+    "deal": {
+      "product_description": "Anker SOLIX F2000 Portable Power Station (Model A1780) \u2013 high-capacity, HyperFlash rapid-charging power station with 3x USB-C, 2x USB-A, and 2x 12V car outlets, ideal for camping, emergency backup, and mobile work setups.",
+      "price": 849.0,
+      "url": "https://www.dealnews.com/products/Anker/Anker-SOLIX-F2000-Portable-Power-Station/403502.html?iref=rss-c142"
+    },
+    "estimate": 1631.9533754272463,
+    "discount": 782.9533754272463
   }
 ]
