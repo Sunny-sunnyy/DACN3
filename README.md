@@ -1,64 +1,235 @@
-# From Software Engineering to AI Data Scientist
+# 🤖 AI Price Intelligence System — DACN3
 
-## For software engineers exploring a career move into Data Science, GenAI, LLMs
+> **Hệ thống AI tự động săn deal & ước lượng giá sản phẩm từ BestBuy và Amazon**
 
-This is code to accompany my course on transitioning from a technical career to AI Data Science.  
+---
 
-__If you're viewing this in Cursor, please right click on the file in the left sidebar and select "Open Preview" to see in formatted glory!__
+## 📌 Giới thiệu dự án
 
-## Essential links:   
-- The course [resources](https://edwarddonner.com/2024/10/16/from-software-engineer-to-ai-data-scientist-resources/)
-- My complete [AI Engineer Curriculum](https://edwarddonner.com/curriculum/) to become an AI Engineer, AI Builder and AI Leader  
-- All my [Live Events](https://edwarddonner.com/2025/11/11/ai-live-event/)  
-- My program to join the [Proficient AI Engineer Directory](https://edwarddonner.com/proficient/)
+Đây là **đồ án chuyên ngành (DACN3)** xây dựng một hệ thống AI đa tác nhân (Multi-Agent System) có khả năng:
 
-If you'd like to stay in touch, please [connect](https://www.linkedin.com/in/eddonner/) with me on LinkedIn
+- 🔍 **Tìm kiếm song song** sản phẩm trên BestBuy và Amazon theo từ khóa
+- 🏷️ **Lọc sản phẩm đang giảm giá** (on sale) theo thời gian thực
+- 🧠 **Ước lượng giá trị thực** bằng Ensemble AI gồm 3 models kết hợp
+- 📲 **Thông báo tự động** qua Pushover khi phát hiện deal tốt
+- 🤖 **Chạy tự động hoàn toàn** (Autonomous mode) hoặc theo yêu cầu người dùng
 
-![From Software Engineering To Data Science](assets/tech2ai.jpg)
+---
 
-### A note before you begin
+## 🗂️ Cấu trúc dự án
 
-I'm here to help you be most successful with your learning! If you hit any snafus, or if you have any ideas on how I can improve the course, please do reach out on LinkedIn or by emailing me direct (ed@edwarddonner.com). It's always great to connect with people on LinkedIn to build up the community - you'll find me here:  
-https://www.linkedin.com/in/eddonner/
+```
+tech2ai/
+│
+├── segment4/                          # 🎯 DỰ ÁN CHÍNH
+│   │
+│   ├── search_key.py                  # Entry point — Multi-Source Deal Finder (Gradio UI)
+│   ├── price_is_right.py              # Entry point — Autonomous Deal Hunter (Gradio UI)
+│   ├── multi_source_framework.py      # Framework điều phối trung tâm
+│   ├── deal_agent_framework.py        # Framework cho autonomous mode
+│   │
+│   ├── price_agents/                  # 🤖 Tất cả AI Agents
+│   │   ├── multi_source_planning_agent.py   # Pipeline 6 bước (BestBuy + Amazon)
+│   │   ├── ensemble_agent.py                # Kết hợp 3 models dự đoán giá
+│   │   ├── frontier_agent.py                # GPT-5.1 + RAG (ChromaDB)
+│   │   ├── specialist_agent.py              # Fine-tuned Llama-3.2-3B (Modal)
+│   │   ├── neural_network_agent.py          # PyTorch DNN (local)
+│   │   ├── bestbuy_deals.py                 # Scraping BestBuy
+│   │   ├── amazon_deals.py                  # Scraping Amazon
+│   │   ├── bestbuy_scanner_agent.py         # Search BestBuy (Brave MCP)
+│   │   ├── amazon_scanner_agent.py          # Search Amazon (Brave MCP)
+│   │   ├── scanner_agent.py                 # RSS feed scanner
+│   │   ├── messaging_agent.py               # Push notification (Pushover)
+│   │   ├── planning_agent.py                # Simple planning agent
+│   │   ├── autonomous_planning_agent.py     # Autonomous planning agent
+│   │   ├── preprocessor.py                  # Text normalization
+│   │   ├── deep_neural_network.py           # PyTorch model architecture
+│   │   ├── deals.py                         # Data classes
+│   │   └── agent.py                         # Base class
+│   │
+│   ├── bestbuy_untils/                # 🛠️ Utilities
+│   │   ├── clarification_agent.py     # Sinh câu hỏi làm rõ nhu cầu
+│   │   ├── unified_deal.py            # Chuẩn hóa deal từ 2 nguồn
+│   │   ├── multi_source_scanner_agent.py  # Chọn top 5 từ pool
+│   │   └── gradio_helpers.py          # Helper cho Gradio UI
+│   │
+│   ├── mo_ta_du_an/                   # 📚 Tài liệu
+│   │   ├── DOCUMENTATION_SEARCHKEY.md
+│   │   ├── DOCUMENTATION_PRICE_IS_RIGHT.md
+│   │   └── COMPLETE_PROJECT_DOCUMENTATION.md
+│   │
+│   └── products_vectorstore/          # ChromaDB (800K products) — không up GitHub
+│
+├── tailieu/                           # 📄 Báo cáo DACN
+├── week7/                             # Fine-tune Llama notebook
+└── day_mcp/                           # MCP experiments
+```
 
-### An important point on API costs
+---
 
-During the course, I'll suggest you try out the leading models at the forefront of progress, known as the Frontier models. I'll also suggest you run open-source models using Google Colab. These services have some charges, but I'll keep cost minimal - like, a few cents at a time.
+## 🔄 Hai ứng dụng chính
 
-Please do monitor your API usage to ensure you're comfortable with spend; I've included links below. There's no need to spend anything more than a couple of dollars for the entire course.
+### 1. 🔍 Multi-Source Deal Finder (`search_key.py`)
 
-### How this Repo is organized
+Người dùng **nhập từ khóa** → AI tìm kiếm và chọn deal tốt nhất từ BestBuy + Amazon.
 
-There are folders for each of the "segments", representing modules of the class, culminating in a powerful autonomous Agentic AI solution in Segment 4.  
-Follow the setup instructions below, then open the segment 1 folder and prepare for joy.
+```
+[Nhập keyword: "laptop"]
+       │
+       ▼
+[ClarificationAgent] → 3 câu hỏi làm rõ nhu cầu
+       │
+       ▼
+[Step 1] Search song song BestBuy + Amazon (Brave Search API)
+[Step 2] Filter sản phẩm đang sale (BeautifulSoup + Playwright)
+[Step 3] Scrape chi tiết sản phẩm (Playwright)
+[Step 4] Gộp vào unified pool
+[Step 5] GPT-5-mini chọn top 5 deals tốt nhất
+[Step 6] EnsembleAgent ước lượng giá trị thực
+       │
+       ▼
+[Hiển thị bảng kết quả + Push Notification nếu discount > $100]
+```
 
-### The most important part
+### 2. 🤖 Autonomous Deal Hunter (`price_is_right.py`)
 
-The best way to learn is by **DOING**. You should work along with me, running each cell, inspecting the objects to get a detailed understanding of what's happening. Then tweak the code and make it your own. I'd love it if you wanted to push your code so I can follow along with your progress, and I can make your solutions available to others so we share in your progress. While the projects are enjoyable, they are first and foremost designed to be _educational_, teaching you business skills that can be put into practice in your work.
+Hệ thống **chạy tự động mỗi 5 phút**, tự scan RSS feeds từ DealNews.com.
 
-## Pre-setup - installing Ollama for local inference
+```
+[Khởi động] → [Tự động scan DealNews RSS mỗi 5 phút]
+       │
+       ▼
+[ScannerAgent] → GPT-5-mini chọn top 5 deals
+[EnsembleAgent] → Ước lượng giá trị thực
+[MessagingAgent] → Push notification nếu discount > $50
+[Lưu vào memory.json] → Tránh duplicate
+```
 
-### Important note: see my warning about Llama3.3 below - it's too large for home computers! Stick with llama3.2! Several students have missed this warning...
+---
 
-We will start the course by installing Ollama so you can see results immediately!
-1. Download and install Ollama from https://ollama.com noting that on a PC you might need to have administrator permissions for the install to work properly
-2. On a PC, start a Command prompt / Powershell (Press Win + R, type `cmd`, and press Enter). On a Mac, start a Terminal (Applications > Utilities > Terminal).
-3. Run `ollama run llama3.2` or for smaller machines try `ollama run llama3.2:1b` - **please note** steer clear of Meta's latest model llama3.3 because at 70B parameters that's way too large for most home computers!  
-4. If this doesn't work: you may need to run `ollama serve` in another Powershell (Windows) or Terminal (Mac), and try step 3 again. On a PC, you may need to be running in an Admin instance of Powershell.  
-5. And if that doesn't work on your box, I've set up this on the cloud. This is on Google Colab, which will need you to have a Google account to sign in, but is free:  https://colab.research.google.com/drive/1-_f5XZPsChvfU1sJ0QqCePtIuc55LSdu?usp=sharing
+## 🧠 Ensemble AI — 3 Models Kết Hợp
 
-Any problems, please contact me!
+| Model | Trọng số | Mô tả |
+|-------|----------|-------|
+| **FrontierAgent** | 80% | GPT-5.1 + RAG (ChromaDB 800K products) |
+| **SpecialistAgent** | 10% | Fine-tuned Llama-3.2-3B chạy trên Modal GPU |
+| **NeuralNetworkAgent** | 10% | PyTorch DNN 10-layer (ResidualBlocks) chạy local |
 
-## Setup instructions
+**Công thức:**
+```
+estimated_price = frontier × 0.8 + specialist × 0.1 + neural × 0.1
+discount = estimated_price - sale_price
+```
 
-Hopefully I've done a decent job of making these guides bulletproof - but please contact me right away if you hit roadblocks:
+---
 
-Setup is here: [SETUP-new.md](setup/SETUP-new.md)
+## ⚙️ Cài đặt và Chạy
 
-### Monitoring API charges
+### Yêu cầu hệ thống
 
-You can keep your API spend very low throughout this course; you can monitor spend at the dashboards: [here](https://platform.openai.com/usage) for OpenAI, [here]
+- Python 3.10+
+- Node.js 18+ (cho MCP servers)
+- CUDA GPU (khuyến nghị, cho PyTorch)
+- Chromium browser (cho Playwright)
 
-## And that's it! Happy coding!
+### 1. Cài đặt dependencies
 
-Please do message me or email me at ed@edwarddonner.com if this doesn't work or if I can help with anything. I can't wait to hear how you get on.
+```bash
+cd segment4
+
+# Cài Python packages
+uv sync
+
+# Cài Playwright browsers
+uv run playwright install
+```
+
+### 2. Cấu hình file `.env`
+
+Tạo file `.env` trong thư mục `segment4/`:
+
+```env
+# Bắt buộc
+OPENAI_API_KEY=sk-...
+BRAVE_API_KEY=BSA-...
+
+# Tùy chọn (cho push notification)
+PUSHOVER_USER=...
+PUSHOVER_TOKEN=...
+
+# Tùy chọn (preprocessor model)
+PRICER_PREPROCESSOR_MODEL=ollama/llama3.2
+```
+
+### 3. Chạy ứng dụng
+
+**Multi-Source Deal Finder (tìm theo keyword):**
+```bash
+cd segment4
+uv run search_key.py
+```
+
+**Autonomous Deal Hunter (tự động mỗi 5 phút):**
+```bash
+cd segment4
+uv run price_is_right.py
+```
+
+Ứng dụng mở tại: `http://127.0.0.1:7860`
+
+---
+
+## 📊 Kết quả mẫu
+
+**Keyword:** `"Dell laptop"` | **Thời gian:** ~90-120 giây
+
+| Sản phẩm | Nguồn | Giá Sale | Ước lượng | Discount |
+|----------|-------|----------|-----------|----------|
+| Dell Inspiron 15.6" i5 512GB | Amazon | $639.99 | $945.86 | $305.87 🔥 |
+| Dell XPS 14 OLED i7 32GB | BestBuy | $999.99 | $1,450.00 | $450.01 🔥 |
+
+---
+
+## 💰 Chi phí ước tính mỗi lần chạy
+
+| Component | Model | Chi phí |
+|-----------|-------|---------|
+| Search Agents | GPT-5-nano | ~$0.001 |
+| Clarification | GPT-5-nano | ~$0.001 |
+| Scan top 5 | GPT-5-mini | ~$0.002 |
+| Estimate (5 deals) | GPT-5.1 | ~$0.005 |
+| Preprocess | Llama local | $0 |
+| **Tổng cộng** | | **~$0.01/lần** |
+
+---
+
+## 🛠️ Tech Stack
+
+| Lớp | Công nghệ |
+|-----|-----------|
+| **UI** | Gradio |
+| **Search** | Brave Search API + MCP |
+| **Scraping** | Playwright, BeautifulSoup |
+| **LLM** | OpenAI GPT-5.1 / GPT-5-mini / GPT-5-nano |
+| **Fine-tuned Model** | Llama-3.2-3B (LoRA, 4-bit NF4) trên Modal |
+| **Neural Network** | PyTorch DNN (10 layers, ResidualBlocks) |
+| **Vector DB** | ChromaDB (800K products) |
+| **Embeddings** | sentence-transformers/all-MiniLM-L6-v2 |
+| **Notification** | Pushover API |
+| **Package Manager** | uv |
+
+---
+
+## 📚 Tài liệu chi tiết
+
+- [`DOCUMENTATION_SEARCHKEY.md`](segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md) — Chi tiết về Multi-Source Deal Finder
+- [`DOCUMENTATION_PRICE_IS_RIGHT.md`](segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md) — Chi tiết về Autonomous Deal Hunter
+- [`COMPLETE_PROJECT_DOCUMENTATION.md`](segment4/mo_ta_du_an/COMPLETE_PROJECT_DOCUMENTATION.md) — Tài liệu tổng quan đầy đủ
+
+---
+
+## 👤 Tác giả
+
+**Nguyễn Minh Hiếu** — [@Sunny-sunnyy](https://github.com/Sunny-sunnyy)
+
+Đồ án chuyên ngành — 2026
