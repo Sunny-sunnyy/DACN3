@@ -230,6 +230,6 @@ uv run price_is_right.py
 
 ## 👤 Tác giả
 
-**Nguyễn Minh Hiếu** — [@Sunny-sunnyy](https://github.com/Sunny-sunnyy)
+**Phạm Minh Hiếu** — [@Sunny-sunnyy](https://github.com/Sunny-sunnyy)
 
 Đồ án chuyên ngành — 2026
