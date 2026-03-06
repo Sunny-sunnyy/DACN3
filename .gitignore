@@ -182,3 +182,4 @@ node_modules/
 
 # Ignore memory/session files
 memory.json
+day_mcp/
