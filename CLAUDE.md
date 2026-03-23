@@ -8,6 +8,8 @@ AI Price Intelligence System (DACN3) — A multi-agent system that searches for 
 
 ## Build & Run Commands
 
+**IMPORTANT:** This project uses `uv` as the sole package manager and runtime. The virtual environment is managed by `uv` in the project root (`tech2ai/`). NEVER use `python` or `pip` directly — always use `uv run` to execute scripts (it automatically activates the correct venv and resolves dependencies).
+
 ```bash
 # Install dependencies
 uv sync
@@ -20,6 +22,10 @@ cd segment4 && uv run search_key.py
 cd segment4 && uv run price_is_right.py
 
 # Both apps serve at http://127.0.0.1:7860
+
+# Run any Python script or one-liner
+uv run some_script.py
+uv run python -c "print('hello')"
 ```
 
 ## Tech Stack

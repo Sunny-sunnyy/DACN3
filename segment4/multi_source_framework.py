@@ -12,6 +12,7 @@ Date: 2026-02-07
 """
 
 import logging
+import time
 from typing import List, Optional
 
 import chromadb
@@ -67,8 +68,9 @@ class MultiSourceFramework:
         """Lazy initialization of planning agent."""
         if not self.planner:
             self.log("Initializing Multi-Source Planning Agent...")
+            t0 = time.time()
             self.planner = MultiSourcePlanningAgent(self.collection)
-            self.log("Planning Agent initialized successfully")
+            self.log(f"[TIMER] All agents initialized in {time.time() - t0:.1f}s")
 
     # =========================================================================
     # CLARIFICATION METHODS

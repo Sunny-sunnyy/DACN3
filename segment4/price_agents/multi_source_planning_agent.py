@@ -16,6 +16,7 @@ Date: 2026-02-07
 
 import asyncio
 import logging
+import time
 from typing import List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor
 
@@ -77,7 +78,10 @@ class MultiSourcePlanningAgent(Agent):
     def generate_questions(self, keyword: str) -> ClarificationResponse:
         """Generate 3 clarification questions for the keyword."""
         self.log(f"Generating clarification questions for: {keyword}")
-        return self.clarification.generate_questions(keyword)
+        t0 = time.time()
+        result = self.clarification.generate_questions(keyword)
+        self.log(f"[TIMER] Generate questions completed in {time.time() - t0:.1f}s")
+        return result
 
     def build_refined_query(
         self,
@@ -87,7 +91,10 @@ class MultiSourcePlanningAgent(Agent):
     ) -> RefinedQuery:
         """Build refined search query from user answers."""
         self.log("Building refined query from answers")
-        return self.clarification.build_refined_query(keyword, questions, answers)
+        t0 = time.time()
+        result = self.clarification.build_refined_query(keyword, questions, answers)
+        self.log(f"[TIMER] Build refined query completed in {time.time() - t0:.1f}s")
+        return result
 
     # =========================================================================
     # PIPELINE STEP 1: SEARCH
@@ -116,10 +123,10 @@ class MultiSourcePlanningAgent(Agent):
             future_bb = executor.submit(self._search_bestbuy, keyword, max_urls)
             future_az = executor.submit(self._search_amazon, keyword, max_urls)
 
-            bestbuy_urls = future_bb.result(timeout=120)
+            bestbuy_urls = future_bb.result(timeout=600)
             self.log(f"  BestBuy: {len(bestbuy_urls)} URLs found")
 
-            amazon_urls = future_az.result(timeout=120)
+            amazon_urls = future_az.result(timeout=600)
             self.log(f"  Amazon: {len(amazon_urls)} URLs found")
 
         self.log(f"Total: {len(bestbuy_urls)} (BestBuy) + {len(amazon_urls)} (Amazon)")
@@ -265,34 +272,45 @@ class MultiSourcePlanningAgent(Agent):
         Returns:
             List of Opportunity sorted by discount (best first)
         """
+        pipeline_start = time.time()
         self.log(f"Starting pipeline for: '{keyword}' (max {max_urls} URLs/source)")
 
         # Step 1: Search
+        t0 = time.time()
         bb_urls, az_urls = self.search_both_sources(keyword, max_urls)
+        self.log(f"[TIMER] Step 1 (Search) completed in {time.time() - t0:.1f}s")
         if not bb_urls and not az_urls:
             self.log("No products found. Try a different keyword.")
             return []
 
         # Step 2: Filter
+        t0 = time.time()
         bb_sales, az_sales = self.filter_sales(bb_urls, az_urls)
+        self.log(f"[TIMER] Step 2 (Filter) completed in {time.time() - t0:.1f}s")
         if not bb_sales and not az_sales:
             self.log("No sale items found. Try a different keyword.")
             return []
 
         # Step 3 & 4: Scrape and Combine
+        t0 = time.time()
         unified_deals = self.scrape_and_combine(bb_sales, az_sales)
+        self.log(f"[TIMER] Step 3-4 (Scrape+Combine) completed in {time.time() - t0:.1f}s")
         if not unified_deals:
             self.log("Could not scrape product details.")
             return []
 
         # Step 5: Select top 5
+        t0 = time.time()
         deal_selection = self.select_top_deals(unified_deals)
+        self.log(f"[TIMER] Step 5 (Select) completed in {time.time() - t0:.1f}s")
         if not deal_selection or not deal_selection.deals:
             self.log("Could not select deals.")
             return []
 
         # Step 6: Estimate prices
+        t0 = time.time()
         opportunities = self.estimate_prices(deal_selection)
+        self.log(f"[TIMER] Step 6 (Estimate) completed in {time.time() - t0:.1f}s")
 
         # Auto-notify if best deal exceeds threshold
         if opportunities and opportunities[0].discount > self.DEAL_THRESHOLD:
@@ -305,7 +323,8 @@ class MultiSourcePlanningAgent(Agent):
                 url=best.deal.url
             )
 
-        self.log("Pipeline completed successfully!")
+        total = time.time() - pipeline_start
+        self.log(f"Pipeline completed successfully! Total time: {total:.1f}s ({total/60:.1f} min)")
         return opportunities
 
     def plan_with_answers(
@@ -319,6 +338,7 @@ class MultiSourcePlanningAgent(Agent):
         Run pipeline with clarification answers.
         Builds refined query first, then runs full pipeline.
         """
+        t0 = time.time()
         refined = self.build_refined_query(keyword, questions, answers)
-        self.log(f"Refined query: '{keyword}' -> '{refined.query}'")
+        self.log(f"Refined query: '{keyword}' -> '{refined.query}' ({time.time() - t0:.1f}s)")
         return self.plan(refined.query, max_urls)
