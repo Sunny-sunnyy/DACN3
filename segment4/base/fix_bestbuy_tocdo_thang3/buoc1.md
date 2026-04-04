@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-04
 **Branch:** claudedev
-**Status:** DONE - Test thanh cong
+**Status:** DONE - Full pipeline test thanh cong
 
 ---
 
@@ -28,9 +28,9 @@ Dung `curl_cffi` (impersonate Chrome) + BestBuy internal APIs thay vi scrape pro
 
 | Step | API | Data | Time |
 |------|-----|------|------|
-| 1. Search | GET `/site/searchpage.jsp?st=<keyword>` | Parse Apollo SSR cache -> lay danh sach `skuId` (dang so) | ~3s |
+| 1. Search | GET `/site/searchpage.jsp?st=<keyword>` | Parse Apollo SSR cache -> lay danh sach `skuId` (dang so) | ~4s |
 | 2. Price (batch) | GET `/api/3.0/priceBlocks?skus=SKU1,SKU2,...` | brand, name, currentPrice, regularPrice, savingsAmount, onSale | ~2s |
-| 3. Features (per SKU) | GET `/api/v2/product/<skuId>` | features[].title + features[].description, URL (links.seoPdpUrl.href) | ~0.5s/SKU |
+| 3. Features + URL (per SKU) | GET `/api/v2/product/<skuId>` | features[].title + features[].description, URL (links.seoPdpUrl.href) | ~0.5s/SKU |
 
 **5 fields can thiet:**
 
@@ -42,28 +42,49 @@ Dung `curl_cffi` (impersonate Chrome) + BestBuy internal APIs thay vi scrape pro
 | features | v2 `features[].title: features[].description` (noi dung nut "Features", KHONG phai "About this item") |
 | url | v2 `links.seoPdpUrl.href` (URL sach, khong co openbox/refurbished) |
 
-## Test Result
+## Test Results
 
-File: `buoc1.py` - keyword: "laptop"
+### buoc1.py - Unit test (chi Step 1-3)
 
-```
-Total time: ~10s
-Products found: 107 SKUs from Apollo cache
-With price data: 12 (priceBlocks API)
-On sale: 9
-Features: 9/9 co features
-URL: 9/9 co URL sach
-```
+Keyword: "laptop" | Time: ~10s | 9 sale products | 9/9 co features + URL sach.
 
-Moi deal tra ve day du: title, brand, price, features, url. Vi du:
+### buoc1.ipynb - Full pipeline (GPT-5-mini)
 
-```
-title:    Dell - Plus 2-in-1 16" 2K Touch Screen Laptop - Intel Core Ultra 7...
-brand:    Dell
-price:    $779.99 (was $1099.99, save $320.0)
-features: Stunning function in every mode: Experience seamless productivity...
-url:      https://www.bestbuy.com/product/dell-plus-copilot-pc-16-2k-2-in-1-.../J3K4L6XF7K
-```
+| Step | Time | Result |
+|------|------|--------|
+| Step 1: Search | 3.5s | 118 SKUs |
+| Step 2: Filter (priceBlocks) | 1.8s | 5 on sale / 12 total |
+| Step 3: Scrape (v2 API) | 3.3s | 5/5 features + URL |
+| Step 4: Select top 5 (GPT-5-mini) | **22.9s** | 5 deals |
+| Step 5: Estimate (EnsembleAgent) | 51.5s | 5 opportunities |
+| **Total** | **~83s** | |
+
+### buoc1a.ipynb - Optimized pipeline (Cerebras + gop Step 2+3)
+
+Thay doi so voi buoc1.ipynb:
+- Step 2+3 gop lai: phat hien sale -> scrape features ngay (1 vong lap)
+- Step 4: Cerebras (`openrouter/openai/gpt-oss-120b`) thay GPT-5-mini
+
+| Step | Time | Result |
+|------|------|--------|
+| Step 1: Search | 4.0s | 136 SKUs |
+| Step 2+3: Filter + Scrape (gop) | **4.0s** | 7 sale products |
+| Step 4: Select top 5 (Cerebras) | **16.6s** | 5 deals |
+| Step 5: Estimate (EnsembleAgent) | 49.7s | 5 opportunities |
+| **Total** | **~74s** | |
+
+**So sanh Step 4:**
+- GPT-5-mini (OpenAI truc tiep): 22.9s
+- Cerebras (OpenRouter): 16.6s (-27%)
+
+## Files
+
+| File | Muc dich |
+|------|----------|
+| `buoc1.py` | 3 functions: `search_bestbuy()`, `get_price_blocks()`, `get_product_details()` |
+| `buoc1.ipynb` | Full pipeline test voi GPT-5-mini |
+| `buoc1a.ipynb` | Optimized pipeline: gop Step 2+3, Cerebras thay GPT-5-mini |
+| `diagnostic.py` | Script chan doan network (7 methods) |
 
 ## Luu y ky thuat
 
@@ -72,7 +93,11 @@ url:      https://www.bestbuy.com/product/dell-plus-copilot-pc-16-2k-2-in-1-.../
 - SKU phai la dang so (VD: `6615731`), KHONG phai slug (VD: `JJGGLH7HXW`)
 - priceBlocks ho tro batch (nhieu SKU/request), v2 chi 1 SKU/request
 - Mot so SKU co the inactive -> priceBlocks tra ve error, can skip
+- Cerebras goi qua `litellm.acompletion()` (async), response_format nam trong `extra_body`
 
 ## Next Step
 
-Integrate vao `bestbuy_deals.py` - thay the `filter_sale_urls()` (dung requests, bi block) bang pipeline moi dung curl_cffi + APIs.
+Integrate vao `bestbuy_deals.py` va `multi_source_planning_agent.py`:
+- Thay `filter_sale_urls()` (requests, bi block) bang `search_bestbuy()` + `get_price_blocks()`
+- Thay `scrape_bestbuy_products()` (Playwright, bi block) bang `get_product_details()`
+- Xem xet thay `BestBuyScannerAgent` (GPT-5-mini) bang Cerebras
