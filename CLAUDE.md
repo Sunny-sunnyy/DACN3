@@ -46,8 +46,8 @@ All active code lives in `segment4/`. Other dirs (`base/`, `ghi_chu/`, `sandbox/
 
 ### Two Applications
 
-1. **`search_key.py`** — User enters keyword → ClarificationAgent asks 3 questions → 6-step pipeline searches, scrapes, estimates prices → results table
-2. **`price_is_right.py`** — Autonomous: timer scans DealNews RSS → selects top deals → estimates prices → deduplicates via `memory.json` → sends push notifications
+1. **`search_key.py`** — User enters keyword → ClarificationAgent asks 3 questions → 6-step pipeline searches, scrapes, estimates prices → results table (The relevant documents: "segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md")
+2. **`price_is_right.py`** — Autonomous: timer scans DealNews RSS → selects top deals → estimates prices → deduplicates via `memory.json` → sends push notifications (The relevant documents: "segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md")
 
 ### Three-Layer Architecture
 
