@@ -1,242 +1,192 @@
 """
 BestBuy Deals Module
 
-This module contains classes and functions for scraping BestBuy products:
-- ScrapedBestBuyDeal: Data class for raw scraped product data
-- is_on_sale(): Check if a BestBuy product is on sale
-- filter_sale_urls(): Filter URLs to keep only sale products
-- scrape_bestbuy_products(): Scrape product details using Playwright
+Scrapes BestBuy products using curl_cffi + internal APIs (not Playwright).
+Product pages are blocked from WSL2 due to HTTP/2 incompatibility with Akamai CDN,
+so we use BestBuy's search page + priceBlocks API + v2 product API instead.
+
+Pipeline:
+1. search_bestbuy() - Search via /site/searchpage.jsp, parse Apollo SSR cache -> skuIds
+2. get_price_blocks() - Batch API -> price, brand, name, onSale
+3. get_product_details() - Per-SKU API -> features, clean URL
+4. search_filter_scrape_bestbuy() - Combined: search + filter sale + scrape details
 """
 
 import re
-import time
 import logging
-import requests
-from typing import Optional, List
-from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
+from typing import Optional
+
+from curl_cffi import requests as curl_requests
 
 
-# Logging setup
 logger = logging.getLogger(__name__)
 
 
 class ScrapedBestBuyDeal:
-    """
-    A class to represent a Deal scraped from BestBuy using Playwright.
-    This is the raw data before being processed by GPT.
-    
-    Attributes:
-        title: Product title (max 200 chars)
-        brand: Product brand (optional)
-        price: Sale price in USD
-        features: Product features text (max 1500 chars)
-        url: BestBuy product URL
-    """
-    
+    """Raw scraped product data from BestBuy APIs."""
+
     title: str
     brand: Optional[str]
     price: float
     features: str
     url: str
-    
-    def __init__(
-        self,
-        title: str,
-        brand: Optional[str],
-        price: float,
-        features: str,
-        url: str
-    ):
-        """
-        Initialize with scraped data from BestBuy product page.
-        
-        Args:
-            title: Product title
-            brand: Product brand (optional)
-            price: Sale price in USD
-            features: Product features/description text
-            url: BestBuy product URL
-        """
+
+    def __init__(self, title: str, brand: Optional[str], price: float, features: str, url: str):
         self.title = title[:200] if title else "Unknown"
         self.brand = brand.strip() if brand else None
         self.price = price
         self.features = features[:1500] if features else ""
         self.url = url
-    
+
     def __repr__(self) -> str:
-        """Return a short string description."""
         return f"<{self.title[:50]}... | ${self.price}>"
-    
+
     def describe(self) -> str:
-        """
-        Return a longer string to describe this deal for use in calling a model.
-        Similar to ScrapedDeal.describe() format.
-        
-        Returns:
-            Formatted string with Title, Brand, Price, Features, URL
-        """
+        """Format for LLM prompt."""
         parts = [f"Title: {self.title}"]
-        
         if self.brand:
             parts.append(f"Brand: {self.brand}")
-        
         parts.append(f"Price: ${self.price:.2f}")
-        
         if self.features and len(self.features) > 10:
             parts.append(f"Features: {self.features.strip()}")
-        
         parts.append(f"URL: {self.url}")
-        
         return "\n".join(parts)
 
 
-def is_on_sale(url: str, timeout: int = 10) -> bool:
-    """
-    Check if a BestBuy product is currently on sale.
-    
-    Uses BeautifulSoup to check for sale indicators in the HTML:
-    - data-testid="price-block-total-savings-text" (savings amount)
-    - data-lu-target="comp_value" (comparison value)
-    
-    Args:
-        url: BestBuy product URL
-        timeout: Request timeout in seconds (default: 10)
-        
-    Returns:
-        True if product is on sale, False otherwise
-    """
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=timeout)
-        soup = BeautifulSoup(response.content, "html.parser")
-        
-        # Check for sale indicators
-        savings_elem = soup.find(attrs={"data-testid": "price-block-total-savings-text"})
-        comp_value_elem = soup.find(attrs={"data-lu-target": "comp_value"})
-        
-        return savings_elem is not None or comp_value_elem is not None
-        
-    except Exception as e:
-        logger.warning(f"Error checking sale status for {url}: {e}")
-        return False
+def _init_session() -> curl_requests.Session:
+    """Create curl_cffi session with Chrome impersonation and bypass country selection."""
+    session = curl_requests.Session(impersonate="chrome")
+    session.get("https://www.bestbuy.com/?intl=nosplash", timeout=15)
+    return session
 
 
-def filter_sale_urls(urls: List[str], delay: float = 0.05) -> List[str]:
-    """
-    Filter list of BestBuy URLs to keep only products currently on sale.
-    
-    Args:
-        urls: List of BestBuy product URLs
-        delay: Delay between requests in seconds (default: 0.05)
-        
-    Returns:
-        List of URLs for products that are on sale
-    """
-    sale_urls = []
-    
-    for i, url in enumerate(urls, 1):
-        if is_on_sale(url):
-            sale_urls.append(url)
-            logger.info(f"[{i}/{len(urls)}] SALE")
-        else:
-            logger.info(f"[{i}/{len(urls)}] Skip")
-        
-        time.sleep(delay)
-    
-    logger.info(f"Filtered {len(urls)} URLs → {len(sale_urls)} sale URLs")
-    return sale_urls
+def search_bestbuy(session: curl_requests.Session, keyword: str) -> list[dict]:
+    """Search BestBuy, parse Apollo SSR cache, return list of {skuId, pdpUrl}."""
+    url = f"https://www.bestbuy.com/site/searchpage.jsp?st={keyword.replace(' ', '+')}"
+    logger.info(f"[BestBuy Search] {url}")
 
+    resp = session.get(url, timeout=20)
+    logger.info(f"[BestBuy Search] Status: {resp.status_code} | Size: {len(resp.content):,} bytes")
 
-async def scrape_bestbuy_products(
-    urls: List[str],
-    headless: bool = False
-) -> List[ScrapedBestBuyDeal]:
-    """
-    Scrape BestBuy products and return as List[ScrapedBestBuyDeal].
-    
-    Uses Playwright to:
-    1. Navigate to each product page
-    2. Extract title, brand, price
-    3. Click "Features" button and extract feature text
-    4. Return list of ScrapedBestBuyDeal objects
-    
-    Args:
-        urls: List of BestBuy product URLs (preferably sale items)
-        headless: Run browser in headless mode (default: False for reliability)
-        
-    Returns:
-        List[ScrapedBestBuyDeal] - Raw scraped data from each product
-    """
-    scraped_deals = []
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=headless,
-            args=['--disable-blink-features=AutomationControlled', '--no-sandbox']
-        )
-        context = await browser.new_context(
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            viewport={'width': 1920, 'height': 1080}
-        )
-        page = await context.new_page()
-        
-        for i, url in enumerate(urls, 1):
-            logger.info(f"[{i}/{len(urls)}] Scraping: {url[:60]}...")
-            
-            try:
-                await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(2000)
-                
-                # Extract Title
-                title_elem = page.locator("h1.h4")
-                title = await title_elem.text_content() if await title_elem.count() > 0 else "Unknown"
-                title = title.strip() if title else "Unknown"
-                
-                # Extract Brand
-                brand_elem = page.locator('div[data-component-name="ProductHeader"] a.c-button-link')
-                brand = await brand_elem.first.text_content() if await brand_elem.count() > 0 else None
-                brand = brand.strip() if brand else None
-                
-                # Extract Sale Price
-                price_elem = page.locator('[data-testid="price-block-customer-price"] span')
-                price_text = await price_elem.first.text_content() if await price_elem.count() > 0 else "$0"
-                price_match = re.search(r'[\d,]+\.?\d*', price_text.replace(',', ''))
-                price = float(price_match.group()) if price_match else 0.0
-                
-                # Click Features button and extract
-                features = ""
-                features_btn = page.locator('button:has(h3:text("Features"))')
-                
-                if await features_btn.count() > 0:
-                    await features_btn.first.click()
-                    try:
-                        await page.locator('[data-testid="brix-sheet-content"]').wait_for(timeout=5000)
-                        features_elem = page.locator('[data-testid="brix-sheet-content"]')
-                        features = await features_elem.first.text_content() or ""
-                    except Exception:
-                        pass
-                    await page.keyboard.press("Escape")
-                    await page.wait_for_timeout(500)
-                
-                # Create ScrapedBestBuyDeal
-                deal = ScrapedBestBuyDeal(
-                    title=title,
-                    brand=brand,
-                    price=price,
-                    features=features,
-                    url=url
-                )
-                scraped_deals.append(deal)
-                logger.info(f"  ✓ {deal}")
-                
-            except Exception as e:
-                logger.warning(f"  ✗ Error scraping {url}: {e}")
+    text = resp.text
+    products = {}
+
+    all_skus = set(re.findall(r'"skuId":"(\d{5,8})"', text))
+
+    for sku_id in all_skus:
+        pattern = rf'"skuId":"{sku_id}"\}},"pdpUrl":"(https://www\.bestbuy\.com/product/[^"]+)"'
+        for m in re.finditer(pattern, text):
+            pdp_url = m.group(1)
+            if "openbox" in pdp_url or "refurbished" in pdp_url:
                 continue
-        
-        await browser.close()
-    
-    logger.info(f"Successfully scraped {len(scraped_deals)}/{len(urls)} products")
+            clean_url = re.sub(r'/sku/\d+/?$', '', pdp_url)
+            products[sku_id] = {"skuId": sku_id, "pdpUrl": clean_url}
+            break
+
+    for sku_id in all_skus:
+        if sku_id not in products:
+            products[sku_id] = {"skuId": sku_id, "pdpUrl": ""}
+
+    result = list(products.values())
+    logger.info(f"[BestBuy Search] Found {len(result)} unique SKUs")
+    return result
+
+
+def get_price_blocks(session: curl_requests.Session, sku_ids: list[str]) -> dict:
+    """Batch fetch price+brand+name for multiple SKUs. Returns {skuId: data}."""
+    skus_param = ",".join(sku_ids)
+    url = f"https://www.bestbuy.com/api/3.0/priceBlocks?skus={skus_param}"
+    logger.info(f"[BestBuy PriceBlocks] Fetching {len(sku_ids)} SKUs")
+
+    resp = session.get(url, timeout=15, headers={"Accept": "application/json"})
+
+    results = {}
+    for item in resp.json():
+        sku = item.get("sku", {})
+        if "error" in item:
+            continue
+
+        sku_id = sku.get("buttonState", {}).get("skuId", "")
+        price_data = sku.get("price", {})
+        price_domain = price_data.get("priceDomain", {})
+
+        results[sku_id] = {
+            "brand": sku.get("brand", {}).get("brand", ""),
+            "name": sku.get("names", {}).get("short", ""),
+            "currentPrice": price_data.get("currentPrice", 0),
+            "regularPrice": price_data.get("regularPrice", 0),
+            "savingsAmount": price_data.get("savingsAmount", 0),
+            "totalSavingsPercent": price_domain.get("totalSavingsPercent", 0),
+            "onSale": price_data.get("pricingType") == "onSale",
+        }
+
+    logger.info(f"[BestBuy PriceBlocks] Got {len(results)}/{len(sku_ids)} SKUs")
+    return results
+
+
+def get_product_details(session: curl_requests.Session, sku_id: str) -> dict:
+    """Fetch features + URL for a single SKU from /api/v2/product/."""
+    url = f"https://www.bestbuy.com/api/v2/product/{sku_id}"
+    resp = session.get(url, timeout=10, headers={"Accept": "application/json"})
+
+    if resp.status_code != 200:
+        return {"features": "", "url": ""}
+
+    data = resp.json()
+    product_url = data.get("links", {}).get("seoPdpUrl", {}).get("href", "")
+
+    features_list = data.get("features", [])
+    parts = []
+    for f in features_list:
+        title = f.get("title", "")
+        desc = f.get("description", "")
+        if title and desc:
+            parts.append(f"{title}: {desc}")
+        elif title:
+            parts.append(title)
+
+    return {"features": ". ".join(parts), "url": product_url}
+
+
+def search_filter_scrape_bestbuy(
+    keyword: str, max_results: int = 10
+) -> list[ScrapedBestBuyDeal]:
+    """Combined: search BestBuy + filter sale items + scrape details.
+
+    Returns list of ScrapedBestBuyDeal for products currently on sale.
+    """
+    session = _init_session()
+
+    # Step 1: Search -> skuIds
+    apollo_products = search_bestbuy(session, keyword)
+    if not apollo_products:
+        logger.info("[BestBuy] No products found")
+        return []
+
+    # Step 2: Batch price check
+    sku_ids = [p["skuId"] for p in apollo_products]
+    price_data = get_price_blocks(session, sku_ids)
+
+    # Step 2+3 combined: filter on sale -> scrape features immediately
+    scraped_deals = []
+    for sku, pd in price_data.items():
+        if not pd["onSale"]:
+            continue
+
+        details = get_product_details(session, sku)
+
+        deal = ScrapedBestBuyDeal(
+            title=pd["name"],
+            brand=pd["brand"],
+            price=pd["currentPrice"],
+            features=details["features"] or pd["name"],
+            url=details["url"] or f"https://www.bestbuy.com/site/{sku}.p",
+        )
+        scraped_deals.append(deal)
+        logger.info(f"[BestBuy] SALE: ${pd['currentPrice']} | {pd['name'][:60]}")
+
+        if len(scraped_deals) >= max_results:
+            break
+
+    logger.info(f"[BestBuy] Found {len(scraped_deals)} sale products")
     return scraped_deals
