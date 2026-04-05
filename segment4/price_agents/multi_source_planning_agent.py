@@ -8,11 +8,9 @@ Handles the pipeline:
 4. Estimate prices (EnsembleAgent)
 """
 
-import asyncio
 import logging
 import time
-from typing import List, Tuple, Optional
-from concurrent.futures import ThreadPoolExecutor
+from typing import List, Optional
 
 from price_agents.agent import Agent
 from price_agents.deals import Deal, DealSelection, Opportunity
@@ -25,13 +23,13 @@ from price_agents.bestbuy_deals import (
     search_filter_scrape_bestbuy,
 )
 
-# Amazon: still uses Brave MCP + Playwright
-from price_agents.amazon_deals import (
-    ScrapedAmazonDeal,
-    filter_amazon_sale_urls_playwright,
-    scrape_amazon_products,
-)
-from price_agents.amazon_scanner_agent import AmazonSearchAgent
+# --- Amazon disabled for now (will re-enable after Amazon pipeline rework) ---
+# from price_agents.amazon_deals import (
+#     ScrapedAmazonDeal,
+#     filter_amazon_sale_urls_playwright,
+#     scrape_amazon_products,
+# )
+# from price_agents.amazon_scanner_agent import AmazonSearchAgent
 
 from bestbuy_untils.unified_deal import UnifiedScrapedDeal
 from bestbuy_untils.multi_source_scanner_agent import MultiSourceScannerAgent
@@ -62,62 +60,18 @@ class MultiSourcePlanningAgent(Agent):
         self.log(f"[BestBuy] Got {len(deals)} sale products")
         return deals
 
-    def _amazon_pipeline(self, keyword: str, max_urls: int) -> List[ScrapedAmazonDeal]:
-        """Amazon: search (Brave MCP) + filter + scrape (Playwright)."""
-        self.log(f"[Amazon] Starting search for '{keyword}'...")
-        search_agent = AmazonSearchAgent()
-        urls = search_agent.search(keyword, max_urls=max_urls)
-        self.log(f"[Amazon] Found {len(urls)} URLs")
-
-        if not urls:
-            return []
-
-        loop = self._get_event_loop()
-
-        # Filter sale items
-        self.log(f"[Amazon] Filtering {len(urls)} URLs (Playwright)...")
-        sale_items = loop.run_until_complete(
-            filter_amazon_sale_urls_playwright(urls, headless=True)
-        )
-        self.log(f"[Amazon] {len(sale_items)} sale items")
-
-        if not sale_items:
-            return []
-
-        # Scrape details
-        self.log(f"[Amazon] Scraping {len(sale_items)} products...")
-        scraped = loop.run_until_complete(
-            scrape_amazon_products(sale_items, headless=True)
-        )
-        self.log(f"[Amazon] Scraped {len(scraped)} products")
-        return scraped
-
-    def _get_event_loop(self):
-        try:
-            return asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return loop
+    # --- Amazon pipeline disabled for now ---
+    # def _amazon_pipeline(self, keyword, max_urls):
+    #     ...
 
     def search_and_scrape(
         self, keyword: str, max_urls: int = 10
-    ) -> Tuple[List[ScrapedBestBuyDeal], List[ScrapedAmazonDeal]]:
-        """Run BestBuy and Amazon pipelines in parallel."""
-        self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy + Amazon parallel)...")
-
-        bb_deals = []
-        az_deals = []
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            future_bb = executor.submit(self._bestbuy_pipeline, keyword, max_urls)
-            future_az = executor.submit(self._amazon_pipeline, keyword, max_urls)
-
-            bb_deals = future_bb.result(timeout=600)
-            az_deals = future_az.result(timeout=600)
-
-        self.log(f"Total: {len(bb_deals)} BestBuy + {len(az_deals)} Amazon")
-        return bb_deals, az_deals
+    ) -> List[ScrapedBestBuyDeal]:
+        """Search and scrape BestBuy. Amazon disabled for now."""
+        self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy only)...")
+        bb_deals = self._bestbuy_pipeline(keyword, max_urls)
+        self.log(f"Total: {len(bb_deals)} BestBuy products")
+        return bb_deals
 
     # =========================================================================
     # PIPELINE STEP 2: COMBINE
@@ -126,16 +80,16 @@ class MultiSourcePlanningAgent(Agent):
     def combine(
         self,
         bb_deals: List[ScrapedBestBuyDeal],
-        az_deals: List[ScrapedAmazonDeal],
     ) -> List[UnifiedScrapedDeal]:
-        """Combine BestBuy + Amazon into unified pool."""
-        self.log("[Step 2/4] Combining products from both sources...")
+        """Convert BestBuy deals to unified pool. Amazon disabled for now."""
+        self.log("[Step 2/4] Converting to unified format (BestBuy only)...")
         unified = []
         for deal in bb_deals:
             unified.append(UnifiedScrapedDeal.from_bestbuy(deal))
-        for deal in az_deals:
-            unified.append(UnifiedScrapedDeal.from_amazon(deal))
-        self.log(f"Combined pool: {len(unified)} products")
+        # --- Amazon disabled ---
+        # for deal in az_deals:
+        #     unified.append(UnifiedScrapedDeal.from_amazon(deal))
+        self.log(f"Unified pool: {len(unified)} products")
         return unified
 
     # =========================================================================
@@ -190,15 +144,15 @@ class MultiSourcePlanningAgent(Agent):
 
         # Step 1: Search + Filter + Scrape
         t0 = time.time()
-        bb_deals, az_deals = self.search_and_scrape(keyword, max_urls)
+        bb_deals = self.search_and_scrape(keyword, max_urls)
         self.log(f"[TIMER] Step 1 (Search+Filter+Scrape) completed in {time.time() - t0:.1f}s")
-        if not bb_deals and not az_deals:
+        if not bb_deals:
             self.log("No products found. Try a different keyword.")
             return []
 
         # Step 2: Combine
         t0 = time.time()
-        unified_deals = self.combine(bb_deals, az_deals)
+        unified_deals = self.combine(bb_deals)
         self.log(f"[TIMER] Step 2 (Combine) completed in {time.time() - t0:.1f}s")
         if not unified_deals:
             self.log("No products to combine.")

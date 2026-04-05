@@ -60,8 +60,8 @@ class App:
         setup_logging(log_q)
 
         log_data = initial_log.copy() if initial_log else []
-        log_data.append(f"Starting MULTI-SOURCE search: {query}")
-        log_data.append("Sources: BestBuy + Amazon")
+        log_data.append(f"Starting search: {query}")
+        log_data.append("Source: BestBuy")
 
         def worker():
             opps = self.get_framework().run(query, self.current_max_urls)
@@ -114,8 +114,8 @@ class App:
             log_state = gr.State([])
 
             gr.Markdown("""
-            # Multi-Source Deal Finder
-            Search on **BOTH** BestBuy AND Amazon simultaneously!
+            # BestBuy Deal Finder
+            Search for the best deals on BestBuy!
             """)
 
             # Keyword Input + Search
@@ -183,7 +183,7 @@ class App:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Multi-Source Deal Finder - Starting...")
-    print("Sources: BestBuy + Amazon")
+    print("BestBuy Deal Finder - Starting...")
+    print("Source: BestBuy")
     print("=" * 60)
     App().run()
