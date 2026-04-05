@@ -95,9 +95,17 @@ Thay doi so voi buoc1.ipynb:
 - Mot so SKU co the inactive -> priceBlocks tra ve error, can skip
 - Cerebras goi qua `litellm.acompletion()` (async), response_format nam trong `extra_body`
 
-## Next Step
+## Integrated (2026-04-05)
 
-Integrate vao `bestbuy_deals.py` va `multi_source_planning_agent.py`:
-- Thay `filter_sale_urls()` (requests, bi block) bang `search_bestbuy()` + `get_price_blocks()`
-- Thay `scrape_bestbuy_products()` (Playwright, bi block) bang `get_product_details()`
-- Xem xet thay `BestBuyScannerAgent` (GPT-5-mini) bang Cerebras
+Da tich hop vao code chinh (commit `ef9084c`):
+
+| File | Thay doi |
+|------|----------|
+| `bestbuy_deals.py` | Xoa `requests`/`BeautifulSoup`/`Playwright`. Them `search_bestbuy()`, `get_price_blocks()`, `get_product_details()`, `search_filter_scrape_bestbuy()` (gop 3 buoc) |
+| `multi_source_planning_agent.py` | Bo `BestBuySearchAgent` (Brave MCP). Pipeline 6 buoc -> 4 buoc. Amazon tam an |
+| `multi_source_scanner_agent.py` | Chuyen GPT-5-mini (OpenAI) -> Cerebras (`openrouter/openai/gpt-oss-120b`) via LiteLLM |
+| `multi_source_framework.py` | Bo clarification |
+| `search_key.py` | Bo UI 3 cau hoi. Chuyen `gr.Dataframe` -> `gr.HTML` (URL clickable) |
+| `gradio_helpers.py` | Them `opportunities_to_html()` voi link clickable |
+
+**Ket qua chay thuc te:** Pipeline hoan thanh trong **95.7s (1.6 min)** — giam tu 375.9s (6.3 min)

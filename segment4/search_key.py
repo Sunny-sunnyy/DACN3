@@ -19,7 +19,7 @@ from bestbuy_untils.gradio_helpers import (
     QueueHandler,
     setup_logging,
     html_for_logs,
-    opportunities_to_table,
+    opportunities_to_html,
 )
 
 load_dotenv(override=True)
@@ -45,7 +45,7 @@ class App:
     def search_handler(self, keyword: str, max_urls: int, log_data: List[str]):
         """Handle search button click - run full pipeline."""
         if not keyword or len(keyword.strip()) < 2:
-            yield [], "Please enter a keyword (at least 2 characters)", html_for_logs(["Error: keyword too short"])
+            yield "", "Please enter a keyword (at least 2 characters)", html_for_logs(["Error: keyword too short"])
             return
 
         self.current_keyword = keyword.strip()
@@ -65,7 +65,7 @@ class App:
 
         def worker():
             opps = self.get_framework().run(query, self.current_max_urls)
-            table = opportunities_to_table(opps)
+            table = opportunities_to_html(opps)
             status = f"Found {len(opps)} deals!" if opps else "No deals found."
             result_q.put((table, status))
 
@@ -88,7 +88,7 @@ class App:
             if final_result:
                 yield final_result[0], final_result[1], html_for_logs(log_data)
             else:
-                yield [], "Processing...", html_for_logs(log_data)
+                yield "", "Processing...", html_for_logs(log_data)
 
             time.sleep(0.1)
 
@@ -143,11 +143,8 @@ class App:
             with gr.Row():
                 with gr.Column(scale=3):
                     gr.Markdown("### Deal Results")
-                    results_table = gr.Dataframe(
-                        headers=["Product", "Sale $", "Estimate $", "Discount $", "Discount %", "URL"],
-                        wrap=True,
-                        column_widths=[4, 1, 1, 1, 1, 2],
-                        max_height=350,
+                    results_table = gr.HTML(
+                        value='<p style="color: #888;">Results will appear here...</p>'
                     )
                 with gr.Column(scale=2):
                     gr.Markdown("### Pipeline Logs")

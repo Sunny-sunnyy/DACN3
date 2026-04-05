@@ -22,120 +22,68 @@ The current pipeline runs ~6.3 min (375.9s). Breakdown:
 
 ---
 
-## Step 1: Fix BestBuy Filter (being blocked)
+## Step 1: Fix BestBuy Filter (being blocked) — DONE
 
 ### Task
-Replace `requests.get()` with Playwright to bypass BestBuy's anti-bot protection.
+Replace `requests.get()` with `curl_cffi` + BestBuy internal APIs.
 
-Currently `filter_sale_urls()` in `bestbuy_deals.py` uses the `requests` library -> BestBuy blocks it -> timeout on 10/10 URLs.
+Product pages bi block tu WSL2 do HTTP/2 incompatibility voi Akamai CDN.
+Giai phap: dung `curl_cffi` (impersonate Chrome) + 3 APIs noi bo thay vi scrape product pages.
 
-In the old notebook (February 2026, file `skipflow.ipynb`), BestBuy filter was still working (11/15 sales). So BestBuy has updated its anti-scraping measures since then.
-
-### How to do it
-1. Reproduce the bug: call `filter_sale_urls(urls)` in the notebook -> confirm 10/10 timeouts
-2. Write a new `filter_bestbuy_sale_urls_playwright()` function using Playwright (similar to `filter_amazon_sale_urls_playwright()`)
-3. Use Playwright with anti-detection args (`--disable-blink-features=AutomationControlled`)
-4. Check for sale by looking for elements: strikethrough price, "Save $XX", "Was $XX"
-5. Test in notebook with 10 URLs from Brave Search
+### Solution (thay doi so voi plan ban dau)
+Plan ban dau: dung Playwright thay requests. Thuc te: Playwright cung bi block tu WSL2.
+Giai phap cuoi cung: `curl_cffi` + BestBuy APIs (search page + priceBlocks + v2 product API).
 
 ### Success Criteria
-- [ ] Reproduce the bug: `requests.get()` timeout 10/10
-- [ ] New function detects products that are ON SALE (>= 5/10 URLs have sale price)
-- [ ] New function does NOT get timed out or blocked
-- [ ] Time to filter 10 URLs < 60s (currently wastes 100s due to timeouts)
+- [x] Reproduce the bug: `requests.get()` timeout 10/10
+- [x] New function detects products ON SALE (7/136 SKUs on sale with keyword "laptop")
+- [x] New function does NOT get timed out or blocked
+- [x] Time to filter+scrape < 10s (cu: 100s timeout)
 
-### How to verify
-- Run notebook with keyword "laptop" or "Samsung smartphone"
-- Compare old result (0/10) vs new (>= 5/10)
-- Print: URL, whether on sale, sale price, original price
+### Integrated
+- `bestbuy_deals.py`: xoa `requests`/`BeautifulSoup`/`Playwright`, them `curl_cffi` + APIs
+- `multi_source_planning_agent.py`: bo `BestBuySearchAgent`, pipeline 6->4 buoc
+- `multi_source_scanner_agent.py`: GPT-5-mini -> Cerebras via LiteLLM
+- `search_key.py`: bo clarification, URL clickable
+- Pipeline: 375.9s -> **95.7s**
 
 ### Files
-- Notebook: `buoc1_fix_bestbuy_filter.ipynb`
-- After OK -> update: `price_agents/bestbuy_deals.py`
+- `buoc1.py`: 3 functions doc lap (unit test)
+- `buoc1.ipynb`: Full pipeline test voi GPT-5-mini
+- `buoc1a.ipynb`: Optimized pipeline: gop Step 2+3, Cerebras thay GPT-5-mini
 
 ---
 
-## Step 2: Optimize Step 1 — Direct Brave Search (replace MCP)
+## Step 2: Optimize Step 1 — Direct Brave Search (replace MCP) — PARTIALLY DONE
 
-### Task
-Replace Brave MCP Server (which spawns an npx process) with a direct call to the Brave Search REST API.
+### Status
+- **BestBuy**: KHONG CAN Brave Search nua. Step 1 da thay bang `curl_cffi` search truc tiep tren bestbuy.com (~4s).
+- **Amazon**: VAN CON dung Brave MCP (cham ~60-70s). Can thay bang Brave REST API hoac tuong tu BestBuy.
+- Amazon hien dang **tam an** (commit `566544e`), se fix khi re-enable.
 
-Currently `BestBuySearchAgent` and `AmazonSearchAgent` both:
-1. Spawn an npx process for `@modelcontextprotocol/server-brave-search`
-2. Communicate via stdio (MCP protocol)
-3. Call the OpenAI Agent SDK to control the MCP tool
-
-This process takes ~73s. The Brave REST API only needs 1 HTTP request, taking ~2-3s.
-
-### How to do it
-1. Reproduce: measure current search time in notebook (confirm ~60-70s)
-2. Call Brave Search REST API directly: `GET https://api.search.brave.com/res/v1/web/search`
-3. Parse JSON result, extract product URLs with regex:
-   - BestBuy: `https://www.bestbuy.com/product/...`
-   - Amazon: `https://www.amazon.com/.../dp/XXXXXXXXXX`
-4. No need for OpenAI Agent SDK, no need for MCP, no need for npx
-5. Test in notebook: compare number of URLs and quality
-
-### Success Criteria
-- [ ] Brave REST API returns >= 10 URLs per source
-- [ ] Search time < 10s (currently 73s)
-- [ ] Valid URLs (correct BestBuy/Amazon product page format)
-- [ ] No npx process spawning required
-
-### How to verify
-- Run notebook with keywords "laptop", "Samsung smartphone", "headphones"
-- Measure time: current vs new
-- Compare quantity and quality of URLs
+### Remaining Task (chi Amazon)
+1. Call Brave Search REST API: `GET https://api.search.brave.com/res/v1/web/search`
+2. Parse JSON, extract Amazon URLs: `https://www.amazon.com/.../dp/XXXXXXXXXX`
+3. Hoac: search truc tiep tren amazon.com tuong tu BestBuy
 
 ### Files
-- Notebook: `buoc2_brave_search_truc_tiep.ipynb`
-- After OK -> update: `price_agents/bestbuy_scanner_agent.py`, `price_agents/amazon_scanner_agent.py`
+- After OK -> update: `price_agents/amazon_scanner_agent.py`
 
 ---
 
 ## Step 3: Optimize Step 2+3 — Reuse Browser Session
 
-### Task
-Currently Step 2 (filter) and Step 3 (scrape) open 2 SEPARATE browsers. Each browser launch requires:
-- Launch Chromium (~3-5s)
-- Call `set_amazon_us_location()` (~5-10s)
-- Close browser after completion
+### Status Update
+- **BestBuy**: KHONG CON dung browser. Da chuyen sang `curl_cffi` + APIs (~8s tong). Buoc nay khong con ap dung cho BestBuy.
+- **Amazon**: VAN CAN optimize. Hien dang tam an, se thuc hien khi re-enable Amazon.
 
-Optimization: use 1 browser session throughout both steps.
-
-### Environment Notes
-- The machine runs Windows, the project runs on WSL Ubuntu
-- Check CPU/RAM/GPU configuration before deciding on the number of parallel tabs
-- Playwright on WSL may need additional configuration (headless mode preferred)
-
-### How to do it
-1. Check machine specs (CPU cores, RAM, GPU) in notebook
-2. Write a combined `filter_and_scrape_amazon()` function:
-   - Open 1 browser
-   - Set US location once
-   - Filter URLs (keep sale items + price_info)
-   - Scrape product details (same browser, same page)
-   - Close browser
-3. Similarly for BestBuy: `filter_and_scrape_bestbuy()` (using Playwright from Step 1)
-4. Consider scraping in parallel across multiple tabs (depending on machine specs):
-   - If RAM >= 16GB: can open 3-4 tabs in parallel
-   - If RAM < 16GB: run sequentially but reuse browser
-
-### Success Criteria
-- [ ] Only 1 browser opened for Amazon (instead of 2)
-- [ ] `set_amazon_us_location()` called only once (instead of 2)
-- [ ] Time for Step 2+3 Amazon < 80s (currently ~110s = 70s filter + 41s scrape)
-- [ ] Scrape results match the old ones (same number of products, accurate prices)
-
-### How to verify
-- Run notebook with 8-10 Amazon URLs
-- Measure time: old (2 browsers) vs new (1 browser)
-- Confirm USD prices are accurate (not VND)
-- Confirm `set_amazon_us_location()` only runs once
+### Remaining Task (chi Amazon)
+1. Gop `filter_amazon_sale_urls_playwright()` + `scrape_amazon_products()` thanh 1 ham
+2. Mo 1 browser, set US location 1 lan, filter+scrape cung luc
+3. Target: Step 2+3 Amazon < 80s (cu: ~110s)
 
 ### Files
-- Notebook: `buoc3_reuse_browser.ipynb`
-- After OK -> update: `price_agents/amazon_deals.py`, `price_agents/bestbuy_deals.py`, `price_agents/multi_source_planning_agent.py`
+- After OK -> update: `price_agents/amazon_deals.py`, `price_agents/multi_source_planning_agent.py`
 
 ---
 
@@ -209,25 +157,23 @@ After all 4 steps above have been tested OK in notebooks, update the main code.
 ## Execution Order
 
 ```
-Step 2 (Direct Brave)      -->  fastest win, saves 60s
+Step 1 (Fix BestBuy)       -->  DONE - curl_cffi + APIs
+Step 5 (Integrate .py)     -->  DONE - da tich hop, bo clarification, Cerebras, URL clickable
     |
-Step 1 (Fix BestBuy)       -->  fix critical bug
+Step 2 (Direct Brave)      -->  chi con Amazon (BestBuy xong)
     |
-Step 3 (Reuse browser)     -->  optimize scraping
+Step 3 (Reuse browser)     -->  chi con Amazon (BestBuy khong con dung browser)
     |
-Step 4 (Parallel ensemble) -->  optimize estimation
-    |
-Step 5 (Integrate .py)     -->  final integration
+Step 4 (Parallel ensemble) -->  chua lam
 ```
 
-## Expected Time After Optimization
+## Actual Time After Step 1 Integration (BestBuy only, Amazon tam an)
 
-| Step | Current | Expected | Savings |
-|------|---------|----------|---------|
-| Step 1: Search | 73s | ~10s | 63s |
-| Step 2: Filter BestBuy | 100s waste | ~40s (Playwright) | 60s |
-| Step 2: Filter Amazon | 70s | (merged with Step 3) | — |
-| Step 3-4: Scrape | 41s | ~50s (merged filter+scrape) | 61s |
-| Step 5: Select | 29s | 29s | 0s |
-| Step 6: Estimate | 45.7s | ~30s | 15s |
-| **TOTAL** | **375.9s (6.3 min)** | **~170s (2.8 min)** | **~200s** |
+| Step | Before | After | Savings |
+|------|--------|-------|---------|
+| Search+Filter+Scrape BestBuy | 173s (search 73s + filter 100s timeout) | ~8s (curl_cffi + APIs) | 165s |
+| Select top 5 | 29s (GPT-5-mini) | ~17s (Cerebras) | 12s |
+| Estimate | 45.7s | ~50s | -4s |
+| **TOTAL (BestBuy only)** | **375.9s (6.3 min)** | **95.7s (1.6 min)** | **280s** |
+
+Ghi chu: thoi gian thuc te 95.7s bao gom ca init agents (~10s lan dau).

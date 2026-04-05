@@ -132,38 +132,52 @@ def format_questions_html(questions: List[ClarificationQuestion]) -> str:
 # TABLE FORMATTERS
 # ============================================================================
 
-def opportunities_to_table(opportunities: List[Opportunity]) -> list:
+def opportunities_to_html(opportunities: List[Opportunity]) -> str:
+    """Convert opportunities to an HTML table with clickable URLs."""
+    if not opportunities:
+        return '<p style="color: #888;">No deals found.</p>'
+
+    header = """
+    <table style="width:100%; border-collapse:collapse; font-size:14px; color:#e0e0e0;">
+    <thead>
+    <tr style="background:#2a2a4a; text-align:left;">
+        <th style="padding:8px; border-bottom:1px solid #444;">Product</th>
+        <th style="padding:8px; border-bottom:1px solid #444;">Sale $</th>
+        <th style="padding:8px; border-bottom:1px solid #444;">Estimate $</th>
+        <th style="padding:8px; border-bottom:1px solid #444;">Discount $</th>
+        <th style="padding:8px; border-bottom:1px solid #444;">Discount %</th>
+        <th style="padding:8px; border-bottom:1px solid #444;">URL</th>
+    </tr>
+    </thead>
+    <tbody>
     """
-    Convert opportunities to data for Gradio Dataframe.
-    
-    Formats each opportunity with sale price, estimate, discount, and status icon.
-    
-    Args:
-        opportunities: List of Opportunity objects
-        
-    Returns:
-        List of rows: [Product, Sale $, Estimate $, Discount $, Discount %, URL]
-    """
-    rows = []
+
+    rows_html = ""
     for opp in opportunities:
         discount_pct = (opp.discount / opp.estimate * 100) if opp.estimate > 0 else 0
-        
-        # Status icon based on discount amount
+
         if opp.discount > 200:
-            status = "🔥"  # Hot deal
+            status = "HOT"
         elif opp.discount > 100:
-            status = "✅"  # Good deal
+            status = "Good"
         elif opp.discount > 0:
-            status = "👍"  # Positive discount
+            status = "OK"
         else:
-            status = "❌"  # Overpriced
-        
-        rows.append([
-            opp.deal.product_description[:60] + "...",
-            f"${opp.deal.price:.2f}",
-            f"${opp.estimate:.2f}",
-            f"${opp.discount:.2f}",
-            f"{discount_pct:.1f}% {status}",
-            opp.deal.url
-        ])
-    return rows
+            status = "Overpriced"
+
+        url = opp.deal.url
+        link = f'<a href="{url}" target="_blank" style="color:#87CEEB;">Link</a>'
+        desc = opp.deal.product_description[:80].replace("<", "&lt;") + "..."
+
+        rows_html += f"""
+        <tr style="border-bottom:1px solid #333;">
+            <td style="padding:8px;">{desc}</td>
+            <td style="padding:8px;">${opp.deal.price:.2f}</td>
+            <td style="padding:8px;">${opp.estimate:.2f}</td>
+            <td style="padding:8px;">${opp.discount:.2f}</td>
+            <td style="padding:8px;">{discount_pct:.1f}% {status}</td>
+            <td style="padding:8px;">{link}</td>
+        </tr>
+        """
+
+    return header + rows_html + "</tbody></table>"
