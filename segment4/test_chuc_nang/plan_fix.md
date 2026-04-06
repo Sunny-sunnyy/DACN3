@@ -89,12 +89,43 @@ Plan ban dau: dung Brave REST API. Thuc te: search truc tiep tren amazon.com (gi
 
 ---
 
-## Step 3: Optimize Step 2+3 — Reuse Browser Session — KHONG CON CAN
+## Step 3: Source Selection UI — Cho user chon nguon scrape — CHUA LAM
 
-### Status Update
-- **BestBuy**: KHONG CON dung browser. Da chuyen sang `curl_cffi` + APIs (~8s tong).
-- **Amazon**: KHONG CON dung browser. Da chuyen sang `curl_cffi` + HTML parsing (~2s).
-- Buoc nay **da duoc giai quyet** boi Step 1 (BestBuy) va Step 2 (Amazon) — ca 2 deu dung curl_cffi, khong con Playwright.
+### Task
+Them option cho nguoi dung chon scrape o dau: BestBuy, Amazon, hoac ca 2 (Both).
+
+### How to do it
+
+**1. UI (`search_key.py`):**
+- Them `gr.Radio` hoac `gr.Dropdown` voi 3 lua chon: "Both", "BestBuy", "Amazon" (default: "Both")
+- Truyen gia tri `source` vao `framework.run(keyword, max_urls, source)`
+- Cap nhat title/text UI phan anh lua chon
+
+**2. Framework (`multi_source_framework.py`):**
+- Them tham so `source` vao `run(keyword, max_urls, source="both")`
+- Truyen xuong `planner.plan(keyword, max_urls, source)`
+
+**3. Pipeline (`multi_source_planning_agent.py`):**
+- `search_and_scrape(keyword, max_results, source)`:
+  - `source="both"` -> ThreadPoolExecutor chay 2 pipeline (hien tai)
+  - `source="bestbuy"` -> chi goi `_bestbuy_pipeline()`
+  - `source="amazon"` -> chi goi `_amazon_pipeline()`
+- `combine()` xu ly truong hop 1 list rong (chi 1 nguon)
+
+**4. Scanner (`multi_source_scanner_agent.py`):**
+- Prompt hien tai yeu cau prefix [BestBuy]/[Amazon]. Khi chi 1 nguon, van hoat dong dung (chi co 1 source)
+
+### Success Criteria
+- [ ] User chon "BestBuy" -> chi scrape BestBuy, khong goi Amazon
+- [ ] User chon "Amazon" -> chi scrape Amazon, khong goi BestBuy
+- [ ] User chon "Both" -> chay parallel nhu hien tai
+- [ ] UI hien thi ro nguon dang chon
+- [ ] Pipeline time giam khi chi chon 1 nguon
+
+### Files can sua
+- `search_key.py` — them Radio/Dropdown, truyen source
+- `multi_source_framework.py` — them tham so source
+- `multi_source_planning_agent.py` — logic chon nguon trong search_and_scrape()
 
 ---
 
@@ -166,7 +197,7 @@ Step 5 (Integrate .py)     -->  DONE - da tich hop, bo clarification, Cerebras, 
     |
 Step 2 (Direct Search)     -->  DONE - Amazon curl_cffi, ThreadPoolExecutor parallel, commit c98733d
     |
-Step 3 (Reuse browser)     -->  KHONG CON CAN - ca BestBuy + Amazon deu dung curl_cffi
+Step 3 (Source Selection)  -->  CHUA LAM - UI cho user chon BestBuy/Amazon/Both
     |
 Step 4 (Parallel ensemble) -->  chua lam
 ```
