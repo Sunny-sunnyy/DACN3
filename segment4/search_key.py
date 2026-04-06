@@ -31,7 +31,7 @@ class App:
     def __init__(self):
         self.framework = None
         self.current_keyword = ""
-        self.current_max_urls = 10
+        self.current_max_urls = 6
 
     def get_framework(self):
         if not self.framework:
@@ -49,7 +49,7 @@ class App:
             return
 
         self.current_keyword = keyword.strip()
-        self.current_max_urls = int(max_urls) if max_urls else 10
+        self.current_max_urls = int(max_urls) if max_urls else 6
 
         yield from self._run_pipeline(self.current_keyword, log_data)
 
@@ -61,7 +61,7 @@ class App:
 
         log_data = initial_log.copy() if initial_log else []
         log_data.append(f"Starting search: {query}")
-        log_data.append("Source: BestBuy")
+        log_data.append("Source: BestBuy + Amazon (parallel)")
 
         def worker():
             opps = self.get_framework().run(query, self.current_max_urls)
@@ -114,8 +114,8 @@ class App:
             log_state = gr.State([])
 
             gr.Markdown("""
-            # BestBuy Deal Finder
-            Search for the best deals on BestBuy!
+            # Multi-Source Deal Finder
+            Search for the best deals on BestBuy and Amazon!
             """)
 
             # Keyword Input + Search
@@ -129,7 +129,7 @@ class App:
                     )
                     max_urls_input = gr.Number(
                         label="Max URLs (per source)",
-                        value=10, minimum=5, maximum=20, precision=0, scale=1,
+                        value=6, minimum=3, maximum=20, precision=0, scale=1,
                     )
                     search_btn = gr.Button("Search", variant="primary", scale=1)
 
@@ -180,7 +180,7 @@ class App:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("BestBuy Deal Finder - Starting...")
-    print("Source: BestBuy")
+    print("Multi-Source Deal Finder - Starting...")
+    print("Source: BestBuy + Amazon")
     print("=" * 60)
     App().run()

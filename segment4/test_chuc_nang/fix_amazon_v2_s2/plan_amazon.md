@@ -134,20 +134,30 @@ Thay toan bo Brave MCP + Playwright bang `curl_cffi` (impersonate Chrome) + pars
 
 ---
 
-### Phase 4: Integration (cap nhat code chinh) — CHUA LAM
+### Phase 4: Integration (cap nhat code chinh) — DANG LAM
 
 **Chi thuc hien SAU KHI Phase 3 test OK.** -> Phase 3 da OK.
 
+**Quyet dinh (2026-04-06):**
+- Parallel BestBuy + Amazon: `ThreadPoolExecutor` (ca 2 deu sync curl_cffi)
+- Scanner: dung `MultiSourceScannerAgent` (GPT-5-nano, chon top 3 tu pool chung)
+- `AmazonScannerAgent`: XOA (khong can, MultiSourceScannerAgent da chon tu pool chung)
+- `AmazonSearchAgent`: XOA (khong con dung Brave MCP)
+- `max_results`: 6 cho ca BestBuy va Amazon (truoc BestBuy la 10)
+- UI (`search_key.py`): CHUA SUA — se lam sau de cho user chon BestBuy/Amazon/Both
+
 | File | Thay doi |
 |------|----------|
-| `price_agents/amazon_deals.py` | Them `init_amazon_session()`, `search_amazon()`, `search_filter_scrape_amazon()`. Giu nguyen class `ScrapedAmazonDeal`. Xoa Playwright functions cu |
-| `price_agents/amazon_scanner_agent.py` | Xoa `AmazonSearchAgent` (Brave MCP). Giu `AmazonScannerAgent` hoac chuyen logic vao multi_source_scanner_agent |
-| `price_agents/multi_source_planning_agent.py` | Uncomment Amazon, goi `search_filter_scrape_amazon()`, chay BestBuy + Amazon parallel |
+| `price_agents/amazon_deals.py` | Xoa toan bo Playwright code. Them `init_amazon_session()`, `search_amazon()`, `parse_search_results()`, `scrape_product_page()`, `search_filter_scrape_amazon()` tu `buoc1_search.py`. Giu `ScrapedAmazonDeal` (them method `describe()`) |
+| `price_agents/amazon_scanner_agent.py` | Xoa toan bo file (AmazonSearchAgent + AmazonScannerAgent khong con can) |
+| `price_agents/multi_source_planning_agent.py` | Re-enable Amazon import. Them `_amazon_pipeline()`. Dung `ThreadPoolExecutor` chay BestBuy + Amazon song song. max_results=6 |
+| `price_agents/bestbuy_deals.py` | Khong sua logic, chi doi max_results default tu 10 -> 6 |
 
 **Files KHONG can sua:**
 - `bestbuy_untils/unified_deal.py` — `from_amazon()` da co san, hoat dong dung
+- `bestbuy_untils/multi_source_scanner_agent.py` — Da doi sang GPT-5-nano, chon top 3
 - `price_agents/deals.py` — Data models khong doi
-- `search_key.py` — UI da ho tro multi-source
+- `search_key.py` — UI da ho tro multi-source, se them source option sau
 
 ### Success Criteria (Phase 4)
 - [ ] `uv run search_key.py` chay thanh cong
@@ -180,7 +190,7 @@ Phase 1+2 (Search + Filter + Scrape) -- DONE: 2s (Approach A), 14s (Approach B)
     |
 Phase 3 (Full Pipeline Test)   -- DONE: 80s tong, GPT-5-mini + EnsembleAgent OK
     |
-Phase 4 (Integration)         -- CHUA LAM: cap nhat code chinh, re-enable Amazon
+Phase 4 (Integration)         -- DANG LAM: ThreadPoolExecutor, max_results=6, xoa AmazonScannerAgent
 ```
 
 ---

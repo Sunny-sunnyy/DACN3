@@ -1,413 +1,316 @@
 """
 Amazon Deals Module
 
-This module contains classes and functions for scraping Amazon products:
-- ScrapedAmazonDeal: Data class for raw scraped product data
-- set_amazon_us_location(): Set delivery location to US (Zip: 96150)
-- is_on_sale_amazon_playwright(): Check if product is on sale
-- filter_amazon_sale_urls_playwright(): Filter URLs to keep only sale products
-- scrape_amazon_products(): Scrape product details using Playwright
+Scrapes Amazon products using curl_cffi + HTML parsing (not Playwright).
+Uses Chrome impersonation to bypass bot detection.
 
-NOTE: Amazon blocks requests library, so we MUST use Playwright for all operations.
+Pipeline:
+1. init_amazon_session() - Create session + set ZIP 96150
+2. search_amazon() - GET search page, parse product cards
+3. search_filter_scrape_amazon() - Combined: search + filter sale + scrape details
 """
 
 import re
 import logging
-from typing import Optional, List, Tuple
+from typing import Optional
 
-from playwright.async_api import async_playwright
+from bs4 import BeautifulSoup
+from curl_cffi import requests as curl_requests
 
 
-# Logging setup
 logger = logging.getLogger(__name__)
 
-
-# US Zip Code - California (for Amazon delivery location)
-US_ZIP_CODE = "96150"
+ZIP_CODE = "96150"
+MIN_FEATURES_LEN = 50  # Approach B threshold: if features < 50 chars, scrape product page
 
 
 class ScrapedAmazonDeal:
-    """
-    A class to represent a Deal scraped from Amazon using Playwright.
-    This is the raw data before being processed by GPT.
-    
-    Attributes:
-        title: Product title (max 200 chars)
-        brand: Product brand (optional)
-        price: Sale price in USD
-        features: Product features text (max 1500 chars)
-        url: Amazon product URL
-    """
-    
+    """Raw scraped product data from Amazon."""
+
     title: str
     brand: Optional[str]
     price: float
     features: str
     url: str
-    
-    def __init__(
-        self,
-        title: str,
-        brand: Optional[str],
-        price: float,
-        features: str,
-        url: str
-    ):
-        """
-        Initialize with scraped data from Amazon product page.
-        
-        Args:
-            title: Product title
-            brand: Product brand (optional)
-            price: Sale price in USD
-            features: Product features/description text
-            url: Amazon product URL
-        """
+
+    def __init__(self, title: str, brand: Optional[str], price: float,
+                 features: str, url: str):
         self.title = title[:200] if title else "Unknown"
         self.brand = brand.strip() if brand else None
         self.price = price
         self.features = features[:1500] if features else ""
         self.url = url
-    
+
     def __repr__(self) -> str:
-        """Return a short string description."""
         return f"<{self.title[:50]}... | ${self.price}>"
-    
+
     def describe(self) -> str:
-        """
-        Return a longer string to describe this deal for use in calling a model.
-        Similar to ScrapedBestBuyDeal.describe() format.
-        
-        Returns:
-            Formatted string with Title, Brand, Price, Features, URL
-        """
+        """Format for LLM prompt."""
         parts = [f"Title: {self.title}"]
-        
         if self.brand:
             parts.append(f"Brand: {self.brand}")
-        
         parts.append(f"Price: ${self.price:.2f}")
-        
         if self.features and len(self.features) > 10:
             parts.append(f"Features: {self.features.strip()}")
-        
         parts.append(f"URL: {self.url}")
-        
         return "\n".join(parts)
 
 
-async def set_amazon_us_location(page) -> bool:
-    """
-    Set Amazon delivery location to US by entering zip code.
-    This needs to be done once before checking URLs.
-    
-    Args:
-        page: Playwright page object
-        
-    Returns:
-        True if successfully set location
-    """
+# ---------------------------------------------------------------------------
+# Session init
+# ---------------------------------------------------------------------------
+
+def init_amazon_session() -> curl_requests.Session:
+    """Create curl_cffi session and set US delivery location."""
+    session = curl_requests.Session(impersonate="chrome")
+
+    # GET homepage to init cookies
+    session.get("https://www.amazon.com", timeout=10)
+
+    # Set ZIP code 96150 (South Lake Tahoe, CA)
+    resp = session.post(
+        "https://www.amazon.com/gp/delivery/ajax/address-change.html",
+        data={
+            "locationType": "LOCATION_INPUT",
+            "zipCode": ZIP_CODE,
+            "storeContext": "generic",
+            "deviceType": "web",
+            "pageType": "Search",
+            "actionSource": "glow",
+        },
+        timeout=10,
+    )
+
     try:
-        logger.info(f"Setting Amazon location to US (Zip: {US_ZIP_CODE})...")
-        
-        # Go to Amazon homepage first
-        await page.goto("https://www.amazon.com", timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(2000)
-        
-        # Click on "Deliver to" location selector
-        # This element is usually at top left, with id "nav-global-location-popover-link"
-        location_btn = page.locator("#nav-global-location-popover-link")
-        
-        if await location_btn.count() > 0:
-            await location_btn.click()
-            await page.wait_for_timeout(1500)
-            
-            # Find zip code input field
-            zip_input = page.locator('input[data-action="GLUXPostalInputAction"]')
-            
-            if await zip_input.count() > 0:
-                # Clear and enter zip code
-                await zip_input.fill(US_ZIP_CODE)
-                await page.wait_for_timeout(500)
-                
-                # Click Apply button
-                apply_btn = page.locator('input[aria-labelledby="GLUXZipUpdate-announce"]')
-                if await apply_btn.count() > 0:
-                    await apply_btn.click()
-                    await page.wait_for_timeout(2000)
-                    logger.info(f"Location set to US (Zip: {US_ZIP_CODE})")
-                    return True
+        result = resp.json()
+        if result.get("isValidAddress"):
+            logger.info(f"[Amazon Init] ZIP {ZIP_CODE} set OK")
+        else:
+            logger.warning(f"[Amazon Init] ZIP response: {result}")
+    except Exception:
+        logger.warning(f"[Amazon Init] ZIP code setting failed: {resp.status_code}")
+
+    return session
+
+
+# ---------------------------------------------------------------------------
+# Search page parsing
+# ---------------------------------------------------------------------------
+
+def _parse_price(text: str) -> float:
+    """Parse '$1,799.00' -> 1799.0"""
+    if not text:
+        return 0.0
+    cleaned = re.sub(r"[^\d.]", "", text)
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+def parse_search_results(html: str) -> list[dict]:
+    """Parse Amazon search page HTML, extract product info from each card."""
+    soup = BeautifulSoup(html, "html.parser")
+    cards = soup.select('div[data-component-type="s-search-result"][data-asin]')
+    products = []
+
+    for card in cards:
+        asin = card.get("data-asin", "").strip()
+        if not asin:
+            continue
+
+        # --- Title ---
+        h2 = card.select_one("h2")
+        if not h2:
+            continue
+        title = h2.get("aria-label", "") or h2.get_text(strip=True)
+        if title.startswith("Sponsored Ad - "):
+            title = title[len("Sponsored Ad - "):]
+        if len(title) < 20:
+            img = card.select_one("img.s-image")
+            if img:
+                alt = img.get("alt", "")
+                alt = re.sub(r"^Sponsored Ad - ", "", alt)
+                if len(alt) > len(title):
+                    title = alt.rstrip(".")
+        if not title:
+            continue
+
+        # --- Prices ---
+        brand = None
+        price_block = card.select_one('div[data-cy="price-recipe"]')
+        current_price = 0.0
+        list_price = 0.0
+
+        if price_block:
+            for ps in price_block.select("span.a-price"):
+                if ps.get("data-a-strike") == "true":
+                    offscreen = ps.select_one("span.a-offscreen")
+                    if offscreen:
+                        list_price = _parse_price(offscreen.get_text())
                 else:
-                    # Try alternative apply button
-                    apply_btn2 = page.locator('span[data-action="GLUXPostalUpdateAction"] input')
-                    if await apply_btn2.count() > 0:
-                        await apply_btn2.click()
-                        await page.wait_for_timeout(2000)
-                        logger.info(f"Location set to US (Zip: {US_ZIP_CODE})")
-                        return True
-            else:
-                # Maybe need to click "Change" first if already has location
-                change_btn = page.locator('a[id="GLUXChangePostalCodeLink"]')
-                if await change_btn.count() > 0:
-                    await change_btn.click()
-                    await page.wait_for_timeout(1000)
-                    # Retry entering zip code
-                    zip_input = page.locator('input[data-action="GLUXPostalInputAction"]')
-                    if await zip_input.count() > 0:
-                        await zip_input.fill(US_ZIP_CODE)
-                        apply_btn = page.locator('input[aria-labelledby="GLUXZipUpdate-announce"]')
-                        if await apply_btn.count() > 0:
-                            await apply_btn.click()
-                            await page.wait_for_timeout(2000)
-                            logger.info(f"Location set to US (Zip: {US_ZIP_CODE})")
-                            return True
-        
-        logger.warning("Could not find location elements, but continuing...")
-        return False
-        
-    except Exception as e:
-        logger.warning(f"Error setting location: {e}")
-        return False
+                    if current_price == 0.0:
+                        offscreen = ps.select_one("span.a-offscreen")
+                        if offscreen:
+                            current_price = _parse_price(offscreen.get_text())
+
+        if current_price <= 0:
+            continue
+
+        on_sale = list_price > current_price
+
+        # --- Specs ---
+        specs_parts = []
+        specs_block = card.select_one('div[data-cy="product-details-recipe"]')
+        if specs_block:
+            labels = specs_block.select("span.a-color-secondary")
+            values = specs_block.select("span.a-text-bold")
+            for label, value in zip(labels, values):
+                l_text = label.get_text(strip=True).rstrip(":")
+                v_text = value.get_text(strip=True)
+                if l_text and v_text and v_text != "-":
+                    specs_parts.append(f"{l_text}: {v_text}")
+
+        specs = ", ".join(specs_parts)
+
+        for part in specs_parts:
+            if part.startswith("Brand:"):
+                brand = part.split(":", 1)[1].strip()
+                break
+
+        products.append({
+            "asin": asin,
+            "title": title,
+            "brand": brand,
+            "current_price": current_price,
+            "list_price": list_price,
+            "on_sale": on_sale,
+            "specs": specs,
+            "url": f"https://www.amazon.com/dp/{asin}",
+        })
+
+    return products
 
 
-async def is_on_sale_amazon_playwright(url: str, page) -> Tuple[bool, dict]:
-    """
-    Check if Amazon product is on sale using Playwright.
-    
-    Sale Indicators:
-    - span.savingsPercentage: Percentage discount (e.g., "-15%")
-    - span.basisPrice: Contains "List Price:"
-    - [data-a-strike="true"]: Original price with strikethrough
-    
-    Args:
-        url: Amazon product URL
-        page: Playwright page object
-        
-    Returns:
-        Tuple of (is_on_sale: bool, price_info: dict)
-    """
+def search_amazon(session: curl_requests.Session, keyword: str) -> list[dict]:
+    """Search Amazon and parse results."""
+    url = f"https://www.amazon.com/s?k={keyword.replace(' ', '+')}"
+    logger.info(f"[Amazon Search] {url}")
+
+    resp = session.get(url, timeout=20)
+    logger.info(f"[Amazon Search] Status: {resp.status_code} | Size: {len(resp.text):,} bytes")
+
+    if "/errors/validateCaptcha" in resp.text:
+        logger.error("[Amazon Search] CAPTCHA detected!")
+        return []
+
+    products = parse_search_results(resp.text)
+    sale_count = sum(1 for p in products if p["on_sale"])
+    logger.info(f"[Amazon Search] Found {len(products)} products ({sale_count} on sale)")
+    return products
+
+
+# ---------------------------------------------------------------------------
+# Product page scraping (Approach B fallback)
+# ---------------------------------------------------------------------------
+
+def scrape_product_page(session: curl_requests.Session, url: str) -> dict:
+    """GET product page, extract features and brand."""
+    result = {"features": "", "brand": None}
     try:
-        await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(2500)
-        
-        price_info = {}
-        
-        # Check sale indicator 1: savingsPercentage
-        savings_elem = page.locator("span.savingsPercentage")
-        has_savings = await savings_elem.count() > 0
-        
-        if has_savings:
-            savings_text = await savings_elem.first.text_content()
-            price_info["savings_pct"] = savings_text.strip()
-        
-        # Check sale indicator 2: basisPrice
-        basis_elem = page.locator("span.basisPrice")
-        has_basis = await basis_elem.count() > 0
-        
-        # Check sale indicator 3: data-a-strike
-        strike_elem = page.locator('[data-a-strike="true"]')
-        has_strike = await strike_elem.count() > 0
-        
-        # Get current price
-        price_elem = page.locator("span.priceToPay")
-        if await price_elem.count() > 0:
-            price_text = await price_elem.first.text_content()
-            price_info["sale_price"] = price_text.strip()
-        
-        is_sale = has_savings or has_basis or has_strike
-        return is_sale, price_info
-        
+        resp = session.get(url, timeout=15)
+        if resp.status_code != 200:
+            return result
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Features: #feature-bullets
+        bullets = soup.select_one("#feature-bullets")
+        if bullets:
+            items = bullets.select("li span.a-list-item")
+            features = [item.get_text(strip=True) for item in items
+                        if item.get_text(strip=True) and "See more product details" not in item.get_text()]
+            if features:
+                result["features"] = " | ".join(features)
+
+        # Fallback: #productDescription
+        if not result["features"]:
+            desc = soup.select_one("#productDescription")
+            if desc:
+                result["features"] = desc.get_text(strip=True)
+
+        # Brand: #bylineInfo
+        byline = soup.select_one("#bylineInfo")
+        if byline:
+            brand_text = byline.get_text(strip=True)
+            brand_text = re.sub(r"^(Visit the |Brand:\s*)", "", brand_text)
+            brand_text = re.sub(r"\s*(Store|Brand)$", "", brand_text)
+            if brand_text:
+                result["brand"] = brand_text
+
+        return result
     except Exception as e:
-        logger.warning(f"Error checking {url}: {e}")
-        return False, {}
+        logger.warning(f"[Amazon] Failed to scrape {url}: {e}")
+        return result
 
 
-async def filter_amazon_sale_urls_playwright(
-    urls: List[str],
-    headless: bool = False
-) -> List[Tuple[str, dict]]:
-    """
-    Filter Amazon URLs to keep only products on sale.
-    Sets US location first, then checks each URL.
-    
-    NOTE: This function uses Playwright because Amazon blocks requests library.
-    
-    Args:
-        urls: List of Amazon product URLs
-        headless: Run browser in headless mode (default: False for reliability)
-        
-    Returns:
-        List of (url, price_info) tuples for products on sale
-    """
-    sale_items = []
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=headless,
-            args=['--disable-blink-features=AutomationControlled', '--no-sandbox']
-        )
-        
-        context = await browser.new_context(
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            viewport={'width': 1920, 'height': 1080},
-            locale="en-US",
-            timezone_id="America/New_York",
-        )
-        
-        page = await context.new_page()
-        
-        # Step 1: Set US Location
-        await set_amazon_us_location(page)
-        
-        # Step 2: Check each URL
-        logger.info(f"Checking {len(urls)} URLs for sale items...")
-        
-        for i, url in enumerate(urls, 1):
-            is_sale, price_info = await is_on_sale_amazon_playwright(url, page)
-            
-            if is_sale:
-                sale_items.append((url, price_info))
-                savings = price_info.get("savings_pct", "N/A")
-                price = price_info.get("sale_price", "N/A")
-                logger.info(f"[{i}/{len(urls)}] SALE | {savings} | {price}")
-            else:
-                price = price_info.get("sale_price", "No price found")
-                logger.info(f"[{i}/{len(urls)}] Skip | Price: {price}")
-            
-            await page.wait_for_timeout(500)
-        
-        await browser.close()
-    
-    logger.info(f"Filtered {len(urls)} URLs -> {len(sale_items)} sale URLs")
-    
-    return sale_items
+# ---------------------------------------------------------------------------
+# Combined pipeline
+# ---------------------------------------------------------------------------
 
+def search_filter_scrape_amazon(
+    keyword: str,
+    max_results: int = 6,
+    session: curl_requests.Session | None = None,
+) -> list[ScrapedAmazonDeal]:
+    """Search Amazon, filter on-sale, scrape details.
 
-async def scrape_amazon_products(
-    sale_items: List[Tuple[str, dict]],
-    headless: bool = False
-) -> List[ScrapedAmazonDeal]:
+    Pipeline:
+    1. Init session + ZIP 96150
+    2. GET search page, parse product cards
+    3. Filter on_sale only
+    4. Approach A: title + specs from search page
+    5. If features too short -> Approach B: GET product page for #feature-bullets
     """
-    Scrape Amazon products and return as List[ScrapedAmazonDeal].
-    
-    Uses Playwright with multi-selector fallback strategy because
-    Amazon has many different product page layouts.
-    
-    Args:
-        sale_items: List of (url, price_info) tuples from filter step
-        headless: Run browser in headless mode (default: False for reliability)
-        
-    Returns:
-        List[ScrapedAmazonDeal] - Raw scraped data from each product
-    """
-    scraped_deals = []
-    
-    # Multi-selector fallback lists (Amazon has many different layouts)
-    TITLE_SELECTORS = [
-        "#productTitle",
-        "h1.product-title-word-break", 
-        "h1 span#productTitle",
-        "#title span"
-    ]
-    
-    BRAND_SELECTORS = [
-        "#bylineInfo",
-        "a#bylineInfo", 
-        "#brand",
-        ".po-brand .a-span9 span",
-        "a.contributorNameID"
-    ]
-    
-    FEATURES_SELECTORS = [
-        "#feature-bullets ul",
-        "#featurebullets_feature_div ul",
-        "#productDescription p",
-        "#aplus-content-area",
-        ".a-unordered-list.a-vertical"
-    ]
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=headless,
-            args=['--disable-blink-features=AutomationControlled', '--no-sandbox']
+    if session is None:
+        session = init_amazon_session()
+
+    products = search_amazon(session, keyword)
+    if not products:
+        return []
+
+    sale_products = [p for p in products if p["on_sale"]]
+    logger.info(f"[Amazon Filter] {len(sale_products)} on sale (from {len(products)} total)")
+
+    if not sale_products:
+        return []
+
+    sale_products = sale_products[:max_results]
+
+    deals = []
+    approach_b_count = 0
+
+    for p in sale_products:
+        features = p["specs"]
+        brand = p["brand"]
+
+        if len(features) < MIN_FEATURES_LEN:
+            logger.info(f"[Amazon Approach B] specs too short ({len(features)} chars), scraping: {p['asin']}")
+            page_data = scrape_product_page(session, p["url"])
+            if page_data["features"]:
+                features = page_data["features"]
+                approach_b_count += 1
+            if page_data["brand"] and not brand:
+                brand = page_data["brand"]
+
+        deal = ScrapedAmazonDeal(
+            title=p["title"],
+            brand=brand,
+            price=p["current_price"],
+            features=features,
+            url=p["url"],
         )
-        context = await browser.new_context(
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            viewport={'width': 1920, 'height': 1080},
-            locale="en-US",
-            timezone_id="America/New_York",
-        )
-        page = await context.new_page()
-        
-        # Set US location first
-        await set_amazon_us_location(page)
-        
-        logger.info(f"Scraping {len(sale_items)} sale products...")
-        
-        for i, (url, price_info) in enumerate(sale_items, 1):
-            logger.info(f"[{i}/{len(sale_items)}] Scraping: {url[:60]}...")
-            
-            try:
-                await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(2500)
-                
-                # === EXTRACT TITLE (with fallback) ===
-                title = "Unknown"
-                for selector in TITLE_SELECTORS:
-                    elem = page.locator(selector)
-                    if await elem.count() > 0:
-                        title = await elem.first.text_content()
-                        title = title.strip() if title else "Unknown"
-                        break
-                
-                # === EXTRACT BRAND (with fallback) ===
-                brand = None
-                for selector in BRAND_SELECTORS:
-                    elem = page.locator(selector)
-                    if await elem.count() > 0:
-                        brand_text = await elem.first.text_content()
-                        if brand_text:
-                            # Clean up brand text (remove "Visit the X Store", "Brand: X")
-                            brand = brand_text.strip()
-                            brand = re.sub(r'^Visit the\s+', '', brand)
-                            brand = re.sub(r'\s+Store$', '', brand)
-                            brand = re.sub(r'^Brand:\s*', '', brand)
-                        break
-                
-                # === EXTRACT FEATURES (with fallback) ===
-                features = ""
-                for selector in FEATURES_SELECTORS:
-                    elem = page.locator(selector)
-                    if await elem.count() > 0:
-                        features = await elem.first.text_content()
-                        features = features.strip() if features else ""
-                        # Clean up features text
-                        features = re.sub(r'\s+', ' ', features)
-                        break
-                
-                # === EXTRACT PRICE (from price_info dict) ===
-                price = 0.0
-                price_text = price_info.get("sale_price", "$0")
-                price_match = re.search(r'[\d,]+\.?\d*', price_text.replace(',', ''))
-                if price_match:
-                    price = float(price_match.group())
-                
-                # Create ScrapedAmazonDeal
-                deal = ScrapedAmazonDeal(
-                    title=title,
-                    brand=brand,
-                    price=price,
-                    features=features,
-                    url=url
-                )
-                scraped_deals.append(deal)
-                logger.info(f"  -> {deal}")
-                
-            except Exception as e:
-                logger.warning(f"  -> Error scraping {url}: {e}")
-                continue
-        
-        await browser.close()
-    
-    logger.info(f"Successfully scraped {len(scraped_deals)}/{len(sale_items)} products")
-    return scraped_deals
+        deals.append(deal)
+
+    logger.info(f"[Amazon] {len(deals)} deals (Approach A: {len(deals) - approach_b_count}, B: {approach_b_count})")
+    return deals
