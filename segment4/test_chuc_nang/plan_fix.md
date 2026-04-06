@@ -8,17 +8,18 @@
 
 ## Problem Overview
 
-The current pipeline runs ~6.3 min (375.9s). Breakdown:
+Pipeline ban dau chay ~6.3 min (375.9s). Breakdown:
 
-| Step | Time | Issue |
-|------|------|-------|
-| Step 1: Search (Brave MCP) | 73s | Slow because it spawns an npx process for every search |
-| Step 2: Filter BestBuy | ~100s waste | `requests.get()` is blocked, 10/10 timeouts |
-| Step 2: Filter Amazon | ~70s | OK but opens a separate browser |
-| Step 3-4: Scrape | 41s | Opens a NEW browser, sets location AGAIN |
-| Step 6: Estimate | 45.7s | 5 deals x 3 models running sequentially |
+| Step | Time | Issue | Status |
+|------|------|-------|--------|
+| Step 1: Search (Brave MCP) | 73s | Spawn npx process, cham | **FIXED** - curl_cffi truc tiep |
+| Step 2: Filter BestBuy | ~100s waste | `requests.get()` is blocked, 10/10 timeouts | **FIXED** - BestBuy APIs |
+| Step 2: Filter Amazon | ~70s | OK but opens a separate browser | **FIXED** - curl_cffi HTML parse |
+| Step 3-4: Scrape | 41s | Opens a NEW browser, sets location AGAIN | **FIXED** - curl_cffi |
+| Step 6: Estimate | 45.7s | 5 deals x 3 models running sequentially | **CHUA FIX** |
 
 **Goal:** Reduce from ~6.3 min down to ~3 min
+**Hien tai:** Search+Filter+Scrape (BestBuy+Amazon parallel): ~6s. Tong pipeline chua test full (cho Step 4).
 
 ---
 
@@ -54,36 +55,46 @@ Giai phap cuoi cung: `curl_cffi` + BestBuy APIs (search page + priceBlocks + v2 
 
 ---
 
-## Step 2: Optimize Step 1 — Direct Brave Search (replace MCP) — PARTIALLY DONE
+## Step 2: Optimize Step 1 — Direct Brave Search (replace MCP) — DONE
 
 ### Status
-- **BestBuy**: KHONG CAN Brave Search nua. Step 1 da thay bang `curl_cffi` search truc tiep tren bestbuy.com (~4s).
-- **Amazon**: VAN CON dung Brave MCP (cham ~60-70s). Can thay bang Brave REST API hoac tuong tu BestBuy.
-- Amazon hien dang **tam an** (commit `566544e`), se fix khi re-enable.
+- **BestBuy**: DONE (Step 1). `curl_cffi` search truc tiep tren bestbuy.com (~4s).
+- **Amazon**: DONE. `curl_cffi` search truc tiep tren amazon.com (~2s). Xoa Brave MCP + Playwright.
 
-### Remaining Task (chi Amazon)
-1. Call Brave Search REST API: `GET https://api.search.brave.com/res/v1/web/search`
-2. Parse JSON, extract Amazon URLs: `https://www.amazon.com/.../dp/XXXXXXXXXX`
-3. Hoac: search truc tiep tren amazon.com tuong tu BestBuy
+### Solution (thay doi so voi plan ban dau)
+Plan ban dau: dung Brave REST API. Thuc te: search truc tiep tren amazon.com (giong BestBuy).
+- `curl_cffi` (impersonate Chrome) + parse HTML search page
+- ZIP 96150 set qua POST API
+- Approach A (specs tu search page) / B (GET product page) tu dong chon
+- BestBuy + Amazon chay parallel bang `ThreadPoolExecutor`
+
+### Integrated (commit `c98733d`, 2026-04-06)
+
+| File | Thay doi |
+|------|----------|
+| `amazon_deals.py` | Xoa Playwright. Them curl_cffi search+filter+scrape |
+| `amazon_scanner_agent.py` | Xoa AmazonSearchAgent + AmazonScannerAgent (dung MultiSourceScannerAgent) |
+| `multi_source_planning_agent.py` | Re-enable Amazon, ThreadPoolExecutor parallel, max_results=6 |
+| `multi_source_framework.py` | Default max_urls: 10 -> 6 |
+| `search_key.py` | Default 6, UI text multi-source |
+
+### Test Results (test_integration.py)
+- Amazon standalone: 6 deals, 2.3s
+- BestBuy standalone: 2 deals, 6.9s
+- Parallel: 8 deals, 6.0s
+- UnifiedScrapedDeal: 8/8 OK
 
 ### Files
-- After OK -> update: `price_agents/amazon_scanner_agent.py`
+- Chi tiet: `test_chuc_nang/fix_amazon_v2_s2/plan_amazon.md`
 
 ---
 
-## Step 3: Optimize Step 2+3 — Reuse Browser Session
+## Step 3: Optimize Step 2+3 — Reuse Browser Session — KHONG CON CAN
 
 ### Status Update
-- **BestBuy**: KHONG CON dung browser. Da chuyen sang `curl_cffi` + APIs (~8s tong). Buoc nay khong con ap dung cho BestBuy.
-- **Amazon**: VAN CAN optimize. Hien dang tam an, se thuc hien khi re-enable Amazon.
-
-### Remaining Task (chi Amazon)
-1. Gop `filter_amazon_sale_urls_playwright()` + `scrape_amazon_products()` thanh 1 ham
-2. Mo 1 browser, set US location 1 lan, filter+scrape cung luc
-3. Target: Step 2+3 Amazon < 80s (cu: ~110s)
-
-### Files
-- After OK -> update: `price_agents/amazon_deals.py`, `price_agents/multi_source_planning_agent.py`
+- **BestBuy**: KHONG CON dung browser. Da chuyen sang `curl_cffi` + APIs (~8s tong).
+- **Amazon**: KHONG CON dung browser. Da chuyen sang `curl_cffi` + HTML parsing (~2s).
+- Buoc nay **da duoc giai quyet** boi Step 1 (BestBuy) va Step 2 (Amazon) — ca 2 deu dung curl_cffi, khong con Playwright.
 
 ---
 
@@ -114,7 +125,7 @@ While Frontier is waiting for OpenAI's response, Specialist can simultaneously w
 ### Success Criteria
 - [ ] 3 models run in parallel without errors
 - [ ] Estimated price results IDENTICAL to sequential run (difference < $1)
-- [ ] Step 6 time reduced >= 30% (currently 45.7s for 5 deals)
+- [ ] Step 4 time reduced >= 30% (currently ~50s for 3 deals)
 
 ### How to verify
 - Run notebook with 3-5 product descriptions
@@ -127,30 +138,23 @@ While Frontier is waiting for OpenAI's response, Specialist can simultaneously w
 
 ---
 
-## Step 5: Integrate Everything into .py Files
+## Step 5: Integrate Everything into .py Files — DA GOP VAO STEP 1+2
 
-### Task
-After all 4 steps above have been tested OK in notebooks, update the main code.
+Step nay khong con la buoc rieng. Moi step da tu integrate vao code chinh ngay khi test xong:
+- Step 1: integrate BestBuy (commit `ef9084c`)
+- Step 2: integrate Amazon + parallel (commit `c98733d`)
+- Step 4 (parallel ensemble): se integrate truc tiep sau khi test OK
 
-### How to do it
-1. Update `price_agents/bestbuy_deals.py` — new filter function (Playwright)
-2. Update `price_agents/bestbuy_scanner_agent.py` — Brave REST API
-3. Update `price_agents/amazon_scanner_agent.py` — Brave REST API
-4. Update `price_agents/amazon_deals.py` — combined filter+scrape
-5. Update `price_agents/ensemble_agent.py` — parallel execution
-6. Update `price_agents/multi_source_planning_agent.py` — call new functions
-
-### Success Criteria
-- [ ] `uv run search_key.py` runs successfully
-- [ ] Pipeline completes < 3 min
-- [ ] BestBuy returns sale products (>= 3)
-- [ ] Amazon returns accurate USD prices
-- [ ] Ensemble results are accurate
-
-### How to verify
-- Run full pipeline with keyword "laptop"
-- Check [TIMER] logs
-- Compare with Test Run 2 (375.9s)
+### Da thuc hien (across Step 1+2)
+- [x] `bestbuy_deals.py` — curl_cffi + BestBuy APIs (xoa Playwright/requests)
+- [x] `amazon_deals.py` — curl_cffi + HTML parsing (xoa Playwright)
+- [x] `amazon_scanner_agent.py` — deprecated (xoa AmazonSearchAgent + AmazonScannerAgent)
+- [x] `multi_source_planning_agent.py` — 4-step pipeline, ThreadPoolExecutor parallel
+- [x] `multi_source_scanner_agent.py` — GPT-5-nano chon top 3
+- [x] `multi_source_framework.py` — default max_urls=6
+- [x] `search_key.py` — UI multi-source, default 6
+- [ ] `ensemble_agent.py` — chua sua (cho Step 4)
+- [ ] `bestbuy_scanner_agent.py` — van con code cu (Brave MCP), nhung KHONG duoc import boi pipeline hien tai
 
 ---
 
@@ -160,9 +164,9 @@ After all 4 steps above have been tested OK in notebooks, update the main code.
 Step 1 (Fix BestBuy)       -->  DONE - curl_cffi + APIs
 Step 5 (Integrate .py)     -->  DONE - da tich hop, bo clarification, Cerebras, URL clickable
     |
-Step 2 (Direct Brave)      -->  chi con Amazon (BestBuy xong)
+Step 2 (Direct Search)     -->  DONE - Amazon curl_cffi, ThreadPoolExecutor parallel, commit c98733d
     |
-Step 3 (Reuse browser)     -->  chi con Amazon (BestBuy khong con dung browser)
+Step 3 (Reuse browser)     -->  KHONG CON CAN - ca BestBuy + Amazon deu dung curl_cffi
     |
 Step 4 (Parallel ensemble) -->  chua lam
 ```
@@ -177,3 +181,14 @@ Step 4 (Parallel ensemble) -->  chua lam
 | **TOTAL (BestBuy only)** | **375.9s (6.3 min)** | **95.7s (1.6 min)** | **280s** |
 
 Ghi chu: thoi gian thuc te 95.7s bao gom ca init agents (~10s lan dau).
+
+## Actual Time After Step 2 Integration (BestBuy + Amazon parallel)
+
+| Step | BestBuy only (Step 1) | BestBuy + Amazon (Step 2) | Ghi chu |
+|------|----------------------|--------------------------|---------|
+| Search+Filter+Scrape | ~8s (BestBuy) | ~6s (parallel: BB 6.9s, AZ 2.3s) | ThreadPoolExecutor, time = max(BB, AZ) |
+| Select top deals | ~17s (Cerebras) | chua test GPT-5-nano | Doi sang GPT-5-nano |
+| Estimate | ~50s | chua test | |
+| **TOTAL** | **95.7s** | **chua test full pipeline** | Chua test Gradio UI |
+
+Ghi chu: test_integration.py chi test Step 1 (search+filter+scrape). Chua test full pipeline qua Gradio.

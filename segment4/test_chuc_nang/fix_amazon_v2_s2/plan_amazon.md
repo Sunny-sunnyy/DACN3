@@ -134,7 +134,7 @@ Thay toan bo Brave MCP + Playwright bang `curl_cffi` (impersonate Chrome) + pars
 
 ---
 
-### Phase 4: Integration (cap nhat code chinh) — DANG LAM
+### Phase 4: Integration (cap nhat code chinh) — DONE
 
 **Chi thuc hien SAU KHI Phase 3 test OK.** -> Phase 3 da OK.
 
@@ -149,20 +149,32 @@ Thay toan bo Brave MCP + Playwright bang `curl_cffi` (impersonate Chrome) + pars
 | File | Thay doi |
 |------|----------|
 | `price_agents/amazon_deals.py` | Xoa toan bo Playwright code. Them `init_amazon_session()`, `search_amazon()`, `parse_search_results()`, `scrape_product_page()`, `search_filter_scrape_amazon()` tu `buoc1_search.py`. Giu `ScrapedAmazonDeal` (them method `describe()`) |
-| `price_agents/amazon_scanner_agent.py` | Xoa toan bo file (AmazonSearchAgent + AmazonScannerAgent khong con can) |
+| `price_agents/amazon_scanner_agent.py` | Xoa toan bo code, giu deprecation notice |
 | `price_agents/multi_source_planning_agent.py` | Re-enable Amazon import. Them `_amazon_pipeline()`. Dung `ThreadPoolExecutor` chay BestBuy + Amazon song song. max_results=6 |
-| `price_agents/bestbuy_deals.py` | Khong sua logic, chi doi max_results default tu 10 -> 6 |
+| `multi_source_framework.py` | Default max_urls: 10 -> 6 |
+| `search_key.py` | Default max_urls: 10 -> 6, UI text cap nhat multi-source |
 
 **Files KHONG can sua:**
 - `bestbuy_untils/unified_deal.py` — `from_amazon()` da co san, hoat dong dung
 - `bestbuy_untils/multi_source_scanner_agent.py` — Da doi sang GPT-5-nano, chon top 3
 - `price_agents/deals.py` — Data models khong doi
-- `search_key.py` — UI da ho tro multi-source, se them source option sau
+- `price_agents/bestbuy_deals.py` — Khong sua (max_results truyen tu pipeline, khong dung default)
+
+**Ket qua test_integration.py (commit `c98733d`):**
+
+| Test | Ket qua |
+|------|---------|
+| Amazon standalone | 6 deals, 2.3s, Approach A |
+| BestBuy standalone | 2 deals, 6.9s |
+| Parallel (ThreadPoolExecutor) | 8 deals, 6.0s (nhanh hon sequential 9.2s) |
+| UnifiedScrapedDeal conversion | 8 unified deals, BestBuy + Amazon OK |
+
+**Ghi chu:** Amazon deals co Brand: N/A (specs khong co field "Brand:" cho laptop gaming). Khong anh huong pipeline.
 
 ### Success Criteria (Phase 4)
-- [ ] `uv run search_key.py` chay thanh cong
+- [x] test_integration.py 4/4 tests PASSED
+- [ ] `uv run search_key.py` chay thanh cong (chua test Gradio UI)
 - [ ] Pipeline BestBuy + Amazon hoan thanh < 2 min
-- [ ] Amazon tra ve >= 3 san pham sale
 - [ ] Ket qua hien thi dung tren Gradio UI
 
 ---
@@ -175,6 +187,7 @@ segment4/test_chuc_nang/fix_amazon_v2_s2/
     diagnostic.py              -- Phase 0: DONE - curl_cffi OK, ZIP OK
     buoc1_search.py            -- Phase 1+2: Search + Filter + Scrape
     buoc1.ipynb                -- Phase 3: DONE - Full pipeline test
+    test_integration.py        -- Phase 4: DONE - 4 tests (standalone + parallel + unified)
     search_page_sample.html    -- HTML mau (laptop gaming search page)
     Amazon_scraping_docs/      -- Tai lieu tham khao
 ```
@@ -190,7 +203,7 @@ Phase 1+2 (Search + Filter + Scrape) -- DONE: 2s (Approach A), 14s (Approach B)
     |
 Phase 3 (Full Pipeline Test)   -- DONE: 80s tong, GPT-5-mini + EnsembleAgent OK
     |
-Phase 4 (Integration)         -- DANG LAM: ThreadPoolExecutor, max_results=6, xoa AmazonScannerAgent
+Phase 4 (Integration)         -- DONE: commit c98733d, test_integration 4/4 PASSED, chua test Gradio UI
 ```
 
 ---

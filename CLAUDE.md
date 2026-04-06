@@ -13,7 +13,6 @@ AI Price Intelligence System (DACN3) — A multi-agent system that searches for 
 ```bash
 # Install dependencies
 uv sync
-uv run playwright install
 
 # Run Multi-Source Deal Finder (keyword search UI)
 cd segment4 && uv run search_key.py
@@ -31,11 +30,11 @@ uv run python -c "print('hello')"
 ## Tech Stack
 
 - **Python 3.12** with `uv` package manager
-- **LLMs:** OpenAI GPT-5.1/5-mini/5-nano, fine-tuned Llama-3.2-3B on Modal
+- **LLMs:** OpenAI GPT-5.1/5-nano, fine-tuned Llama-3.2-3B on Modal
 - **ML:** PyTorch DNN (ResidualBlocks), XGBoost, scikit-learn
 - **Vector DB:** ChromaDB with sentence-transformers/all-MiniLM-L6-v2
-- **Web Scraping:** Playwright + BeautifulSoup4
-- **Search:** Brave Search API via MCP
+- **Web Scraping:** `curl_cffi` (Chrome impersonation) + BeautifulSoup4 — Playwright removed from search_key pipeline
+- **Search:** Direct search on bestbuy.com and amazon.com via `curl_cffi` — Brave MCP removed from search_key pipeline
 - **UI:** Gradio
 - **Notifications:** Pushover API
 - **LLM Abstraction:** LiteLLM
@@ -46,7 +45,7 @@ All active code lives in `segment4/`. Other dirs (`base/`, `ghi_chu/`, `sandbox/
 
 ### Two Applications
 
-1. **`search_key.py`** — User enters keyword → ClarificationAgent asks 3 questions → 6-step pipeline searches, scrapes, estimates prices → results table (The relevant documents: "segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md")
+1. **`search_key.py`** — User enters keyword → 4-step pipeline: search+filter+scrape (BestBuy+Amazon parallel via curl_cffi) → select top 3 (GPT-5-nano) → estimate prices (EnsembleAgent) → results table (The relevant documents: "segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md")
 2. **`price_is_right.py`** — Autonomous: timer scans DealNews RSS → selects top deals → estimates prices → deduplicates via `memory.json` → sends push notifications (The relevant documents: "segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md")
 
 ### Three-Layer Architecture
@@ -57,15 +56,13 @@ Framework Layer: multi_source_framework.py / deal_agent_framework.py (ChromaDB i
 Agent Layer:     price_agents/ (single-responsibility agents inheriting from Agent base class)
 ```
 
-### 6-Step Pipeline (search_key.py)
+### 4-Step Pipeline (search_key.py)
 
 `MultiSourcePlanningAgent.plan()` orchestrates:
-1. `search_both_sources()` — Parallel BestBuy + Amazon via Brave API (ThreadPoolExecutor)
-2. `filter_sales()` — Keep only discounted items
-3. `scrape_and_combine()` — Playwright extraction → UnifiedScrapedDeal
-4. Transform to Deal objects (LLM summarization)
-5. `select_top_deals()` — GPT-5-mini picks top 5 (Structured Outputs)
-6. `estimate_prices()` — EnsembleAgent predicts true value
+1. `search_and_scrape()` — BestBuy (curl_cffi + internal APIs) + Amazon (curl_cffi + HTML parsing) in parallel via `ThreadPoolExecutor`. Max 6 results/source
+2. `combine()` — Convert to `UnifiedScrapedDeal` pool (BestBuy + Amazon)
+3. `select_top_deals()` — GPT-5-nano picks top 3 deals (Structured Outputs via `MultiSourceScannerAgent`)
+4. `estimate_prices()` — EnsembleAgent predicts true value
 
 ### Price Estimation Ensemble
 
@@ -79,14 +76,15 @@ Final price = 0.8 * frontier + 0.1 * specialist + 0.1 * neural
 ### Key Data Models (Pydantic, in `price_agents/deals.py`)
 
 - `Deal` — product_description, price, url
-- `DealSelection` — List[Deal] (top 5)
+- `DealSelection` — List[Deal] (top 3)
 - `Opportunity` — Deal + estimated true value + discount
-- `ScrapedDeal` / `UnifiedScrapedDeal` — Raw scraped data
+- `ScrapedBestBuyDeal` / `ScrapedAmazonDeal` — Raw scraped data per source
+- `UnifiedScrapedDeal` — Normalized format combining both sources
 
 ## Environment Variables (`.env`)
 
-Required: `OPENAI_API_KEY`, `BRAVE_API_KEY`, `PUSHOVER_USER`, `PUSHOVER_TOKEN`
-Optional: `GOOGLE_API_KEY`, `HF_TOKEN`, `GROQ_API_KEY`, `PRICER_PREPROCESSOR_MODEL`
+Required: `OPENAI_API_KEY`, `PUSHOVER_USER`, `PUSHOVER_TOKEN`
+Optional: `BRAVE_API_KEY` (only for price_is_right.py), `GOOGLE_API_KEY`, `HF_TOKEN`, `GROQ_API_KEY`, `PRICER_PREPROCESSOR_MODEL`
 
 ## Key Conventions
 
@@ -95,3 +93,6 @@ Optional: `GOOGLE_API_KEY`, `HF_TOKEN`, `GROQ_API_KEY`, `PRICER_PREPROCESSOR_MOD
 - OpenAI Structured Outputs pattern: `response_format=PydanticModel` for deterministic LLM responses
 - Real-time log streaming via queue-based system in Gradio
 - `memory.json` prevents duplicate notifications in autonomous mode
+- `curl_cffi` with `impersonate="chrome"` is required for both BestBuy and Amazon scraping from WSL2
+- BestBuy uses internal APIs (searchpage + priceBlocks + v2 product); Amazon uses HTML search page parsing
+- Deprecated files: `amazon_scanner_agent.py` (Brave MCP removed), `bestbuy_scanner_agent.py` (Brave MCP, still exists but unused by search_key pipeline)
