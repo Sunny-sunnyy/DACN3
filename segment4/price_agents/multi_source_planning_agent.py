@@ -67,17 +67,24 @@ class MultiSourcePlanningAgent(Agent):
         return deals
 
     def search_and_scrape(
-        self, keyword: str, max_results: int = 6
+        self, keyword: str, max_results: int = 6, source: str = "All"
     ) -> tuple[List[ScrapedBestBuyDeal], List[ScrapedAmazonDeal]]:
-        """Search and scrape BestBuy + Amazon in parallel using ThreadPoolExecutor."""
-        self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy + Amazon parallel)...")
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            bb_future = executor.submit(self._bestbuy_pipeline, keyword, max_results)
-            az_future = executor.submit(self._amazon_pipeline, keyword, max_results)
-
-            bb_deals = bb_future.result()
-            az_deals = az_future.result()
+        """Search and scrape based on source selection."""
+        if source == "All":
+            self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy + Amazon parallel)...")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                bb_future = executor.submit(self._bestbuy_pipeline, keyword, max_results)
+                az_future = executor.submit(self._amazon_pipeline, keyword, max_results)
+                bb_deals = bb_future.result()
+                az_deals = az_future.result()
+        elif source == "BestBuy":
+            self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy only)...")
+            bb_deals = self._bestbuy_pipeline(keyword, max_results)
+            az_deals = []
+        elif source == "Amazon":
+            self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (Amazon only)...")
+            bb_deals = []
+            az_deals = self._amazon_pipeline(keyword, max_results)
 
         self.log(f"Total: {len(bb_deals)} BestBuy + {len(az_deals)} Amazon = {len(bb_deals) + len(az_deals)} products")
         return bb_deals, az_deals
@@ -140,20 +147,20 @@ class MultiSourcePlanningAgent(Agent):
     # MAIN PIPELINE
     # =========================================================================
 
-    def plan(self, keyword: str, max_urls: int = 6) -> List[Opportunity]:
+    def plan(self, keyword: str, max_urls: int = 6, source: str = "All") -> List[Opportunity]:
         """Run the full pipeline.
 
-        1. Search + Filter + Scrape (BestBuy + Amazon parallel)
+        1. Search + Filter + Scrape (based on source selection)
         2. Combine into unified pool
         3. Select top deals (GPT-5-nano)
         4. Estimate prices (EnsembleAgent)
         """
         pipeline_start = time.time()
-        self.log(f"Starting pipeline for: '{keyword}' (max {max_urls} per source)")
+        self.log(f"Starting pipeline for: '{keyword}' (max {max_urls} per source, source: {source})")
 
-        # Step 1: Search + Filter + Scrape (parallel)
+        # Step 1: Search + Filter + Scrape
         t0 = time.time()
-        bb_deals, az_deals = self.search_and_scrape(keyword, max_urls)
+        bb_deals, az_deals = self.search_and_scrape(keyword, max_urls, source)
         self.log(f"[TIMER] Step 1 (Search+Filter+Scrape) completed in {time.time() - t0:.1f}s")
         if not bb_deals and not az_deals:
             self.log("No products found from either source. Try a different keyword.")

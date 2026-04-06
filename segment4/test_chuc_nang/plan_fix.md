@@ -89,43 +89,41 @@ Plan ban dau: dung Brave REST API. Thuc te: search truc tiep tren amazon.com (gi
 
 ---
 
-## Step 3: Source Selection UI — Cho user chon nguon scrape — CHUA LAM
+## Step 3: Source Selection UI — Cho user chon nguon scrape — DONE
 
 ### Task
-Them option cho nguoi dung chon scrape o dau: BestBuy, Amazon, hoac ca 2 (Both).
+Them option cho nguoi dung chon scrape o dau: BestBuy, Amazon, hoac All (ca 2).
 
-### How to do it
+### Solution
+Dung `gr.Radio` voi 3 lua chon: "All", "BestBuy", "Amazon" (default: "All").
+Dat ten "All" (khong phai "Both") vi sau nay se them Walmart va cac nguon khac.
+Truyen `source` tu UI -> framework -> planner -> `search_and_scrape()`.
 
-**1. UI (`search_key.py`):**
-- Them `gr.Radio` hoac `gr.Dropdown` voi 3 lua chon: "Both", "BestBuy", "Amazon" (default: "Both")
-- Truyen gia tri `source` vao `framework.run(keyword, max_urls, source)`
-- Cap nhat title/text UI phan anh lua chon
+### Integrated (2026-04-06)
 
-**2. Framework (`multi_source_framework.py`):**
-- Them tham so `source` vao `run(keyword, max_urls, source="both")`
-- Truyen xuong `planner.plan(keyword, max_urls, source)`
+| File | Thay doi |
+|------|----------|
+| `search_key.py` | Them `gr.Radio` (All/BestBuy/Amazon), `self.current_source`, truyen source vao pipeline |
+| `multi_source_framework.py` | `run()` them param `source`, truyen xuong `planner.plan()` |
+| `multi_source_planning_agent.py` | `search_and_scrape()` + `plan()` them param `source`. If/elif: All=parallel, BestBuy=only BB, Amazon=only AZ |
 
-**3. Pipeline (`multi_source_planning_agent.py`):**
-- `search_and_scrape(keyword, max_results, source)`:
-  - `source="both"` -> ThreadPoolExecutor chay 2 pipeline (hien tai)
-  - `source="bestbuy"` -> chi goi `_bestbuy_pipeline()`
-  - `source="amazon"` -> chi goi `_amazon_pipeline()`
-- `combine()` xu ly truong hop 1 list rong (chi 1 nguon)
-
-**4. Scanner (`multi_source_scanner_agent.py`):**
-- Prompt hien tai yeu cau prefix [BestBuy]/[Amazon]. Khi chi 1 nguon, van hoat dong dung (chi co 1 source)
+### Test Results (test_source_selection.py)
+- BestBuy only: 3 deals, 0 Amazon, 5.7s
+- Amazon only: 3 deals, 0 BestBuy, 2.7s
+- All (parallel): 6 deals, 7.0s
+- Gradio UI: da test thanh cong
 
 ### Success Criteria
-- [ ] User chon "BestBuy" -> chi scrape BestBuy, khong goi Amazon
-- [ ] User chon "Amazon" -> chi scrape Amazon, khong goi BestBuy
-- [ ] User chon "Both" -> chay parallel nhu hien tai
-- [ ] UI hien thi ro nguon dang chon
-- [ ] Pipeline time giam khi chi chon 1 nguon
+- [x] User chon "BestBuy" -> chi goi `_bestbuy_pipeline()`, KHONG goi Amazon
+- [x] User chon "Amazon" -> chi goi `_amazon_pipeline()`, KHONG goi BestBuy
+- [x] User chon "All" -> ThreadPoolExecutor parallel (nhu truoc)
+- [x] Log hien thi dung: "Source: BestBuy", "Source: Amazon", "Source: BestBuy + Amazon"
+- [x] Pipeline time giam khi chi chon 1 nguon
+- [x] Ket qua hien thi dung tren Gradio UI
 
-### Files can sua
-- `search_key.py` — them Radio/Dropdown, truyen source
-- `multi_source_framework.py` — them tham so source
-- `multi_source_planning_agent.py` — logic chon nguon trong search_and_scrape()
+### Files
+- `test_chuc_nang/Step3_scrape/test_source_selection.py`: Unit test 3 source options
+- `test_chuc_nang/Step3_scrape/plan_step3.md`: Plan chi tiet
 
 ---
 
@@ -174,16 +172,17 @@ While Frontier is waiting for OpenAI's response, Specialist can simultaneously w
 Step nay khong con la buoc rieng. Moi step da tu integrate vao code chinh ngay khi test xong:
 - Step 1: integrate BestBuy (commit `ef9084c`)
 - Step 2: integrate Amazon + parallel (commit `c98733d`)
+- Step 3: integrate Source Selection UI (2026-04-06)
 - Step 4 (parallel ensemble): se integrate truc tiep sau khi test OK
 
-### Da thuc hien (across Step 1+2)
+### Da thuc hien (across Step 1+2+3)
 - [x] `bestbuy_deals.py` — curl_cffi + BestBuy APIs (xoa Playwright/requests)
 - [x] `amazon_deals.py` — curl_cffi + HTML parsing (xoa Playwright)
 - [x] `amazon_scanner_agent.py` — deprecated (xoa AmazonSearchAgent + AmazonScannerAgent)
-- [x] `multi_source_planning_agent.py` — 4-step pipeline, ThreadPoolExecutor parallel
+- [x] `multi_source_planning_agent.py` — 4-step pipeline, ThreadPoolExecutor parallel, source selection
 - [x] `multi_source_scanner_agent.py` — GPT-5-nano chon top 3
-- [x] `multi_source_framework.py` — default max_urls=6
-- [x] `search_key.py` — UI multi-source, default 6
+- [x] `multi_source_framework.py` — default max_urls=6, them param source
+- [x] `search_key.py` — UI multi-source, default 6, gr.Radio source selection
 - [ ] `ensemble_agent.py` — chua sua (cho Step 4)
 - [ ] `bestbuy_scanner_agent.py` — van con code cu (Brave MCP), nhung KHONG duoc import boi pipeline hien tai
 
@@ -197,7 +196,7 @@ Step 5 (Integrate .py)     -->  DONE - da tich hop, bo clarification, Cerebras, 
     |
 Step 2 (Direct Search)     -->  DONE - Amazon curl_cffi, ThreadPoolExecutor parallel, commit c98733d
     |
-Step 3 (Source Selection)  -->  CHUA LAM - UI cho user chon BestBuy/Amazon/Both
+Step 3 (Source Selection)  -->  DONE - gr.Radio All/BestBuy/Amazon, truyen source qua 3 files
     |
 Step 4 (Parallel ensemble) -->  chua lam
 ```

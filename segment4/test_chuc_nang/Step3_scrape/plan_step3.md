@@ -2,6 +2,7 @@
 
 **Date:** 2026-04-06
 **Branch:** claudedev
+**Status:** DONE — Integrated + Gradio UI tested
 **Workflow:** Plan -> Code -> Test -> Confirm OK
 
 ---
@@ -110,23 +111,37 @@ def search_and_scrape(self, keyword, max_results=6, source="All"):
 
 ## Success Criteria
 
-- [ ] User chon "BestBuy" -> chi goi `_bestbuy_pipeline()`, KHONG goi Amazon
-- [ ] User chon "Amazon" -> chi goi `_amazon_pipeline()`, KHONG goi BestBuy
-- [ ] User chon "All" -> ThreadPoolExecutor parallel (nhu hien tai)
-- [ ] Log hien thi dung: "Source: BestBuy", "Source: Amazon", "Source: BestBuy + Amazon"
-- [ ] Pipeline time giam khi chi chon 1 nguon
-- [ ] Ket qua hien thi dung tren Gradio UI
+- [x] User chon "BestBuy" -> chi goi `_bestbuy_pipeline()`, KHONG goi Amazon
+- [x] User chon "Amazon" -> chi goi `_amazon_pipeline()`, KHONG goi BestBuy
+- [x] User chon "All" -> ThreadPoolExecutor parallel (nhu hien tai)
+- [x] Log hien thi dung: "Source: BestBuy", "Source: Amazon", "Source: BestBuy + Amazon"
+- [x] Pipeline time giam khi chi chon 1 nguon
+- [x] Ket qua hien thi dung tren Gradio UI
 
 ---
 
-## How to verify
+## Test Results
 
-1. `uv run search_key.py`
-2. Search "laptop gaming" voi tung option:
-   - "All" -> ket qua co ca [BestBuy] va [Amazon]
-   - "BestBuy" -> ket qua chi co [BestBuy], log KHONG co "[Amazon]"
-   - "Amazon" -> ket qua chi co [Amazon], log KHONG co "[BestBuy]"
-3. So sanh thoi gian: 1 nguon phai nhanh hon "All"
+### test_source_selection.py (unit test, keyword="laptop", max=3)
+- BestBuy only: 3 deals, 0 Amazon, 5.7s
+- Amazon only: 3 deals, 0 BestBuy, 2.7s
+- All (parallel): 6 deals (3 BB + 3 AZ), 7.0s
+
+### Gradio UI (uv run search_key.py)
+- Da test thanh cong ca 3 options qua UI
+
+---
+
+## Integrated (2026-04-06)
+
+| File | Thay doi |
+|------|----------|
+| `search_key.py` | Them `gr.Radio` (All/BestBuy/Amazon), `self.current_source`, truyen source vao handler + pipeline |
+| `multi_source_framework.py` | `run()` them param `source="All"`, truyen xuong `planner.plan()` |
+| `multi_source_planning_agent.py` | `search_and_scrape()` + `plan()` them param `source`. If/elif: All=parallel, BestBuy=only BB, Amazon=only AZ |
+
+### Files test
+- `test_source_selection.py`: Unit test search_and_scrape() voi 3 source options
 
 ---
 

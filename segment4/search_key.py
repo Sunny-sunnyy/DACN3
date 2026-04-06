@@ -32,6 +32,7 @@ class App:
         self.framework = None
         self.current_keyword = ""
         self.current_max_urls = 6
+        self.current_source = "All"
 
     def get_framework(self):
         if not self.framework:
@@ -42,7 +43,7 @@ class App:
     # EVENT HANDLERS
     # =========================================================================
 
-    def search_handler(self, keyword: str, max_urls: int, log_data: List[str]):
+    def search_handler(self, keyword: str, max_urls: int, source: str, log_data: List[str]):
         """Handle search button click - run full pipeline."""
         if not keyword or len(keyword.strip()) < 2:
             yield "", "Please enter a keyword (at least 2 characters)", html_for_logs(["Error: keyword too short"])
@@ -50,6 +51,7 @@ class App:
 
         self.current_keyword = keyword.strip()
         self.current_max_urls = int(max_urls) if max_urls else 6
+        self.current_source = source or "All"
 
         yield from self._run_pipeline(self.current_keyword, log_data)
 
@@ -60,11 +62,13 @@ class App:
         setup_logging(log_q)
 
         log_data = initial_log.copy() if initial_log else []
+        source = self.current_source
+        source_label = "BestBuy + Amazon (parallel)" if source == "All" else source
         log_data.append(f"Starting search: {query}")
-        log_data.append("Source: BestBuy + Amazon (parallel)")
+        log_data.append(f"Source: {source_label}")
 
         def worker():
-            opps = self.get_framework().run(query, self.current_max_urls)
+            opps = self.get_framework().run(query, self.current_max_urls, self.current_source)
             table = opportunities_to_html(opps)
             status = f"Found {len(opps)} deals!" if opps else "No deals found."
             result_q.put((table, status))
@@ -131,6 +135,12 @@ class App:
                         label="Max URLs (per source)",
                         value=6, minimum=3, maximum=20, precision=0, scale=1,
                     )
+                    source_input = gr.Radio(
+                        choices=["All", "BestBuy", "Amazon"],
+                        value="All",
+                        label="Source",
+                        scale=1,
+                    )
                     search_btn = gr.Button("Search", variant="primary", scale=1)
 
             status_text = gr.Textbox(
@@ -166,7 +176,7 @@ class App:
             # Event Bindings
             search_btn.click(
                 fn=self.search_handler,
-                inputs=[keyword_input, max_urls_input, log_state],
+                inputs=[keyword_input, max_urls_input, source_input, log_state],
                 outputs=[results_table, status_text, logs_html],
             )
             push_btn.click(
@@ -181,6 +191,6 @@ class App:
 if __name__ == "__main__":
     print("=" * 60)
     print("Multi-Source Deal Finder - Starting...")
-    print("Source: BestBuy + Amazon")
+    print("Sources: BestBuy, Amazon (selectable)")
     print("=" * 60)
     App().run()

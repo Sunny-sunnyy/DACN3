@@ -56,11 +56,11 @@ class MultiSourceFramework:
             self.planner = MultiSourcePlanningAgent(self.collection)
             self.log(f"[TIMER] All agents initialized in {time.time() - t0:.1f}s")
 
-    def run(self, keyword: str, max_urls: int = 6) -> List[Opportunity]:
+    def run(self, keyword: str, max_urls: int = 6, source: str = "All") -> List[Opportunity]:
         """Run the full pipeline with keyword."""
         self.init_agents_as_needed()
-        self.log(f"Running pipeline: '{keyword}' (max {max_urls} URLs/source)")
-        opportunities = self.planner.plan(keyword, max_urls)
+        self.log(f"Running pipeline: '{keyword}' (max {max_urls} URLs/source, source: {source})")
+        opportunities = self.planner.plan(keyword, max_urls, source)
         self.current_opportunities = opportunities
         return opportunities
 
