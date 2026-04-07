@@ -183,35 +183,104 @@ ds.push_to_hub('YOUR_USERNAME/tiki-products-vn')
 
 ---
 
+## Cao nhieu buoi (sang/chieu) tren may thue khac nhau
+
+Scraper co checkpoint tu dong — khi chay lai se **bo qua san pham da cao** va tiep tuc tu cho dang.
+
+Da test thuc te:
+```
+Lan 1: cao 30 SP  -> checkpoint luu 30 IDs
+Lan 2: chay lai   -> "Resuming: 30 already done, To scrape: 73 items"
+Ket qua: 30 + 73 = 103 SP (dung, khong trung lap)
+```
+
+### Quy trinh: Buoi sang cao -> Luu -> Buoi chieu cao tiep
+
+**Buoi sang (may thue 1):**
+
+```cmd
+:: 1. Clone repo + cai dat
+git clone https://github.com/Sunny-sunnyy/DACN3.git
+cd DACN3\tech2ai
+uv sync
+
+:: 2. Chay scraper
+uv run scraping_data_tv/Tiki/run_scraper.py --all --workers 3
+
+:: 3. KHI MUON DUNG: nhan Ctrl+C (scraper tu dong save checkpoint)
+
+:: 4. TRUOC KHI TRA MAY: push data + checkpoint len GitHub
+git add scraping_data_tv/Tiki/Tiki_dataset_scrape/ scraping_data_tv/Tiki/checkpoints/
+git commit -m "Du lieu Tiki buoi sang - XX san pham"
+git push
+```
+
+**Buoi chieu (may thue 2, hoac cung may):**
+
+```cmd
+:: 1. Clone hoac pull code moi nhat (co checkpoint + data tu buoi sang)
+git clone https://github.com/Sunny-sunnyy/DACN3.git
+cd DACN3\tech2ai
+uv sync
+
+:: Hoac neu cung may:
+git pull
+
+:: 2. Chay lai CUNG LENH — scraper tu dong resume
+uv run scraping_data_tv/Tiki/run_scraper.py --all --workers 3
+:: Se hien: "Resuming: XX already done" cho cac category da cao
+
+:: 3. Khi xong hoac muon dung: push lai
+git add scraping_data_tv/Tiki/Tiki_dataset_scrape/ scraping_data_tv/Tiki/checkpoints/
+git commit -m "Du lieu Tiki buoi chieu - XX san pham"
+git push
+```
+
+### Luu y quan trong
+
+- **LUON push truoc khi tra may** — mat checkpoint = cao lai tu dau
+- **Ctrl+C an toan** — scraper save checkpoint moi 100 SP, mat toi da ~100 SP gan nhat
+- **Khong can sua gi** — cung 1 lenh `--all --workers 3`, scraper tu biet bo qua SP da cao
+- **2 files can push**: `Tiki_dataset_scrape/` (data) + `checkpoints/` (tien do)
+
+---
+
 ## Tong chi phi uoc tinh
 
-| May thue | Gia/ngay | Thoi gian cao | Tong |
-|----------|---------|---------------|------|
-| RTX 4060 Ti (5K/h) | 108,000d | 2 ngay | ~216,000d |
-| RTX 3090 (8K/h) | 173,000d | 2 ngay | ~346,000d |
+| May thue | Workers | Toc do | Thoi gian 100K | Chi phi |
+|----------|---------|--------|----------------|---------|
+| RTX 4060 Ti (5K/h) | 3 | ~3 SP/s | ~9 gio | ~45,000d |
+| RTX 4060 Ti (5K/h) | 5 | ~4.5 SP/s | ~6 gio | ~30,000d |
+| RTX 3090 (8K/h) | 3 | ~4 SP/s | ~7 gio | ~56,000d |
+| RTX 3090 (8K/h) | 5 | ~6 SP/s | ~4.5 gio | ~36,000d |
+
+Chia thanh 2-3 buoi (sang/chieu): tong chi phi tuong duong, chi khac la resume giua cac buoi.
 
 ---
 
 ## Xu ly su co
 
-### Scraper bi ngat giua chung
-Chay lai lenh cu — tu dong resume tu checkpoint:
+### Scraper bi ngat giua chung (Ctrl+C, mat mang, tat may)
+Chay lai cung lenh — tu dong resume tu checkpoint:
 ```cmd
-uv run scraping_data_tv/Tiki/run_scraper.py --all
+uv run scraping_data_tv/Tiki/run_scraper.py --all --workers 3
 ```
 
 ### Bi Tiki block (403/429)
 Scraper tu dong doi 5 phut roi retry. Neu block lien tuc:
-- Doi 30 phut roi chay lai
-- Hoac giam toc do: sua `DETAIL_DELAY` trong `tiki_scraper/config.py` tu `(0.5, 1.5)` thanh `(2.0, 3.0)`
+- Giam workers: `--workers 1`
+- Hoac doi 30 phut roi chay lai
 
 ### Loi mang / timeout
 Scraper tu dong retry 3 lan. Neu van loi: kiem tra mang, chay lai.
 
-### Kiem tra tien do
-Xem folder `checkpoints/` — moi file cho biet so SP da cao cua category do:
+### Kiem tra tien do giua chung
 ```cmd
-uv run python -c "import json; data = json.load(open('scraping_data_tv/Tiki/checkpoints/cat_1795_progress.json')); print(f'Da cao: {len(data[\"done_ids\"])} SP')"
+:: Dem tong SP da cao
+uv run python -c "from pathlib import Path; files=list(Path('scraping_data_tv/Tiki/Tiki_dataset_scrape').glob('*.jsonl')); total=sum(sum(1 for _ in open(f,encoding='utf-8')) for f in files); print(f'Tong: {total:,} SP tu {len(files)} files')"
+
+:: Xem checkpoint 1 category
+uv run python -c "import json; d=json.load(open('scraping_data_tv/Tiki/checkpoints/cat_1795_progress.json')); print(f'Da cao: {len(d[\"done_ids\"])} SP')"
 ```
 
 ---
@@ -221,16 +290,18 @@ uv run python -c "import json; data = json.load(open('scraping_data_tv/Tiki/chec
 | Lenh | Muc dich |
 |------|----------|
 | `uv run run_scraper.py --test` | Test nhanh (50 SP, 1 phut) |
-| `uv run run_scraper.py --all` | Cao tat ca (~100K SP, ~35 gio) |
-| `uv run run_scraper.py --all --max 500` | Cao nhanh (~23K SP, ~8 gio) |
-| `uv run run_scraper.py --category 1795` | Cao 1 category |
+| `uv run run_scraper.py --all --workers 3` | Cao tat ca, 3 workers (~10 gio) |
+| `uv run run_scraper.py --all --workers 5` | Cao tat ca, 5 workers (~6 gio) |
+| `uv run run_scraper.py --all --max 500 --workers 3` | Gioi han 500 SP/cat (~3 gio) |
+| `uv run run_scraper.py --category 1795 --workers 3` | Cao 1 category |
 
-| Folder | Noi dung |
-|--------|---------|
-| `Tiki_dataset_scrape/` | Du lieu JSONL (TAI VE) |
-| `checkpoints/` | Tien do (tai ve neu can resume) |
-| `tiki_scraper/` | Code scraper |
+| Folder | Noi dung | Push len GitHub? |
+|--------|---------|-----------------|
+| `Tiki_dataset_scrape/` | Du lieu JSONL | **CO — bat buoc** |
+| `checkpoints/` | Tien do resume | **CO — bat buoc** |
+| `tiki_scraper/` | Code scraper | Da co san |
+| `step1/`, `Github/`, `Docs/` | Test, tham khao | Khong can |
 
 ---
 
-*Tao ngay: 2026-04-07*
+*Tao ngay: 2026-04-07. Cap nhat: concurrent workers, resume guide.*
