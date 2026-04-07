@@ -154,10 +154,10 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 
 1. **curl_cffi + impersonate="chrome"** (proven trong project)
 2. **User-Agent** header hop le
-3. **Random delays**: 1-2s listing, 0.5-1.5s detail
-4. **Batch sleep**: sleep 3s moi 50 requests (giong Repo 3)
-5. **Checkpoint + resume**: save progress, resume neu bi ngat
-6. **Session rotation**: tao session moi moi 500 requests (phong truoc)
+3. **Random delays**: 1-2s listing, 0.3-0.8s detail (per worker)
+4. **Batch sleep**: sleep 2s moi 100 requests (toan bo workers)
+5. **Checkpoint + resume**: save progress moi 100 SP, resume khi bi ngat
+6. **Session rieng moi worker**: moi thread co curl_cffi session doc lap
 7. **Neu bi 429/403**: doi 5 phut, retry voi session moi
 
 ---
@@ -209,17 +209,38 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Price range | 210,000 - 40,990,000 VND |
 | Brands | 9 (Xiaomi 39, Samsung 31, OPPO 13, Apple 7, ...) |
 
+**Benchmark concurrent (workers=3, cung 103 SP Smartphone):**
+
+```
+17:18:33 Step 3: Fetching details (workers=3)...
+17:18:55   Progress: 50/103 done, 50 saved | 2.7 SP/s | ETA: 0h 0m 19s
+17:19:14 Done: 103 products | Time: 0h 0m 38s (2.7 SP/s)
+```
+
+| Workers | Toc do | Thoi gian (103 SP) | Tang toc |
+|---------|--------|-------------------|---------|
+| 1 | 0.8 SP/s | 2m 10s | 1x |
+| 3 | 2.7 SP/s | 38s | 3.4x |
+
+**Benchmark resume (da test thuc te):**
+
+```
+Lan 1: cao 30 SP -> Ctrl+C -> checkpoint luu 30 IDs
+Lan 2: chay lai  -> "Resuming: 30 already done, To scrape: 73 items"
+Ket qua: 30 + 73 = 103 SP (dung, khong trung lap, khong mat data)
+```
+
 **Uoc tinh scale:**
 
-| Muc tieu | Thoi gian (0.8 SP/s) |
-|----------|---------------------|
-| 1,000 SP | ~21 phut |
-| 10,000 SP | ~3.5 gio |
-| 60,000 SP | ~21 gio |
-| 100,000 SP | ~35 gio |
+| Muc tieu | 1 worker (0.8 SP/s) | 3 workers (2.7 SP/s) | 5 workers (~4.5 SP/s) |
+|----------|--------------------|--------------------|---------------------|
+| 1,000 SP | ~21 phut | ~6 phut | ~4 phut |
+| 10,000 SP | ~3.5 gio | ~1 gio | ~37 phut |
+| 60,000 SP | ~21 gio | ~6 gio | ~3.7 gio |
+| 100,000 SP | ~35 gio | ~10 gio | ~6 gio |
 
-Luu y: Toc do co the thay doi tuy vao mang, thoi diem trong ngay, va Tiki rate limit.
-Tren may thue (VPS gan server Tiki, mang tot hon) co the nhanh hon 20-30%.
+Luu y: Toc do co the thay doi tuy vao mang va Tiki rate limit.
+May thue (1Gbps, IP VN) nhanh hon WSL2 ~30-50%.
 
 ---
 
@@ -234,21 +255,29 @@ Tat ca da co trong project: `curl_cffi`, `pydantic`, `tqdm`. Khong can them pack
 ```bash
 cd tech2ai
 
-# Test nhanh (Tivi, 50 SP, ~1 phut)
+# Test nhanh (Tivi, 50 SP)
 uv run scraping_data_tv/Tiki/run_scraper.py --test
 
-# Cao 1 category (vd: Dien thoai Smartphone, max 200 SP)
-uv run scraping_data_tv/Tiki/run_scraper.py --category 1795 --max 200
+# Cao 1 category, 3 workers
+uv run scraping_data_tv/Tiki/run_scraper.py --category 1795 --workers 3
 
-# Cao TAT CA 47 categories (~100K SP, ~36 gio)
-uv run scraping_data_tv/Tiki/run_scraper.py --all
+# Cao TAT CA 47 categories, 3 workers (~10 gio)
+uv run scraping_data_tv/Tiki/run_scraper.py --all --workers 3
 
-# Cao tat ca, gioi han 500 SP/category (~23K SP, ~8 gio)
-uv run scraping_data_tv/Tiki/run_scraper.py --all --max 500
+# Cao tat ca, 5 workers, gioi han 500 SP/category (~3 gio)
+uv run scraping_data_tv/Tiki/run_scraper.py --all --max 500 --workers 5
 ```
 
-Output luu tai: `Tiki_dataset_scrape/tiki_{category_id}.jsonl`
-Resume: neu bi ngat, chay lai lenh cu — scraper tu dong bo qua SP da cao.
+**Options:**
+- `--workers N`: so luong requests song song (mac dinh 1, khuyen nghi 3-5)
+- `--max N`: gioi han so SP moi category
+- `--category ID`: cao 1 category
+- `--name "ten"`: ten category (neu ID ngoai config)
+
+**Output:** `Tiki_dataset_scrape/tiki_{category_id}.jsonl` — moi category 1 file rieng.
+**Resume:** neu bi ngat, chay lai cung lenh — tu dong bo qua SP da cao.
+**Cao nhieu buoi:** push checkpoint + data len GitHub truoc khi tra may, pull lai buoi sau.
+Chi tiet: xem `HUONG_DAN_CAO_DU_LIEU.md`
 
 ---
 
@@ -261,7 +290,11 @@ Resume: neu bi ngat, chay lai lenh cu — scraper tu dong bo qua SP da cao.
 | Category breadcrumb | Full breadcrumb (gom ten SP) | Toi da 3 cap, bo ten SP |
 | Listing limit | 100/page | 40/page (an toan hon) |
 | Muc tieu | 60K+ | 100K+ (47 sub-categories, tong ~270K SP kha dung) |
+| Detail fetching | Sequential (1 request/luc) | Concurrent (N workers song song) |
+| DETAIL_DELAY | 0.5-1.5s | 0.3-0.8s (per worker) |
+| BATCH_SLEEP | 3s moi 50 req | 2s moi 100 req |
+| Toc do | 0.8 SP/s | 2.7 SP/s (3 workers), ~4.5 SP/s (5 workers) |
 
 ---
 
-*Cap nhat: 2026-04-07 — Step 1-4 hoan thanh, scraper san sang scale.*
+*Cap nhat: 2026-04-07 — Step 1-4 hoan thanh. Concurrent workers + resume da test.*
