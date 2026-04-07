@@ -199,18 +199,49 @@ def fetch_listing_with_slicing(category_id, price_min, price_max):
 - **Sort Rotation fallback** → bao hiem cho edge case gia tap trung (99K, 149K, 199K VND)
 - Thuc te truong hop can Sort Rotation **rat hiem** — phai co >2,000 SP cung 1 muc gia trong 1 sub-category
 
-### Uoc tinh impact
+### Ket qua test thuc te sau khi implement (2026-04-07)
+
+Test tren sub 1951 (Dung cu nha bep):
+
+```
+Category total: 2000 (OVER_CAP) — using Price-Range Slicing
+  Range 0-50,000: 2000 SP -> Split: 0-25K (536) + 25K-50K (1,931) -> OK
+  Range 50K-100K: 2000 SP -> Split: 50K-75K (1,094) + 75K-100K (1,176) -> OK
+  Range 100K-200K: 2000 SP -> Split: 100K-150K (1,395) + 150K-200K (1,109) -> OK
+  Range 200K-500K: 2000 SP -> Split: 200K-350K (1,978) + 350K-500K (1,295) -> OK
+  Range 500K-1M: 2000 SP -> Split: 500K-750K (1,196) + 750K-1M (993) -> OK
+  Range 1M-2M: 1,636 SP -> OK (khong can split)
+  Range 2M-5M: 1,727 SP -> OK
+  Range 5M-50M: 573 SP -> OK
+Slicing done: 14,346 unique items (baseline was capped at 2000)
+```
+
+| Metric | Gia tri |
+|--------|---------|
+| Unique items | **14,346** |
+| Coverage | **~99%** (vs ~14,478 API total) |
+| Baseline | 2,000 (14%) |
+| Tang | **7.2x** |
+| Thoi gian listing | ~10 phut (WSL2) |
+| Sort Rotation needed | Khong (tat ca ranges <2000 sau 1 lan split) |
+
+### Bugs phat hien khi implement
+
+1. **API bao total=2000 khi bi cap**: Tiki API khong bao so thuc, ma bao dung 2000 khi total >= 2000. Detection phai dung `total >= 2000` (khong phai `> 2000`).
+2. **Pagination dung som**: API doi khi tra ve page ngan hon `limit` (VD: 39/40 items) du chua het data. Fix: check `len(all_items) >= total` thay vi `len(items) < limit`.
+
+### Uoc tinh impact cho full scale
 
 - Listing requests tang: ~2,500 → ~10,000-15,000 (do chia khoang gia)
 - Thoi gian listing them: ~2-4 gio (voi delay 0.3s/request)
 - Detail van la bottleneck chinh: 100K SP x 0.3s = ~8-10 gio (5 workers)
-- Coverage tang: 14% → 96-100%
+- Coverage tang: 14% → 99%
 
 ---
 
 ## File lien quan
 
-- `step1/04_test_overcap_solutions.py` — script test (chay lai bat cu luc nao)
+- `step1/04_test_overcap_solutions.py` — script test 3 phuong an (chay lai bat cu luc nao)
 - `tiki_categories_report.csv` — bang danh muc voi OVER_CAP status
 - `tiki_categories_report.md` — bang danh muc (Markdown)
-- `tiki_scraper/scraper.py` — scraper chinh (can cap nhat listing logic)
+- `tiki_scraper/scraper.py` — scraper chinh (da implement Adaptive Slicing)

@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-07, 22:00)
+## Trang thai hien tai (2026-04-07, 22:30)
 
-**Dang lam:** Step 4d — Implement Adaptive Price-Range Slicing vao scraper.py
+**Trang thai:** Step 4d HOAN THANH. San sang Step 5 (scale tren may thue).
 **Branch:** `feature/tiki-scraper`
 
 ### Da hoan thanh:
@@ -18,20 +18,16 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] Concurrent workers (ThreadPoolExecutor): 3 workers = 2.7 SP/s (tang 3.4x)
 - [x] Resume/checkpoint: test OK (30 SP -> dung -> tiep 73 SP = 103 SP)
 - [x] Step 4b: Re-scan categories (2026-04-07) — xac nhan 15 parent, 122 sub, ~585K SP
-- [x] Step 4b: Export categories report (CSV + MD) — xem `tiki_categories_report.csv`, `tiki_categories_report.md`
-- [x] Step 4c: Phat hien va test OVER_CAP problem — 27 sub-categories >2000 SP bi cap boi Listing API
-- [x] Step 4c: Test 3 phuong an vuot OVER_CAP tren sub 1951 (Dung cu nha bep, 14,478 SP)
+- [x] Step 4b: Export categories report (CSV + MD)
+- [x] Step 4c: Phat hien va test OVER_CAP problem — 27 sub-categories >2000 SP
 - [x] Step 4c: Chon phuong an Adaptive Price-Range Slicing + Sort Rotation Fallback
-- [x] Cap nhat docs: HUONG_DAN_VUOT_CAP_2000.md, plan_scraping_tiki.md
-
-### Dang lam:
-- [ ] **Step 4d: Implement Adaptive Slicing vao `tiki_scraper/scraper.py`**
-  - Tang 1: Adaptive Price-Range Slicing (recursive chia doi khoang gia khi >2000 SP)
-  - Tang 2: Sort Rotation Fallback (khi khoang gia <1,000 VND ma van >2000 SP)
-  - Chi tiet thuat toan: xem `HUONG_DAN_VUOT_CAP_2000.md` (muc "Phuong an cuoi cung")
+- [x] Step 4d: Implement Adaptive Slicing vao `scraper.py` — test OK
+  - 4 ham moi: `_fetch_listing_total`, `_sort_rotation_merge`, `_slice_recursive`, `fetch_all_ids_with_slicing`
+  - Test sub 1951: **14,346 unique items** (99% coverage, vs baseline 2,000)
+  - Bug phat hien va fix: API bao total=2000 (bi cap) nen detection dung `<` thay `<=`; pagination dung som do short page — fix bang cach check `len >= total`
+- [x] Cap nhat docs: HUONG_DAN_VUOT_CAP_2000.md, plan_scraping_tiki.md, HUONG_DAN_CAO_DU_LIEU.md
 
 ### Chua lam:
-- [ ] Test Step 4d tren sub 1951 (Dung cu nha bep, 14,478 SP) — so sanh voi ket qua test cu
 - [ ] Step 5: Scale — cao 100K+ SP tren may thue (VPS)
 - [ ] Step 6: Merge Kaggle 41K (thoi trang) + Tiki scraper (dien tu, gia dung)
 - [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training, GD3: scraping realtime, GD4: chatbot)
@@ -40,6 +36,11 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - Se thue may de cao du lieu (khong chay tren WSL2)
 - Muc tieu dau tien: 100K SP de test, sau do scale len
 - OVER_CAP: chon Adaptive Price-Range Slicing + Sort Rotation Fallback (industry-standard, Apify khuyen dung)
+
+### Luu y ky thuat:
+- Tiki API bao `paging.total = 2000` khi bi cap (khong bao so thuc). Detection phai dung `total >= 2000` (khong phai `> 2000`)
+- API doi khi tra ve page ngan hon `limit` (VD: 39/40 items) nhung chua het data. Pagination check bang `len(all_items) >= total` thay vi `len(items) < limit`
+- `--max N` cat items tu dau danh sach (khoang gia thap). Khi test voi --max, items co the bi filter bo do gia <50K. Chay khong co --max thi khong bi
 
 ---
 
@@ -117,4 +118,4 @@ uv run scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py
 
 ---
 
-*Cap nhat: 2026-04-07 20:44 — Phat hien OVER_CAP problem, test 3 phuong an, chon Price-Range Slicing.*
+*Cap nhat: 2026-04-07 22:30 — Step 4d hoan thanh. Adaptive Slicing test OK (14,346 SP, 99% coverage). San sang Step 5.*

@@ -3,9 +3,10 @@
 ## Tong quan
 
 - **Muc tieu:** Cao ~100K san pham tu Tiki VN
-- **Thoi gian:** ~35 gio chay lien tuc (0.8 SP/s)
+- **Thoi gian:** ~6-10 gio voi 5 workers
 - **Output:** JSONL files trong folder `Tiki_dataset_scrape/`
 - **Khong can WSL**, chay truc tiep tren Windows
+- **Tu dong xu ly OVER_CAP:** Categories >2000 SP duoc chia khoang gia tu dong (Price-Range Slicing)
 
 ---
 
@@ -68,14 +69,15 @@ Done: ~30-50 san pham
 
 Neu thanh cong -> chuyen sang buoc 2.2.
 
-### 2.2. Cao tat ca 47 categories (~35 gio)
+### 2.2. Cao tat ca 47 categories (~6-10 gio voi 5 workers)
 
 ```cmd
-uv run scraping_data_tv/Tiki/run_scraper.py --all
+uv run scraping_data_tv/Tiki/run_scraper.py --all --workers 5
 ```
 
 Scraper se:
 - Chay tuan tu 47 sub-categories
+- **Tu dong xu ly OVER_CAP** (27 categories >2000 SP): chia khoang gia, lay ~96-100% SP
 - Hien thi progress: so SP, toc do, ETA (thoi gian con lai)
 - Tu dong save checkpoint moi 100 SP
 - Neu bi ngat (mat mang, tat may...) -> chay lai lenh tren, se resume tu cho dang
@@ -245,6 +247,27 @@ git push
 
 ---
 
+## Price-Range Slicing (tu dong)
+
+Scraper tu dong phat hien va xu ly categories >2000 SP:
+
+```
+Category total: 14,478 (OVER_CAP 2000) — using Price-Range Slicing
+    Range 0-50,000: 2,500 SP
+    -> Splitting: 0-25,000 | 25,000-50,000
+        Range 0-25,000: 1,200 SP       ← OK, lay binh thuong
+        Range 25,000-50,000: 1,300 SP   ← OK, lay binh thuong
+    Range 50,000-100,000: 1,800 SP      ← OK
+    ...
+  Slicing done: 13,935 unique items (coverage: 96%)
+```
+
+- 27/47 categories se dung Price-Range Slicing tu dong
+- 20/47 categories <2000 SP → lay binh thuong (khong doi)
+- **Khong can thao tac gi them** — scraper tu xu ly
+
+---
+
 ## Tong chi phi uoc tinh
 
 | May thue | Workers | Toc do | Thoi gian 100K | Chi phi |
@@ -253,6 +276,9 @@ git push
 | RTX 4060 Ti (5K/h) | 5 | ~4.5 SP/s | ~6 gio | ~30,000d |
 | RTX 3090 (8K/h) | 3 | ~4 SP/s | ~7 gio | ~56,000d |
 | RTX 3090 (8K/h) | 5 | ~6 SP/s | ~4.5 gio | ~36,000d |
+
+Luu y: Thoi gian listing tang ~2-4 gio do Price-Range Slicing (nhieu query hon).
+Detail van la bottleneck chinh (~80% tong thoi gian).
 
 Chia thanh 2-3 buoi (sang/chieu): tong chi phi tuong duong, chi khac la resume giua cac buoi.
 
@@ -289,11 +315,12 @@ uv run python -c "import json; d=json.load(open('scraping_data_tv/Tiki/checkpoin
 
 | Lenh | Muc dich |
 |------|----------|
-| `uv run run_scraper.py --test` | Test nhanh (50 SP, 1 phut) |
+| `uv run run_scraper.py --test` | Test nhanh (Tivi, 50 SP, 1 phut) |
 | `uv run run_scraper.py --all --workers 3` | Cao tat ca, 3 workers (~10 gio) |
 | `uv run run_scraper.py --all --workers 5` | Cao tat ca, 5 workers (~6 gio) |
 | `uv run run_scraper.py --all --max 500 --workers 3` | Gioi han 500 SP/cat (~3 gio) |
 | `uv run run_scraper.py --category 1795 --workers 3` | Cao 1 category |
+| `uv run run_scraper.py --category 1951 --workers 3` | Test OVER_CAP (Dung cu nha bep, 14K SP) |
 
 | Folder | Noi dung | Push len GitHub? |
 |--------|---------|-----------------|
@@ -304,4 +331,4 @@ uv run python -c "import json; d=json.load(open('scraping_data_tv/Tiki/checkpoin
 
 ---
 
-*Tao ngay: 2026-04-07. Cap nhat: concurrent workers, resume guide.*
+*Tao ngay: 2026-04-07. Cap nhat: Adaptive Price-Range Slicing, concurrent workers, resume guide.*

@@ -36,6 +36,26 @@ from .models import TikiProduct
 
 logger = logging.getLogger(__name__)
 
+# --- Price-Range Slicing constants ---
+OVER_CAP = 2000  # Tiki listing API max results per query
+MIN_PRICE_RANGE_VND = 1000  # Smallest range before Sort Rotation fallback
+INITIAL_PRICE_RANGES = [
+    (0, 50_000),
+    (50_000, 100_000),
+    (100_000, 200_000),
+    (200_000, 500_000),
+    (500_000, 1_000_000),
+    (1_000_000, 2_000_000),
+    (2_000_000, 5_000_000),
+    (5_000_000, 50_000_000),
+]
+SORT_OPTIONS = [
+    {},
+    {"sort": "price,asc"},
+    {"sort": "price,desc"},
+    {"sort": "newest"},
+]
+
 # Paths
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "Tiki_dataset_scrape"
@@ -111,6 +131,7 @@ def fetch_listing_page(
     session: curl_requests.Session,
     category_id: int,
     page: int,
+    extra_params: dict | None = None,
 ) -> tuple[list[dict], int]:
     """Fetch one page of listings. Returns (items, total_count)."""
     url = "https://tiki.vn/api/v2/products"
@@ -121,6 +142,8 @@ def fetch_listing_page(
         "include": "advertisement",
         "aggregations": 1,
     }
+    if extra_params:
+        params.update(extra_params)
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -150,13 +173,15 @@ def fetch_all_product_ids(
     session: curl_requests.Session,
     category_id: int,
     max_products: int | None = None,
+    extra_params: dict | None = None,
 ) -> list[dict]:
     """Paginate listing API, return list of {id, name, price} for filtering."""
     all_items = []
     page = 1
+    max_pages = OVER_CAP // LISTING_LIMIT  # 50 pages max
 
-    while True:
-        items, total = fetch_listing_page(session, category_id, page)
+    while page <= max_pages:
+        items, total = fetch_listing_page(session, category_id, page, extra_params)
         if not items:
             break
 
@@ -170,7 +195,8 @@ def fetch_all_product_ids(
             all_items = all_items[:max_products]
             break
 
-        if len(items) < LISTING_LIMIT:
+        # Stop when we have all items OR reached max pages
+        if len(all_items) >= total:
             break
 
         page += 1
@@ -242,6 +268,133 @@ def _process_one_product(product_id: int, category_id: int) -> TikiProduct | Non
     )
 
 
+# --- Adaptive Price-Range Slicing ---
+
+def _fetch_listing_total(
+    session: curl_requests.Session,
+    category_id: int,
+    extra_params: dict | None = None,
+) -> int:
+    """Quick query to get total count for a category + optional price range."""
+    _, total = fetch_listing_page(session, category_id, page=1, extra_params=extra_params)
+    return total
+
+
+def _sort_rotation_merge(
+    session: curl_requests.Session,
+    category_id: int,
+    price_min: int,
+    price_max: int,
+) -> list[dict]:
+    """Fallback: query with multiple sort orders, merge + dedup by ID."""
+    seen_ids = set()
+    merged = []
+
+    for sort_params in SORT_OPTIONS:
+        params = {"price": f"{price_min},{price_max}", **sort_params}
+        items = fetch_all_product_ids(session, category_id, extra_params=params)
+        new_count = 0
+        for item in items:
+            pid = item.get("id")
+            if pid and pid not in seen_ids:
+                seen_ids.add(pid)
+                merged.append(item)
+                new_count += 1
+        sort_name = sort_params.get("sort", "default")
+        logger.info(
+            "    Sort Rotation [%s]: +%d items, %d new (total unique: %d)",
+            sort_name, len(items), new_count, len(merged),
+        )
+        time.sleep(random.uniform(*LISTING_DELAY))
+
+    return merged
+
+
+def _slice_recursive(
+    session: curl_requests.Session,
+    category_id: int,
+    price_min: int,
+    price_max: int,
+    depth: int = 0,
+) -> list[dict]:
+    """Recursive price slicing. Split range in half until total <= OVER_CAP."""
+    params = {"price": f"{price_min},{price_max}"}
+    total = _fetch_listing_total(session, category_id, extra_params=params)
+    time.sleep(random.uniform(*LISTING_DELAY))
+
+    indent = "  " * (depth + 2)
+    logger.info("%sRange %s-%s: %d SP", indent, f"{price_min:,}", f"{price_max:,}", total)
+
+    if total == 0:
+        return []
+
+    if total < OVER_CAP:
+        items = fetch_all_product_ids(session, category_id, extra_params=params)
+        return items
+
+    # Range too small to split further — use Sort Rotation fallback
+    if (price_max - price_min) < MIN_PRICE_RANGE_VND:
+        logger.info("%s-> Sort Rotation fallback (range < %d VND)", indent, MIN_PRICE_RANGE_VND)
+        return _sort_rotation_merge(session, category_id, price_min, price_max)
+
+    # Split in half
+    mid = (price_min + price_max) // 2
+    mid = mid // 1000 * 1000  # Round to 1000 VND
+    if mid <= price_min:
+        mid = price_min + 1000
+    if mid >= price_max:
+        return _sort_rotation_merge(session, category_id, price_min, price_max)
+
+    logger.info("%s-> Splitting: %s-%s | %s-%s", indent, f"{price_min:,}", f"{mid:,}", f"{mid:,}", f"{price_max:,}")
+    left = _slice_recursive(session, category_id, price_min, mid, depth + 1)
+    right = _slice_recursive(session, category_id, mid, price_max, depth + 1)
+
+    # Merge + dedup
+    seen_ids = {item["id"] for item in left}
+    merged = list(left)
+    for item in right:
+        if item["id"] not in seen_ids:
+            seen_ids.add(item["id"])
+            merged.append(item)
+
+    return merged
+
+
+def fetch_all_ids_with_slicing(
+    session: curl_requests.Session,
+    category_id: int,
+    max_products: int | None = None,
+) -> list[dict]:
+    """Fetch all product IDs, using price-range slicing for OVER_CAP categories."""
+    # First try normal listing
+    _, total = fetch_listing_page(session, category_id, page=1)
+
+    if total < OVER_CAP:
+        logger.info("  Category total: %d (under cap) — normal listing", total)
+        return fetch_all_product_ids(session, category_id, max_products)
+
+    # total >= OVER_CAP — API caps at 2000, real total is likely higher
+    logger.info("  Category total: %d (OVER_CAP, real total likely higher) — using Price-Range Slicing", total)
+
+    seen_ids = set()
+    all_items = []
+
+    for p_min, p_max in INITIAL_PRICE_RANGES:
+        items = _slice_recursive(session, category_id, p_min, p_max)
+        for item in items:
+            pid = item.get("id")
+            if pid and pid not in seen_ids:
+                seen_ids.add(pid)
+                all_items.append(item)
+
+    logger.info("  Slicing done: %d unique items (baseline was capped at %d)", len(all_items), OVER_CAP)
+
+    if max_products and len(all_items) > max_products:
+        all_items = all_items[:max_products]
+
+    return all_items
+
+
 # --- Checkpoint ---
 
 def _checkpoint_path(category_id: int) -> Path:
@@ -280,9 +433,9 @@ def scrape_category(
 
     session = _new_session()
 
-    # Step 1: Listing
+    # Step 1: Listing (with automatic price-range slicing for OVER_CAP)
     logger.info("Step 1: Fetching listing...")
-    raw_items = fetch_all_product_ids(session, category_id, max_products)
+    raw_items = fetch_all_ids_with_slicing(session, category_id, max_products)
     session.close()
     logger.info("  Got %d items from listing", len(raw_items))
 

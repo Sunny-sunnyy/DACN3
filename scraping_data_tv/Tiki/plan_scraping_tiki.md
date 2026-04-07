@@ -162,19 +162,40 @@ Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md`
 
 ---
 
-### Step 4d: Implement Adaptive Price-Range Slicing (DANG LAM)
+### Step 4d: Implement Adaptive Price-Range Slicing (HOAN THANH)
 
 **File:** `tiki_scraper/scraper.py`
 
 **Thuat toan 2 tang:**
-- **Tang 1 — Adaptive Slicing:** Khi total >2000, chia 8 khoang gia → query tung khoang → neu van >2000 thi chia doi (recursive) → dung khi khoang <1,000 VND
-- **Tang 2 — Sort Rotation Fallback:** Khi khoang gia <1,000 VND ma van >2000 SP → query 4 kieu sort (default, price_asc, price_desc, newest) → merge + dedup IDs
+- **Tang 1 — Adaptive Slicing:** Khi total >=2000, chia 8 khoang gia → query tung khoang → neu van >=2000 thi chia doi (recursive) → dung khi khoang <1,000 VND
+- **Tang 2 — Sort Rotation Fallback:** Khi khoang gia <1,000 VND ma van >=2000 SP → query 4 kieu sort (default, price_asc, price_desc, newest) → merge + dedup IDs
 - Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md` (muc "Phuong an cuoi cung")
 
-**Thay doi trong scraper.py:**
-- Them `fetch_listing_with_slicing()` — recursive price slicing
-- Them `sort_rotation_merge()` — fallback cho edge case
-- Cap nhat `scrape_category()` — goi slicing khi category co >2000 SP
+**Cac ham moi trong scraper.py:**
+- `_fetch_listing_total()` — lay nhanh total SP cho 1 khoang gia
+- `_sort_rotation_merge()` — fallback: 4 sort orders, merge + dedup
+- `_slice_recursive()` — recursive chia doi khoang gia
+- `fetch_all_ids_with_slicing()` — entry point, tu dong chon normal/slicing
+
+**Cap nhat ham cu:**
+- `fetch_listing_page()` — them param `extra_params` (price, sort)
+- `fetch_all_product_ids()` — them `extra_params` + fix pagination (dung `len >= total` thay vi `len < limit`)
+- `scrape_category()` — goi `fetch_all_ids_with_slicing()` thay vi `fetch_all_product_ids()` truc tiep
+
+**Test thuc te (sub 1951, Dung cu nha bep):**
+
+| Metric | Ket qua |
+|--------|---------|
+| Unique items | 14,346 |
+| Coverage | ~99% (vs 14,478 API total) |
+| Baseline (khong slicing) | 2,000 (14%) |
+| Thoi gian listing | ~10 phut (WSL2) |
+| Ranges chia | 5/8 ranges can split (0-50K, 50K-100K, 100K-200K, 200K-500K, 500K-1M) |
+| Sort Rotation | Khong can (tat ca ranges <2000 sau khi chia doi) |
+
+**Bugs phat hien va fix:**
+- API bao `total=2000` khi bi cap → detection dung `total >= 2000` (khong phai `> 2000`)
+- Pagination dung som khi page tra ve <limit items → fix check `len(all_items) >= total`
 
 ---
 
@@ -226,7 +247,7 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Step 4: Test 1 category | - | ~2 phut | HOAN THANH |
 | Step 4b: Re-scan + report | 30 phut | ~1 phut | HOAN THANH |
 | Step 4c: Test OVER_CAP | 1 gio | ~2 phut | HOAN THANH |
-| Step 4d: Adaptive Slicing + Sort Fallback | 2-3 gio | - | DANG LAM |
+| Step 4d: Adaptive Slicing + Sort Fallback | 2 gio | ~10 phut test | HOAN THANH |
 | Step 5: Scale full (VPS) | - | ~14-20 gio | CHUA LAM |
 | Step 6: Merge | 1 gio | 30 phut | CHUA LAM |
 
@@ -377,4 +398,4 @@ Tong mat ~200K SP neu khong xu ly.
 
 ---
 
-*Cap nhat: 2026-04-07 20:44 — Step 1-4c hoan thanh. OVER_CAP problem da phat hien va test. Can implement Price Slicing truoc Step 5.*
+*Cap nhat: 2026-04-07 22:30 — Step 1-4d hoan thanh. Adaptive Slicing implemented + tested (14,346 SP, 99% coverage). San sang Step 5 (scale tren VPS).*
