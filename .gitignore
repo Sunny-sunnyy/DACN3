@@ -183,3 +183,7 @@ node_modules/
 # Ignore memory/session files
 memory.json
 day_mcp/
+
+
+
+scraping_data_tv/Shopee/step1/chrome_profile/
