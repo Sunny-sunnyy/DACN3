@@ -51,7 +51,32 @@ scraping_data_tv/Shopee/
 
 ## Implementation Steps
 
-### Step 1: Models + Config
+### Step 1: Thu nghiem lay raw data (QUAN TRONG NHAT)
+**File:** `scripts/00_test_shopee_api.py`
+
+**Muc tieu:** Viet 1 script .py don gian nhat co the, thu goi Shopee API, xem co lay duoc data khong.
+Chua can models, config, hay bat ky abstraction nao. Chi can: goi API -> in ra JSON -> luu file.
+
+**Approach A — Shopee Search API (thu truoc):**
+1. Dung `curl_cffi` + `impersonate="chrome"` goi `shopee.vn/api/v4/search/search_items`
+2. Xem response: co data khong? bi block khong? can headers gi?
+3. Neu OK: thu pagination (page 2, 3...), thu product detail API
+4. Luu raw JSON vao `data/raw/test_response.json`
+
+**Approach B — Selenium + BS4 (fallback neu A bi block):**
+1. Dung Selenium mo shopee.vn, search keyword, scroll lazy-load
+2. Parse HTML bang BeautifulSoup
+3. Hoac di tim tai lieu/nghien cuu them
+
+**Approach C — Apify (fallback neu ca A va B deu that bai):**
+1. Dung Apify actor (tra phi) de bypass anti-bot
+
+**Nguyen tac:** Lam don gian nhat truoc. 1 file .py, chay duoc, thay ket qua ngay.
+**Sau khi co raw data:** Moi bat dau refactor thanh models.py, config.py, pipeline...
+
+---
+
+### Step 1b: Models + Config (lam SAU khi co raw data)
 **Files:** `shopee_scraper/models.py`, `shopee_scraper/config.py`
 
 **models.py** — Pydantic models:
