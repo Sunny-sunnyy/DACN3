@@ -77,9 +77,69 @@ GET https://tiki.vn/api/v2/products/278218808
 
 ```
 step1/
-    00_test_tiki_api.py        # Test script
+    00_test_tiki_api.py        # Test 2 API endpoints
+    01_get_categories.py       # Scan 24 parent categories
+    02_get_subcategories.py    # Scan 122 sub-categories (~585K SP)
+    03_test_scraper.py         # Test scraper pipeline (Tivi, 30 SP)
     step1_notes.md             # File nay
     data/raw/
         test_listing_response.json    # Raw listing response
         test_detail_278218808.json    # Raw detail response
+        categories_scan.json          # 24 parent categories + totals
+        subcategories_scan.json       # 122 sub-categories (nested)
+        subcategories_flat.json       # 122 sub-categories (flat, sorted)
+    data/test_output/
+        tiki_5015.jsonl               # Test output: Tivi (30 SP)
+        tiki_1795.jsonl               # Test output: Dien thoai Smartphone (103 SP)
 ```
+
+---
+
+## Step 2: Scan categories (da hoan thanh)
+
+**01_get_categories.py** — Scan 24 parent categories:
+- 20 categories hoat dong, tong ~32K san pham (cap o 2000/category)
+- Listing API cap `total` o 2000 — so thuc nhieu hon
+
+**02_get_subcategories.py** — Scan 122 sub-categories:
+- Tong uoc tinh: ~585K san pham
+- 100 sub-categories co >= 100 san pham, tong ~584K
+- Sub-categories lon nhat: Sach tieng Viet (241K), Phu kien dien thoai (79K), Noi that (19K)
+
+**Cach vuot gioi han 2000:** Listing API chi tra ve toi da 2000 san pham/query. Giai phap: query theo sub-category (nho hon) thay vi parent category. Moi sub-category co total rieng, co the paginate het.
+
+---
+
+## Step 3: Build scraper (da hoan thanh)
+
+**03_test_scraper.py** — Test pipeline voi category Tivi (5015):
+- 30/30 san pham, ~36 giay, khong bi block
+- Data day du: title, brand, price, features (avg 5130 chars), url, category
+
+**Scraper package** (`tiki_scraper/`):
+- `models.py`: TikiProduct (Pydantic)
+- `config.py`: 47 sub-categories, rate limits, headers
+- `scraper.py`: listing -> filter price -> detail -> save JSONL + checkpoint
+
+---
+
+## Step 4: Full category test (da hoan thanh)
+
+**Test: Dien thoai Smartphone (1795) — 103 san pham:**
+- 103/103 san pham, ~2 phut 17 giay (~1.3s/SP)
+- Price range: 210,000 - 40,990,000 VND
+- Features avg: 3,379 chars
+- Brands: Xiaomi (39), Samsung (31), OPPO (13), Apple (7), Realme (5), Vivo (5), Tecno (1), OnePlus (1), Nokia (1)
+- Khong bi block sau 103 requests lien tuc
+- Checkpoint va resume hoat dong
+
+**Thay doi so voi plan ban dau:**
+- Category breadcrumb: lay toi da 3 cap, bo ten san pham o cuoi (truoc do lay full breadcrumb)
+- Output folder: `Tiki_dataset_scrape/` (thay vi `data/raw/`)
+- Listing limit: dung 40/page (thay vi 100, an toan hon)
+
+---
+
+## Ket luan
+
+Tiki API v2 hoat dong on dinh, khong co anti-bot dang ke. Scraper san sang de scale len 100K+ san pham. Buoc tiep theo: chay `run_scraper.py --all` tren may thue de cao toan bo 47 sub-categories.

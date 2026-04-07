@@ -49,21 +49,24 @@ Listing API (lay danh sach IDs)  -->  Filter (gia, co brand)  -->  Detail API (l
 ```
 scraping_data_tv/Tiki/
     plan_scraping_tiki.md          # File nay
+    run_scraper.py                 # CLI: --test, --category ID, --all, --max N
     Docs/                          # Tiki Open API docs
     Github/                        # 5 repos tham khao
-    Tiki_dataset_1/                # Kaggle 41.6K (thoi trang)
+    Tiki_dataset_1/                # Kaggle 41.6K (thoi trang, CSV)
+    Tiki_dataset_scrape/           # OUTPUT: JSONL per category (scraper ghi vao day)
     step1/                         # Thu nghiem API
-        00_test_tiki_api.py        # Test thu 2 API endpoints
-        step1_notes.md             # Ghi chep ket qua
-        data/raw/                  # Raw JSON responses
-    tiki_scraper/                  # Code chinh (tao sau khi step1 OK)
+        00_test_tiki_api.py        # Test 2 API endpoints
+        01_get_categories.py       # Scan 24 parent categories
+        02_get_subcategories.py    # Scan 122 sub-categories
+        03_test_scraper.py         # Test scraper (Tivi, 30 SP)
+        step1_notes.md             # Ghi chep ket qua chi tiet
+        data/raw/                  # Raw JSON responses + category scans
+        data/test_output/          # Test JSONL outputs
+    tiki_scraper/                  # Code chinh
+        __init__.py
         models.py                  # Pydantic: TikiProduct
-        scraper.py                 # Orchestrator: listing -> filter -> detail -> save
-        config.py                  # Categories, price range, delays
-    data/
-        raw/                       # Raw JSONL per category
-        cleaned/                   # Sau khi clean
-        final/                     # Train/val/test splits
+        scraper.py                 # Pipeline: listing -> filter -> detail -> save JSONL
+        config.py                  # 47 sub-categories, rate limits, headers
     checkpoints/                   # Scraping progress (resume khi bi ngat)
 ```
 
@@ -71,74 +74,57 @@ scraping_data_tv/Tiki/
 
 ## Implementation Steps
 
-### Step 1: Thu nghiem API (DANG LAM)
+### Step 1: Thu nghiem API (HOAN THANH)
 **File:** `step1/00_test_tiki_api.py`
-
-Thu goi 2 API endpoints, xem:
-- Co tra ve data khong? Bi block khong?
-- Response format nhu the nao?
-- Fields nao co san, fields nao thieu?
-- Rate limit cua Tiki la bao nhieu?
-
-Chi can 1 file .py don gian, chay xong thay ket qua ngay.
+**Ket qua:** Ca 2 API deu 200 OK, data day du, khong bi block. Chi tiet: `step1/step1_notes.md`
 
 ---
 
-### Step 2: Lay danh sach categories
-**File:** `step1/01_get_categories.py` (hoac tich hop vao scraper)
-
-- Goi Tiki homepage hoac API de lay tat ca category IDs
-- Loc categories phu hop: Dien tu, Gia dung, May tinh, Dien thoai, Phu kien...
-- Loai bo categories da co trong Kaggle (thoi trang, giay dep, tui xach)
-
-Muc tieu: ~15-20 categories, moi category ~3000-5000 san pham
-
----
-
-### Step 3: Xay dung scraper chinh
-**Files:** `tiki_scraper/models.py`, `tiki_scraper/scraper.py`, `tiki_scraper/config.py`
-
-**models.py** — Pydantic model:
-```python
-class TikiProduct(BaseModel):
-    product_id: int
-    title: str
-    brand: str
-    price: int              # VND
-    features: str           # description + specifications gop lai
-    url: str
-    category: str
-    category_id: int
-```
-
-**config.py** — Constants:
-- CATEGORIES: dict mapping category_name -> category_id
-- PRICE_MIN = 50_000, PRICE_MAX = 50_000_000
-- LISTING_DELAY = (1.0, 2.0)   # delay giua cac listing pages
-- DETAIL_DELAY = (0.5, 1.5)    # delay giua cac detail requests
-- BATCH_SLEEP_EVERY = 50       # sleep them 3s moi 50 requests
-- MAX_RETRIES = 3
-
-**scraper.py** — Pipeline:
-1. Listing API: lay het product IDs tu 1 category (paginate cho den khi het)
-2. Filter: bo san pham ngoai khoang gia, khong co brand
-3. Detail API: lay full info cho tung san pham
-4. Save: append JSONL + checkpoint moi 100 san pham
-5. Resume: doc checkpoint, bo qua product IDs da cao
+### Step 2: Lay danh sach categories (HOAN THANH)
+**Files:** `step1/01_get_categories.py`, `step1/02_get_subcategories.py`
+**Ket qua:**
+- 24 parent categories -> 122 sub-categories, tong ~585K san pham
+- Listing API cap `total` o 2000/query -> giai phap: query theo sub-category
+- Chon 47 sub-categories da dang (dien tu, gia dung, phu kien, suc khoe...) vao `config.py`
+- Loai bo: Sach (241K — khong phu hop), Thoi trang (da co 41K tu Kaggle)
 
 ---
 
-### Step 4: Test voi 1 category (~1000 san pham)
+### Step 3: Xay dung scraper chinh (HOAN THANH)
+**Files:** `tiki_scraper/models.py`, `tiki_scraper/scraper.py`, `tiki_scraper/config.py`, `run_scraper.py`
 
-Chay thu 1 category (vd: "tai nghe") tren WSL2.
+**Da trien khai:**
+- `models.py`: TikiProduct (Pydantic) — product_id, title, brand, price, features, url, category, category_id
+- `config.py`: 47 sub-categories, PRICE_MIN=50K, PRICE_MAX=50M, rate limits
+- `scraper.py`: Pipeline listing -> filter price -> detail -> save JSONL + checkpoint
+- `run_scraper.py`: CLI interface (`--test`, `--category ID`, `--all`, `--max N`)
 
-Kiem tra:
-- [ ] Data dung format? title, brand, price, features, url deu co?
-- [ ] Price dung (VND, khong can chia 100K nhu Shopee)?
-- [ ] Features du dai (>100 chars)?
-- [ ] URL hop le?
-- [ ] Checkpoint hoat dong (resume duoc)?
-- [ ] Khong bi block sau 1000 requests?
+**Tinh nang:**
+- Checkpoint moi 100 san pham, resume khi bi ngat
+- Session rotation moi 500 requests
+- Batch sleep 3s moi 50 requests
+- Retry 3 lan khi loi, doi 5 phut khi bi 429/403
+- Category breadcrumb: lay toi da 3 cap, bo ten san pham
+- Output: JSONL, moi category 1 file (`Tiki_dataset_scrape/tiki_{id}.jsonl`)
+
+---
+
+### Step 4: Test voi 1 category (HOAN THANH)
+
+**Test 1: Tivi (5015) — 30 san pham:**
+- [x] Data dung format? title, brand, price, features, url deu co
+- [x] Price dung (VND, khong can chia 100K)
+- [x] Features du dai (avg 5130 chars)
+- [x] URL hop le (https://tiki.vn/...)
+- [x] Checkpoint hoat dong
+- [x] Khong bi block
+
+**Test 2: Dien thoai Smartphone (1795) — 103 san pham (FULL category):**
+- [x] 103/103 san pham, ~2 phut 17 giay (~1.3s/SP)
+- [x] Price range: 210K - 41M VND
+- [x] Features avg: 3,379 chars
+- [x] 9 brands: Xiaomi, Samsung, OPPO, Apple, Realme, Vivo, Tecno, OnePlus, Nokia
+- [x] Khong bi block sau 103 requests lien tuc
 
 ---
 
@@ -178,21 +164,59 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 
 ## Uoc tinh thoi gian
 
-| Buoc | Thoi gian code | Thoi gian chay |
-|------|---------------|----------------|
-| Step 1: Test API | 30 phut | 5 phut |
-| Step 2: Categories | 30 phut | 5 phut |
-| Step 3: Scraper | 2-3 gio | - |
-| Step 4: Test 1 category | - | 1-2 gio |
-| Step 5: Scale full | - | 20-48 gio |
-| Step 6: Merge | 1 gio | 30 phut |
+| Buoc | Thoi gian code | Thoi gian chay | Trang thai |
+|------|---------------|----------------|------------|
+| Step 1: Test API | 30 phut | 5 phut | HOAN THANH |
+| Step 2: Categories | 30 phut | 5 phut | HOAN THANH |
+| Step 3: Scraper | 2-3 gio | - | HOAN THANH |
+| Step 4: Test 1 category | - | ~2 phut | HOAN THANH |
+| Step 5: Scale full | - | ~36 gio | CHUA LAM |
+| Step 6: Merge | 1 gio | 30 phut | CHUA LAM |
 
-**Tong code:** ~4-5 gio
-**Tong chay (WSL2 test):** ~2 gio
-**Tong chay (full scale):** ~20-48 gio (tren may thue)
+**Toc do thuc te:** ~1.3s/san pham (do tu test 103 SP Smartphone)
+**Uoc tinh 100K SP:** ~36 gio chay lien tuc
 
 ---
 
 ## Dependencies
 
 Tat ca da co trong project: `curl_cffi`, `pydantic`, `tqdm`. Khong can them package moi.
+
+---
+
+## Cach chay
+
+```bash
+cd tech2ai
+
+# Test nhanh (Tivi, 50 SP, ~1 phut)
+uv run scraping_data_tv/Tiki/run_scraper.py --test
+
+# Cao 1 category (vd: Dien thoai Smartphone, max 200 SP)
+uv run scraping_data_tv/Tiki/run_scraper.py --category 1795 --max 200
+
+# Cao TAT CA 47 categories (~100K SP, ~36 gio)
+uv run scraping_data_tv/Tiki/run_scraper.py --all
+
+# Cao tat ca, gioi han 500 SP/category (~23K SP, ~8 gio)
+uv run scraping_data_tv/Tiki/run_scraper.py --all --max 500
+```
+
+Output luu tai: `Tiki_dataset_scrape/tiki_{category_id}.jsonl`
+Resume: neu bi ngat, chay lai lenh cu — scraper tu dong bo qua SP da cao.
+
+---
+
+## Thay doi so voi plan ban dau
+
+| Thay doi | Truoc | Sau |
+|----------|-------|-----|
+| So categories | 15-20 parent categories | 47 sub-categories (vuot gioi han 2000/query) |
+| Output folder | `data/raw/` | `Tiki_dataset_scrape/` |
+| Category breadcrumb | Full breadcrumb (gom ten SP) | Toi da 3 cap, bo ten SP |
+| Listing limit | 100/page | 40/page (an toan hon) |
+| Muc tieu | 60K+ | 100K+ (47 sub-categories, tong ~270K SP kha dung) |
+
+---
+
+*Cap nhat: 2026-04-07 — Step 1-4 hoan thanh, scraper san sang scale.*
