@@ -49,6 +49,11 @@ Listing API (lay danh sach IDs)  -->  Filter (gia, co brand)  -->  Detail API (l
 ```
 scraping_data_tv/Tiki/
     plan_scraping_tiki.md          # File nay
+    SESSION_HANDOFF.md             # Trang thai session hien tai
+    HUONG_DAN_CAO_DU_LIEU.md       # Huong dan cao tren may thue
+    HUONG_DAN_VUOT_CAP_2000.md     # Van de OVER_CAP + 3 phuong an + ket qua test
+    tiki_categories_report.csv     # Bang danh muc 122 sub-categories (CSV)
+    tiki_categories_report.md      # Bang danh muc (Markdown)
     run_scraper.py                 # CLI: --test, --category ID, --all, --max N
     Docs/                          # Tiki Open API docs
     Github/                        # 5 repos tham khao
@@ -58,7 +63,8 @@ scraping_data_tv/Tiki/
         00_test_tiki_api.py        # Test 2 API endpoints
         01_get_categories.py       # Scan 24 parent categories
         02_get_subcategories.py    # Scan 122 sub-categories
-        03_test_scraper.py         # Test scraper (Tivi, 30 SP)
+        03_export_categories_report.py  # Export CSV + bang danh muc
+        04_test_overcap_solutions.py    # Test 3 phuong an vuot OVER_CAP
         step1_notes.md             # Ghi chep ket qua chi tiet
         data/raw/                  # Raw JSON responses + category scans
         data/test_output/          # Test JSONL outputs
@@ -86,7 +92,6 @@ scraping_data_tv/Tiki/
 - 24 parent categories -> 122 sub-categories, tong ~585K san pham
 - Listing API cap `total` o 2000/query -> giai phap: query theo sub-category
 - Chon 47 sub-categories da dang (dien tu, gia dung, phu kien, suc khoe...) vao `config.py`
-- Loai bo: Sach (241K — khong phu hop), Thoi trang (da co 41K tu Kaggle)
 
 ---
 
@@ -128,12 +133,61 @@ scraping_data_tv/Tiki/
 
 ---
 
-### Step 5: Scale — cao tat ca categories (~60K+ san pham)
+### Step 4b: Re-scan va bao cao categories (HOAN THANH)
+**Files:** `step1/03_export_categories_report.py`, `tiki_categories_report.csv`, `tiki_categories_report.md`
+**Ket qua (2026-04-07):**
+- Re-scan xac nhan: 15 parent categories -> 122 sub-categories, ~585,374 SP
+- 27 sub-categories co >2000 SP -> bi OVER_CAP boi Listing API
+- Export CSV + Markdown report day du
 
-Neu step 4 OK tren WSL2:
-- Thue may manh hon (VPS hoac Vast.ai)
-- Chay cho tat ca categories
-- Uoc tinh: ~60-70K detail requests, delay 1s/req = ~20-24 gio
+---
+
+### Step 4c: Phat hien va test OVER_CAP problem (HOAN THANH)
+**Files:** `step1/04_test_overcap_solutions.py`, `HUONG_DAN_VUOT_CAP_2000.md`
+
+**Van de:** Listing API cap ket qua o 2000 SP/query. 27 sub-categories co >2000 SP,
+tong mat ~200K SP neu khong xu ly.
+
+**Test thuc te tren sub 1951 (Dung cu nha bep, 14,478 SP):**
+
+| Phuong an | SP lay duoc | Coverage | Cach hoat dong |
+|-----------|------------|----------|----------------|
+| Baseline (khong lam gi) | 2,000 | 14% | Listing binh thuong |
+| Sort Rotation | ~5-7K (uoc tinh) | 35-48% | Doi sort param (price_asc, price_desc, newest) |
+| **Price-Range Slicing** | **13,935** | **96%** | Chia query theo 8 khoang gia |
+| Sub-Sub Drilling | 11,926 | 82% | Drill xuong sub-sub-categories |
+
+**Quyet dinh:** Chon **Price-Range Slicing** — can implement vao `scraper.py` truoc Step 5.
+Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md`
+
+---
+
+### Step 4d: Implement Adaptive Price-Range Slicing (DANG LAM)
+
+**File:** `tiki_scraper/scraper.py`
+
+**Thuat toan 2 tang:**
+- **Tang 1 — Adaptive Slicing:** Khi total >2000, chia 8 khoang gia → query tung khoang → neu van >2000 thi chia doi (recursive) → dung khi khoang <1,000 VND
+- **Tang 2 — Sort Rotation Fallback:** Khi khoang gia <1,000 VND ma van >2000 SP → query 4 kieu sort (default, price_asc, price_desc, newest) → merge + dedup IDs
+- Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md` (muc "Phuong an cuoi cung")
+
+**Thay doi trong scraper.py:**
+- Them `fetch_listing_with_slicing()` — recursive price slicing
+- Them `sort_rotation_merge()` — fallback cho edge case
+- Cap nhat `scrape_category()` — goi slicing khi category co >2000 SP
+
+---
+
+### Step 5: Scale — cao 100K+ san pham (CHUA LAM)
+
+**Dieu kien tien quyet:** Step 4d hoan thanh (Adaptive Price-Range Slicing).
+
+**Ke hoach:**
+- Thue may de cao tren (IP Viet Nam, latency thap)
+- Chay cho tat ca categories (slicing tu dong cho 27 sub OVER_CAP)
+- Muc tieu: 100K SP de test, sau do scale len
+- Uoc tinh: ~10-15K listing requests (do Price Slicing) + ~100K detail requests
+- Thoi gian: ~8-12 gio voi 5 workers (detail la bottleneck chinh)
 - Checkpoint moi 100 san pham -> resume duoc neu bi ngat
 
 ---
@@ -170,7 +224,10 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Step 2: Categories | 30 phut | 5 phut | HOAN THANH |
 | Step 3: Scraper | 2-3 gio | - | HOAN THANH |
 | Step 4: Test 1 category | - | ~2 phut | HOAN THANH |
-| Step 5: Scale full | - | ~36 gio | CHUA LAM |
+| Step 4b: Re-scan + report | 30 phut | ~1 phut | HOAN THANH |
+| Step 4c: Test OVER_CAP | 1 gio | ~2 phut | HOAN THANH |
+| Step 4d: Adaptive Slicing + Sort Fallback | 2-3 gio | - | DANG LAM |
+| Step 5: Scale full (VPS) | - | ~14-20 gio | CHUA LAM |
 | Step 6: Merge | 1 gio | 30 phut | CHUA LAM |
 
 ---
@@ -294,7 +351,30 @@ Chi tiet: xem `HUONG_DAN_CAO_DU_LIEU.md`
 | DETAIL_DELAY | 0.5-1.5s | 0.3-0.8s (per worker) |
 | BATCH_SLEEP | 3s moi 50 req | 2s moi 100 req |
 | Toc do | 0.8 SP/s | 2.7 SP/s (3 workers), ~4.5 SP/s (5 workers) |
+| Listing strategy | 1 query/sub-category | Price-Range Slicing cho sub >2000 SP |
+| Moi truong chay | WSL2 local | VPS thue (IP Viet Nam) |
+
 
 ---
 
-*Cap nhat: 2026-04-07 — Step 1-4 hoan thanh. Concurrent workers + resume da test.*
+## Van de da phat hien
+
+### OVER_CAP 2000 SP/query (2026-04-07)
+
+Listing API cap ket qua o 2000 SP/query (50 pages x 40 items). 27/122 sub-categories bi anh huong.
+Tong mat ~200K SP neu khong xu ly.
+
+**Test thuc te (sub 1951, Dung cu nha bep, 14,478 SP):**
+- Baseline: chi lay duoc 2,000/14,478 SP (14%)
+- Price-Range Slicing: lay duoc 13,935/14,478 SP (96%) — **phuong an tot nhat**
+- Sort Rotation: ~35-48% coverage
+- Sub-Sub Drilling: 82% coverage
+
+**Giai phap da chon:** Adaptive Price-Range Slicing + Sort Rotation Fallback.
+- Tang 1: Chia khoang gia, recursive chia doi khi >2000 SP
+- Tang 2: Sort Rotation fallback khi khoang gia <1,000 VND ma van >2000 SP
+- Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md` (muc "Phuong an cuoi cung")
+
+---
+
+*Cap nhat: 2026-04-07 20:44 — Step 1-4c hoan thanh. OVER_CAP problem da phat hien va test. Can implement Price Slicing truoc Step 5.*

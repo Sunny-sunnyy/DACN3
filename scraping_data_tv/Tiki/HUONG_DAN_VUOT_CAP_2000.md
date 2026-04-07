@@ -146,6 +146,68 @@ Detail van la bottleneck chinh: 100K SP x 0.5s = ~14 gio.
 
 ---
 
+## Phuong an cuoi cung: Adaptive Price-Range Slicing + Sort Rotation Fallback
+
+**Quyet dinh:** 2026-04-07
+
+### Thuat toan 2 tang
+
+```
+Tang 1 — Adaptive Price-Range Slicing:
+  1. Query binh thuong → neu total <= 2000: lay nhu cu (khong doi)
+  2. Neu total > 2000:
+     a. Chia thanh 8 khoang gia ban dau (0-50K, 50K-100K, ..., 5M-50M)
+     b. Query tung khoang
+     c. Neu khoang nao van >2000: chia doi khoang do (recursive)
+     d. Dieu kien dung chia: khoang gia < 1,000 VND (don vi nho nhat co nghia)
+     e. Merge tat ca IDs, dedup
+
+Tang 2 — Sort Rotation Fallback:
+  Khi khoang gia da < 1,000 VND ma van >2000 SP (vi du: 2,500 SP cung gia 99,000 VND):
+  1. Query voi 4 kieu sort: default, price_asc, price_desc, newest
+  2. Merge + dedup IDs tu tat ca sort
+  3. Coverage du kien: 70-85% (Sort Rotation lay them ~500 ID moi/sort)
+```
+
+### Pseudocode
+
+```python
+def fetch_listing_with_slicing(category_id, price_min, price_max):
+    items, total = query(category_id, price_min, price_max)
+
+    if total <= 2000:
+        # OK — lay binh thuong, paginate het
+        return paginate_all(category_id, price_min, price_max)
+
+    if (price_max - price_min) < 1000:
+        # Khong the chia nho hon → Sort Rotation fallback
+        return sort_rotation_merge(category_id, price_min, price_max)
+
+    # Chia doi khoang gia, goi recursive
+    mid = (price_min + price_max) // 2
+    mid = mid // 1000 * 1000  # lam tron theo 1000 VND
+    left = fetch_listing_with_slicing(category_id, price_min, mid)
+    right = fetch_listing_with_slicing(category_id, mid, price_max)
+    return merge_dedup(left, right)
+```
+
+### Tai sao chon phuong an nay?
+
+- **Price-Range Slicing** la ky thuat industry-standard (Apify, ScrapingBee, BrightData deu khuyen dung)
+- Cac khoang gia **khong overlap** → it trung lap, it request thua
+- **Adaptive** (recursive chia doi) → tu dong xu ly moi phan phoi gia, khong can biet truoc
+- **Sort Rotation fallback** → bao hiem cho edge case gia tap trung (99K, 149K, 199K VND)
+- Thuc te truong hop can Sort Rotation **rat hiem** — phai co >2,000 SP cung 1 muc gia trong 1 sub-category
+
+### Uoc tinh impact
+
+- Listing requests tang: ~2,500 → ~10,000-15,000 (do chia khoang gia)
+- Thoi gian listing them: ~2-4 gio (voi delay 0.3s/request)
+- Detail van la bottleneck chinh: 100K SP x 0.3s = ~8-10 gio (5 workers)
+- Coverage tang: 14% → 96-100%
+
+---
+
 ## File lien quan
 
 - `step1/04_test_overcap_solutions.py` — script test (chay lai bat cu luc nao)
