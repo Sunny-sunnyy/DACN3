@@ -1,16 +1,18 @@
 """
-Tiki Scraper — Listing API -> Filter -> Detail API -> Save JSONL
+Tiki Scraper — Listing API -> Filter -> Detail API (concurrent) -> Save JSONL
 
 Usage:
     from tiki_scraper.scraper import scrape_category, scrape_all
-    products = scrape_category(8129, "Linh Kien May Tinh", max_products=1000)
+    products = scrape_category(8129, "Linh Kien May Tinh", max_products=1000, workers=3)
 """
 
 import json
 import logging
 import random
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from curl_cffi import requests as curl_requests
@@ -21,6 +23,7 @@ from .config import (
     BATCH_SLEEP_SECONDS,
     BLOCK_WAIT_SECONDS,
     CHECKPOINT_EVERY,
+    DEFAULT_WORKERS,
     DETAIL_DELAY,
     LISTING_DELAY,
     LISTING_LIMIT,
@@ -28,7 +31,6 @@ from .config import (
     MIN_FEATURES_LENGTH,
     PRICE_MAX,
     PRICE_MIN,
-    SESSION_ROTATE_EVERY,
 )
 from .models import TikiProduct
 
@@ -38,6 +40,9 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "Tiki_dataset_scrape"
 CHECKPOINT_DIR = BASE_DIR / "checkpoints"
+
+# Thread-safe lock for file writing and checkpoint
+_write_lock = threading.Lock()
 
 
 def _new_session() -> curl_requests.Session:
@@ -57,17 +62,14 @@ def _extract_features(detail: dict) -> str:
     """Combine description + specifications into a single features string."""
     parts = []
 
-    # Short description
     short_desc = detail.get("short_description", "")
     if short_desc:
         parts.append(_strip_html(short_desc))
 
-    # Full description
     desc = detail.get("description", "")
     if desc:
         parts.append(_strip_html(desc))
 
-    # Specifications
     specs = detail.get("specifications", [])
     for group in specs:
         attrs = group.get("attributes", [])
@@ -85,7 +87,6 @@ def _extract_brand(detail: dict) -> str:
     brand_obj = detail.get("brand", {})
     if isinstance(brand_obj, dict) and brand_obj.get("name"):
         return brand_obj["name"]
-    # Fallback: tim trong specifications
     for group in detail.get("specifications", []):
         for attr in group.get("attributes", []):
             if attr.get("code") == "brand":
@@ -98,10 +99,9 @@ def _extract_category(detail: dict) -> str:
     breadcrumbs = detail.get("breadcrumbs", [])
     if not breadcrumbs:
         return ""
-    # Breadcrumb cuoi la ten san pham -> bo di, lay toi da 3 cap
     names = [b.get("name", "") for b in breadcrumbs if b.get("name")]
     if len(names) > 1:
-        names = names[:-1]  # bo ten san pham
+        names = names[:-1]
     return " > ".join(names[:3])
 
 
@@ -171,7 +171,7 @@ def fetch_all_product_ids(
             break
 
         if len(items) < LISTING_LIMIT:
-            break  # last page
+            break
 
         page += 1
         time.sleep(random.uniform(*LISTING_DELAY))
@@ -181,34 +181,65 @@ def fetch_all_product_ids(
 
 # --- Detail API ---
 
-def fetch_product_detail(
-    session: curl_requests.Session,
-    product_id: int,
-) -> dict | None:
-    """Fetch full product detail. Returns raw JSON dict or None."""
+def fetch_product_detail(product_id: int) -> dict | None:
+    """Fetch full product detail. Each call creates its own session (thread-safe)."""
     url = f"https://tiki.vn/api/v2/products/{product_id}"
+    session = _new_session()
 
-    for attempt in range(MAX_RETRIES):
-        try:
-            resp = session.get(url, timeout=15)
-            if resp.status_code == 200:
-                return resp.json()
-            if resp.status_code in (403, 429):
-                logger.warning(
-                    "Detail %d: status %d, waiting %ds...",
-                    product_id, resp.status_code, BLOCK_WAIT_SECONDS,
-                )
-                time.sleep(BLOCK_WAIT_SECONDS)
-                continue
-            if resp.status_code == 404:
+    try:
+        for attempt in range(MAX_RETRIES):
+            try:
+                resp = session.get(url, timeout=15)
+                if resp.status_code == 200:
+                    return resp.json()
+                if resp.status_code in (403, 429):
+                    logger.warning(
+                        "Detail %d: status %d, waiting %ds...",
+                        product_id, resp.status_code, BLOCK_WAIT_SECONDS,
+                    )
+                    time.sleep(BLOCK_WAIT_SECONDS)
+                    continue
+                if resp.status_code == 404:
+                    return None
+                logger.warning("Detail %d: status %d", product_id, resp.status_code)
                 return None
-            logger.warning("Detail %d: status %d", product_id, resp.status_code)
-            return None
-        except Exception as e:
-            logger.warning("Detail %d attempt %d: %s", product_id, attempt + 1, e)
-            time.sleep(5)
+            except Exception as e:
+                logger.warning("Detail %d attempt %d: %s", product_id, attempt + 1, e)
+                time.sleep(5)
+    finally:
+        session.close()
 
     return None
+
+
+def _process_one_product(product_id: int, category_id: int) -> TikiProduct | None:
+    """Fetch detail + extract fields for 1 product. Thread-safe."""
+    time.sleep(random.uniform(*DETAIL_DELAY))
+
+    detail = fetch_product_detail(product_id)
+    if not detail:
+        return None
+
+    features = _extract_features(detail)
+    if not features or len(features) < MIN_FEATURES_LENGTH:
+        return None
+
+    brand = _extract_brand(detail)
+    category = _extract_category(detail)
+    url_path = detail.get("url_path", "")
+    url = f"https://tiki.vn/{url_path}" if url_path else ""
+    price = detail.get("price", 0)
+
+    return TikiProduct(
+        product_id=product_id,
+        title=detail.get("name", ""),
+        brand=brand,
+        price=price,
+        features=features,
+        url=url,
+        category=category,
+        category_id=category_id,
+    )
 
 
 # --- Checkpoint ---
@@ -218,7 +249,6 @@ def _checkpoint_path(category_id: int) -> Path:
 
 
 def load_checkpoint(category_id: int) -> set[int]:
-    """Load set of already-scraped product IDs."""
     cp = _checkpoint_path(category_id)
     if cp.exists():
         data = json.loads(cp.read_text())
@@ -239,23 +269,21 @@ def scrape_category(
     category_name: str,
     max_products: int | None = None,
     output_dir: Path | None = None,
+    workers: int = DEFAULT_WORKERS,
 ) -> list[TikiProduct]:
-    """
-    Scrape one category: listing -> filter -> detail -> save.
-    Returns list of TikiProduct.
-    """
+    """Scrape one category with concurrent detail fetching."""
     out_dir = output_dir or DATA_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"tiki_{category_id}.jsonl"
 
-    logger.info("=== Scraping [%d] %s ===", category_id, category_name)
+    logger.info("=== Scraping [%d] %s (workers=%d) ===", category_id, category_name, workers)
 
     session = _new_session()
-    request_count = 0
 
-    # Step 1: Listing — get all product IDs
+    # Step 1: Listing
     logger.info("Step 1: Fetching listing...")
     raw_items = fetch_all_product_ids(session, category_id, max_products)
+    session.close()
     logger.info("  Got %d items from listing", len(raw_items))
 
     # Step 2: Filter by price
@@ -265,7 +293,7 @@ def scrape_category(
     ]
     logger.info("Step 2: After price filter: %d items (removed %d)", len(filtered), len(raw_items) - len(filtered))
 
-    # Load checkpoint (resume)
+    # Load checkpoint
     done_ids = load_checkpoint(category_id)
     if done_ids:
         logger.info("  Resuming: %d already done", len(done_ids))
@@ -273,80 +301,65 @@ def scrape_category(
     to_scrape = [item for item in filtered if item["id"] not in done_ids]
     logger.info("  To scrape: %d items", len(to_scrape))
 
-    # Step 3: Detail API for each product
+    if not to_scrape:
+        logger.info("  Nothing to scrape, skipping.")
+        return []
+
+    # Step 3: Detail API — concurrent
     products = []
+    done_count = 0
     detail_start = time.time()
-    logger.info("Step 3: Fetching details...")
+    logger.info("Step 3: Fetching details (workers=%d)...", workers)
 
-    for i, item in enumerate(to_scrape):
-        pid = item["id"]
+    product_ids = [item["id"] for item in to_scrape]
 
-        # Session rotation
-        request_count += 1
-        if request_count % SESSION_ROTATE_EVERY == 0:
-            session.close()
-            session = _new_session()
-            logger.info("  Rotated session at request #%d", request_count)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(_process_one_product, pid, category_id): pid
+            for pid in product_ids
+        }
 
-        # Batch sleep
-        if request_count % BATCH_SLEEP_EVERY == 0:
-            time.sleep(BATCH_SLEEP_SECONDS)
+        for future in as_completed(futures):
+            pid = futures[future]
+            done_count += 1
 
-        detail = fetch_product_detail(session, pid)
-        if not detail:
-            done_ids.add(pid)
-            continue
+            try:
+                product = future.result()
+            except Exception as e:
+                logger.warning("  Product %d error: %s", pid, e)
+                product = None
 
-        # Extract fields
-        features = _extract_features(detail)
-        brand = _extract_brand(detail)
-        category = _extract_category(detail)
-        url_path = detail.get("url_path", "")
-        url = f"https://tiki.vn/{url_path}" if url_path else ""
-        price = detail.get("price", 0)
+            with _write_lock:
+                done_ids.add(pid)
 
-        # Validate
-        if not features or len(features) < MIN_FEATURES_LENGTH:
-            done_ids.add(pid)
-            continue
+                if product:
+                    products.append(product)
+                    with open(out_file, "a", encoding="utf-8") as f:
+                        f.write(product.model_dump_json() + "\n")
 
-        product = TikiProduct(
-            product_id=pid,
-            title=detail.get("name", ""),
-            brand=brand,
-            price=price,
-            features=features,
-            url=url,
-            category=category,
-            category_id=category_id,
-        )
-        products.append(product)
-        done_ids.add(pid)
+                # Checkpoint
+                if done_count % CHECKPOINT_EVERY == 0:
+                    save_checkpoint(category_id, done_ids)
 
-        # Append to JSONL
-        with open(out_file, "a", encoding="utf-8") as f:
-            f.write(product.model_dump_json() + "\n")
+                # Batch sleep (moi BATCH_SLEEP_EVERY requests, tat ca workers pause)
+                if done_count % BATCH_SLEEP_EVERY == 0:
+                    time.sleep(BATCH_SLEEP_SECONDS)
 
-        # Checkpoint
-        if len(done_ids) % CHECKPOINT_EVERY == 0:
-            save_checkpoint(category_id, done_ids)
-
-        # Progress log with ETA
-        if (i + 1) % 50 == 0:
-            elapsed = time.time() - detail_start
-            speed = (i + 1) / elapsed
-            remaining = (len(to_scrape) - i - 1) / speed if speed > 0 else 0
-            eta_min, eta_sec = divmod(int(remaining), 60)
-            logger.info(
-                "  Progress: %d/%d done, %d saved | %.1f SP/s | ETA: %dm %ds",
-                i + 1, len(to_scrape), len(products), speed, eta_min, eta_sec,
-            )
-
-        time.sleep(random.uniform(*DETAIL_DELAY))
+            # Progress log
+            if done_count % 50 == 0:
+                elapsed = time.time() - detail_start
+                speed = done_count / elapsed
+                remaining = (len(to_scrape) - done_count) / speed if speed > 0 else 0
+                eta_min, eta_sec = divmod(int(remaining), 60)
+                eta_hour, eta_min = divmod(eta_min, 60)
+                logger.info(
+                    "  Progress: %d/%d done, %d saved | %.1f SP/s | ETA: %dh %dm %ds",
+                    done_count, len(to_scrape), len(products),
+                    speed, eta_hour, eta_min, eta_sec,
+                )
 
     # Final checkpoint
     save_checkpoint(category_id, done_ids)
-    session.close()
 
     total_time = time.time() - detail_start
     t_min, t_sec = divmod(int(total_time), 60)
@@ -363,6 +376,7 @@ def scrape_category(
 def scrape_all(
     categories: list[tuple[int, str, int]] | None = None,
     max_per_category: int | None = None,
+    workers: int = DEFAULT_WORKERS,
 ) -> list[TikiProduct]:
     """Scrape all categories in config. Returns all products."""
     from .config import SCRAPE_CATEGORIES
@@ -373,7 +387,9 @@ def scrape_all(
 
     for idx, (cat_id, cat_name, _est) in enumerate(cats, 1):
         logger.info("--- Category %d/%d ---", idx, len(cats))
-        products = scrape_category(cat_id, cat_name, max_products=max_per_category)
+        products = scrape_category(
+            cat_id, cat_name, max_products=max_per_category, workers=workers,
+        )
         all_products.extend(products)
 
         elapsed = time.time() - all_start
@@ -394,6 +410,7 @@ def scrape_all(
     logger.info("  Categories: %d", len(cats))
     logger.info("  Total time: %dh %dm %ds", t_h, t_m, t_s)
     logger.info("  Avg speed: %.1f SP/s", speed)
+    logger.info("  Workers: %d", workers)
     logger.info("=" * 60)
 
     return all_products

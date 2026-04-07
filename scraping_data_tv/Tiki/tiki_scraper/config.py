@@ -6,11 +6,12 @@ PRICE_MAX = 50_000_000
 
 # Rate limiting
 LISTING_DELAY = (1.0, 2.0)  # random delay giua cac listing pages
-DETAIL_DELAY = (0.5, 1.5)  # random delay giua cac detail requests
-BATCH_SLEEP_EVERY = 50  # sleep them 3s moi N detail requests
-BATCH_SLEEP_SECONDS = 3
+DETAIL_DELAY = (0.3, 0.8)  # random delay giua cac detail requests (per worker)
+BATCH_SLEEP_EVERY = 100  # sleep them sau moi N detail requests (toan bo workers)
+BATCH_SLEEP_SECONDS = 2
 SESSION_ROTATE_EVERY = 500  # tao session moi moi N requests
 BLOCK_WAIT_SECONDS = 300  # doi 5 phut neu bi 429/403
+DEFAULT_WORKERS = 1  # so workers mac dinh (an toan)
 
 # Scraping
 LISTING_LIMIT = 40  # san pham moi page (toi da 100, dung 40 an toan hon)
