@@ -1,0 +1,98 @@
+Skip to content
+Open API docsOpen API docsOpen API docs
+Home
+Q&A
+Documentation
+Log In
+Home » Current » Getting started » Start here
+Search for:
+Type to search...
+Search for:
+Current
+Getting started
+Start here
+Applications
+Register an application
+Obtain access token
+Using Postman to get token
+Now make the first request
+Scope of access
+Guides
+Operation Models
+Products
+Create new product request
+Tracking product request
+Replay product request
+Manage product request
+Delete a request
+Manage product
+Update product information
+Orders
+Get list orders
+Get order updates
+Confirm ODF, seller delivery, cross border orders
+Confirm drop-shipping orders
+Get order labels to print
+Update delivery and shipment status
+Deals
+Create deal
+Get list deals
+Stop deal
+Update deal
+Event queues
+Overview
+Event queue for public app
+Event queue for in-house app
+Mange your queues and subscriptions.
+Fulfillment
+Fulfillment Inbound Service
+TIKI Theory
+TIKI product structure
+TIKI request status flow
+Category
+Attribute
+Variant
+Inventory type
+Certificate File
+Document
+Brand
+Queue
+Subscription
+Event type
+Event
+TIKI Theory V2
+Operation Models
+Product
+Order
+Order Item
+Order Status
+Order Cancel Reasons
+Seller Warehouse
+Seller Registration
+Present the Tiki Seller Registration
+Handle the callback
+API References
+Product API
+Order API
+Seller API
+Deal API
+Fulfillment API
+Inbound service
+Event queue API
+Commons
+Common exceptions
+Change logs
+FAQs
+General questions
+API related questions
+OAuth 2.0
+Authentication and Authorization
+Roles in OAuth 2.0
+Auth flows
+Authorization code flow
+Refresh Token
+Client credentials
+Token endpoint auth method
+Tokens
+Access Token
+Refresh Token

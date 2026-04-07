@@ -1,0 +1,2452 @@
+{
+  "data": [
+    {
+      "id": 278218808,
+      "sku": "1834138673143",
+      "name": "Bộ Nắp chụp van bồi xe ô tô - Chất liệu nhôm CNC - Nhiều màu lựa chọn",
+      "url_key": "bo-nap-chup-van-boi-xe-o-to-chat-lieu-nhom-cnc-nhieu-mau-lua-chon-p278218808",
+      "url_path": "bo-nap-chup-van-boi-xe-o-to-chat-lieu-nhom-cnc-nhieu-mau-lua-chon-p278218808.html?spid=278218815",
+      "availability": 1,
+      "seller_id": 184976,
+      "seller_name": "Phụ kiện nhà cửa và xe hơi",
+      "brand_id": 111461,
+      "brand_name": "OEM",
+      "price": 14000,
+      "original_price": 14000,
+      "badges_new": [
+        {
+          "placement": "under_rating",
+          "type": "under_rating_text",
+          "code": "option_color",
+          "text": "Nhiều màu"
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "OEM",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 7, 11/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "3 Màu"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/b2/8d/56/3086efc2194320a6b83fba7530de7c78.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 0,
+      "review_count": 0,
+      "category_ids": [
+        2,
+        8594,
+        24832,
+        6045,
+        45546,
+        45556
+      ],
+      "primary_category_path": "1/2/8594/24832/6045/45546/45556",
+      "primary_category_name": "Phụ kiện nội thất khác",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/fd/c7/a9/90e9d9b06fd934e222ac908e2b79154f.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 278218815,
+      "seller_product_sku": "1834138673143",
+      "master_product_sku": "7279600029102",
+      "quantity_sold": {
+        "text": "Đã bán 7",
+        "value": 7
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-11 19:00:00",
+      "order_route": "hn_hcm",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 0,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Trung Quốc",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-ldtBNAKo",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 278218808,
+            "spid": 278218815,
+            "quantity_sold": 7,
+            "delivery_info_badge_text": "Giao thứ 7, 11/04",
+            "delivery_date": "2026/04/11",
+            "astra_reward": 0,
+            "price": 14000,
+            "discount_rate": 0,
+            "rating": 0,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 1,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 184976,
+          "all_time_quantity_sold": 7,
+          "brand_name": "OEM",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện ô tô",
+          "category_l4_name": "Phụ kiện nội thất ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "7279600029102",
+          "seller_product_id": 278218815,
+          "seller_product_sku": "1834138673143",
+          "number_of_reviews": 0,
+          "order_route": "hn_hcm",
+          "partner_rewards_amount": 0,
+          "price": 14000,
+          "primary_category_name": "Phụ kiện nội thất khác",
+          "product_rating": 0,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 0,
+          "standard_delivery_estimate": 4.118,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Trung Quốc",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 278217973,
+      "sku": "6414859069525",
+      "name": "Pin Lithium Panasonic 3V Xịn CR2032 - CR2025 - CR2016 - CR1632 - CR1620 - CR1616 CR1220 - CR2450 Thay pin chìa khóa ôtô",
+      "url_key": "pin-lithium-panasonic-3v-xin-cr2032-cr2025-cr2016-cr1632-cr1620-cr1616-cr1220-cr2450-thay-pin-chia-khoa-oto-p278217973",
+      "url_path": "pin-lithium-panasonic-3v-xin-cr2032-cr2025-cr2016-cr1632-cr1620-cr1616-cr1220-cr2450-thay-pin-chia-khoa-oto-p278217973.html?spid=278217977",
+      "availability": 1,
+      "seller_id": 184976,
+      "seller_name": "Phụ kiện nhà cửa và xe hơi",
+      "brand_id": 111461,
+      "brand_name": "OEM",
+      "price": 22000,
+      "original_price": 22000,
+      "badges_new": [
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "OEM",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 7, 11/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "7 Kích cỡ"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/b2/8d/56/3086efc2194320a6b83fba7530de7c78.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 4,
+      "review_count": 1,
+      "category_ids": [
+        2,
+        8594,
+        24832,
+        6045,
+        45546,
+        45556
+      ],
+      "primary_category_path": "1/2/8594/24832/6045/45546/45556",
+      "primary_category_name": "Phụ kiện nội thất khác",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/31/96/12/3ea245181c576e908da5b27e36bde5c0.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 278217977,
+      "seller_product_sku": "6414859069525",
+      "master_product_sku": "6722408273643",
+      "quantity_sold": {
+        "text": "Đã bán 10",
+        "value": 10
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-11 19:00:00",
+      "order_route": "hn_hcm",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 0,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Trung Quốc",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-JpnDqTJW",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 278217973,
+            "spid": 278217977,
+            "quantity_sold": 10,
+            "delivery_info_badge_text": "Giao thứ 7, 11/04",
+            "delivery_date": "2026/04/11",
+            "astra_reward": 0,
+            "price": 22000,
+            "discount_rate": 0,
+            "rating": 4,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 2,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 184976,
+          "all_time_quantity_sold": 10,
+          "brand_name": "OEM",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện ô tô",
+          "category_l4_name": "Phụ kiện nội thất ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "6722408273643",
+          "seller_product_id": 278217977,
+          "seller_product_sku": "6414859069525",
+          "number_of_reviews": 1,
+          "order_route": "hn_hcm",
+          "partner_rewards_amount": 0,
+          "price": 22000,
+          "primary_category_name": "Phụ kiện nội thất khác",
+          "product_rating": 4,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 0,
+          "standard_delivery_estimate": 4.118,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Trung Quốc",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 278117654,
+      "sku": "7810363161095",
+      "name": "Bơm Xe Đạp Xe Máy Deli Tools Tích Hợp Đồng Hồ Áp Suất Tối Đa 160psi Nhỏ Gọn Dễ Dàng Mang Theo Mọi Nơi DL880005",
+      "url_key": "bom-xe-dap-xe-may-deli-tools-tich-hop-dong-ho-ap-suat-toi-da-160psi-nho-gon-de-dang-mang-theo-moi-noi-dl880005-p278117654",
+      "url_path": "bom-xe-dap-xe-may-deli-tools-tich-hop-dong-ho-ap-suat-toi-da-160psi-nho-gon-de-dang-mang-theo-moi-noi-dl880005-p278117654.html?spid=278117662",
+      "availability": 1,
+      "seller_id": 113115,
+      "seller_name": "Deli Official Store",
+      "brand_id": 46703,
+      "brand_name": "Deli",
+      "price": 214200,
+      "original_price": 214200,
+      "badges_new": [
+        {
+          "placement": "under_product_image",
+          "type": "icon_badge",
+          "code": "authentic_brand",
+          "icon": "https://salt.tikicdn.com/ts/tka/69/cf/22/1be823299ae34c7ddcd922e73abd4909.png",
+          "icon_width": 89,
+          "icon_height": 20
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "DELI",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 5, 09/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "4 Phân loại"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 4.7,
+      "review_count": 3,
+      "category_ids": [
+        8594,
+        24832,
+        11904,
+        70061,
+        70062,
+        70154,
+        70155,
+        70156,
+        70203,
+        70204,
+        70298,
+        70299,
+        70300,
+        70347,
+        70348,
+        70349,
+        70350,
+        70443,
+        45530
+      ],
+      "primary_category_path": "1/2/8594/24832/11904/45530",
+      "primary_category_name": "Bơm xe đạp",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/e5/28/4a/8d1345af4adcbdb5e6a070a041a7d697.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 608,
+      "seller_product_id": 278117662,
+      "seller_product_sku": "7810363161095",
+      "master_product_sku": "9484666538836",
+      "quantity_sold": {
+        "text": "Đã bán 12",
+        "value": 12
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-09 12:00:00",
+      "order_route": "same_province",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Trung Quốc",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-QifIk9ZT",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 278117654,
+            "spid": 278117662,
+            "quantity_sold": 12,
+            "delivery_info_badge_text": "Giao thứ 5, 09/04",
+            "delivery_date": "2026/04/09",
+            "astra_reward": 0,
+            "price": 214200,
+            "discount_rate": 0,
+            "rating": 4.7,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 3,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "OFFICIAL_STORE",
+          "seller_id": 113115,
+          "all_time_quantity_sold": 12,
+          "brand_name": "Deli",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện - Đồ nghề xe đạp",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "9484666538836",
+          "seller_product_id": 278117662,
+          "seller_product_sku": "7810363161095",
+          "number_of_reviews": 3,
+          "order_route": "same_province",
+          "partner_rewards_amount": 0,
+          "price": 214200,
+          "primary_category_name": "Bơm xe đạp",
+          "product_rating": 4.7,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 1.826,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Trung Quốc",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 278006569,
+      "sku": "4548686006841",
+      "name": "Nước Hoa Ô Tô DUKE – Chiết Xuất Thiên Nhiên, Khử Mùi, Chống Say Xe, An Toàn Sức Khỏe - Hàng Nhập Khẩu",
+      "url_key": "nuoc-hoa-o-to-duke-chiet-xuat-thien-nhien-khu-mui-chong-say-xe-an-toan-suc-khoe-hang-nhap-khau-p278006569",
+      "url_path": "nuoc-hoa-o-to-duke-chiet-xuat-thien-nhien-khu-mui-chong-say-xe-an-toan-suc-khoe-hang-nhap-khau-p278006569.html?spid=278006575",
+      "availability": 1,
+      "seller_id": 104628,
+      "seller_name": "CasemeStore",
+      "brand_id": 470425,
+      "brand_name": "IDEWEI",
+      "price": 230000,
+      "original_price": 230000,
+      "badges_new": [
+        {
+          "placement": "under_product_image",
+          "type": "icon_badge",
+          "code": "authentic_brand",
+          "icon": "https://salt.tikicdn.com/ts/tka/69/cf/22/1be823299ae34c7ddcd922e73abd4909.png",
+          "icon_width": 89,
+          "icon_height": 20
+        },
+        {
+          "placement": "bottom_right",
+          "type": "icon_badge",
+          "code": "video_icon",
+          "icon": "https://salt.tikicdn.com/ts/upload/d5/f3/6f/fdd40db52ff4afe497d0c2240dcfd25b.png",
+          "icon_width": 28,
+          "icon_height": 28
+        },
+        {
+          "placement": "above_product_name_2",
+          "type": "text_above_product_name",
+          "code": "is_import",
+          "text": "Made in Hong Kong",
+          "text_color": "#27272A"
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "IDEWEI",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao chủ nhật, 12/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "3 Mùi hương"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 0,
+      "review_count": 0,
+      "category_ids": [
+        8594,
+        24832,
+        24362,
+        24358
+      ],
+      "primary_category_path": "1/2/8594/24832/24362/24358",
+      "primary_category_name": "Nước hoa, sáp thơm ô tô",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/1e/99/08/cf06988dce0a35265b8af0912e8173c1.png",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 5187,
+      "seller_product_id": 278006575,
+      "seller_product_sku": "4548686006841",
+      "master_product_sku": "3968648329978",
+      "video_url": "https://salt.tikicdn.com/ts/video/4e/9e/e4/1639d9d1a7a5d80fbb44e217064a0dd7.mp4",
+      "quantity_sold": {
+        "text": "Đã bán 9",
+        "value": 9
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-12 19:00:00",
+      "order_route": "hn_hcm",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "imported": "Hong Kong",
+      "origin": "Hong Kong",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-IvUPeTqJ",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 278006569,
+            "spid": 278006575,
+            "quantity_sold": 9,
+            "delivery_info_badge_text": "Giao chủ nhật, 12/04",
+            "delivery_date": "2026/04/12",
+            "astra_reward": 0,
+            "price": 230000,
+            "discount_rate": 0,
+            "rating": 0,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 4,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 104628,
+          "all_time_quantity_sold": 9,
+          "brand_name": "IDEWEI",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Chăm sóc ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "3968648329978",
+          "seller_product_id": 278006575,
+          "seller_product_sku": "4548686006841",
+          "number_of_reviews": 0,
+          "order_route": "hn_hcm",
+          "partner_rewards_amount": 0,
+          "price": 230000,
+          "primary_category_name": "Nước hoa, sáp thơm ô tô",
+          "product_rating": 0,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 5.118,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": true,
+          "origin": "Hong Kong",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 277372263,
+      "sku": "3233373427687",
+      "name": "Tẩu Sạc Nhanh Xe Ô Tô TÍCH HỢP DÂY Sạc Type C, Lightning 100W | Hiển Thị Thông Số Sạc, Dây Rút Chống Rối, 4in1",
+      "url_key": "tau-sac-nhanh-xe-o-to-tich-hop-day-sac-type-c-lightning-100w-hien-thi-thong-so-sac-day-rut-chong-roi-4in1-p277372263",
+      "url_path": "tau-sac-nhanh-xe-o-to-tich-hop-day-sac-type-c-lightning-100w-hien-thi-thong-so-sac-day-rut-chong-roi-4in1-p277372263.html?spid=277372264",
+      "availability": 3,
+      "seller_id": 14907,
+      "seller_name": "MUCAR",
+      "brand_id": 7467501,
+      "brand_name": "EVENDAY",
+      "price": 380000,
+      "original_price": 380000,
+      "badges_new": [
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "inventory_status",
+          "text": "Hết hàng",
+          "text_color": "#FF424E"
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 5,
+      "review_count": 4,
+      "category_ids": [
+        8594,
+        24832,
+        6045,
+        45546,
+        24360
+      ],
+      "primary_category_path": "1/2/8594/24832/6045/45546/24360",
+      "primary_category_name": "Sạc ô tô",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/2b/be/d9/c82ab1de75113055def3f703f92243a3.jpeg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 277372264,
+      "seller_product_sku": "3233373427687",
+      "master_product_sku": "4003218709286",
+      "quantity_sold": {
+        "text": "Đã bán 31",
+        "value": 31
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Hàn Quốc / Trung Quốc",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-Gd5BxDi1",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 277372263,
+            "spid": 277372264,
+            "quantity_sold": 31,
+            "astra_reward": 0,
+            "price": 380000,
+            "discount_rate": 0,
+            "rating": 5,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 5,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 14907,
+          "all_time_quantity_sold": 31,
+          "brand_name": "EVENDAY",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện ô tô",
+          "category_l4_name": "Phụ kiện nội thất ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "4003218709286",
+          "seller_product_id": 277372264,
+          "seller_product_sku": "3233373427687",
+          "number_of_reviews": 4,
+          "partner_rewards_amount": 0,
+          "price": 380000,
+          "primary_category_name": "Sạc ô tô",
+          "product_rating": 5,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 0,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": false,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Hàn Quốc / Trung Quốc",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 277037423,
+      "sku": "9382484666120",
+      "name": "Bút xóa vết xước ô tô xe máy xe điện, Bút xoá vết trầy xước dăm cho ô tô xe máy xe điện",
+      "url_key": "but-xoa-vet-xuoc-o-to-xe-may-xe-dien-but-xoa-vet-tray-xuoc-dam-cho-o-to-xe-may-xe-dien-p277037423",
+      "url_path": "but-xoa-vet-xuoc-o-to-xe-may-xe-dien-but-xoa-vet-tray-xuoc-dam-cho-o-to-xe-may-xe-dien-p277037423.html?spid=277037435",
+      "availability": 1,
+      "seller_id": 97441,
+      "seller_name": "Luckky Shop",
+      "brand_id": 686325,
+      "brand_name": "CAVARA",
+      "price": 21000,
+      "original_price": 21000,
+      "badges_new": [
+        {
+          "placement": "under_product_image",
+          "type": "icon_badge",
+          "code": "authentic_brand",
+          "icon": "https://salt.tikicdn.com/ts/tka/69/cf/22/1be823299ae34c7ddcd922e73abd4909.png",
+          "icon_width": 89,
+          "icon_height": 20
+        },
+        {
+          "placement": "bottom_right",
+          "type": "icon_badge",
+          "code": "video_icon",
+          "icon": "https://salt.tikicdn.com/ts/upload/d5/f3/6f/fdd40db52ff4afe497d0c2240dcfd25b.png",
+          "icon_width": 28,
+          "icon_height": 28
+        },
+        {
+          "placement": "under_rating",
+          "type": "under_rating_text",
+          "code": "option_color",
+          "text": "Nhiều màu"
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "CAVARA",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 5, 09/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "18 Màu sắc"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 3.4,
+      "review_count": 5,
+      "category_ids": [
+        8594,
+        24832,
+        24362,
+        46206
+      ],
+      "primary_category_path": "1/2/8594/24832/24362/46206",
+      "primary_category_name": "Đánh bóng, xoá xước sơn",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/3c/a7/48/785cfb01746ddc4aaee61a553b2331ba.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 277037435,
+      "seller_product_sku": "9382484666120",
+      "master_product_sku": "8243203107985",
+      "video_url": "https://salt.tikicdn.com/ts/video/6a/a9/29/50da299d7b7e87521a66d37c348f1394.mp4",
+      "quantity_sold": {
+        "text": "Đã bán 96",
+        "value": 96
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-09 12:00:00",
+      "order_route": "same_province",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Trung Quốc",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-n7KypWLy",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 277037423,
+            "spid": 277037435,
+            "quantity_sold": 96,
+            "delivery_info_badge_text": "Giao thứ 5, 09/04",
+            "delivery_date": "2026/04/09",
+            "astra_reward": 0,
+            "price": 21000,
+            "discount_rate": 0,
+            "rating": 3.4,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 6,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 97441,
+          "all_time_quantity_sold": 96,
+          "brand_name": "CAVARA",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Chăm sóc ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "8243203107985",
+          "seller_product_id": 277037435,
+          "seller_product_sku": "9382484666120",
+          "number_of_reviews": 5,
+          "order_route": "same_province",
+          "partner_rewards_amount": 0,
+          "price": 21000,
+          "primary_category_name": "Đánh bóng, xoá xước sơn",
+          "product_rating": 3.4,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 1.826,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Trung Quốc",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 276311526,
+      "sku": "2897117329217",
+      "name": "Bơm xe đạp chân Kirito nhật bản cao cấp 1-2-3 xilanh nén sử dụng bơm xe đạp, xe máy, ô tô, đệm, bóng",
+      "url_key": "bom-xe-dap-chan-kirito-nhat-ban-cao-cap-3-xilanh-nen-su-dung-bom-xe-dap-xe-may-o-to-dem-bong-p276311526",
+      "url_path": "bom-xe-dap-chan-kirito-nhat-ban-cao-cap-3-xilanh-nen-su-dung-bom-xe-dap-xe-may-o-to-dem-bong-p276311526.html?spid=276311528",
+      "availability": 1,
+      "seller_id": 358275,
+      "seller_name": "Dụng Cụ Anh Dũng",
+      "brand_id": 8253237,
+      "brand_name": "Kirito",
+      "price": 220000,
+      "original_price": 220000,
+      "badges_new": [
+        {
+          "placement": "under_product_image",
+          "type": "icon_badge",
+          "code": "authentic_brand",
+          "icon": "https://salt.tikicdn.com/ts/tka/69/cf/22/1be823299ae34c7ddcd922e73abd4909.png",
+          "icon_width": 89,
+          "icon_height": 20
+        },
+        {
+          "placement": "bottom_right",
+          "type": "icon_badge",
+          "code": "video_icon",
+          "icon": "https://salt.tikicdn.com/ts/upload/d5/f3/6f/fdd40db52ff4afe497d0c2240dcfd25b.png",
+          "icon_width": 28,
+          "icon_height": 28
+        },
+        {
+          "placement": "above_product_name_2",
+          "type": "text_above_product_name",
+          "code": "is_import",
+          "text": "Made in Japan",
+          "text_color": "#27272A"
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "KIRITO",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 7, 11/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "2 Phân loại"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 4,
+      "review_count": 1,
+      "category_ids": [
+        8594,
+        24832,
+        11904,
+        45530
+      ],
+      "primary_category_path": "1/2/8594/24832/11904/45530",
+      "primary_category_name": "Bơm xe đạp",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/0f/74/07/415fb0a2b5c0495711a3ef44aec3d7ad.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 608,
+      "seller_product_id": 276311528,
+      "seller_product_sku": "2897117329217",
+      "master_product_sku": "6112563641962",
+      "video_url": "https://salt.tikicdn.com/ts/video/2a/83/c2/dfa550fd53463427d1d838f6502ba749.mp4",
+      "quantity_sold": {
+        "text": "Đã bán 10",
+        "value": 10
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-11 19:00:00",
+      "order_route": "hn_hcm",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "imported": "Japan",
+      "origin": "Nhật Bản",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-kaf2hOa7",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 276311526,
+            "spid": 276311528,
+            "quantity_sold": 10,
+            "delivery_info_badge_text": "Giao thứ 7, 11/04",
+            "delivery_date": "2026/04/11",
+            "astra_reward": 0,
+            "price": 220000,
+            "discount_rate": 0,
+            "rating": 4,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 7,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 358275,
+          "all_time_quantity_sold": 10,
+          "brand_name": "Kirito",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện - Đồ nghề xe đạp",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "6112563641962",
+          "seller_product_id": 276311528,
+          "seller_product_sku": "2897117329217",
+          "number_of_reviews": 1,
+          "order_route": "hn_hcm",
+          "partner_rewards_amount": 0,
+          "price": 220000,
+          "primary_category_name": "Bơm xe đạp",
+          "product_rating": 4,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 4.118,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": true,
+          "origin": "Nhật Bản",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 276101026,
+      "sku": "5954660253262",
+      "name": "Ổ cứng di động WD Elements USB 500GB: Đối tác lưu trữ đáng tin cậy cho máy tính của bạn",
+      "url_key": "o-cung-di-dong-wd-elements-usb-500gb-doi-tac-luu-tru-dang-tin-cay-cho-may-tinh-cua-ban-p276101026",
+      "url_path": "o-cung-di-dong-wd-elements-usb-500gb-doi-tac-luu-tru-dang-tin-cay-cho-may-tinh-cua-ban-p276101026.html?spid=276101027",
+      "availability": 1,
+      "seller_id": 274292,
+      "seller_name": "HT2 SHOP",
+      "brand_id": 111461,
+      "brand_name": "OEM",
+      "price": 496000,
+      "original_price": 496000,
+      "badges_new": [
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "OEM",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 6, 10/04"
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/b2/8d/56/3086efc2194320a6b83fba7530de7c78.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 5,
+      "review_count": 2,
+      "category_ids": [
+        8594,
+        24832,
+        6045,
+        45546,
+        45556
+      ],
+      "primary_category_path": "1/2/8594/24832/6045/45546/45556",
+      "primary_category_name": "Phụ kiện nội thất khác",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/69/a4/59/f5168142b2899cd55960bc73dcd06321.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 276101027,
+      "seller_product_sku": "5954660253262",
+      "master_product_sku": "5273109470910",
+      "quantity_sold": {
+        "text": "Đã bán 18",
+        "value": 18
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-10 19:00:00",
+      "order_route": "far_region",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 0,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Không xác định",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-UO1q2epf",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 276101026,
+            "spid": 276101027,
+            "quantity_sold": 18,
+            "delivery_info_badge_text": "Giao thứ 6, 10/04",
+            "delivery_date": "2026/04/10",
+            "astra_reward": 0,
+            "price": 496000,
+            "discount_rate": 0,
+            "rating": 5,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 8,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 274292,
+          "all_time_quantity_sold": 18,
+          "brand_name": "OEM",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện ô tô",
+          "category_l4_name": "Phụ kiện nội thất ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "5273109470910",
+          "seller_product_id": 276101027,
+          "seller_product_sku": "5954660253262",
+          "number_of_reviews": 2,
+          "order_route": "far_region",
+          "partner_rewards_amount": 0,
+          "price": 496000,
+          "primary_category_name": "Phụ kiện nội thất khác",
+          "product_rating": 5,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 0,
+          "standard_delivery_estimate": 3.118,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": false,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Không xác định",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 275769117,
+      "sku": "8828272906250",
+      "name": "Quây chống chuột - Rào chắn chuột ô tô 4-5-7 chỗ và bán tải loại cao cấp, có lưới inox chống cắn",
+      "url_key": "quay-chong-chuot-rao-chan-chuot-o-to-4-5-7-cho-va-ban-tai-loai-cao-cap-co-luoi-inox-chong-can-p275769117",
+      "url_path": "quay-chong-chuot-rao-chan-chuot-o-to-4-5-7-cho-va-ban-tai-loai-cao-cap-co-luoi-inox-chong-can-p275769117.html?spid=275769121",
+      "availability": 1,
+      "seller_id": 97441,
+      "seller_name": "Luckky Shop",
+      "brand_id": 625265,
+      "brand_name": "Photodesign VN",
+      "price": 491000,
+      "original_price": 491000,
+      "badges_new": [
+        {
+          "placement": "under_product_image",
+          "type": "icon_badge",
+          "code": "authentic_brand",
+          "icon": "https://salt.tikicdn.com/ts/tka/69/cf/22/1be823299ae34c7ddcd922e73abd4909.png",
+          "icon_width": 89,
+          "icon_height": 20
+        },
+        {
+          "placement": "bottom_right",
+          "type": "icon_badge",
+          "code": "video_icon",
+          "icon": "https://salt.tikicdn.com/ts/upload/d5/f3/6f/fdd40db52ff4afe497d0c2240dcfd25b.png",
+          "icon_width": 28,
+          "icon_height": 28
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "PHOTODESIGN VN",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao thứ 5, 09/04"
+        },
+        {
+          "placement": "under_rating_v2",
+          "type": "text_box",
+          "code": "variant_count",
+          "text_color": "#808089",
+          "arr_text": [
+            {
+              "value": "14 Kích thước"
+            }
+          ]
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 4.7,
+      "review_count": 9,
+      "category_ids": [
+        8594,
+        24832,
+        6052,
+        45576
+      ],
+      "primary_category_path": "1/2/8594/24832/6052/45576",
+      "primary_category_name": "Phụ tùng thay thế khác cho ô tô",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/60/28/df/1812030199d0981826bcb1a7d5fd3ce6.jpg",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 275769121,
+      "seller_product_sku": "8828272906250",
+      "master_product_sku": "9593991875815",
+      "video_url": "https://salt.tikicdn.com/ts/video/68/45/1a/f6e6cf8f991e01ade47a8603f13ef8c2.mp4",
+      "quantity_sold": {
+        "text": "Đã bán 31",
+        "value": 31
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-09 12:00:00",
+      "order_route": "same_province",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "origin": "Trung Quốc",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-XIQNEc27",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 275769117,
+            "spid": 275769121,
+            "quantity_sold": 31,
+            "delivery_info_badge_text": "Giao thứ 5, 09/04",
+            "delivery_date": "2026/04/09",
+            "astra_reward": 0,
+            "price": 491000,
+            "discount_rate": 0,
+            "rating": 4.7,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 9,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 97441,
+          "all_time_quantity_sold": 31,
+          "brand_name": "Photodesign VN",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ tùng ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "9593991875815",
+          "seller_product_id": 275769121,
+          "seller_product_sku": "8828272906250",
+          "number_of_reviews": 9,
+          "order_route": "same_province",
+          "partner_rewards_amount": 0,
+          "price": 491000,
+          "primary_category_name": "Phụ tùng thay thế khác cho ô tô",
+          "product_rating": 4.7,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 1.826,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": true,
+          "is_hero": false,
+          "is_imported": false,
+          "origin": "Trung Quốc",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    },
+    {
+      "id": 275622891,
+      "sku": "4945314797077",
+      "name": "Cảm Biến Áp Suất Lốp TPMS Van Ngoài Có Cảnh Báo Giọng Nói Tiếng Việt - Năng Lượng Mặt Trời, Không Dây, Màn Hình LCD - Hàng Chính Hãng",
+      "url_key": "cam-bien-ap-suat-lop-tpms-van-ngoai-co-canh-bao-giong-noi-tieng-viet-nang-luong-mat-troi-khong-day-man-hinh-lcd-p275622891",
+      "url_path": "cam-bien-ap-suat-lop-tpms-van-ngoai-co-canh-bao-giong-noi-tieng-viet-nang-luong-mat-troi-khong-day-man-hinh-lcd-p275622891.html?spid=275622892",
+      "availability": 1,
+      "seller_id": 184829,
+      "seller_name": "Bim Mart",
+      "brand_id": 191669,
+      "brand_name": "Ultra Thin",
+      "price": 499000,
+      "original_price": 499000,
+      "badges_new": [
+        {
+          "placement": "under_product_image",
+          "type": "icon_badge",
+          "code": "authentic_brand",
+          "icon": "https://salt.tikicdn.com/ts/tka/69/cf/22/1be823299ae34c7ddcd922e73abd4909.png",
+          "icon_width": 89,
+          "icon_height": 20
+        },
+        {
+          "placement": "bottom_right",
+          "type": "icon_badge",
+          "code": "video_icon",
+          "icon": "https://salt.tikicdn.com/ts/upload/d5/f3/6f/fdd40db52ff4afe497d0c2240dcfd25b.png",
+          "icon_width": 28,
+          "icon_height": 28
+        },
+        {
+          "placement": "above_product_name_2",
+          "type": "text_above_product_name",
+          "code": "is_import",
+          "text": "Made in Hong Kong",
+          "text_color": "#27272A"
+        },
+        {
+          "placement": "above_product_name",
+          "type": "text_above_product_name",
+          "code": "brand_name",
+          "text": "ULTRA THIN",
+          "text_color": "#808089"
+        },
+        {
+          "placement": "delivery_info",
+          "type": "delivery_info_badge",
+          "code": "delivery_info_badge",
+          "text": "Giao chủ nhật, 12/04"
+        }
+      ],
+      "badges_v3": [
+        {
+          "placement": "badge_overlay_product_image",
+          "type": "image_badge",
+          "code": "product_image_badge",
+          "image": "https://salt.tikicdn.com/ts/upload/f7/9e/83/ab28365ea395893fe5abac88b5103444.png"
+        }
+      ],
+      "discount": 0,
+      "discount_rate": 0,
+      "rating_average": 4.5,
+      "review_count": 2,
+      "category_ids": [
+        8594,
+        24832,
+        6045,
+        45558,
+        45568
+      ],
+      "primary_category_path": "1/2/8594/24832/6045/45558/45568",
+      "primary_category_name": "Phụ kiện ngoại thất khác",
+      "thumbnail_url": "https://salt.tikicdn.com/cache/280x280/ts/product/b4/75/27/27c20b2d3561af6b82e69c63640e2c74.png",
+      "thumbnail_width": 280,
+      "thumbnail_height": 280,
+      "productset_id": 158,
+      "seller_product_id": 275622892,
+      "seller_product_sku": "4945314797077",
+      "master_product_sku": "4076360862825",
+      "video_url": "https://salt.tikicdn.com/ts/video/51/3e/64/d203261c275ce022f73944f7a1540cb9.mp4",
+      "quantity_sold": {
+        "text": "Đã bán 10",
+        "value": 10
+      },
+      "shippable": true,
+      "isGiftAvailable": false,
+      "fastest_delivery_time": "2026-04-12 19:00:00",
+      "order_route": "hn_hcm",
+      "is_tikinow_delivery": false,
+      "is_nextday_delivery": false,
+      "is_from_official_store": false,
+      "is_authentic": 1,
+      "tiki_verified": 0,
+      "tiki_hero": 0,
+      "imported": "Hong Kong",
+      "origin": "Hong Kong",
+      "freeship_campaign": "freeship_xtra",
+      "impression_info": [
+        {
+          "impression_id": "thanos-0PehTisJEySORt4Y-pHHmkaGd",
+          "metadata": {
+            "request_id": "0PehTisJEySORt4Y",
+            "params": {
+              "include": "advertisement",
+              "limit": "10",
+              "page": "1",
+              "category": "8594",
+              "aggregations": "1"
+            },
+            "delivery_zone": "VN039006001",
+            "category": 8594,
+            "mpid": 275622891,
+            "spid": 275622892,
+            "quantity_sold": 10,
+            "delivery_info_badge_text": "Giao chủ nhật, 12/04",
+            "delivery_date": "2026/04/12",
+            "astra_reward": 0,
+            "price": 499000,
+            "discount_rate": 0,
+            "rating": 4.5,
+            "is_ad": 0,
+            "is_official_store": 0,
+            "is_trusted_store": 0,
+            "is_tikinow": 0,
+            "is_tikipro": 0,
+            "is_astra_plus": 0,
+            "position": 10,
+            "tiki_verified": 0,
+            "flags": {}
+          }
+        }
+      ],
+      "visible_impression_info": {
+        "amplitude": {
+          "seller_type": "NONE",
+          "seller_id": 184829,
+          "all_time_quantity_sold": 10,
+          "brand_name": "Ultra Thin",
+          "category_l1_name": "Ô Tô - Xe Máy - Xe Đạp",
+          "category_l2_name": "Phụ kiện - Chăm sóc xe",
+          "category_l3_name": "Phụ kiện ô tô",
+          "category_l4_name": "Phụ kiện ngoại thất ô tô",
+          "is_best_offer_available": false,
+          "is_flash_deal": false,
+          "is_gift_available": false,
+          "master_product_sku": "4076360862825",
+          "seller_product_id": 275622892,
+          "seller_product_sku": "4945314797077",
+          "number_of_reviews": 2,
+          "order_route": "hn_hcm",
+          "partner_rewards_amount": 0,
+          "price": 499000,
+          "primary_category_name": "Phụ kiện ngoại thất khác",
+          "product_rating": 4.5,
+          "search_rank": 0,
+          "tiki_verified": 0,
+          "is_authentic": 1,
+          "standard_delivery_estimate": 5.118,
+          "earliest_delivery_estimate": 0,
+          "tikipro_delivery_estimate": 0,
+          "tikinow_delivery_estimate": 0,
+          "layout": "grid_view",
+          "variant": false,
+          "is_hero": false,
+          "is_imported": true,
+          "origin": "Hong Kong",
+          "is_high_price_penalty": false,
+          "deboosted_high_price_diff_position": 0,
+          "joined_strategy_rerank": false,
+          "is_freeship_xtra": true,
+          "is_top_brand": false
+        }
+      },
+      "layout_type": "grid_view",
+      "is_high_price_penalty": false,
+      "is_top_brand": false
+    }
+  ],
+  "paging": {
+    "total": 2000,
+    "total_text": "10000+",
+    "per_page": 10,
+    "current_page": 1,
+    "last_page": 200,
+    "from": 1,
+    "to": 10
+  },
+  "widgets": [],
+  "sort_options": [
+    {
+      "display_value": "Phổ biến",
+      "query_value": "default",
+      "selected": true
+    },
+    {
+      "display_value": "Bán chạy",
+      "query_value": "top_seller",
+      "selected": false
+    },
+    {
+      "display_value": "Hàng mới",
+      "query_value": "newest",
+      "selected": false
+    },
+    {
+      "display_value": "Giá thấp đến cao",
+      "query_value": "price,asc",
+      "selected": false
+    },
+    {
+      "display_value": "Giá cao đến thấp",
+      "query_value": "price,desc",
+      "selected": false
+    }
+  ],
+  "filters": [
+    {
+      "query_name": "category",
+      "display_name": "Danh Mục Sản Phẩm",
+      "values": [
+        {
+          "display_value": "Xe máy",
+          "count": 294,
+          "logo": "https://salt.tikicdn.com/cache/w100/ts/category/5a/ca/f3/6e35d36908616a9fe07586e728c19424.png",
+          "query_value": 8597,
+          "url_key": "xe-may"
+        },
+        {
+          "display_value": "Xe điện",
+          "count": 121,
+          "logo": "https://salt.tikicdn.com/cache/w100/ts/category/61/17/cb/36cc4b09b0e37b501e7d641c0eee0eba.png",
+          "query_value": 6070,
+          "url_key": "xe-dien"
+        },
+        {
+          "display_value": "Xe đạp",
+          "count": 342,
+          "logo": "https://salt.tikicdn.com/cache/w100/ts/category/e4/e4/cf/d0f95eeae8e4c31665c5f7b03a5bc0cf.png",
+          "query_value": 8431,
+          "url_key": "xe-dap"
+        },
+        {
+          "display_value": "Ô tô",
+          "count": 7,
+          "logo": "https://salt.tikicdn.com/cache/w100/ts/category/2e/60/07/20941d46be2924fc758511d9e8c3401e.png",
+          "query_value": 8595,
+          "url_key": "o-to"
+        },
+        {
+          "display_value": "Phụ kiện - Chăm sóc xe",
+          "count": 10120,
+          "logo": "https://salt.tikicdn.com/cache/w100/ts/category/76/27/3e/b6470771212060d6a1508b51d78e7bc6.png",
+          "query_value": 24832,
+          "url_key": "phu-kien-cham-soc-xe"
+        },
+        {
+          "display_value": "Dịch vụ, lắp đặt",
+          "count": 3,
+          "query_value": 17208,
+          "url_key": "dich-vu-lap-dat"
+        }
+      ],
+      "collapsed": 6,
+      "multi_select": false,
+      "code": "category"
+    },
+    {
+      "query_name": "support_p2h_delivery",
+      "display_name": "Giao siêu tốc 2H",
+      "type": "service",
+      "service_name": "Dịch vụ",
+      "icon": "https://salt.tikicdn.com/ts/tka/a8/31/b6/802e2c99dcce64c67aa2648edb15dd25.png",
+      "icon_width": 40,
+      "icon_height": 17,
+      "sticky": true,
+      "values": [
+        {
+          "display_value": "Có",
+          "count": 629,
+          "query_value": "1"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "support_p2h_delivery"
+    },
+    {
+      "query_name": "tiki_hero",
+      "display_name": "Siêu rẻ",
+      "type": "service",
+      "service_name": "Ưu đãi",
+      "icon": "https://salt.tikicdn.com/ts/upload/b5/aa/48/2305c5e08e536cfb840043df12818146.png",
+      "icon_width": 79,
+      "icon_height": 16,
+      "sticky": true,
+      "values": [
+        {
+          "display_value": "Có",
+          "count": 5,
+          "query_value": "1"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "tiki_hero"
+    },
+    {
+      "query_name": "freeship_campaign",
+      "display_name": "",
+      "type": "service",
+      "service_name": "Ưu đãi",
+      "icon": "https://salt.tikicdn.com/ts/upload/2f/20/77/0f96cfafdf7855d5e7fe076dd4f34ce0.png",
+      "icon_width": 79,
+      "icon_height": 16,
+      "sticky": true,
+      "values": [
+        {
+          "display_value": "freeship_xtra",
+          "count": 33819,
+          "query_value": "freeship_xtra"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "freeship_campaign"
+    },
+    {
+      "query_name": "support_installment",
+      "display_name": "Trả góp 0%",
+      "type": "service",
+      "service_name": "Dịch vụ",
+      "values": [
+        {
+          "display_value": "Có",
+          "count": 1580,
+          "query_value": "1"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "support_installment"
+    },
+    {
+      "query_name": "rating",
+      "display_name": "Đánh giá",
+      "values": [
+        {
+          "display_value": "từ 5 sao",
+          "query_value": "5"
+        },
+        {
+          "display_value": "từ 4 sao",
+          "query_value": "4"
+        },
+        {
+          "display_value": "từ 3 sao",
+          "query_value": "3"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "rating"
+    },
+    {
+      "query_name": "price",
+      "display_name": "Giá",
+      "min": 0,
+      "max": 10000000000,
+      "values": [],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "price"
+    },
+    {
+      "query_name": "brand",
+      "display_name": "Thương hiệu",
+      "values": [
+        {
+          "display_value": "Macsim",
+          "count": 1911,
+          "query_value": "4642605",
+          "url_key": "thuong-hieu/macsim.html"
+        },
+        {
+          "display_value": "TLG",
+          "count": 748,
+          "query_value": "584595",
+          "url_key": "thuong-hieu/tlg.html"
+        },
+        {
+          "display_value": "Ultra Thin",
+          "count": 388,
+          "query_value": "191669",
+          "url_key": "thuong-hieu/ultra-thin.html"
+        },
+        {
+          "display_value": "Mai Lee",
+          "count": 217,
+          "query_value": "408443",
+          "url_key": "thuong-hieu/mai-lee.html"
+        },
+        {
+          "display_value": "Bosch",
+          "count": 201,
+          "query_value": "25229",
+          "url_key": "thuong-hieu/bosch.html"
+        },
+        {
+          "display_value": "LS2",
+          "count": 190,
+          "query_value": "156637",
+          "url_key": "thuong-hieu/ls2.html"
+        },
+        {
+          "display_value": "TIEN ANH HOUSE",
+          "count": 174,
+          "query_value": "8226510",
+          "url_key": "thuong-hieu/tien-anh-house.html"
+        },
+        {
+          "display_value": "CIND",
+          "count": 152,
+          "query_value": "149055",
+          "url_key": "thuong-hieu/cind.html"
+        },
+        {
+          "display_value": "Honda",
+          "count": 150,
+          "query_value": "152855",
+          "url_key": "thuong-hieu/honda.html"
+        },
+        {
+          "display_value": "OSRAM",
+          "count": 113,
+          "query_value": "152186",
+          "url_key": "thuong-hieu/osram.html"
+        },
+        {
+          "display_value": "3M",
+          "count": 108,
+          "query_value": "63747",
+          "url_key": "thuong-hieu/3m.html"
+        },
+        {
+          "display_value": "Yamaha",
+          "count": 97,
+          "query_value": "153444",
+          "url_key": "thuong-hieu/yamaha.html"
+        },
+        {
+          "display_value": "EVENDAY",
+          "count": 96,
+          "query_value": "7467501",
+          "url_key": "thuong-hieu/evenday.html"
+        },
+        {
+          "display_value": "EGO",
+          "count": 92,
+          "query_value": "156629",
+          "url_key": "thuong-hieu/ego.html"
+        },
+        {
+          "display_value": "STARFILM",
+          "count": 81,
+          "query_value": "5713669",
+          "url_key": "thuong-hieu/starfilm.html"
+        },
+        {
+          "display_value": "CARMATE",
+          "count": 79,
+          "query_value": "150288",
+          "url_key": "thuong-hieu/carmate.html"
+        },
+        {
+          "display_value": "dododios",
+          "count": 79,
+          "query_value": "5272071",
+          "url_key": "thuong-hieu/dododios.html"
+        },
+        {
+          "display_value": "WAHAMA",
+          "count": 75,
+          "query_value": "8189255",
+          "url_key": "thuong-hieu/wahama.html"
+        },
+        {
+          "display_value": "ZooZoo",
+          "count": 75,
+          "query_value": "7307977",
+          "url_key": "thuong-hieu/zoozoo.html"
+        },
+        {
+          "display_value": "Michelin",
+          "count": 64,
+          "query_value": "150272",
+          "url_key": "thuong-hieu/michelin.html"
+        },
+        {
+          "display_value": "PULOKA",
+          "count": 64,
+          "query_value": "246575",
+          "url_key": "thuong-hieu/puloka.html"
+        },
+        {
+          "display_value": "Liqui Moly",
+          "count": 63,
+          "query_value": "154039",
+          "url_key": "thuong-hieu/liqui-moly.html"
+        },
+        {
+          "display_value": "PINACO",
+          "count": 59,
+          "query_value": "4734311",
+          "url_key": "thuong-hieu/pinaco.html"
+        },
+        {
+          "display_value": "Sonax",
+          "count": 58,
+          "query_value": "181191",
+          "url_key": "thuong-hieu/sonax.html"
+        },
+        {
+          "display_value": "ROYALBABY",
+          "count": 57,
+          "query_value": "291603",
+          "url_key": "thuong-hieu/royalbaby.html"
+        },
+        {
+          "display_value": "GOODYEAR",
+          "count": 54,
+          "query_value": "250295",
+          "url_key": "thuong-hieu/goodyear.html"
+        },
+        {
+          "display_value": "Bluechem",
+          "count": 53,
+          "query_value": "142884",
+          "url_key": "thuong-hieu/bluechem.html"
+        },
+        {
+          "display_value": "KIOTOOL",
+          "count": 53,
+          "query_value": "516689",
+          "url_key": "thuong-hieu/kiotool.html"
+        },
+        {
+          "display_value": "Thống Nhất",
+          "count": 52,
+          "query_value": "202685",
+          "url_key": "thuong-hieu/thong-nhat.html"
+        },
+        {
+          "display_value": "UGREEN",
+          "count": 52,
+          "query_value": "243693",
+          "url_key": "thuong-hieu/ugreen.html"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": true,
+      "code": "brand"
+    },
+    {
+      "query_name": "option_color",
+      "display_name": "Màu sắc",
+      "values": [
+        {
+          "display_value": "Đen",
+          "count": 9967,
+          "query_value": "Đen"
+        },
+        {
+          "display_value": "Xanh dương",
+          "count": 4879,
+          "query_value": "Xanh dương"
+        },
+        {
+          "display_value": "Xám",
+          "count": 4629,
+          "query_value": "Xám"
+        },
+        {
+          "display_value": "Vàng",
+          "count": 3401,
+          "query_value": "Vàng"
+        },
+        {
+          "display_value": "Đỏ",
+          "count": 2248,
+          "query_value": "Đỏ"
+        },
+        {
+          "display_value": "Nâu",
+          "count": 1533,
+          "query_value": "Nâu"
+        },
+        {
+          "display_value": "Xanh lá",
+          "count": 1493,
+          "query_value": "Xanh lá"
+        },
+        {
+          "display_value": "Bạc",
+          "count": 1476,
+          "query_value": "Bạc"
+        },
+        {
+          "display_value": "Trắng",
+          "count": 1184,
+          "query_value": "Trắng"
+        },
+        {
+          "display_value": "Kem",
+          "count": 993,
+          "query_value": "Kem"
+        },
+        {
+          "display_value": "Cam",
+          "count": 560,
+          "query_value": "Cam"
+        },
+        {
+          "display_value": "Hồng",
+          "count": 557,
+          "query_value": "Hồng"
+        },
+        {
+          "display_value": "Tím",
+          "count": 260,
+          "query_value": "Tím"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": true,
+      "code": "option_color"
+    },
+    {
+      "query_name": "seller",
+      "display_name": "Nhà cung cấp",
+      "values": [
+        {
+          "display_value": "Bim Mart",
+          "count": 10067,
+          "logo": "https://salt.tikicdn.com/ts/seller/36/23/ed/f7e6f6eae4ff234b31ee2f538d942592.jpg",
+          "query_value": 184829,
+          "seller_address": "562 Trường Chinh, Phường Khương Thượng, Quận Đống Đa, Hà Nội"
+        },
+        {
+          "display_value": "TLG GOLD",
+          "count": 4735,
+          "logo": "https://salt.tikicdn.com/ts/seller/11/f5/ce/c756151f2934fd903cde089a66a2eaa3.jpg",
+          "query_value": 126349,
+          "seller_address": ""
+        },
+        {
+          "display_value": "Macsim phụ kiện ô tô",
+          "count": 1922,
+          "logo": "https://salt.tikicdn.com/ts/seller/12/18/cc/7a4ca834e52a62aa0e5d8e78ce50924e.jpg",
+          "query_value": 353597,
+          "seller_address": "Chí Đám,Đoan Hùng,Phú Thọ, Xã Chí Đám, Huyện Đoan Hùng, Phú Thọ"
+        },
+        {
+          "display_value": "Phụ kiện nhà cửa và xe hơi",
+          "count": 1903,
+          "logo": "https://salt.tikicdn.com/ts/seller/6e/b7/15/d21eedbca9ffaefe547ec1e90a29f1ea.jpg",
+          "query_value": 184976,
+          "seller_address": "số 15 ngõ 76 đường trâu quỳ, Thị trấn Trâu Quỳ, Huyện Gia Lâm, Hà Nội"
+        },
+        {
+          "display_value": "SHOP NOI THAT OTO CIND",
+          "count": 982,
+          "logo": "https://salt.tikicdn.com/ts/seller/8f/93/30/20b0f81b2b911a880c3d23cb4a7b086e.jpg",
+          "query_value": 1140,
+          "seller_address": ".5-7-9-11-13 đường số 22 khu bình phú, Phường 11, Quận 6, Hồ Chí Minh"
+        },
+        {
+          "display_value": "Gara20 Mũ Bảo Hiểm Đồ Bảo Hộ",
+          "count": 971,
+          "logo": "https://salt.tikicdn.com/ts/seller/fc/40/c8/314f910294d8b9d64b371d10e147f47a.jpg",
+          "query_value": 277168,
+          "seller_address": ""
+        },
+        {
+          "display_value": "MUCAR",
+          "count": 939,
+          "logo": "https://salt.tikicdn.com/ts/seller/c5/cb/b9/8a26506e82838d8303a224c0bbeef489.jpg",
+          "query_value": 14907,
+          "seller_address": ""
+        },
+        {
+          "display_value": "Shopquyetnam",
+          "count": 933,
+          "logo": "https://salt.tikicdn.com/ts/seller/aa/a5/d6/f546adcd657adf58d40c86d9cb27104d.jpg",
+          "query_value": 157669,
+          "seller_address": "Số 3 Khu 12, Thị trấn Chi Nê, Huyện Lạc Thủy, Hoà Bình"
+        },
+        {
+          "display_value": "Phố Xinh Store",
+          "count": 553,
+          "logo": "https://salt.tikicdn.com/ts/seller/75/a9/fa/fb8bd050b2d524762b5770bcee7399f4.jpg",
+          "query_value": 291512,
+          "seller_address": ""
+        },
+        {
+          "display_value": "1 Click",
+          "count": 455,
+          "logo": "https://salt.tikicdn.com/ts/seller/b3/5c/51/40ff8c49762941f34091558d537746bd.jpg",
+          "query_value": 305994,
+          "seller_address": " 114/58 Phạm Văn Chiêu, P9, Q.Gò Vấp , HCM, Phường 9, Quận Gò Vấp, Hồ Chí Minh"
+        },
+        {
+          "display_value": "TOKYO MAX",
+          "count": 444,
+          "logo": "https://salt.tikicdn.com/ts/seller/d3/c7/f4/cce13c3083178a7c7b3622a3eb9c93a9.png",
+          "query_value": 94947,
+          "seller_address": "Thôn Tranh Khúc, Xã Duyên Hà, Huyện Thanh Trì, Hà Nội"
+        },
+        {
+          "display_value": "LS2 HELMETS OFFICIAL",
+          "count": 436,
+          "logo": "https://salt.tikicdn.com/ts/seller/a2/af/c4/17f8bf9f066763ea71ee5e90c8806589.jpg",
+          "query_value": 333299,
+          "seller_address": ""
+        },
+        {
+          "display_value": "BatteryMart",
+          "count": 353,
+          "logo": "https://salt.tikicdn.com/ts/seller/b2/31/3e/d495c6ea6711be799991979b9fed01c6.jpg",
+          "query_value": 31667,
+          "seller_address": "486 Kinh Dương Vương, Khu Phố 1, Phường An Lạc A, Quận Bình Tân, Hồ Chí Minh"
+        },
+        {
+          "display_value": "Mai Lee House",
+          "count": 346,
+          "logo": "https://salt.tikicdn.com/ts/seller/22/92/ba/fb9ea040ed5af9670d1b98ff3e8ade22.jpg",
+          "query_value": 40660,
+          "seller_address": "K31/7 Yết Kiêu, Phường Thọ Quang, Quận Sơn Trà, Đà Nẵng"
+        },
+        {
+          "display_value": "opba.vn",
+          "count": 337,
+          "logo": "https://salt.tikicdn.com/ts/seller/ef/b5/4f/07858520578ed6d88c1928e79385a207.png",
+          "query_value": 2676,
+          "seller_address": " 27 Lô B Đường Số 1 Phường Phú Thuận, Q7 .TPHCM ( Chạy vào hẻm 719 Huỳnh Tấn Phát , ngã ba đầu tiên rẽ trái là thấy số nhà 27) Hẻm ô tô đậu thoải mái, Phường Phú Thuận, Quận 7, Hồ Chí Minh"
+        },
+        {
+          "display_value": "Hệ Thống Xe Máy Phúc Tiến Phát",
+          "count": 335,
+          "logo": "https://salt.tikicdn.com/ts/seller/ca/8c/29/58719d57da3475b83d333952281586e6.jpg",
+          "query_value": 14869,
+          "seller_address": "331 Quách ĐIêu, Ấp 6, Xã Vĩnh Lộc A, Huyện Bình Chánh, Hồ Chí Minh"
+        },
+        {
+          "display_value": "EGO HELMETS OFFICIAL",
+          "count": 273,
+          "logo": "https://salt.tikicdn.com/ts/seller/9b/62/a3/3dbadb247ede04c3b1feb4b1ce2c9db4.jpg",
+          "query_value": 335626,
+          "seller_address": ""
+        },
+        {
+          "display_value": "RidePlus",
+          "count": 237,
+          "logo": "https://salt.tikicdn.com/ts/seller/8f/0c/3d/5ad09b9bed2dbe7bf6c8c9c00d533c0f.jpg",
+          "query_value": 876,
+          "seller_address": ""
+        },
+        {
+          "display_value": "Thế Giới Xe Chạy Điện",
+          "count": 235,
+          "logo": "https://salt.tikicdn.com/ts/seller/b2/97/cc/721132653f98272783169b54d950cb3d.jpg",
+          "query_value": 1225,
+          "seller_address": "1029 TAN KI TAN QUY, Phường Bình Hưng Hòa, Quận Bình Tân, Hồ Chí Minh"
+        },
+        {
+          "display_value": "Xe Đạp Fornix",
+          "count": 215,
+          "logo": "https://salt.tikicdn.com/ts/seller/d9/d7/a0/461b0a283ede1efbe9167b03923a59df.jpg",
+          "query_value": 337,
+          "seller_address": "1067 tạ quang bửu, p6, q8, Phường 06, Quận 8, Hồ Chí Minh"
+        },
+        {
+          "display_value": "Tốc Độ 247",
+          "count": 207,
+          "logo": "https://salt.tikicdn.com/ts/seller/5c/7f/67/da465599f56bcece1366f86112a16d68.png",
+          "query_value": 2703,
+          "seller_address": ""
+        },
+        {
+          "display_value": "CasemeStore",
+          "count": 199,
+          "logo": "https://salt.tikicdn.com/ts/seller/51/55/91/b5d7399ccc568087986100b749cb8367.jpg",
+          "query_value": 104628,
+          "seller_address": "562 Trường Chinh, Phường Khương Thượng, Quận Đống Đa, Hà Nội"
+        },
+        {
+          "display_value": "tinphongvina",
+          "count": 197,
+          "logo": "https://salt.tikicdn.com/ts/seller/4b/54/1a/f385a79a716cb3505f152e7af8c769aa.png",
+          "query_value": 103325,
+          "seller_address": ""
+        },
+        {
+          "display_value": "Sonaimex",
+          "count": 182,
+          "logo": "https://salt.tikicdn.com/ts/seller/c9/ff/a9/22731246e6702cd76f3432f6ca43eade.jpg",
+          "query_value": 433,
+          "seller_address": "Lầu 1, Orange Building, 60 Hòa Bình, Phường 5, Quận 11, Phường 05, Quận 11, Hồ Chí Minh"
+        },
+        {
+          "display_value": "Luckky Shop",
+          "count": 174,
+          "logo": "https://salt.tikicdn.com/ts/seller/4b/54/1a/f385a79a716cb3505f152e7af8c769aa.png",
+          "query_value": 97441,
+          "seller_address": ""
+        },
+        {
+          "display_value": "Chợ Tốt Auto",
+          "count": 172,
+          "logo": "https://salt.tikicdn.com/ts/seller/4b/54/1a/f385a79a716cb3505f152e7af8c769aa.png",
+          "query_value": 34534,
+          "seller_address": ""
+        },
+        {
+          "display_value": "NONTRUM OFFICIAL STORE ",
+          "count": 167,
+          "logo": "https://salt.tikicdn.com/ts/seller/c7/df/6c/d8506f914cda8e71bbaa82732660d692.jpg",
+          "query_value": 134712,
+          "seller_address": "11/16 Phạm Phú Thứ, Phường 11, Quận Tân Bình, Hồ Chí Minh"
+        },
+        {
+          "display_value": "NK LUBE CENTER SHOP",
+          "count": 166,
+          "logo": "https://salt.tikicdn.com/ts/seller/e9/5e/1d/d305219d38b34cf68b6c95a63e5760d4.jpg",
+          "query_value": 150479,
+          "seller_address": ""
+        },
+        {
+          "display_value": "TAYA MOTOR VIỆT NAM",
+          "count": 147,
+          "logo": "https://salt.tikicdn.com/ts/seller/37/fe/bf/af4bf314d2cb3751b2907fac9673f4b7.png",
+          "query_value": 1643,
+          "seller_address": ""
+        },
+        {
+          "display_value": "BULLDOG HELMETS OFFICIAL",
+          "count": 147,
+          "logo": "https://salt.tikicdn.com/ts/seller/6c/98/33/8a407f956fac61d21500ee975291a9b0.jpg",
+          "query_value": 335622,
+          "seller_address": ""
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": true,
+      "code": "seller"
+    },
+    {
+      "query_name": "is_cross_border",
+      "display_name": "Giao Hàng",
+      "values": [
+        {
+          "display_value": "Hàng nội địa",
+          "count": 10881,
+          "query_value": "0"
+        },
+        {
+          "display_value": "Hàng quốc tế",
+          "count": 4,
+          "query_value": "1"
+        }
+      ],
+      "collapsed": 5,
+      "multi_select": false,
+      "code": "is_cross_border"
+    }
+  ],
+  "experiment_variants": {},
+  "model_name": "NoLtrModel",
+  "amplitude": {
+    "number_of_sponsored_product_ad": "0",
+    "number_of_display_ad": "0",
+    "number_of_brand_store_ad": "0",
+    "selected_sort_option": "",
+    "seller_product_sku": "1834138673143,6414859069525,7810363161095,4548686006841,3233373427687,9382484666120,2897117329217,5954660253262,8828272906250,4945314797077",
+    "search_experiment_variant": "",
+    "search_request": "http://thanos.tiki.services/full/v2/products?category=8594&limit=10&page=1&include=advertisement&aggregations=1",
+    "search_location": "VN039006001",
+    "user_strategy": "baseline"
+  },
+  "trace_id": "0PehTisJEySORt4Y",
+  "open_telemetry_trace_id": "e8944530a1f6b6a911e90efc0fd9adbe",
+  "query_info": {
+    "delivery_zone": "VN039006001",
+    "url": "http://thanos.tiki.services/full/v2/products?category=8594&limit=10&page=1&include=advertisement&aggregations=1",
+    "ip": "10.128.22.68",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "params": {
+      "include": "advertisement",
+      "limit": "10",
+      "page": "1",
+      "category": "8594",
+      "aggregations": "1"
+    }
+  },
+  "layout_type": "grid_view"
+}

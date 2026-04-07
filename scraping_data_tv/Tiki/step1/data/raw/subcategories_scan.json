@@ -1,0 +1,687 @@
+{
+  "1846": {
+    "name": "Laptop - Thiet bi IT",
+    "subcategories": [
+      {
+        "id": 8095,
+        "name": "Laptop",
+        "count": 21
+      },
+      {
+        "id": 12884,
+        "name": "Thiết Bị Văn Phòng - Thiết Bị Ngoại Vi",
+        "count": 3542
+      },
+      {
+        "id": 8060,
+        "name": "Thiết Bị Lưu Trữ",
+        "count": 327
+      },
+      {
+        "id": 2663,
+        "name": "Thiết Bị Mạng",
+        "count": 1447
+      },
+      {
+        "id": 8093,
+        "name": "PC - Máy Tính Bộ",
+        "count": 48
+      },
+      {
+        "id": 8129,
+        "name": "Linh Kiện Máy Tính - Phụ Kiện Máy Tính",
+        "count": 12475
+      }
+    ]
+  },
+  "1815": {
+    "name": "May anh - Quay phim",
+    "subcategories": [
+      {
+        "id": 8215,
+        "name": "Thiết Bị Âm Thanh và Phụ Kiện",
+        "count": 2508
+      },
+      {
+        "id": 2667,
+        "name": "Thiết Bị Chơi Game và Phụ Kiện",
+        "count": 83
+      },
+      {
+        "id": 8039,
+        "name": "Thiết Bị Đeo Thông Minh và Phụ Kiện",
+        "count": 1038
+      },
+      {
+        "id": 28432,
+        "name": "Thiết Bị Thông Minh và Linh Kiện Điện Tử",
+        "count": 774
+      },
+      {
+        "id": 8214,
+        "name": "Phụ Kiện Điện Thoại và Máy Tính Bảng",
+        "count": 79004
+      },
+      {
+        "id": 28670,
+        "name": "Phụ kiện máy tính và Laptop",
+        "count": 4960
+      }
+    ]
+  },
+  "4221": {
+    "name": "Dien tu - Dien lanh",
+    "subcategories": [
+      {
+        "id": 5015,
+        "name": "Tivi",
+        "count": 161
+      },
+      {
+        "id": 3862,
+        "name": "Máy giặt",
+        "count": 238
+      },
+      {
+        "id": 26568,
+        "name": "Âm thanh & Phụ kiện Tivi",
+        "count": 286
+      },
+      {
+        "id": 3863,
+        "name": "Máy sấy quần áo",
+        "count": 52
+      },
+      {
+        "id": 3864,
+        "name": "Máy rửa chén",
+        "count": 190
+      },
+      {
+        "id": 3865,
+        "name": "Máy lạnh - Máy điều hòa",
+        "count": 309
+      },
+      {
+        "id": 3866,
+        "name": "Máy nước nóng",
+        "count": 214
+      },
+      {
+        "id": 2328,
+        "name": "Tủ lạnh",
+        "count": 295
+      },
+      {
+        "id": 3868,
+        "name": "Tủ đông - Tủ mát",
+        "count": 366
+      },
+      {
+        "id": 3869,
+        "name": "Tủ ướp rượu",
+        "count": 26
+      },
+      {
+        "id": 8074,
+        "name": "Phụ kiện điện lạnh",
+        "count": 219
+      }
+    ]
+  },
+  "1882": {
+    "name": "Phu kien - Thiet bi so",
+    "subcategories": [
+      {
+        "id": 1884,
+        "name": "Đồ dùng nhà bếp",
+        "count": 7220
+      },
+      {
+        "id": 1946,
+        "name": "Thiết bị gia đình",
+        "count": 4772
+      }
+    ]
+  },
+  "8594": {
+    "name": "O to - Xe may - Xe dap",
+    "subcategories": [
+      {
+        "id": 8597,
+        "name": "Xe máy",
+        "count": 294
+      },
+      {
+        "id": 6070,
+        "name": "Xe điện",
+        "count": 121
+      },
+      {
+        "id": 8431,
+        "name": "Xe đạp",
+        "count": 342
+      },
+      {
+        "id": 8595,
+        "name": "Ô tô",
+        "count": 7
+      },
+      {
+        "id": 24832,
+        "name": "Phụ kiện - Chăm sóc xe",
+        "count": 10120
+      },
+      {
+        "id": 17208,
+        "name": "Dịch vụ, lắp đặt",
+        "count": 3
+      }
+    ]
+  },
+  "1883": {
+    "name": "Nha cua - Doi song",
+    "subcategories": [
+      {
+        "id": 1951,
+        "name": "Dụng cụ nhà bếp",
+        "count": 14486
+      },
+      {
+        "id": 1954,
+        "name": "Đồ dùng phòng ăn",
+        "count": 8185
+      },
+      {
+        "id": 2150,
+        "name": "Nội thất",
+        "count": 19569
+      },
+      {
+        "id": 8313,
+        "name": "Đồ dùng phòng ngủ",
+        "count": 2299
+      },
+      {
+        "id": 1973,
+        "name": "Trang trí nhà cửa",
+        "count": 9908
+      },
+      {
+        "id": 2015,
+        "name": "Đèn & thiết bị chiếu sáng",
+        "count": 5724
+      },
+      {
+        "id": 2223,
+        "name": "Ngoài trời & sân vườn",
+        "count": 5967
+      },
+      {
+        "id": 1966,
+        "name": "Đồ dùng và thiết bị nhà tắm",
+        "count": 6750
+      },
+      {
+        "id": 1974,
+        "name": "Sửa chữa nhà cửa",
+        "count": 19486
+      },
+      {
+        "id": 10068,
+        "name": "Nhạc cụ",
+        "count": 836
+      },
+      {
+        "id": 23054,
+        "name": "Đồ thờ cúng",
+        "count": 1230
+      },
+      {
+        "id": 53050,
+        "name": "Dụng cụ & Thiết bị tiện ích",
+        "count": 4019
+      }
+    ]
+  },
+  "4384": {
+    "name": "Dien gia dung",
+    "subcategories": [
+      {
+        "id": 4421,
+        "name": "Đồ Ăn Vặt",
+        "count": 1691
+      },
+      {
+        "id": 15074,
+        "name": "Thực phẩm Đóng hộp và Khô",
+        "count": 2789
+      },
+      {
+        "id": 24024,
+        "name": "Đồ Uống Không Cồn",
+        "count": 113
+      },
+      {
+        "id": 4422,
+        "name": "Gia Vị và Chế Biến",
+        "count": 1554
+      },
+      {
+        "id": 5451,
+        "name": "Chăm sóc thú cưng",
+        "count": 2796
+      },
+      {
+        "id": 11347,
+        "name": "Bộ quà tặng",
+        "count": 78
+      },
+      {
+        "id": 22998,
+        "name": "Đồ uống",
+        "count": 2741
+      },
+      {
+        "id": 53562,
+        "name": "Sữa và các Sản phẩm từ sữa",
+        "count": 510
+      },
+      {
+        "id": 53582,
+        "name": "Rượu, bia và nước lên men",
+        "count": 863
+      },
+      {
+        "id": 53620,
+        "name": "Đậu & Hạt Các Loại",
+        "count": 8
+      },
+      {
+        "id": 68576,
+        "name": "Ngũ cốc và mứt",
+        "count": 144
+      }
+    ]
+  },
+  "15078": {
+    "name": "Suc khoe - Lam dep",
+    "subcategories": [
+      {
+        "id": 4386,
+        "name": "Vệ sinh nhà cửa",
+        "count": 242
+      },
+      {
+        "id": 4399,
+        "name": "Vệ sinh nhà bếp",
+        "count": 1515
+      },
+      {
+        "id": 4400,
+        "name": "Vệ sinh nhà tắm",
+        "count": 509
+      },
+      {
+        "id": 4388,
+        "name": "Giấy vệ sinh và giấy ăn",
+        "count": 299
+      },
+      {
+        "id": 4387,
+        "name": "Giặt giũ & Chăm sóc quần áo",
+        "count": 481
+      },
+      {
+        "id": 4441,
+        "name": "Diệt côn trùng",
+        "count": 104
+      }
+    ]
+  },
+  "8322": {
+    "name": "Do choi - Me va be",
+    "subcategories": [
+      {
+        "id": 320,
+        "name": "English Books",
+        "count": 17200
+      },
+      {
+        "id": 316,
+        "name": "Sách tiếng Việt",
+        "count": 241499
+      },
+      {
+        "id": 7741,
+        "name": "Văn phòng phẩm",
+        "count": 13740
+      },
+      {
+        "id": 18328,
+        "name": "Quà lưu niệm",
+        "count": 3319
+      }
+    ]
+  },
+  "931": {
+    "name": "Thoi trang nam",
+    "subcategories": [
+      {
+        "id": 1698,
+        "name": "Áo nữ",
+        "count": 3
+      },
+      {
+        "id": 941,
+        "name": "Đầm nữ",
+        "count": 1064
+      },
+      {
+        "id": 5404,
+        "name": "Chân váy",
+        "count": 291
+      },
+      {
+        "id": 27600,
+        "name": "Quần nữ",
+        "count": 639
+      },
+      {
+        "id": 936,
+        "name": "Áo vest - Áo khoác nữ",
+        "count": 881
+      },
+      {
+        "id": 1702,
+        "name": "Áo liền quần - Bộ trang phục",
+        "count": 267
+      },
+      {
+        "id": 4553,
+        "name": "Đồ đôi - Đồ gia đình",
+        "count": 94
+      },
+      {
+        "id": 49372,
+        "name": "Thời trang bầu và sau sinh",
+        "count": 25
+      },
+      {
+        "id": 49384,
+        "name": "Thời trang nữ trung niên",
+        "count": 57
+      },
+      {
+        "id": 4554,
+        "name": "Đồ lót nữ",
+        "count": 3308
+      },
+      {
+        "id": 1508,
+        "name": "Đồ ngủ - Đồ mặc nhà nữ",
+        "count": 1113
+      },
+      {
+        "id": 6179,
+        "name": "Trang phục bơi nữ",
+        "count": 365
+      },
+      {
+        "id": 934,
+        "name": "Áo sơ mi nữ",
+        "count": 283
+      },
+      {
+        "id": 935,
+        "name": "Áo kiểu nữ",
+        "count": 380
+      },
+      {
+        "id": 10389,
+        "name": "Áo crop-top",
+        "count": 56
+      },
+      {
+        "id": 933,
+        "name": "Áo thun nữ",
+        "count": 625
+      }
+    ]
+  },
+  "915": {
+    "name": "Thoi trang nu",
+    "subcategories": [
+      {
+        "id": 917,
+        "name": "Áo thun nam",
+        "count": 1595
+      },
+      {
+        "id": 918,
+        "name": "Áo sơ mi nam",
+        "count": 859
+      },
+      {
+        "id": 925,
+        "name": "Áo vest - Áo khoác nam",
+        "count": 770
+      },
+      {
+        "id": 10382,
+        "name": "Áo hoodie nam",
+        "count": 136
+      },
+      {
+        "id": 4546,
+        "name": "Áo nỉ - Áo len nam",
+        "count": 112
+      },
+      {
+        "id": 27562,
+        "name": "Quần dài nam",
+        "count": 544
+      },
+      {
+        "id": 27570,
+        "name": "Đồ ngủ, đồ mặc nhà nam",
+        "count": 54
+      },
+      {
+        "id": 27548,
+        "name": "Đồ lót nam",
+        "count": 588
+      },
+      {
+        "id": 49524,
+        "name": "Quần áo nam kích cỡ lớn",
+        "count": 1
+      },
+      {
+        "id": 49532,
+        "name": "Quần áo nam trung niên",
+        "count": 5
+      },
+      {
+        "id": 16004,
+        "name": "Đồ bơi - Đồ đi biển nam",
+        "count": 83
+      },
+      {
+        "id": 67309,
+        "name": "Bộ trang phục nam",
+        "count": 134
+      },
+      {
+        "id": 67329,
+        "name": "Quần short nam",
+        "count": 408
+      }
+    ]
+  },
+  "6000": {
+    "name": "Tui - Vi nam",
+    "subcategories": [
+      {
+        "id": 27608,
+        "name": "Balo",
+        "count": 1602
+      },
+      {
+        "id": 27612,
+        "name": "Balo, cặp, túi chống sốc laptop",
+        "count": 202
+      },
+      {
+        "id": 8387,
+        "name": "Túi du lịch và phụ kiện",
+        "count": 584
+      },
+      {
+        "id": 6526,
+        "name": "Vali, phụ kiện vali ",
+        "count": 515
+      },
+      {
+        "id": 68140,
+        "name": "Phụ kiện du lịch",
+        "count": 51
+      }
+    ]
+  },
+  "1520": {
+    "name": "Bach hoa online",
+    "subcategories": [
+      {
+        "id": 1582,
+        "name": "Chăm sóc da mặt",
+        "count": 4318
+      },
+      {
+        "id": 1584,
+        "name": "Trang điểm ",
+        "count": 1232
+      },
+      {
+        "id": 1594,
+        "name": "Chăm sóc cá nhân",
+        "count": 1343
+      },
+      {
+        "id": 1592,
+        "name": "Chăm sóc cơ thể",
+        "count": 1030
+      },
+      {
+        "id": 5873,
+        "name": "Sản phẩm thiên nhiên & Khác",
+        "count": 1278
+      },
+      {
+        "id": 1591,
+        "name": "Chăm sóc tóc và da đầu",
+        "count": 961
+      },
+      {
+        "id": 1595,
+        "name": "Nước hoa",
+        "count": 714
+      },
+      {
+        "id": 2306,
+        "name": "Dụng cụ làm đẹp",
+        "count": 2670
+      },
+      {
+        "id": 2307,
+        "name": "Máy Massage & Thiết bị chăm sóc sức khỏe",
+        "count": 3463
+      },
+      {
+        "id": 2322,
+        "name": "Thực phẩm chức năng",
+        "count": 2965
+      },
+      {
+        "id": 8142,
+        "name": "Hỗ trợ tình dục",
+        "count": 809
+      },
+      {
+        "id": 1625,
+        "name": "Chăm sóc răng miệng",
+        "count": 581
+      }
+    ]
+  },
+  "2549": {
+    "name": "Lam vuon - Thu cung",
+    "subcategories": [
+      {
+        "id": 2551,
+        "name": "Tã, Bỉm",
+        "count": 774
+      },
+      {
+        "id": 8339,
+        "name": "Dinh dưỡng cho bé",
+        "count": 774
+      },
+      {
+        "id": 6568,
+        "name": "Thực phẩm ăn dặm",
+        "count": 4
+      },
+      {
+        "id": 10416,
+        "name": "Dinh dưỡng cho mẹ",
+        "count": 75
+      },
+      {
+        "id": 10418,
+        "name": "Dinh dưỡng cho người lớn",
+        "count": 147
+      },
+      {
+        "id": 11601,
+        "name": "Đồ dùng cho bé",
+        "count": 2832
+      },
+      {
+        "id": 5250,
+        "name": "Đồ chơi",
+        "count": 6492
+      },
+      {
+        "id": 5164,
+        "name": "Đồ dùng cho người già",
+        "count": 46
+      },
+      {
+        "id": 2640,
+        "name": "Chăm sóc mẹ mang thai, sau sinh",
+        "count": 329
+      }
+    ]
+  },
+  "27498": {
+    "name": "Nha sach Tiki",
+    "subcategories": [
+      {
+        "id": 8370,
+        "name": "Mắt kính",
+        "count": 3749
+      },
+      {
+        "id": 975,
+        "name": "Phụ kiện thời trang nữ",
+        "count": 5797
+      },
+      {
+        "id": 27550,
+        "name": "Phụ kiện thời trang nam",
+        "count": 2911
+      }
+    ]
+  }
+}
