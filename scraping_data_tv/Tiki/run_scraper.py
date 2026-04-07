@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--all", action="store_true", help="Cao tat ca 47 categories")
     parser.add_argument("--category", type=int, help="Cao 1 category theo ID")
     parser.add_argument("--max", type=int, default=None, help="So san pham toi da moi category")
+    parser.add_argument("--name", type=str, default=None, help="Ten category (neu ID khong co trong config)")
     args = parser.parse_args()
 
     if args.test:
@@ -56,12 +57,13 @@ def main():
         print(f"\nDone: {len(products)} san pham tong cong")
 
     elif args.category:
-        # Tim ten category
-        cat_name = "Unknown"
-        for cid, cname, _ in SCRAPE_CATEGORIES:
-            if cid == args.category:
-                cat_name = cname
-                break
+        # Tim ten category — ho tro ca --name tu dong
+        cat_name = args.name or "Unknown"
+        if cat_name == "Unknown":
+            for cid, cname, _ in SCRAPE_CATEGORIES:
+                if cid == args.category:
+                    cat_name = cname
+                    break
         print(f"=== Scrape [{args.category}] {cat_name} ===\n")
         products = scrape_category(args.category, cat_name, max_products=args.max)
         print(f"\nDone: {len(products)} san pham")

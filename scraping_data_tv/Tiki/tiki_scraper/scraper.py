@@ -275,6 +275,7 @@ def scrape_category(
 
     # Step 3: Detail API for each product
     products = []
+    detail_start = time.time()
     logger.info("Step 3: Fetching details...")
 
     for i, item in enumerate(to_scrape):
@@ -330,9 +331,16 @@ def scrape_category(
         if len(done_ids) % CHECKPOINT_EVERY == 0:
             save_checkpoint(category_id, done_ids)
 
-        # Progress log
+        # Progress log with ETA
         if (i + 1) % 50 == 0:
-            logger.info("  Progress: %d/%d done, %d saved", i + 1, len(to_scrape), len(products))
+            elapsed = time.time() - detail_start
+            speed = (i + 1) / elapsed
+            remaining = (len(to_scrape) - i - 1) / speed if speed > 0 else 0
+            eta_min, eta_sec = divmod(int(remaining), 60)
+            logger.info(
+                "  Progress: %d/%d done, %d saved | %.1f SP/s | ETA: %dm %ds",
+                i + 1, len(to_scrape), len(products), speed, eta_min, eta_sec,
+            )
 
         time.sleep(random.uniform(*DETAIL_DELAY))
 
@@ -340,10 +348,15 @@ def scrape_category(
     save_checkpoint(category_id, done_ids)
     session.close()
 
-    logger.info(
-        "=== Done [%d] %s: %d products saved to %s ===",
-        category_id, category_name, len(products), out_file,
-    )
+    total_time = time.time() - detail_start
+    t_min, t_sec = divmod(int(total_time), 60)
+    t_hour, t_min = divmod(t_min, 60)
+    speed = len(products) / total_time if total_time > 0 else 0
+
+    logger.info("=== Done [%d] %s ===", category_id, category_name)
+    logger.info("  Total: %d products saved to %s", len(products), out_file)
+    logger.info("  Time: %dh %dm %ds (%.1f SP/s)", t_hour, t_min, t_sec, speed)
+
     return products
 
 
@@ -356,11 +369,31 @@ def scrape_all(
 
     cats = categories or SCRAPE_CATEGORIES
     all_products = []
+    all_start = time.time()
 
-    for cat_id, cat_name, _est in cats:
+    for idx, (cat_id, cat_name, _est) in enumerate(cats, 1):
+        logger.info("--- Category %d/%d ---", idx, len(cats))
         products = scrape_category(cat_id, cat_name, max_products=max_per_category)
         all_products.extend(products)
-        logger.info("Total so far: %d products", len(all_products))
 
-    logger.info("=== ALL DONE: %d products from %d categories ===", len(all_products), len(cats))
+        elapsed = time.time() - all_start
+        e_h, e_m = divmod(int(elapsed) // 60, 60)
+        logger.info(
+            "  Running total: %d products | Elapsed: %dh %dm | Categories: %d/%d",
+            len(all_products), e_h, e_m, idx, len(cats),
+        )
+
+    total_time = time.time() - all_start
+    t_h, t_m = divmod(int(total_time) // 60, 60)
+    t_s = int(total_time) % 60
+    speed = len(all_products) / total_time if total_time > 0 else 0
+
+    logger.info("=" * 60)
+    logger.info("ALL DONE")
+    logger.info("  Total products: %d", len(all_products))
+    logger.info("  Categories: %d", len(cats))
+    logger.info("  Total time: %dh %dm %ds", t_h, t_m, t_s)
+    logger.info("  Avg speed: %.1f SP/s", speed)
+    logger.info("=" * 60)
+
     return all_products
