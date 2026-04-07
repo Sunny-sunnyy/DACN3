@@ -94,11 +94,15 @@ def _extract_brand(detail: dict) -> str:
 
 
 def _extract_category(detail: dict) -> str:
-    """Extract category path from breadcrumbs."""
+    """Extract category path from breadcrumbs (max 3 levels, skip product name)."""
     breadcrumbs = detail.get("breadcrumbs", [])
-    if breadcrumbs:
-        return " > ".join(b.get("name", "") for b in breadcrumbs if b.get("name"))
-    return ""
+    if not breadcrumbs:
+        return ""
+    # Breadcrumb cuoi la ten san pham -> bo di, lay toi da 3 cap
+    names = [b.get("name", "") for b in breadcrumbs if b.get("name")]
+    if len(names) > 1:
+        names = names[:-1]  # bo ten san pham
+    return " > ".join(names[:3])
 
 
 # --- Listing API ---
