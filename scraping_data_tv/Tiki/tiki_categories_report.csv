@@ -1,0 +1,123 @@
+﻿parent_id,parent_name,parent_total,sub_id,sub_name,product_count,listing_cap_status,scrape_estimate_hours
+8322,Do choi - Me va be,276015,316,Sách tiếng Việt,241718,OVER_CAP,24.87
+8322,Do choi - Me va be,276015,320,English Books,17231,OVER_CAP,1.77
+8322,Do choi - Me va be,276015,7741,Văn phòng phẩm,13746,OVER_CAP,1.41
+8322,Do choi - Me va be,276015,18328,Quà lưu niệm,3320,OVER_CAP,0.34
+1883,Nha cua - Doi song,98464,2150,Nội thất,19569,OVER_CAP,2.01
+1883,Nha cua - Doi song,98464,1974,Sửa chữa nhà cửa,19490,OVER_CAP,2.01
+1883,Nha cua - Doi song,98464,1951,Dụng cụ nhà bếp,14478,OVER_CAP,1.49
+1883,Nha cua - Doi song,98464,1973,Trang trí nhà cửa,9909,OVER_CAP,1.02
+1883,Nha cua - Doi song,98464,1954,Đồ dùng phòng ăn,8189,OVER_CAP,0.84
+1883,Nha cua - Doi song,98464,1966,Đồ dùng và thiết bị nhà tắm,6748,OVER_CAP,0.69
+1883,Nha cua - Doi song,98464,2223,Ngoài trời & sân vườn,5971,OVER_CAP,0.61
+1883,Nha cua - Doi song,98464,2015,Đèn & thiết bị chiếu sáng,5724,OVER_CAP,0.59
+1883,Nha cua - Doi song,98464,53050,Dụng cụ & Thiết bị tiện ích,4019,OVER_CAP,0.41
+1883,Nha cua - Doi song,98464,8313,Đồ dùng phòng ngủ,2299,OVER_CAP,0.24
+1883,Nha cua - Doi song,98464,23054,Đồ thờ cúng,1232,OK,0.13
+1883,Nha cua - Doi song,98464,10068,Nhạc cụ,836,OK,0.09
+1815,May anh - Quay phim,88370,8214,Phụ Kiện Điện Thoại và Máy Tính Bảng,79006,OVER_CAP,8.13
+1815,May anh - Quay phim,88370,28670,Phụ kiện máy tính và Laptop,4960,OVER_CAP,0.51
+1815,May anh - Quay phim,88370,8215,Thiết Bị Âm Thanh và Phụ Kiện,2509,OVER_CAP,0.26
+1815,May anh - Quay phim,88370,8039,Thiết Bị Đeo Thông Minh và Phụ Kiện,1037,OK,0.11
+1815,May anh - Quay phim,88370,28432,Thiết Bị Thông Minh và Linh Kiện Điện Tử,775,OK,0.08
+1815,May anh - Quay phim,88370,2667,Thiết Bị Chơi Game và Phụ Kiện,83,OK,0.01
+1520,Bach hoa online,21374,1582,Chăm sóc da mặt,4323,OVER_CAP,0.44
+1520,Bach hoa online,21374,2307,Máy Massage & Thiết bị chăm sóc sức khỏe,3465,OVER_CAP,0.36
+1520,Bach hoa online,21374,2322,Thực phẩm chức năng,2969,OVER_CAP,0.31
+1520,Bach hoa online,21374,2306,Dụng cụ làm đẹp,2669,OVER_CAP,0.27
+1520,Bach hoa online,21374,1594,Chăm sóc cá nhân,1343,OK,0.14
+1520,Bach hoa online,21374,5873,Sản phẩm thiên nhiên & Khác,1278,OK,0.13
+1520,Bach hoa online,21374,1584,Trang điểm ,1232,OK,0.13
+1520,Bach hoa online,21374,1592,Chăm sóc cơ thể,1029,OK,0.11
+1520,Bach hoa online,21374,1591,Chăm sóc tóc và da đầu,961,OK,0.1
+1520,Bach hoa online,21374,8142,Hỗ trợ tình dục,809,OK,0.08
+1520,Bach hoa online,21374,1595,Nước hoa,714,OK,0.07
+1520,Bach hoa online,21374,1625,Chăm sóc răng miệng,582,OK,0.06
+1846,Laptop - Thiet bi IT,17861,8129,Linh Kiện Máy Tính - Phụ Kiện Máy Tính,12475,OVER_CAP,1.28
+1846,Laptop - Thiet bi IT,17861,12884,Thiết Bị Văn Phòng - Thiết Bị Ngoại Vi,3542,OVER_CAP,0.36
+1846,Laptop - Thiet bi IT,17861,2663,Thiết Bị Mạng,1447,OK,0.15
+1846,Laptop - Thiet bi IT,17861,8060,Thiết Bị Lưu Trữ,328,OK,0.03
+1846,Laptop - Thiet bi IT,17861,8093,PC - Máy Tính Bộ,48,OK,0.0
+1846,Laptop - Thiet bi IT,17861,8095,Laptop,21,OK,0.0
+4384,Dien gia dung,13278,5451,Chăm sóc thú cưng,2794,OVER_CAP,0.29
+4384,Dien gia dung,13278,15074,Thực phẩm Đóng hộp và Khô,2789,OVER_CAP,0.29
+4384,Dien gia dung,13278,22998,Đồ uống,2741,OVER_CAP,0.28
+4384,Dien gia dung,13278,4421,Đồ Ăn Vặt,1692,OK,0.17
+4384,Dien gia dung,13278,4422,Gia Vị và Chế Biến,1551,OK,0.16
+4384,Dien gia dung,13278,53582,"Rượu, bia và nước lên men",863,OK,0.09
+4384,Dien gia dung,13278,53562,Sữa và các Sản phẩm từ sữa,505,OK,0.05
+4384,Dien gia dung,13278,68576,Ngũ cốc và mứt,144,OK,0.01
+4384,Dien gia dung,13278,24024,Đồ Uống Không Cồn,113,OK,0.01
+4384,Dien gia dung,13278,11347,Bộ quà tặng,78,OK,0.01
+4384,Dien gia dung,13278,53620,Đậu & Hạt Các Loại,8,OK,0.0
+27498,Nha sach Tiki,12457,975,Phụ kiện thời trang nữ,5797,OVER_CAP,0.6
+27498,Nha sach Tiki,12457,8370,Mắt kính,3749,OVER_CAP,0.39
+27498,Nha sach Tiki,12457,27550,Phụ kiện thời trang nam,2911,OVER_CAP,0.3
+1882,Phu kien - Thiet bi so,11994,1884,Đồ dùng nhà bếp,7219,OVER_CAP,0.74
+1882,Phu kien - Thiet bi so,11994,1946,Thiết bị gia đình,4775,OVER_CAP,0.49
+2549,Lam vuon - Thu cung,11461,5250,Đồ chơi,6490,OVER_CAP,0.67
+2549,Lam vuon - Thu cung,11461,11601,Đồ dùng cho bé,2832,OVER_CAP,0.29
+2549,Lam vuon - Thu cung,11461,2551,"Tã, Bỉm",774,OK,0.08
+2549,Lam vuon - Thu cung,11461,8339,Dinh dưỡng cho bé,772,OK,0.08
+2549,Lam vuon - Thu cung,11461,2640,"Chăm sóc mẹ mang thai, sau sinh",326,OK,0.03
+2549,Lam vuon - Thu cung,11461,10418,Dinh dưỡng cho người lớn,140,OK,0.01
+2549,Lam vuon - Thu cung,11461,10416,Dinh dưỡng cho mẹ,75,OK,0.01
+2549,Lam vuon - Thu cung,11461,5164,Đồ dùng cho người già,46,OK,0.0
+2549,Lam vuon - Thu cung,11461,6568,Thực phẩm ăn dặm,6,OK,0.0
+8594,O to - Xe may - Xe dap,10891,24832,Phụ kiện - Chăm sóc xe,10124,OVER_CAP,1.04
+8594,O to - Xe may - Xe dap,10891,8431,Xe đạp,342,OK,0.04
+8594,O to - Xe may - Xe dap,10891,8597,Xe máy,294,OK,0.03
+8594,O to - Xe may - Xe dap,10891,6070,Xe điện,121,OK,0.01
+8594,O to - Xe may - Xe dap,10891,8595,Ô tô,7,OK,0.0
+8594,O to - Xe may - Xe dap,10891,17208,"Dịch vụ, lắp đặt",3,OK,0.0
+931,Thoi trang nam,9451,4554,Đồ lót nữ,3309,OVER_CAP,0.34
+931,Thoi trang nam,9451,1508,Đồ ngủ - Đồ mặc nhà nữ,1113,OK,0.11
+931,Thoi trang nam,9451,941,Đầm nữ,1064,OK,0.11
+931,Thoi trang nam,9451,936,Áo vest - Áo khoác nữ,880,OK,0.09
+931,Thoi trang nam,9451,27600,Quần nữ,639,OK,0.07
+931,Thoi trang nam,9451,933,Áo thun nữ,625,OK,0.06
+931,Thoi trang nam,9451,935,Áo kiểu nữ,380,OK,0.04
+931,Thoi trang nam,9451,6179,Trang phục bơi nữ,365,OK,0.04
+931,Thoi trang nam,9451,5404,Chân váy,291,OK,0.03
+931,Thoi trang nam,9451,934,Áo sơ mi nữ,283,OK,0.03
+931,Thoi trang nam,9451,1702,Áo liền quần - Bộ trang phục,267,OK,0.03
+931,Thoi trang nam,9451,4553,Đồ đôi - Đồ gia đình,94,OK,0.01
+931,Thoi trang nam,9451,49384,Thời trang nữ trung niên,57,OK,0.01
+931,Thoi trang nam,9451,10389,Áo crop-top,56,OK,0.01
+931,Thoi trang nam,9451,49372,Thời trang bầu và sau sinh,25,OK,0.0
+931,Thoi trang nam,9451,1698,Áo nữ,3,OK,0.0
+915,Thoi trang nu,5294,917,Áo thun nam,1595,OK,0.16
+915,Thoi trang nu,5294,918,Áo sơ mi nam,863,OK,0.09
+915,Thoi trang nu,5294,925,Áo vest - Áo khoác nam,770,OK,0.08
+915,Thoi trang nu,5294,27548,Đồ lót nam,588,OK,0.06
+915,Thoi trang nu,5294,27562,Quần dài nam,545,OK,0.06
+915,Thoi trang nu,5294,67329,Quần short nam,408,OK,0.04
+915,Thoi trang nu,5294,10382,Áo hoodie nam,136,OK,0.01
+915,Thoi trang nu,5294,67309,Bộ trang phục nam,134,OK,0.01
+915,Thoi trang nu,5294,4546,Áo nỉ - Áo len nam,112,OK,0.01
+915,Thoi trang nu,5294,16004,Đồ bơi - Đồ đi biển nam,83,OK,0.01
+915,Thoi trang nu,5294,27570,"Đồ ngủ, đồ mặc nhà nam",54,OK,0.01
+915,Thoi trang nu,5294,49532,Quần áo nam trung niên,5,OK,0.0
+915,Thoi trang nu,5294,49524,Quần áo nam kích cỡ lớn,1,OK,0.0
+15078,Suc khoe - Lam dep,3154,4399,Vệ sinh nhà bếp,1515,OK,0.16
+15078,Suc khoe - Lam dep,3154,4400,Vệ sinh nhà tắm,511,OK,0.05
+15078,Suc khoe - Lam dep,3154,4387,Giặt giũ & Chăm sóc quần áo,483,OK,0.05
+15078,Suc khoe - Lam dep,3154,4388,Giấy vệ sinh và giấy ăn,299,OK,0.03
+15078,Suc khoe - Lam dep,3154,4386,Vệ sinh nhà cửa,242,OK,0.02
+15078,Suc khoe - Lam dep,3154,4441,Diệt côn trùng,104,OK,0.01
+6000,Tui - Vi nam,2953,27608,Balo,1601,OK,0.16
+6000,Tui - Vi nam,2953,8387,Túi du lịch và phụ kiện,584,OK,0.06
+6000,Tui - Vi nam,2953,6526,"Vali, phụ kiện vali ",515,OK,0.05
+6000,Tui - Vi nam,2953,27612,"Balo, cặp, túi chống sốc laptop",202,OK,0.02
+6000,Tui - Vi nam,2953,68140,Phụ kiện du lịch,51,OK,0.01
+4221,Dien tu - Dien lanh,2357,3868,Tủ đông - Tủ mát,366,OK,0.04
+4221,Dien tu - Dien lanh,2357,3865,Máy lạnh - Máy điều hòa,309,OK,0.03
+4221,Dien tu - Dien lanh,2357,2328,Tủ lạnh,295,OK,0.03
+4221,Dien tu - Dien lanh,2357,26568,Âm thanh & Phụ kiện Tivi,287,OK,0.03
+4221,Dien tu - Dien lanh,2357,3862,Máy giặt,238,OK,0.02
+4221,Dien tu - Dien lanh,2357,8074,Phụ kiện điện lạnh,219,OK,0.02
+4221,Dien tu - Dien lanh,2357,3866,Máy nước nóng,214,OK,0.02
+4221,Dien tu - Dien lanh,2357,3864,Máy rửa chén,190,OK,0.02
+4221,Dien tu - Dien lanh,2357,5015,Tivi,161,OK,0.02
+4221,Dien tu - Dien lanh,2357,3863,Máy sấy quần áo,52,OK,0.01
+4221,Dien tu - Dien lanh,2357,3869,Tủ ướp rượu,26,OK,0.0

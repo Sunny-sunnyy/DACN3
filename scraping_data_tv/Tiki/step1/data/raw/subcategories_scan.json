@@ -15,7 +15,7 @@
       {
         "id": 8060,
         "name": "Thiết Bị Lưu Trữ",
-        "count": 327
+        "count": 328
       },
       {
         "id": 2663,
@@ -40,7 +40,7 @@
       {
         "id": 8215,
         "name": "Thiết Bị Âm Thanh và Phụ Kiện",
-        "count": 2508
+        "count": 2509
       },
       {
         "id": 2667,
@@ -50,17 +50,17 @@
       {
         "id": 8039,
         "name": "Thiết Bị Đeo Thông Minh và Phụ Kiện",
-        "count": 1038
+        "count": 1037
       },
       {
         "id": 28432,
         "name": "Thiết Bị Thông Minh và Linh Kiện Điện Tử",
-        "count": 774
+        "count": 775
       },
       {
         "id": 8214,
         "name": "Phụ Kiện Điện Thoại và Máy Tính Bảng",
-        "count": 79004
+        "count": 79006
       },
       {
         "id": 28670,
@@ -85,7 +85,7 @@
       {
         "id": 26568,
         "name": "Âm thanh & Phụ kiện Tivi",
-        "count": 286
+        "count": 287
       },
       {
         "id": 3863,
@@ -135,12 +135,12 @@
       {
         "id": 1884,
         "name": "Đồ dùng nhà bếp",
-        "count": 7220
+        "count": 7219
       },
       {
         "id": 1946,
         "name": "Thiết bị gia đình",
-        "count": 4772
+        "count": 4775
       }
     ]
   },
@@ -170,7 +170,7 @@
       {
         "id": 24832,
         "name": "Phụ kiện - Chăm sóc xe",
-        "count": 10120
+        "count": 10124
       },
       {
         "id": 17208,
@@ -185,12 +185,12 @@
       {
         "id": 1951,
         "name": "Dụng cụ nhà bếp",
-        "count": 14486
+        "count": 14478
       },
       {
         "id": 1954,
         "name": "Đồ dùng phòng ăn",
-        "count": 8185
+        "count": 8189
       },
       {
         "id": 2150,
@@ -205,7 +205,7 @@
       {
         "id": 1973,
         "name": "Trang trí nhà cửa",
-        "count": 9908
+        "count": 9909
       },
       {
         "id": 2015,
@@ -215,17 +215,17 @@
       {
         "id": 2223,
         "name": "Ngoài trời & sân vườn",
-        "count": 5967
+        "count": 5971
       },
       {
         "id": 1966,
         "name": "Đồ dùng và thiết bị nhà tắm",
-        "count": 6750
+        "count": 6748
       },
       {
         "id": 1974,
         "name": "Sửa chữa nhà cửa",
-        "count": 19486
+        "count": 19490
       },
       {
         "id": 10068,
@@ -235,7 +235,7 @@
       {
         "id": 23054,
         "name": "Đồ thờ cúng",
-        "count": 1230
+        "count": 1232
       },
       {
         "id": 53050,
@@ -250,7 +250,7 @@
       {
         "id": 4421,
         "name": "Đồ Ăn Vặt",
-        "count": 1691
+        "count": 1692
       },
       {
         "id": 15074,
@@ -265,12 +265,12 @@
       {
         "id": 4422,
         "name": "Gia Vị và Chế Biến",
-        "count": 1554
+        "count": 1551
       },
       {
         "id": 5451,
         "name": "Chăm sóc thú cưng",
-        "count": 2796
+        "count": 2794
       },
       {
         "id": 11347,
@@ -285,7 +285,7 @@
       {
         "id": 53562,
         "name": "Sữa và các Sản phẩm từ sữa",
-        "count": 510
+        "count": 505
       },
       {
         "id": 53582,
@@ -320,7 +320,7 @@
       {
         "id": 4400,
         "name": "Vệ sinh nhà tắm",
-        "count": 509
+        "count": 511
       },
       {
         "id": 4388,
@@ -330,7 +330,7 @@
       {
         "id": 4387,
         "name": "Giặt giũ & Chăm sóc quần áo",
-        "count": 481
+        "count": 483
       },
       {
         "id": 4441,
@@ -345,22 +345,22 @@
       {
         "id": 320,
         "name": "English Books",
-        "count": 17200
+        "count": 17231
       },
       {
         "id": 316,
         "name": "Sách tiếng Việt",
-        "count": 241499
+        "count": 241718
       },
       {
         "id": 7741,
         "name": "Văn phòng phẩm",
-        "count": 13740
+        "count": 13746
       },
       {
         "id": 18328,
         "name": "Quà lưu niệm",
-        "count": 3319
+        "count": 3320
       }
     ]
   },
@@ -390,7 +390,7 @@
       {
         "id": 936,
         "name": "Áo vest - Áo khoác nữ",
-        "count": 881
+        "count": 880
       },
       {
         "id": 1702,
@@ -415,7 +415,7 @@
       {
         "id": 4554,
         "name": "Đồ lót nữ",
-        "count": 3308
+        "count": 3309
       },
       {
         "id": 1508,
@@ -460,7 +460,7 @@
       {
         "id": 918,
         "name": "Áo sơ mi nam",
-        "count": 859
+        "count": 863
       },
       {
         "id": 925,
@@ -480,7 +480,7 @@
       {
         "id": 27562,
         "name": "Quần dài nam",
-        "count": 544
+        "count": 545
       },
       {
         "id": 27570,
@@ -525,7 +525,7 @@
       {
         "id": 27608,
         "name": "Balo",
-        "count": 1602
+        "count": 1601
       },
       {
         "id": 27612,
@@ -555,7 +555,7 @@
       {
         "id": 1582,
         "name": "Chăm sóc da mặt",
-        "count": 4318
+        "count": 4323
       },
       {
         "id": 1584,
@@ -570,7 +570,7 @@
       {
         "id": 1592,
         "name": "Chăm sóc cơ thể",
-        "count": 1030
+        "count": 1029
       },
       {
         "id": 5873,
@@ -590,17 +590,17 @@
       {
         "id": 2306,
         "name": "Dụng cụ làm đẹp",
-        "count": 2670
+        "count": 2669
       },
       {
         "id": 2307,
         "name": "Máy Massage & Thiết bị chăm sóc sức khỏe",
-        "count": 3463
+        "count": 3465
       },
       {
         "id": 2322,
         "name": "Thực phẩm chức năng",
-        "count": 2965
+        "count": 2969
       },
       {
         "id": 8142,
@@ -610,7 +610,7 @@
       {
         "id": 1625,
         "name": "Chăm sóc răng miệng",
-        "count": 581
+        "count": 582
       }
     ]
   },
@@ -625,12 +625,12 @@
       {
         "id": 8339,
         "name": "Dinh dưỡng cho bé",
-        "count": 774
+        "count": 772
       },
       {
         "id": 6568,
         "name": "Thực phẩm ăn dặm",
-        "count": 4
+        "count": 6
       },
       {
         "id": 10416,
@@ -640,7 +640,7 @@
       {
         "id": 10418,
         "name": "Dinh dưỡng cho người lớn",
-        "count": 147
+        "count": 140
       },
       {
         "id": 11601,
@@ -650,7 +650,7 @@
       {
         "id": 5250,
         "name": "Đồ chơi",
-        "count": 6492
+        "count": 6490
       },
       {
         "id": 5164,
@@ -660,7 +660,7 @@
       {
         "id": 2640,
         "name": "Chăm sóc mẹ mang thai, sau sinh",
-        "count": 329
+        "count": 326
       }
     ]
   },
