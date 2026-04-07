@@ -173,8 +173,53 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Step 5: Scale full | - | ~36 gio | CHUA LAM |
 | Step 6: Merge | 1 gio | 30 phut | CHUA LAM |
 
-**Toc do thuc te:** ~1.3s/san pham (do tu test 103 SP Smartphone)
-**Uoc tinh 100K SP:** ~36 gio chay lien tuc
+---
+
+## Cau hinh may test (WSL2)
+
+| Thanh phan | Thong so |
+|------------|----------|
+| CPU | Intel i5-11400H @ 2.70GHz, 12 cores |
+| RAM | 7.6 GB (5.6 GB available) |
+| Disk | 1 TB SSD (909 GB free) |
+| OS | WSL2 — Linux 6.6.87.2-microsoft-standard-WSL2 |
+| Python | 3.12.3 (uv) |
+| Tiki API latency | ~240ms/request |
+
+## Benchmark thuc te
+
+**Test: Dien thoai Smartphone (1795) — 103 san pham, full category:**
+
+```
+16:53:05 Step 1: Fetching listing... (3 pages, 103 items)
+16:53:08 Step 2: After price filter: 103 items (removed 0)
+16:53:08 Step 3: Fetching details...
+16:54:11   Progress: 50/103 done, 50 saved | 0.8 SP/s | ETA: 1m 6s
+16:55:14   Progress: 100/103 done, 100 saved | 0.8 SP/s | ETA: 0m 3s
+16:55:19 Done: 103 products | Time: 0h 2m 10s (0.8 SP/s)
+```
+
+| Metric | Gia tri |
+|--------|---------|
+| Tong san pham | 103/103 (100%) |
+| Thoi gian | 2 phut 10 giay |
+| Toc do | 0.8 SP/giay (~1.25s/SP) |
+| Bi block | Khong |
+| Features avg | 3,379 chars |
+| Price range | 210,000 - 40,990,000 VND |
+| Brands | 9 (Xiaomi 39, Samsung 31, OPPO 13, Apple 7, ...) |
+
+**Uoc tinh scale:**
+
+| Muc tieu | Thoi gian (0.8 SP/s) |
+|----------|---------------------|
+| 1,000 SP | ~21 phut |
+| 10,000 SP | ~3.5 gio |
+| 60,000 SP | ~21 gio |
+| 100,000 SP | ~35 gio |
+
+Luu y: Toc do co the thay doi tuy vao mang, thoi diem trong ngay, va Tiki rate limit.
+Tren may thue (VPS gan server Tiki, mang tot hon) co the nhanh hon 20-30%.
 
 ---
 
