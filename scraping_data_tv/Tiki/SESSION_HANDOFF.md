@@ -26,9 +26,10 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Test sub 1951: **14,346 unique items** (99% coverage, vs baseline 2,000)
   - Bug phat hien va fix: API bao total=2000 (bi cap) nen detection dung `<` thay `<=`; pagination dung som do short page — fix bang cach check `len >= total`
 - [x] Cap nhat docs: HUONG_DAN_VUOT_CAP_2000.md, plan_scraping_tiki.md, HUONG_DAN_CAO_DU_LIEU.md
+- [x] Toi uu scraper: thread-local session reuse + skip JSON retry (tang ~17% toc do)
 
 ### Chua lam:
-- [ ] Step 5: Scale — cao 100K+ SP tren may thue (VPS)
+- [ ] Step 5: Scale — cao 100K+ SP tren may thue (VPS) — DANG CHAY (may RTX 5060 Ti, i7-12700K, 5 workers)
 - [ ] Step 6: Merge Kaggle 41K (thoi trang) + Tiki scraper (dien tu, gia dung)
 - [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training, GD3: scraping realtime, GD4: chatbot)
 

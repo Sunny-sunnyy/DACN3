@@ -14,14 +14,15 @@
 
 ### 1.1. Cai Python 3.12+
 
-Tai va cai tu: https://www.python.org/downloads/
-
-Khi cai, **TICK** vao "Add Python to PATH".
+Tai va cai tu: https://www.python.org/downloads/release/python-31313/
 
 Kiem tra:
 ```cmd
 python --version
 ```
+
+Cài git: https://git-scm.com/install/windows
+cài vscode: https://code.visualstudio.com/download
 
 ### 1.2. Cai uv (package manager)
 
@@ -156,10 +157,17 @@ scraping_data_tv/Tiki/Docs/                    # Docs, khong can
 Mo PowerShell tren may thue:
 ```powershell
 cd DACN3\tech2ai
+
+# Zip du lieu JSONL
 Compress-Archive -Path "scraping_data_tv\Tiki\Tiki_dataset_scrape" -DestinationPath "Tiki_dataset_scrape.zip"
+
+# Zip checkpoints (can thiet de resume buoi sau)
+Compress-Archive -Path "scraping_data_tv\Tiki\checkpoints" -DestinationPath "Tiki_checkpoints.zip"
 ```
 
-Sau do tai file `Tiki_dataset_scrape.zip` ve may ca nhan (qua Remote Desktop, Google Drive, hoac scp).
+Sau do tai 2 file zip ve may ca nhan (qua Remote Desktop, Google Drive, hoac scp):
+- `Tiki_dataset_scrape.zip` — du lieu san pham
+- `Tiki_checkpoints.zip` — tien do (de resume neu can cao tiep)
 
 **Cach 2: Push len GitHub**
 

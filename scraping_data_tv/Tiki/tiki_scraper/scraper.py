@@ -64,6 +64,9 @@ CHECKPOINT_DIR = BASE_DIR / "checkpoints"
 # Thread-safe lock for file writing and checkpoint
 _write_lock = threading.Lock()
 
+# Thread-local storage for session reuse (1 session per worker thread)
+_thread_local = threading.local()
+
 
 def _new_session() -> curl_requests.Session:
     session = curl_requests.Session(impersonate="chrome")
@@ -207,33 +210,52 @@ def fetch_all_product_ids(
 
 # --- Detail API ---
 
-def fetch_product_detail(product_id: int) -> dict | None:
-    """Fetch full product detail. Each call creates its own session (thread-safe)."""
-    url = f"https://tiki.vn/api/v2/products/{product_id}"
-    session = _new_session()
+def _get_thread_session() -> curl_requests.Session:
+    """Get or create a session for the current worker thread (reused across requests)."""
+    if not hasattr(_thread_local, "session"):
+        _thread_local.session = _new_session()
+        _thread_local.request_count = 0
+    _thread_local.request_count += 1
+    # Rotate session periodically to avoid stale connections
+    from .config import SESSION_ROTATE_EVERY
+    if _thread_local.request_count % SESSION_ROTATE_EVERY == 0:
+        _thread_local.session.close()
+        _thread_local.session = _new_session()
+    return _thread_local.session
 
-    try:
-        for attempt in range(MAX_RETRIES):
-            try:
-                resp = session.get(url, timeout=15)
-                if resp.status_code == 200:
-                    return resp.json()
-                if resp.status_code in (403, 429):
-                    logger.warning(
-                        "Detail %d: status %d, waiting %ds...",
-                        product_id, resp.status_code, BLOCK_WAIT_SECONDS,
-                    )
-                    time.sleep(BLOCK_WAIT_SECONDS)
-                    continue
-                if resp.status_code == 404:
-                    return None
-                logger.warning("Detail %d: status %d", product_id, resp.status_code)
+
+def fetch_product_detail(product_id: int) -> dict | None:
+    """Fetch full product detail. Uses thread-local session (reused per worker)."""
+    url = f"https://tiki.vn/api/v2/products/{product_id}"
+    session = _get_thread_session()
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = session.get(url, timeout=15)
+            if resp.status_code == 200:
+                return resp.json()
+            if resp.status_code in (403, 429):
+                logger.warning(
+                    "Detail %d: status %d, waiting %ds...",
+                    product_id, resp.status_code, BLOCK_WAIT_SECONDS,
+                )
+                time.sleep(BLOCK_WAIT_SECONDS)
+                # Rotate session after rate limit
+                _thread_local.session.close()
+                _thread_local.session = _new_session()
+                session = _thread_local.session
+                continue
+            if resp.status_code == 404:
                 return None
-            except Exception as e:
-                logger.warning("Detail %d attempt %d: %s", product_id, attempt + 1, e)
-                time.sleep(5)
-    finally:
-        session.close()
+            logger.warning("Detail %d: status %d", product_id, resp.status_code)
+            return None
+        except json.JSONDecodeError:
+            # Response is not JSON (HTML redirect, deleted product) — skip, no retry
+            logger.warning("Detail %d: non-JSON response (skipped)", product_id)
+            return None
+        except Exception as e:
+            logger.warning("Detail %d attempt %d: %s", product_id, attempt + 1, e)
+            time.sleep(2)
 
     return None
 

@@ -300,6 +300,21 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | 1 | 0.8 SP/s | 2m 10s | 1x |
 | 3 | 2.7 SP/s | 38s | 3.4x |
 
+**Toi uu hoa (2026-04-08): Thread-local session + skip JSON retry**
+
+2 thay doi trong `scraper.py`:
+1. **Thread-local session reuse** — moi worker tai su dung 1 session thay vi tao moi moi request (tiet kiem TLS handshake)
+2. **Skip retry cho loi JSON parse** — SP bi xoa/redirect tra ve HTML thay JSON, retry khong giup gi → bo qua ngay (tiet kiem ~15s/SP loi)
+
+Benchmark (Tivi, 49 SP, workers=3):
+
+| Phien ban | Toc do | Thoi gian |
+|-----------|--------|-----------|
+| Truoc toi uu | 2.9 SP/s | 16s |
+| Sau toi uu | 3.4 SP/s | 14s |
+
+Tang ~17% tren data sach. Tren data thuc (6% SP loi), cai thien lon hon do tiet kiem retry.
+
 **Benchmark resume (da test thuc te):**
 
 ```
