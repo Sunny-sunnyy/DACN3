@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-07, 22:30)
+## Trang thai hien tai (2026-04-08, 16:15)
 
-**Trang thai:** Step 4d HOAN THANH. San sang Step 5 (scale tren may thue).
+**Trang thai:** Step 5 DANG CHAY tren may thue (RTX 5060 Ti, i7-12700K, 7 workers).
 **Branch:** `feature/tiki-scraper`
 
 ### Da hoan thanh:
@@ -27,6 +27,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Bug phat hien va fix: API bao total=2000 (bi cap) nen detection dung `<` thay `<=`; pagination dung som do short page — fix bang cach check `len >= total`
 - [x] Cap nhat docs: HUONG_DAN_VUOT_CAP_2000.md, plan_scraping_tiki.md, HUONG_DAN_CAO_DU_LIEU.md
 - [x] Toi uu scraper: thread-local session reuse + skip JSON retry (tang ~17% toc do)
+- [x] Toi uu scraper: max_redirects=3 + skip redirect loop ngay (khong retry)
+- [x] Them skip category da hoan thanh khi resume (flag "complete" trong checkpoint)
 
 ### Chua lam:
 - [ ] Step 5: Scale — cao 100K+ SP tren may thue (VPS) — DANG CHAY (may RTX 5060 Ti, i7-12700K, 5 workers)
@@ -42,6 +44,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - Tiki API bao `paging.total = 2000` khi bi cap (khong bao so thuc). Detection phai dung `total >= 2000` (khong phai `> 2000`)
 - API doi khi tra ve page ngan hon `limit` (VD: 39/40 items) nhung chua het data. Pagination check bang `len(all_items) >= total` thay vi `len(items) < limit`
 - `--max N` cat items tu dau danh sach (khoang gia thap). Khi test voi --max, items co the bi filter bo do gia <50K. Chay khong co --max thi khong bi
+- Checkpoint chi luu Step 3 (Detail), KHONG luu Step 1 (Listing). Khi resume category chua complete, Step 1 se chay lai
+- Category da complete (flag trong checkpoint) se skip toan bo khi resume — ke ca Step 1
 
 ---
 

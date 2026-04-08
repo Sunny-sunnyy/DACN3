@@ -106,9 +106,13 @@ scraping_data_tv/Tiki/
 
 **Tinh nang:**
 - Checkpoint moi 100 san pham, resume khi bi ngat
+- Flag "complete" trong checkpoint — skip toan bo category da hoan thanh khi resume (ke ca listing)
+- Thread-local session reuse per worker (tiet kiem TLS handshake)
 - Session rotation moi 500 requests
-- Batch sleep 3s moi 50 requests
-- Retry 3 lan khi loi, doi 5 phut khi bi 429/403
+- Batch sleep 2s moi 100 requests
+- max_redirects=3 — fail nhanh cho SP bi redirect loop
+- Skip ngay (khong retry) cho loi JSON parse va redirect loop
+- Retry 3 lan cho loi mang, doi 5 phut khi bi 429/403
 - Category breadcrumb: lay toi da 3 cap, bo ten san pham
 - Output: JSONL, moi category 1 file (`Tiki_dataset_scrape/tiki_{id}.jsonl`)
 

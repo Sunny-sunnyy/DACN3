@@ -252,6 +252,7 @@ git push
 - **Ctrl+C an toan** — scraper save checkpoint moi 100 SP, mat toi da ~100 SP gan nhat
 - **Khong can sua gi** — cung 1 lenh `--all --workers 3`, scraper tu biet bo qua SP da cao
 - **2 files can push**: `Tiki_dataset_scrape/` (data) + `checkpoints/` (tien do)
+- **Checkpoint chi luu Step 3 (Detail), KHONG luu Step 1 (Listing).** Khi chay lai, Step 1 (lay danh sach IDs) se chay lai tu dau — mat ~10 phut cho categories OVER_CAP. Step 3 moi resume tu checkpoint (bo qua SP da cao). Khong mat data, chi mat thoi gian listing lai.
 
 ---
 
@@ -300,6 +301,11 @@ Chay lai cung lenh — tu dong resume tu checkpoint:
 uv run scraping_data_tv/Tiki/run_scraper.py --all --workers 3
 ```
 
+Category da hoan thanh se skip ngay (khong chay lai listing):
+```
+=== [8129] Linh Kien May Tinh — already complete (9568 products), skipping ===
+```
+
 ### Bi Tiki block (403/429)
 Scraper tu dong doi 5 phut roi retry. Neu block lien tuc:
 - Giam workers: `--workers 1`
@@ -313,8 +319,15 @@ Scraper tu dong retry 3 lan. Neu van loi: kiem tra mang, chay lai.
 :: Dem tong SP da cao
 uv run python -c "from pathlib import Path; files=list(Path('scraping_data_tv/Tiki/Tiki_dataset_scrape').glob('*.jsonl')); total=sum(sum(1 for _ in open(f,encoding='utf-8')) for f in files); print(f'Tong: {total:,} SP tu {len(files)} files')"
 
-:: Xem checkpoint 1 category
-uv run python -c "import json; d=json.load(open('scraping_data_tv/Tiki/checkpoints/cat_1795_progress.json')); print(f'Da cao: {len(d[\"done_ids\"])} SP')"
+:: Xem trang thai tat ca categories (DONE / dang cao)
+uv run python -c "
+import json
+from pathlib import Path
+for f in sorted(Path('scraping_data_tv/Tiki/checkpoints').glob('*.json')):
+    d = json.loads(f.read_text())
+    status = 'DONE' if d.get('complete') else f'{len(d[\"done_ids\"])} SP (dang cao)'
+    print(f'{f.stem}: {status}')
+"
 ```
 
 ---
