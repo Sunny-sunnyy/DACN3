@@ -231,7 +231,7 @@ def fetch_product_detail(product_id: int) -> dict | None:
 
     for attempt in range(MAX_RETRIES):
         try:
-            resp = session.get(url, timeout=15)
+            resp = session.get(url, timeout=15, max_redirects=3)
             if resp.status_code == 200:
                 return resp.json()
             if resp.status_code in (403, 429):
@@ -253,6 +253,13 @@ def fetch_product_detail(product_id: int) -> dict | None:
             # Response is not JSON (HTML redirect, deleted product) — skip, no retry
             logger.warning("Detail %d: non-JSON response (skipped)", product_id)
             return None
+        except curl_requests.errors.RequestsError as e:
+            if "redirect" in str(e).lower():
+                # Redirect loop (deleted/moved product) — skip, no retry
+                logger.warning("Detail %d: redirect loop (skipped)", product_id)
+                return None
+            logger.warning("Detail %d attempt %d: %s", product_id, attempt + 1, e)
+            time.sleep(2)
         except Exception as e:
             logger.warning("Detail %d attempt %d: %s", product_id, attempt + 1, e)
             time.sleep(2)
