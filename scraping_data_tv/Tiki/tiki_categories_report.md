@@ -2,16 +2,16 @@
 
 **Cap nhat:** 2026-04-08, 20:00
 **Tong categories:** 49
-**Da hoan thanh:** 30/49
-**Tong SP da cao:** ~26,589
-**Con lai:** 20 categories (~214K uoc tinh, thuc te ~40-60K do nhieu SP bi xoa)
+**Da hoan thanh:** 32/49
+**Tong SP da cao:** ~29,682
+**Con lai:** 18 categories (~207K uoc tinh, thuc te ~40-60K do nhieu SP bi xoa)
 **Ty le SP thuc te:** ~20-80% tuy category (cong nghe thap, bach hoa/dien lanh cao)
 
 ---
 
 ## Trang thai cac categories
 
-### DONE — 30 categories (~26,589 SP)
+### DONE — 32 categories (~29,682 SP)
 
 | ID | Category | Uoc tinh | Da cao | Trang thai |
 |------:|---|-------:|-------:|:---:|
@@ -45,14 +45,16 @@
 | 5451 | Cham soc thu cung | 2,796 | 891 | DONE |
 | 27550 | Phu kien thoi trang nam | 2,911 | 1,720 | DONE |
 | 11601 | Do dung cho be | 2,832 | 1,169 | DONE |
+| 12884 | Thiet Bi Van Phong - Ngoai Vi | 3,542 | 1,947 | DONE |
+| 8370 | Mat kinh | 3,749 | 1,146 | DONE |
 
 ---
 
-### TODO — 20 categories (~214K uoc tinh, thuc te ~40-60K)
+### TODO — 18 categories (~207K uoc tinh, thuc te ~40-60K)
 
 | ID | Category | Uoc tinh | Trang thai | Ghi chu |
 |------:|---|-------:|:---:|---|
-| 2150 | Noi that | 19,569 | TODO | May thue |
+| 2150 | Noi that | 19,569 | Done | May thue |
 | 1974 | Sua chua nha cua | 19,486 | TODO | May thue |
 | 1951 | Dung cu nha bep | 14,486 | TODO | May thue |
 | 7741 | Van phong pham | 13,740 | TODO | May thue |
@@ -68,8 +70,6 @@
 | 28670 | Phu kien may tinh va Laptop | 4,960 | TODO | May ca nhan |
 | 1946 | Thiet bi gia dinh | 4,772 | TODO | May ca nhan |
 | 1582 | Cham soc da mat | 4,318 | TODO | May ca nhan |
-| 8370 | Mat kinh | 3,749 | TODO | May ca nhan |
-| 12884 | Thiet Bi Van Phong - Ngoai Vi | 3,542 | TODO | May ca nhan |
 
 ---
 
@@ -95,4 +95,4 @@ for f in sorted(Path('scraping_data_tv/Tiki/checkpoints').glob('*.json')):
 
 ---
 
-*Cap nhat: 2026-04-08 20:40 — 30/49 complete, ~26,589 SP. May thue + may ca nhan chay song song.*
+*Cap nhat: 2026-04-08 21:15 — 32/49 complete, ~29,682 SP.*
