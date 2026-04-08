@@ -430,18 +430,19 @@ def _checkpoint_path(category_id: int) -> Path:
     return CHECKPOINT_DIR / f"cat_{category_id}_progress.json"
 
 
-def load_checkpoint(category_id: int) -> set[int]:
+def load_checkpoint(category_id: int) -> tuple[set[int], bool]:
+    """Load checkpoint. Returns (done_ids, is_complete)."""
     cp = _checkpoint_path(category_id)
     if cp.exists():
         data = json.loads(cp.read_text())
-        return set(data.get("done_ids", []))
-    return set()
+        return set(data.get("done_ids", [])), data.get("complete", False)
+    return set(), False
 
 
-def save_checkpoint(category_id: int, done_ids: set[int]):
+def save_checkpoint(category_id: int, done_ids: set[int], complete: bool = False):
     CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
     cp = _checkpoint_path(category_id)
-    cp.write_text(json.dumps({"done_ids": list(done_ids)}))
+    cp.write_text(json.dumps({"done_ids": list(done_ids), "complete": complete}))
 
 
 # --- Main scrape ---
@@ -457,6 +458,12 @@ def scrape_category(
     out_dir = output_dir or DATA_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"tiki_{category_id}.jsonl"
+
+    # Check if category already complete — skip entirely (no listing needed)
+    done_ids, is_complete = load_checkpoint(category_id)
+    if is_complete:
+        logger.info("=== [%d] %s — already complete (%d products), skipping ===", category_id, category_name, len(done_ids))
+        return []
 
     logger.info("=== Scraping [%d] %s (workers=%d) ===", category_id, category_name, workers)
 
@@ -475,8 +482,7 @@ def scrape_category(
     ]
     logger.info("Step 2: After price filter: %d items (removed %d)", len(filtered), len(raw_items) - len(filtered))
 
-    # Load checkpoint
-    done_ids = load_checkpoint(category_id)
+    # Load checkpoint (already loaded above but re-check for done_ids)
     if done_ids:
         logger.info("  Resuming: %d already done", len(done_ids))
 
@@ -485,6 +491,7 @@ def scrape_category(
 
     if not to_scrape:
         logger.info("  Nothing to scrape, skipping.")
+        save_checkpoint(category_id, done_ids, complete=True)
         return []
 
     # Step 3: Detail API — concurrent
@@ -540,8 +547,8 @@ def scrape_category(
                     speed, eta_hour, eta_min, eta_sec,
                 )
 
-    # Final checkpoint
-    save_checkpoint(category_id, done_ids)
+    # Final checkpoint — mark complete
+    save_checkpoint(category_id, done_ids, complete=True)
 
     total_time = time.time() - detail_start
     t_min, t_sec = divmod(int(total_time), 60)
