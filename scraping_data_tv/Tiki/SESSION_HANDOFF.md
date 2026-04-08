@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-08, 16:15)
+## Trang thai hien tai (2026-04-08, 20:00)
 
-**Trang thai:** Step 5 DANG CHAY tren may thue (RTX 5060 Ti, i7-12700K, 7 workers).
+**Trang thai:** Step 5 DANG CHAY — 28/49 categories complete, 23,700 SP.
 **Branch:** `feature/tiki-scraper`
 
 ### Da hoan thanh:
@@ -31,14 +31,21 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] Them skip category da hoan thanh khi resume (flag "complete" trong checkpoint)
 
 ### Chua lam:
-- [ ] Step 5: Scale — cao 100K+ SP tren may thue (VPS) — DANG CHAY (may RTX 5060 Ti, i7-12700K, 5 workers)
+- [ ] Step 5: Scale — cao 100K+ SP (28/49 done, 23,700 SP). Con 21 categories lon (~220K uoc tinh, thuc te ~60-80K do SP bi xoa)
+  - May thue: chay cac category >5K SP (8214 da xong)
+  - May ca nhan: chay cac category 2-5K SP
+  - Xem chi tiet: `tiki_categories_report.md`
 - [ ] Step 6: Merge Kaggle 41K (thoi trang) + Tiki scraper (dien tu, gia dung)
-- [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training, GD3: scraping realtime, GD4: chatbot)
+- [ ] Tien xu ly du lieu: loc features <600 chars, dedup, weighted sampling, LLM summary
+- [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training Qwen 3.5 4B, GD3: scraping realtime, GD4: chatbot)
 
 ### Quyet dinh da dua ra:
 - Se thue may de cao du lieu (khong chay tren WSL2)
 - Muc tieu dau tien: 100K SP de test, sau do scale len
 - OVER_CAP: chon Adaptive Price-Range Slicing + Sort Rotation Fallback (industry-standard, Apify khuyen dung)
+- Khong cao san khac (Shopee anti-bot, TGDD/Lazada ton thoi gian). Neu thieu data → them category Tiki
+- Fine-tune: Qwen 3.5 4B thay vi Llama (tot hon cho tieng Viet)
+- Du lieu can: 100-150K SP la du cho training (Tiki ~80-100K + Kaggle 41K)
 
 ### Luu y ky thuat:
 - Tiki API bao `paging.total = 2000` khi bi cap (khong bao so thuc). Detection phai dung `total >= 2000` (khong phai `> 2000`)
@@ -85,7 +92,7 @@ Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hãy hỏi tôi 
 | `scraping_data_tv/Tiki/tiki_categories_report.md` | Bang danh muc (Markdown) |
 | `scraping_data_tv/Tiki/run_scraper.py` | CLI: `--test`, `--all`, `--category`, `--workers`, `--max` |
 | `scraping_data_tv/Tiki/tiki_scraper/scraper.py` | Pipeline chinh: listing -> filter -> detail -> JSONL |
-| `scraping_data_tv/Tiki/tiki_scraper/config.py` | 47 categories, rate limits, delays |
+| `scraping_data_tv/Tiki/tiki_scraper/config.py` | 49 categories, rate limits, delays |
 | `scraping_data_tv/Tiki/step1/step1_notes.md` | Ket qua test API + benchmark |
 | `scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py` | Script test 3 phuong an vuot OVER_CAP |
 | `segment4/mo_ta_du_an/Project_Development_Plan.md` | Ke hoach tong the 5 giai doan (8 thang) |
@@ -123,4 +130,4 @@ uv run scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py
 
 ---
 
-*Cap nhat: 2026-04-07 22:30 — Step 4d hoan thanh. Adaptive Slicing test OK (14,346 SP, 99% coverage). San sang Step 5.*
+*Cap nhat: 2026-04-08 20:00 — Step 5 dang chay. 28/49 categories complete, 23,700 SP. May thue chay categories lon, may ca nhan chay categories nho.*

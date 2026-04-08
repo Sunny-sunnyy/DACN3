@@ -88,7 +88,7 @@ Scraper se:
 ```cmd
 # Cao 1 category cu the
 uv run scraping_data_tv/Tiki/run_scraper.py --category 1795
-
+uv run scraping_data_tv/Tiki/run_scraper.py --category 8039 --workers 3
 # Gioi han so SP moi category (nhanh hon, it data hon)
 uv run scraping_data_tv/Tiki/run_scraper.py --all --max 500
 
@@ -271,8 +271,8 @@ Category total: 14,478 (OVER_CAP 2000) — using Price-Range Slicing
   Slicing done: 13,935 unique items (coverage: 96%)
 ```
 
-- 27/47 categories se dung Price-Range Slicing tu dong
-- 20/47 categories <2000 SP → lay binh thuong (khong doi)
+- 27/49 categories se dung Price-Range Slicing tu dong
+- 22/49 categories <2000 SP → lay binh thuong (khong doi)
 - **Khong can thao tac gi them** — scraper tu xu ly
 
 ---
@@ -281,15 +281,16 @@ Category total: 14,478 (OVER_CAP 2000) — using Price-Range Slicing
 
 | May thue | Workers | Toc do | Thoi gian 100K | Chi phi |
 |----------|---------|--------|----------------|---------|
-| RTX 4060 Ti (5K/h) | 3 | ~3 SP/s | ~9 gio | ~45,000d |
+| RTX 5060 Ti (7K/h) | 7 | ~7.7 SP/s | ~3.5 gio | ~25,000d |
 | RTX 4060 Ti (5K/h) | 5 | ~4.5 SP/s | ~6 gio | ~30,000d |
-| RTX 3090 (8K/h) | 3 | ~4 SP/s | ~7 gio | ~56,000d |
-| RTX 3090 (8K/h) | 5 | ~6 SP/s | ~4.5 gio | ~36,000d |
+| WSL2 local (mien phi) | 3 | ~3.5 SP/s | ~8 gio | 0d |
 
-Luu y: Thoi gian listing tang ~2-4 gio do Price-Range Slicing (nhieu query hon).
-Detail van la bottleneck chinh (~80% tong thoi gian).
-
-Chia thanh 2-3 buoi (sang/chieu): tong chi phi tuong duong, chi khac la resume giua cac buoi.
+Luu y:
+- Thoi gian listing tang ~2-4 gio do Price-Range Slicing (nhieu query hon)
+- Detail van la bottleneck chinh (~80% tong thoi gian)
+- **Nhieu SP bi xoa/redirect** (20-75% tuy category) → toc do thuc te nhanh hon du kien vi skip ngay
+- Chia thanh 2-3 buoi (sang/chieu): tong chi phi tuong duong, chi khac la resume giua cac buoi
+- **Co the chay song song** may thue (categories lon) + may ca nhan (categories nho)
 
 ---
 
@@ -337,11 +338,10 @@ for f in sorted(Path('scraping_data_tv/Tiki/checkpoints').glob('*.json')):
 | Lenh | Muc dich |
 |------|----------|
 | `uv run run_scraper.py --test` | Test nhanh (Tivi, 50 SP, 1 phut) |
-| `uv run run_scraper.py --all --workers 3` | Cao tat ca, 3 workers (~10 gio) |
-| `uv run run_scraper.py --all --workers 5` | Cao tat ca, 5 workers (~6 gio) |
-| `uv run run_scraper.py --all --max 500 --workers 3` | Gioi han 500 SP/cat (~3 gio) |
-| `uv run run_scraper.py --category 1795 --workers 3` | Cao 1 category |
-| `uv run run_scraper.py --category 1951 --workers 3` | Test OVER_CAP (Dung cu nha bep, 14K SP) |
+| `uv run run_scraper.py --all --workers 3` | Cao tat ca (may ca nhan), skip DONE |
+| `uv run run_scraper.py --all --workers 7` | Cao tat ca (may thue), skip DONE |
+| `uv run run_scraper.py --category 8214 --workers 7` | Cao 1 category lon (may thue) |
+| `uv run run_scraper.py --category 1795 --workers 3` | Cao 1 category (may ca nhan) |
 
 | Folder | Noi dung | Push len GitHub? |
 |--------|---------|-----------------|
@@ -352,4 +352,4 @@ for f in sorted(Path('scraping_data_tv/Tiki/checkpoints').glob('*.json')):
 
 ---
 
-*Tao ngay: 2026-04-07. Cap nhat: Adaptive Price-Range Slicing, concurrent workers, resume guide.*
+*Tao ngay: 2026-04-07. Cap nhat: 2026-04-08 — Thread-local session, skip redirect/JSON, complete flag, max_redirects=3, zip checkpoints, song song may thue + may ca nhan.*

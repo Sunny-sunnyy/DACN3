@@ -203,27 +203,37 @@ Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md`
 
 ---
 
-### Step 5: Scale — cao 100K+ san pham (CHUA LAM)
+### Step 5: Scale — cao 100K+ san pham (DANG CHAY)
 
-**Dieu kien tien quyet:** Step 4d hoan thanh (Adaptive Price-Range Slicing).
+**Trang thai (2026-04-08):** 28/49 categories complete, 23,700 SP.
 
-**Ke hoach:**
-- Thue may de cao tren (IP Viet Nam, latency thap)
-- Chay cho tat ca categories (slicing tu dong cho 27 sub OVER_CAP)
-- Muc tieu: 100K SP de test, sau do scale len
-- Uoc tinh: ~10-15K listing requests (do Price Slicing) + ~100K detail requests
-- Thoi gian: ~8-12 gio voi 5 workers (detail la bottleneck chinh)
-- Checkpoint moi 100 san pham -> resume duoc neu bi ngat
+**May thue (RTX 5060 Ti, i7-12700K, 28GB RAM, 1Gbps VN):**
+- 7 workers, ~7.7 SP/s (nhanh do nhieu SP bi skip)
+- Da chay xong: 8214 (Phu Kien Dien Thoai, 79K uoc tinh → ~5K thuc te do nhieu SP bi xoa)
+- Con lai: 13 categories >5K SP
+
+**May ca nhan (WSL2, i5-11400H, 7.6GB RAM):**
+- 3 workers, ~3.5 SP/s
+- Da chay xong: 22 categories <2K SP + 6 categories 2-3K SP
+- Con lai: 8 categories 2-5K SP
+
+**Phat hien thuc te:**
+- Tiki API bao total cao (VD: 79K cho 8214) nhung thuc te chi ~20-30% SP con ton tai
+- Nhieu SP bi xoa/redirect → scraper skip ngay (non-JSON, redirect loop)
+- Uoc tinh tong data thuc te sau khi cao het: ~60-80K SP (khong phai 281K nhu API bao)
 
 ---
 
-### Step 6: Merge voi Kaggle dataset
+### Step 6: Merge voi Kaggle dataset + Tien xu ly
 
 - Load 41.6K tu Kaggle (thoi trang)
-- Load ~60K tu Tiki scraper (dien tu, gia dung)
+- Load ~60-80K tu Tiki scraper (dien tu, gia dung, bach hoa, suc khoe...)
 - Chuan hoa fields: title, brand, price, features, url (Kaggle khong co url -> de trong)
 - Dedup theo title
-- Tong: ~100K san pham da dang categories
+- Loc features < 600 chars (theo chuan tieng Anh)
+- Weighted sampling: price² + penalty category lon (VD: Phu Kien Dien Thoai)
+- Tao LLM summary bang Qwen (tuong tu tieng Anh dung GPT)
+- Tong muc tieu: 100-150K san pham da dang categories
 
 ---
 
@@ -236,8 +246,10 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 3. **Random delays**: 1-2s listing, 0.3-0.8s detail (per worker)
 4. **Batch sleep**: sleep 2s moi 100 requests (toan bo workers)
 5. **Checkpoint + resume**: save progress moi 100 SP, resume khi bi ngat
-6. **Session rieng moi worker**: moi thread co curl_cffi session doc lap
-7. **Neu bi 429/403**: doi 5 phut, retry voi session moi
+6. **Thread-local session reuse**: moi worker tai su dung 1 session, rotate moi 500 requests
+7. **Neu bi 429/403**: doi 5 phut, rotate session moi, retry
+8. **max_redirects=3**: fail nhanh cho SP bi redirect loop (thay vi 30 redirects)
+9. **Skip ngay** (khong retry): loi JSON parse va redirect loop — SP bi xoa, retry vo ich
 
 ---
 
@@ -252,8 +264,8 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Step 4b: Re-scan + report | 30 phut | ~1 phut | HOAN THANH |
 | Step 4c: Test OVER_CAP | 1 gio | ~2 phut | HOAN THANH |
 | Step 4d: Adaptive Slicing + Sort Fallback | 2 gio | ~10 phut test | HOAN THANH |
-| Step 5: Scale full (VPS) | - | ~14-20 gio | CHUA LAM |
-| Step 6: Merge | 1 gio | 30 phut | CHUA LAM |
+| Step 5: Scale full (VPS + local) | - | ~14-20 gio | DANG CHAY (28/49) |
+| Step 6: Merge + Tien xu ly | 1 gio | 30 phut | CHUA LAM |
 
 ---
 
@@ -382,17 +394,20 @@ Chi tiet: xem `HUONG_DAN_CAO_DU_LIEU.md`
 
 | Thay doi | Truoc | Sau |
 |----------|-------|-----|
-| So categories | 15-20 parent categories | 47 sub-categories (vuot gioi han 2000/query) |
+| So categories | 15-20 parent categories | 49 sub-categories (vuot gioi han 2000/query) |
 | Output folder | `data/raw/` | `Tiki_dataset_scrape/` |
 | Category breadcrumb | Full breadcrumb (gom ten SP) | Toi da 3 cap, bo ten SP |
 | Listing limit | 100/page | 40/page (an toan hon) |
-| Muc tieu | 60K+ | 100K+ (47 sub-categories, tong ~270K SP kha dung) |
+| Muc tieu | 60K+ | 100K+ (49 sub-categories, thuc te ~60-80K SP do nhieu SP bi xoa) |
 | Detail fetching | Sequential (1 request/luc) | Concurrent (N workers song song) |
 | DETAIL_DELAY | 0.5-1.5s | 0.3-0.8s (per worker) |
 | BATCH_SLEEP | 3s moi 50 req | 2s moi 100 req |
 | Toc do | 0.8 SP/s | 2.7 SP/s (3 workers), ~4.5 SP/s (5 workers) |
 | Listing strategy | 1 query/sub-category | Price-Range Slicing cho sub >2000 SP |
-| Moi truong chay | WSL2 local | VPS thue (IP Viet Nam) |
+| Moi truong chay | WSL2 local | VPS thue (IP VN) + WSL2 local (song song) |
+| Session management | Tao moi moi request | Thread-local reuse, rotate moi 500 req |
+| Error handling | Retry tat ca loi 3 lan x 5s | Skip ngay JSON/redirect, retry chi mang/429 |
+| Category resume | Chay lai listing khi resume | Skip toan bo category da complete |
 
 
 ---
@@ -417,4 +432,20 @@ Tong mat ~200K SP neu khong xu ly.
 
 ---
 
-*Cap nhat: 2026-04-07 22:30 — Step 1-4d hoan thanh. Adaptive Slicing implemented + tested (14,346 SP, 99% coverage). San sang Step 5 (scale tren VPS).*
+### Van de moi phat hien (2026-04-08)
+
+**Ty le SP thuc te thap hon uoc tinh:**
+- Tiki API bao total cao nhung nhieu SP da bi xoa/redirect
+- Category 8214: uoc tinh 79K → listing 19K → saved ~5K (chi ~6% uoc tinh)
+- Category 8039: 1,006 listing → 594 saved (59%)
+- Category nho (dien lanh, suc khoe): 50-80% saved — tot hon
+- **Uoc tinh tong thuc te: ~60-80K SP** (thay vi 281K theo API)
+
+**Nguyen nhan:**
+- Nhieu seller nho tren Tiki, SP bi xoa lien tuc
+- Categories cong nghe/phu kien co ty le xoa cao nhat
+- Categories dien lanh/bach hoa on dinh hon
+
+---
+
+*Cap nhat: 2026-04-08 20:00 — Step 5 dang chay. 28/49 complete, 23,700 SP. May thue + may ca nhan chay song song.*
