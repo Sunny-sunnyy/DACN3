@@ -136,4 +136,29 @@
 
 ---
 
-*Cap nhat: 2026-04-09 — 49/49 DONE, 79,382 SP.*
+## Kaggle CSV → JSONL (6 files, 41,603 SP)
+
+Convert bang `convert_kaggle_csv.py`. Brand = ten the loai file (khong dung brand goc).
+
+| File | Brand | SP |
+|---|---|---:|
+| tiki_kaggle_backpacks_suitcases.jsonl | Balo vali | 5,361 |
+| tiki_kaggle_fashion_accessories.jsonl | phụ kiện thời trang | 16,019 |
+| tiki_kaggle_men_bags.jsonl | túi xách nam | 4,234 |
+| tiki_kaggle_men_shoes.jsonl | giày nam | 5,745 |
+| tiki_kaggle_women_bags.jsonl | túi xách nữ | 4,325 |
+| tiki_kaggle_women_shoes.jsonl | giày nữ | 5,919 |
+
+---
+
+## Tong du lieu
+
+| Nguon | Files | SP |
+|---|---:|---:|
+| Tiki Scraper | 48 | 79,382 |
+| Kaggle (thoi trang) | 6 | 41,603 |
+| **Tong** | **54** | **120,985** |
+
+---
+
+*Cap nhat: 2026-04-09 — 49/49 scraper DONE + 6 Kaggle converted. Tong 120,985 SP.*

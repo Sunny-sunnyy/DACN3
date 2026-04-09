@@ -7,7 +7,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Trang thai hien tai (2026-04-09)
 
-**Trang thai:** Step 5 HOAN THANH — 49/49 categories, 79,382 SP.
+**Trang thai:** Step 5 HOAN THANH + Kaggle da convert. Tong 120,985 SP.
 **Branch:** `feature/tiki-scraper`
 
 ### Da hoan thanh:
@@ -30,9 +30,12 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] Toi uu scraper: max_redirects=3 + skip redirect loop ngay (khong retry)
 - [x] Them skip category da hoan thanh khi resume (flag "complete" trong checkpoint)
 - [x] Step 5: Scale — 49/49 categories DONE, 79,382 SP (may thue + may ca nhan song song)
+- [x] Step 5b: Convert Kaggle CSV → JSONL — 41,603 SP (6 files thoi trang)
+  - Script: `convert_kaggle_csv.py` — map name→title, description→features, brand tu filename
+  - Brand mapping: tui xach nam/nu, Balo vali, phu kien thoi trang, giay nam/nu
+  - Fix: LS/PS line terminators, price float→int
 
 ### Chua lam:
-- [ ] Step 6: Merge Kaggle 41K (thoi trang) + Tiki scraper 79K (dien tu, gia dung)
 - [ ] Tien xu ly du lieu: loc features <600 chars, dedup, weighted sampling, LLM summary
 - [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training Qwen 3.5 4B, GD3: scraping realtime, GD4: chatbot)
 
@@ -41,13 +44,15 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - OVER_CAP: chon Adaptive Price-Range Slicing + Sort Rotation Fallback (industry-standard, Apify khuyen dung)
 - Khong cao san khac (Shopee anti-bot, TGDD/Lazada ton thoi gian). Neu thieu data → them category Tiki
 - Fine-tune: Qwen 3.5 4B thay vi Llama (tot hon cho tieng Viet)
-- Du lieu can: 100-150K SP la du cho training (Tiki 79K + Kaggle 41K = ~121K raw)
+- Du lieu hien co: Tiki scraper 79,382 SP + Kaggle 41,603 SP = **120,985 SP raw**
+- Kaggle brand = ten the loai file (khong dung brand goc vi 74% la OEM/empty)
+- Giu tat ca SP (khong loc gia, khong loc features length) — se xu ly o buoc tien xu ly
 
-### Ket qua scraping (2026-04-09):
-- **49/49 categories DONE** — 48 JSONL files (8085 Laptop: 0 SP, tat ca 21 SP bi filter/xoa)
-- **79,382 SP thuc te** tu 281K uoc tinh API (ty le 28.2%)
-- Categories cong nghe/phu kien: ty le thap (6-55%) do nhieu SP bi xoa
-- Categories dien lanh/bach hoa/the thao: ty le cao (50-87%)
+### Ket qua du lieu (2026-04-09):
+- **Scraper:** 49/49 categories DONE — 48 JSONL files, 79,382 SP (8085 Laptop: 0 SP)
+- **Kaggle:** 6 CSV → 6 JSONL, 41,603 SP (thoi trang: balo, giay, tui, phu kien)
+- **Tong:** 54 JSONL files, **120,985 SP**
+- Ty le thuc te scraper: 28.2% (281K uoc tinh API → 79K thuc te, nhieu SP bi xoa)
 
 ### Luu y ky thuat:
 - Tiki API bao `paging.total = 2000` khi bi cap (khong bao so thuc). Detection phai dung `total >= 2000` (khong phai `> 2000`)
@@ -97,6 +102,7 @@ Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hãy hỏi tôi 
 | `scraping_data_tv/Tiki/tiki_scraper/config.py` | 49 categories, rate limits, delays |
 | `scraping_data_tv/Tiki/step1/step1_notes.md` | Ket qua test API + benchmark |
 | `scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py` | Script test 3 phuong an vuot OVER_CAP |
+| `scraping_data_tv/Tiki/convert_kaggle_csv.py` | Convert Kaggle CSV → JSONL (6 files thoi trang) |
 | `segment4/mo_ta_du_an/Project_Development_Plan.md` | Ke hoach tong the 5 giai doan (8 thang) |
 
 | `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md` | Tai lieu search_key pipeline (tieng Anh) |
@@ -132,4 +138,4 @@ uv run scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py
 
 ---
 
-*Cap nhat: 2026-04-09 — Step 5 HOAN THANH. 49/49 categories, 79,382 SP. Chuyen sang Step 6: merge + tien xu ly.*
+*Cap nhat: 2026-04-09 — Step 5 + Kaggle convert DONE. 120,985 SP (54 files). Chuyen sang tien xu ly.*

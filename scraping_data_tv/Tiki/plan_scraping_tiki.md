@@ -55,6 +55,7 @@ scraping_data_tv/Tiki/
     tiki_categories_report.csv     # Bang danh muc 122 sub-categories (CSV)
     tiki_categories_report.md      # Bang danh muc (Markdown)
     run_scraper.py                 # CLI: --test, --category ID, --all, --max N
+    convert_kaggle_csv.py          # Convert Kaggle CSV -> JSONL (6 files thoi trang)
     Docs/                          # Tiki Open API docs
     Github/                        # 5 repos tham khao
     Tiki_dataset_1/                # Kaggle 41.6K (thoi trang, CSV)
@@ -224,16 +225,37 @@ Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md`
 
 ---
 
-### Step 6: Merge voi Kaggle dataset + Tien xu ly
+### Step 5b: Convert Kaggle CSV → JSONL (HOAN THANH)
 
-- Load 41.6K tu Kaggle (thoi trang)
-- Load ~60-80K tu Tiki scraper (dien tu, gia dung, bach hoa, suc khoe...)
-- Chuan hoa fields: title, brand, price, features, url (Kaggle khong co url -> de trong)
+**File:** `convert_kaggle_csv.py`
+**Hoan thanh:** 2026-04-09 — 6 CSV → 6 JSONL, **41,603 SP**
+
+**Mapping:** name→title, description→features, price→price (int), category→category
+**Brand:** Gan tu ten file CSV (khong dung brand goc vi 74% la OEM/empty):
+
+| File CSV | Brand | SP |
+|---|---|---:|
+| backpacks_suitcases | Balo vali | 5,361 |
+| fashion_accessories | phụ kiện thời trang | 16,019 |
+| men_bags | túi xách nam | 4,234 |
+| men_shoes | giày nam | 5,745 |
+| women_bags | túi xách nữ | 4,325 |
+| women_shoes | giày nữ | 5,919 |
+
+**Fix:** Xoa ky tu LS (U+2028) / PS (U+2029) trong description, price float→int
+**Khong loc gia, khong loc features length** — giu tat ca SP, se xu ly o buoc tien xu ly
+
+**Tong du lieu hien co:** Scraper 79,382 + Kaggle 41,603 = **120,985 SP** (54 JSONL files)
+
+---
+
+### Step 6: Tien xu ly du lieu
+
+- Load 120,985 SP tu 54 JSONL files
 - Dedup theo title
-- Loc features < 600 chars (theo chuan tieng Anh)
 - Weighted sampling: price² + penalty category lon (VD: Phu Kien Dien Thoai)
 - Tao LLM summary bang Qwen (tuong tu tieng Anh dung GPT)
-- Tong muc tieu: 100-150K san pham da dang categories
+- Muc tieu: ~200K SP (co them nguon khac ngoai Tiki)
 
 ---
 
@@ -265,7 +287,8 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Step 4c: Test OVER_CAP | 1 gio | ~2 phut | HOAN THANH |
 | Step 4d: Adaptive Slicing + Sort Fallback | 2 gio | ~10 phut test | HOAN THANH |
 | Step 5: Scale full (VPS + local) | - | ~14-20 gio | HOAN THANH (49/49, 79,382 SP) |
-| Step 6: Merge + Tien xu ly | 1 gio | 30 phut | CHUA LAM |
+| Step 5b: Convert Kaggle CSV→JSONL | 30 phut | <1 phut | HOAN THANH (6 files, 41,603 SP) |
+| Step 6: Tien xu ly du lieu | 1 gio | 30 phut | CHUA LAM |
 
 ---
 
@@ -448,4 +471,4 @@ Tong mat ~200K SP neu khong xu ly.
 
 ---
 
-*Cap nhat: 2026-04-09 — Step 5 HOAN THANH. 49/49 categories, 79,382 SP. Chuyen sang Step 6: merge + tien xu ly.*
+*Cap nhat: 2026-04-09 — Step 5 + Kaggle convert DONE. 120,985 SP (54 files). Chuyen sang tien xu ly.*
