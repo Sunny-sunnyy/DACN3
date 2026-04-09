@@ -65,7 +65,22 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt dau tien cho session moi
 
-Copy va paste prompt nay khi bat dau session moi:
+### Prompt A: Tien xu ly du lieu tieng Viet (Day 1-4)
+
+```
+Doc cac file sau de nap ngu canh:
+
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet tien xu ly tieng Viet
+2. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai du lieu hien tai
+3. "scraping_data_tv/Tiki/tiki_categories_report.md" — bao cao 49 categories + Kaggle
+4. "segment4/mo_ta_du_an/Project_Development_Plan.md" — ke hoach tong the du an
+5. "scraping_data_tv/Data_processing_for_English_data" chua code va tai lieu xu ly du lieu tieng Anh (tham khao)
+6. "scraping_data_tv/Tiki" chua codebase va docs cao du lieu Tiki
+
+Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet de hieu ro yeu cau.
+```
+
+### Prompt B: Scraping du lieu Tiki (da hoan thanh, chi dung khi can sua scraper)
 
 ```
 Doc cac file sau de nap ngu canh:
@@ -73,18 +88,15 @@ Doc cac file sau de nap ngu canh:
 1. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai hien tai
 2. "scraping_data_tv/Tiki/plan_scraping_tiki.md" — plan chi tiet Tiki scraper
 3. "segment4/mo_ta_du_an/Project_Development_Plan.md" — ke hoach tong the du an
-4. "scraping_data_tv/Tiki" chứa codebase và docs cào dữ liệu ở tiki
 
-Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hãy hỏi tôi những câu hỏi cần thiết để hiểu rõ yêu cầu.
+Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet de hieu ro yeu cau.
 ```
 
 ### Khi nao can doc them:
+- Neu lam viec voi **tien xu ly du lieu**: doc `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md`
 - Neu lam viec voi **search_key pipeline** (segment4): doc them `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`
 - Neu lam viec voi **scraper code**: doc them `scraping_data_tv/Tiki/tiki_scraper/scraper.py`
-- Neu can **huong dan chay tren may thue**: doc `scraping_data_tv/Tiki/HUONG_DAN_CAO_DU_LIEU.md`
-- Neu can **ket qua test chi tiet**: doc `scraping_data_tv/Tiki/step1/step1_notes.md`
-- Neu can **van de OVER_CAP 2000**: doc `scraping_data_tv/Tiki/HUONG_DAN_VUOT_CAP_2000.md`
-- Neu can **danh sach categories**: doc `scraping_data_tv/Tiki/tiki_categories_report.csv` hoac `.md`
+- Neu can **code tham khao tieng Anh**: doc `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/`
 
 ---
 
