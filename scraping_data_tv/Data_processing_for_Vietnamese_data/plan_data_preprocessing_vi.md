@@ -63,7 +63,12 @@ scraping_data_tv/Data_processing_for_Vietnamese_data/
 - Chuan hoa fields: dam bao moi SP co `title`, `brand`, `price`, `features`, `category`
 - Scraper data co them `product_id`, `url`, `category_id` — giu lai de dedup, bo khi training
 
-#### 1b. Lam sach du lieu (adapt tu parser.py tieng Anh)
+#### 1b. Lam sach du lieu — TRUOC KHI LLM rewrite
+
+**Tai sao xu ly truoc LLM rewrite?**
+- Input sach → LLM output tot hon, it hallucinate
+- Tiet kiem tien API — khong tra tien de LLM xu ly rac (emoji, HTML, SKU...)
+- LLM tap trung vao viec tom tat, khong phai lam sach
 
 **Khac biet so voi tieng Anh:**
 
@@ -76,14 +81,66 @@ scraping_data_tv/Data_processing_for_Vietnamese_data/
 | Removals | Part Number, Best Sellers Rank... | **SKU, barcode, ma san pham** |
 | Emoji | Khong xu ly | **Xoa emoji** (Tiki data co nhieu) |
 | Mixed text | English only | **Xu ly Viet-Anh lan lon** (pho bien tren Tiki) |
+| HTML entities | Khong co | **Xoa** `&#x1f...` (co nhieu trong scraper data) |
+| Title trung lap | Khong co | **Xoa title lap lai** o dau features |
+| Separators | Khong co | **Xoa** `------`, `======` |
 
-**Cac buoc lam sach:**
-1. NFC Unicode normalization (chuan hoa dau tieng Viet)
-2. Xoa emoji va ky tu dac biet thua
-3. Xoa ma san pham/SKU/barcode (regex pattern)
-4. Chuan hoa khoang trang (nhieu space → 1 space, xoa \n\r\t thua)
-5. Cat features toi da 4000 chars
-6. Tao field `full` = title + features (gop lai, giong `scrub()` tieng Anh)
+**Van de thuc te phat hien trong data Tiki (mau 50 SP/file x 54 files):**
+
+| Van de | So luong | Vi du |
+|---|---:|---|
+| HTML entities (`&#x1f...`) | 433 | `&#x1f4e6` (emoji HTML encode) |
+| SKU/ma san pham | 422 | `AURESEASY3`, `SLIM315RSVN`, `IEC60529` |
+| Multi-spaces | 362 | `"mau trang,   mau den"` |
+| Title lap lai trong features | 260 | Features bat dau bang chinh title |
+| Emoji Unicode | 187 | Emoji trong mo ta san pham |
+| Separators (`---`, `===`) | 88 | `"----------"` ngan cach sections |
+| Features qua ngan (<50 chars) | 5 | Kaggle data |
+
+**Pipeline lam sach (thu tu quan trong — xu ly tuan tu):**
+
+```
+1. Unicode NFC normalization
+   - Chuan hoa dau tieng Viet (VD: ă [2 byte] → ă [1 byte])
+   - Dung unicodedata.normalize('NFC', text)
+
+2. Xoa HTML entities
+   - Pattern: &#x[0-9a-f]+; va &[a-z]+;
+   - VD: &#x1f4e6; → xoa
+
+3. Xoa emoji Unicode
+   - Regex range: \U0001F600-\U0001FAFF va cac block khac
+   - Giu lai chu tieng Viet va tieng Anh
+
+4. Xoa separators
+   - Pattern: [-=]{5,} (5+ dau gach noi hoac bang)
+   - VD: "----------" → xoa
+
+5. Xoa SKU/ma san pham
+   - Pattern: \b[A-Z0-9]{8,}\b (8+ ky tu hoa+so lien tuc)
+   - Can than khong xoa tu viet hoa binh thuong
+
+6. Xoa title lap lai o dau features
+   - Neu features.startswith(title) → cat bo phan title
+   - Tranh trung lap khi tao field `full`
+
+7. Chuan hoa khoang trang
+   - \n, \r, \t → space
+   - Nhieu space → 1 space
+   - Strip dau cuoi
+
+8. Cat toi da 4000 chars
+   - Giong MAX_TEXT_TOTAL trong parser.py tieng Anh
+
+9. Tao field `full` = title + "\n" + features (cleaned)
+   - Giong ham scrub() tieng Anh
+   - Day la field se gui cho LLM rewrite
+```
+
+**Thu vien ho tro (tham khao, chua chac can dung het):**
+- `vietnormalizer` — chuan hoa so, ngay, tien te, viet tat (pure Python, khong dependency)
+- `underthesea` — tach tu, POS tagging (dung cho TF-IDF o Day 3)
+- `unicodedata` — NFC normalization (built-in Python)
 
 #### 1c. Deduplication
 
@@ -278,15 +335,40 @@ Adapt tu `deep_neural_network.py` tieng Anh:
 
 ## 3. Nghien cuu: Xu ly du lieu tieng Viet
 
-### 3a. Vietnamese NLP — dac thu
+### 3a. Vietnamese NLP — dac thu va cong cu
 
-| Van de | Giai phap |
-|---|---|
-| Tach tu (Word Segmentation) | `underthesea` hoac `pyvi` — tieng Viet khong co space giua cac tu ghep |
-| Unicode normalization | NFC form — chuan hoa dau (VD: `ă` vs `ă` [2 cach bieu dien]) |
-| Mixed Viet-Anh | Pho bien tren Tiki ("Smart TV 4K 55 inch", "Ao thun cotton") — giu nguyen |
-| Emoji trong description | Xoa — gay nhieu cho model |
-| Abbreviations | "SP" = san pham, "DT" = dien thoai — can chuan hoa? (chua chac, test truoc) |
+**Dac thu tieng Viet trong du lieu thuong mai dien tu:**
+
+| Van de | Giai phap | Ghi chu |
+|---|---|---|
+| Tach tu (Word Segmentation) | `underthesea` hoac `pyvi` | Tieng Viet khong co space giua tu ghep ("may tinh" = 1 tu) |
+| Unicode normalization | `unicodedata.normalize('NFC', text)` | `ă` co 2 bieu dien Unicode — can chuan hoa |
+| Mixed Viet-Anh | Giu nguyen | Pho bien: "Smart TV 4K 55 inch", "Ao thun cotton" |
+| Emoji | Xoa bang regex Unicode ranges | 187/2700 mau co emoji — gay nhieu cho model |
+| HTML entities | Xoa `&#x...;` va `&amp;` | 433/2700 mau — tu scraper API |
+| SKU/ma san pham | Regex `\b[A-Z0-9]{8,}\b` | 422/2700 mau — VD: `AURESEASY3`, `IEC60529` |
+| Title lap lai | Cat bo neu features.startswith(title) | 260/2700 mau — title xuat hien 2 lan |
+| Separators | Regex `[-=]{5,}` | 88/2700 mau — `"----------"` |
+| Multi-spaces | Regex `\s+` → 1 space | 362/2700 mau |
+
+**Thu vien NLP tieng Viet:**
+
+| Thu vien | Chuc nang | Dependency | Khi nao dung |
+|---|---|---|---|
+| `vietnormalizer` | Chuan hoa so, ngay, tien te, viet tat tieng Viet | Pure Python, 0 deps | Khong can cho bai toan nay (LLM se tu hieu so/ngay) |
+| `underthesea` | Tach tu, POS tag, NER, sentiment | Nhieu deps | Day 3: TF-IDF can tach tu |
+| `pyvi` | Tach tu (nhe hon underthesea) | It deps | Fallback cho underthesea, hoac dung voi dangvantuan embedding |
+| `unicodedata` | NFC normalization | Built-in Python | Day 1: lam sach data |
+
+Sources:
+- [VietNormalizer (arxiv)](https://arxiv.org/html/2603.04145v1)
+- [Underthesea GitHub](https://github.com/undertheseanlp/underthesea)
+- [NVIDIA LLM Data Preprocessing](https://developer.nvidia.com/blog/mastering-llm-techniques-data-preprocessing/)
+
+**Chien luoc dedup (tu nghien cuu NVIDIA):**
+- **Buoc 1 — Exact dedup:** Hash title (nhanh, bat trung 100%)
+- **Buoc 2 — Fuzzy dedup:** Neu can, dung MinHash/LSH bat SP gan giong (VD: cung SP nhung title khac 1-2 tu)
+- Buoc 2 chi lam neu exact dedup khong du — test truoc
 
 ### 3b. Embedding models cho tieng Viet
 
