@@ -250,28 +250,57 @@ Thong so: 1 cau ve tinh nang/thong so noi bat
 | Constant (mean) | Luon doan gia trung binh | Moc "khong hoc gi" |
 | Constant (median) | Luon doan gia trung vi | Robust hon mean voi outliers |
 
-#### 3b. Traditional ML
+#### 3b. Traditional ML (Gradient Boosting)
 
-| Model | Features | Muc dich |
-|---|---|---|
-| Linear Regression | TF-IDF + category encoding + log(price) | Baseline ML |
-| XGBoost | TF-IDF + metadata (brand, category, text length) | Strong baseline |
+**So sanh 3 gradient boosting models (da nghien cuu 2026-04-09):**
 
-**Luu y cho tieng Viet:**
-- TF-IDF can Vietnamese tokenizer — dung `underthesea` hoac `pyvi` de tach tu tieng Viet
-- Hoac dung character n-grams (khong can tokenizer, hoat dong tot cho tieng Viet)
+| | **XGBoost** | **LightGBM** | **CatBoost** |
+|---|---|---|---|
+| Toc do training | Vua | **Nhanh nhat** (7x XGBoost) | Cham nhat |
+| Do chinh xac | Cao | Cao | **Cao nhat** (voi categorical features) |
+| Categorical features | Can encoding (one-hot/label) | Can encoding | **Built-in** — tu dong xu ly brand, category |
+| Text features (TF-IDF) | Tot | Tot | **Tot nhat** (built-in text features) |
+| Memory | Vua | **Thap nhat** | Cao |
+| Hyperparameter tuning | Can tune nhieu | Can tune nhieu | **It can tune** — default da tot |
+
+**Khuyen nghi cho bai toan nay:**
+
+| Model | Features | Muc dich | Ly do chon |
+|---|---|---|---|
+| Linear Regression | TF-IDF (underthesea) + category + log(price) | Baseline ML | Don gian, de hieu, moc so sanh |
+| XGBoost | TF-IDF + metadata (brand, category, text_len) | Strong baseline | Da dung thanh cong trong pipeline tieng Anh |
+| **LightGBM** | TF-IDF + metadata | So sanh toc do | Nhanh nhat, tot cho 100K+ rows |
+| **CatBoost** | TF-IDF + brand + category (raw, khong encode) | So sanh accuracy | Built-in categorical — brand/category khong can one-hot |
+
+**Chien luoc:** Chay ca 3 gradient boosting → chon model tot nhat lam strong baseline.
+
+**TF-IDF cho tieng Viet — 2 cach:**
+1. **underthesea.word_tokenize()** → TF-IDF tren cac tu da tach
+   - VD: "may tinh xach tay" → "may_tinh xach_tay" → TF-IDF
+2. **Character n-grams (3-5)** → TF-IDF khong can tokenizer
+   - `TfidfVectorizer(analyzer='char_wb', ngram_range=(3,5))`
+   - Robust, khong can cai underthesea, hoat dong tot cho tieng Viet
+
+**Khuyen nghi:** Test ca 2 cach → chon cach nao cho accuracy tot hon.
+
+Sources:
+- [CatBoost vs XGBoost vs LightGBM](https://neptune.ai/blog/when-to-choose-catboost-over-xgboost-or-lightgbm)
+- [Gradient Boosting Comparison](https://www.geeksforgeeks.org/machine-learning/gradientboosting-vs-adaboost-vs-xgboost-vs-catboost-vs-lightgbm/)
 
 #### 3c. Evaluation
 
 - Danh gia tren **test set** (5K SP)
-- Metrics: MAE (VND) + MAPE (%) + MSE + R²
+- Metrics: **MAE (VND)** + **MAPE (%)** + MSE + R²
 - So sanh bang + bieu do scatter (predicted vs actual)
 - Error trend chart (giong evaluator.py tieng Anh)
+- **Bieu do error theo khoang gia** — xem model yeu o khoang nao (re/dat)
 
 **Tieu chi hoan thanh Day 3:**
-- [ ] 4 baseline models da chay
+- [ ] 3 baseline models (random, mean, median)
+- [ ] 3 gradient boosting models (XGBoost, LightGBM, CatBoost)
+- [ ] Linear Regression
 - [ ] Evaluation report (bang so sanh + bieu do)
-- [ ] XGBoost la strong baseline de so sanh voi DNN/LLM
+- [ ] Chon strong baseline cho Day 4
 
 ---
 
@@ -306,30 +335,73 @@ Adapt tu `deep_neural_network.py` tieng Anh:
 - **Output:** predicted price (VND)
 - **Training:** GPU (Colab A100 hoac RTX 3090)
 
-#### 4b. Frontier LLM (du doan gia truc tiep)
+#### 4b. PhoBERT + Regression Head (tuy chon, neu co thoi gian)
 
-- Dung OpenAI GPT hoac Qwen qua API
+**PhoBERT** (VinAI) — pre-trained BERT cho tieng Viet, SOTA tren nhieu NLP tasks.
+
+| Thong so | Gia tri |
+|---|---|
+| Model | `vinai/phobert-base` (135M params) |
+| Pre-training | 20GB Vietnamese corpus (Wikipedia + news) |
+| Tokenizer | Can `VnCoreNLP RDRSegmenter` de tach tu truoc |
+| Kien truc fine-tune | PhoBERT → [CLS] token → MLP regression head → price |
+| Training | QLoRA 4-bit tren Colab A100 (tuong tu fine-tune LLM) |
+
+**Khi nao dung:** Neu DNN + embedding chua du tot va muon thu end-to-end learning
+(text → price, khong can tach rieng embedding + DNN).
+
+**Nhuoc diem:** Cham hon DNN (phai forward qua 12 layers BERT),
+can GPU manh, kho interpret hon gradient boosting.
+
+Sources:
+- [PhoBERT — VinAI](https://github.com/VinAIResearch/PhoBERT)
+- [Fine-tune PhoBERT for Vietnamese](https://d-ai.me/fine-tune-phobert-for-vietnamese-text-classification/)
+
+#### 4c. Frontier LLM (du doan gia truc tiep)
+
+**Mo hinh LLM khuyen dung cho tieng Viet (2026):**
+
+| Model | Params | Tieng Viet | Context | Ghi chu |
+|---|---|---|---:|---|
+| **Qwen3-8B** | 8.2B | Rat tot (119 ngon ngu) | 131K | **Khuyen dung** — reasoning tot, multilingual manh |
+| Qwen2.5-7B | 7B | Tot (29 ngon ngu) | 128K | On dinh, da duoc test nhieu |
+| Llama-3.1-8B | 8B | Kha | 128K | Multilingual, cost-effective |
+| GPT-5-nano (API) | ? | Tot | ? | Nhanh, re — da dung trong pipeline tieng Anh |
+
+**Cach su dung:**
 - Prompt: gui mo ta SP → yeu cau doan gia VND
-- Co the ket hop RAG (ChromaDB) de cung cap context
+- RAG: ChromaDB (110K embeddings) → lay 5 SP tuong tu → gui kem prompt
 - So sanh: LLM alone vs LLM + RAG
 
-#### 4c. So sanh tong hop
+**Luu y:** Frontier LLM la **doi thu** cho ensemble cuoi cung, khong phai model chinh.
+Model chinh la fine-tuned Qwen 3.5 4B (se lam o plan rieng).
 
-| Model | MAE (VND) | MAPE (%) | R² | Chi phi |
-|---|---|---|---|---|
-| Random | ? | ? | ? | 0 |
-| Mean | ? | ? | ? | 0 |
-| Linear Regression | ? | ? | ? | 0 |
-| XGBoost | ? | ? | ? | 0 |
-| DNN | ? | ? | ? | GPU |
-| Frontier LLM | ? | ? | ? | API |
-| Frontier LLM + RAG | ? | ? | ? | API |
+Sources:
+- [Best Open Source LLM for Vietnamese 2026](https://www.siliconflow.com/articles/en/best-open-source-LLM-for-Vietnamese)
+- [Qwen3 Blog](https://qwenlm.github.io/blog/qwen3/)
+
+#### 4d. So sanh tong hop
+
+| Model | Loai | MAE (VND) | MAPE (%) | R² | Chi phi | Toc do |
+|---|---|---|---|---|---|---|
+| Random | Baseline | ? | ? | ? | 0 | Nhanh |
+| Mean | Baseline | ? | ? | ? | 0 | Nhanh |
+| Median | Baseline | ? | ? | ? | 0 | Nhanh |
+| Linear Regression | ML | ? | ? | ? | 0 | Nhanh |
+| XGBoost | ML | ? | ? | ? | 0 | Nhanh |
+| LightGBM | ML | ? | ? | ? | 0 | Nhanh |
+| CatBoost | ML | ? | ? | ? | 0 | Vua |
+| **DNN (ResidualBlock)** | DL | ? | ? | ? | GPU | Vua |
+| PhoBERT + Reg Head | DL | ? | ? | ? | GPU | Cham |
+| Frontier LLM | LLM | ? | ? | ? | API | Cham |
+| Frontier LLM + RAG | LLM | ? | ? | ? | API | Cham |
 
 **Tieu chi hoan thanh Day 4:**
 - [ ] DNN trained va evaluated
 - [ ] Frontier LLM tested (co/khong RAG)
+- [ ] (Tuy chon) PhoBERT + Regression Head
 - [ ] Bang so sanh day du tat ca models
-- [ ] Chon model tot nhat lam baseline cho fine-tuning
+- [ ] Chon model tot nhat → lam baseline cho fine-tuning (plan rieng)
 
 ---
 
@@ -409,12 +481,71 @@ Sources:
 | Character n-grams (3-5) | Khong can tokenizer, robust | Khong hieu nghia tu |
 | **Khuyen nghi:** Dung `underthesea` cho TF-IDF, character n-grams lam fallback |
 
-### 3d. Gia VND — dac thu
+### 3d. ML/DL models cho bai toan du doan gia tieng Viet
+
+**Nghien cuu (2026-04-09) — tong hop cac model phu hop:**
+
+#### Traditional ML (Day 3)
+
+| Model | Dac diem | Phu hop cho bai toan nay? |
+|---|---|---|
+| Linear Regression | Don gian, de interpret | Baseline — moc so sanh thap |
+| **XGBoost** | Strong baseline, da dung trong pipeline tieng Anh | **Co** — proven, nhieu community |
+| **LightGBM** | Nhanh nhat (7x XGBoost), tot cho 100K+ rows | **Co** — toc do, hieu qua memory |
+| **CatBoost** | Built-in categorical features, it can tune | **Rat phu hop** — brand/category la categorical, khong can one-hot |
+| SVR (Support Vector) | Tot cho dataset nho | Khong — 100K rows qua lon |
+
+**Phan tich CatBoost cho bai toan nay:**
+CatBoost dac biet phu hop vi:
+1. Brand (55+ gia tri) va category (49+ gia tri) la **categorical features** — CatBoost xu ly native
+2. Khong can preprocessing (one-hot, label encoding) — giam code, giam loi
+3. Benchmark cho thay CatBoost **vuot XGBoost/LightGBM tren data co nhieu categorical** (car price prediction)
+4. Default hyperparameters da tot — it can tune
+
+#### Deep Learning (Day 4)
+
+| Model | Kien truc | Input | Uu diem | Nhuoc diem |
+|---|---|---|---|---|
+| **DNN ResidualBlock** | MLP + skip connections | Vietnamese embedding (1024d) + metadata | Da proven (tieng Anh), nhanh train | Can embedding model rieng |
+| **PhoBERT + Reg Head** | BERT encoder → [CLS] → MLP | Raw Vietnamese text | End-to-end, khong can embedding rieng | Cham, can GPU, kho interpret |
+
+**Phan tich DNN vs PhoBERT:**
+- **DNN ResidualBlock** (khuyen dung): pipeline 2 buoc (embed → DNN), linh hoat, co the thay embedding model
+- **PhoBERT + Regression**: end-to-end nhung nang, can GPU manh, va bai toan regression don gian khong can BERT phuc tap
+- Nghien cuu cho thay **MLP/DNN dat R² ~0.52 cho mobile phone price** — tuong duong LSTM/Transformer nhung nhanh hon nhieu
+
+#### Frontier LLM (Day 4)
+
+| Model | Tieng Viet | Dung de | Chi phi |
+|---|---|---|---|
+| **Qwen3-8B** | Rat tot (119 ngon ngu) | Du doan gia truc tiep + RAG | Self-hosted (GPU) |
+| GPT-5-nano | Tot | Du doan gia qua API | ~$0.01-0.05/request |
+| Qwen2.5-7B | Tot | Alternative cho Qwen3 | Self-hosted |
+
+#### Tong ket khuyen nghi model
+
+```
+Baseline:      Random, Mean, Median
+ML:            Linear Reg → XGBoost → LightGBM → CatBoost (chon tot nhat)
+DL:            DNN ResidualBlock (Vietnamese_Embedding 1024d)
+DL (optional): PhoBERT + Regression Head
+LLM:           Qwen3-8B (alone + RAG)
+Fine-tune:     Qwen 3.5 4B Base (plan rieng)
+```
+
+Sources:
+- [CatBoost vs XGBoost vs LightGBM](https://neptune.ai/blog/when-to-choose-catboost-over-xgboost-or-lightgbm)
+- [PhoBERT — VinAI](https://github.com/VinAIResearch/PhoBERT)
+- [Qwen3 Blog](https://qwenlm.github.io/blog/qwen3/)
+- [Best LLM for Vietnamese 2026](https://www.siliconflow.com/articles/en/best-open-source-LLM-for-Vietnamese)
+- [DNN for price prediction (Springer)](https://link.springer.com/article/10.1007/s10115-020-01495-8)
+
+### 3e. Gia VND — dac thu
 
 - Range lon: 1,000 - 50,000,000 VND (gap 50,000 lan)
-- **Nen dung log(price)** lam target cho regression — giam skew
+- **Nen dung log(price)** lam target cho ML/DNN regression — giam skew
 - Khi evaluate: chuyen ve VND goc (exp) de tinh MAE/MAPE
-- Prompt completion: van dung VND nguyen (`"Gia: 299000"`) — model hoc pattern so
+- Prompt completion (cho LLM fine-tune): van dung VND nguyen (`"Gia: 299000"`) — model hoc pattern so
 
 ---
 
@@ -426,12 +557,13 @@ Sources:
 | Data loading | json, pathlib |
 | EDA | pandas, matplotlib/plotly |
 | NLP tieng Viet | underthesea (tach tu), unicodedata (NFC) |
-| Text embeddings | multilingual-e5-base (sentence-transformers) |
-| TF-IDF | scikit-learn (TfidfVectorizer) |
-| ML models | scikit-learn (LinearRegression), xgboost |
+| Text embeddings | AITeamVN/Vietnamese_Embedding (1024d) hoac dangvantuan/vietnamese-embedding (768d) |
+| TF-IDF | scikit-learn (TfidfVectorizer) + underthesea hoac char n-grams |
+| ML models | scikit-learn (LinearRegression), xgboost, lightgbm, catboost |
 | DNN | PyTorch (ResidualBlock, giong tieng Anh) |
+| Vietnamese BERT | vinai/phobert-base (tuy chon) |
 | LLM rewrite | Groq Batch API (litellm) |
-| Frontier LLM | OpenAI GPT / Qwen (litellm) |
+| Frontier LLM | Qwen3-8B / GPT-5-nano (litellm) |
 | Vector DB | ChromaDB (cho RAG) |
 | Dataset hub | HuggingFace datasets |
 | GPU training | Google Colab Pro (A100) / Vast.ai (RTX 3090/5090) |
@@ -445,7 +577,7 @@ Sources:
 curl_cffi pydantic tqdm litellm chromadb
 
 # Can them
-uv add underthesea sentence-transformers xgboost plotly
+uv add underthesea sentence-transformers xgboost lightgbm catboost plotly
 ```
 
 ---
