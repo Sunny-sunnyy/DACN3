@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-08, 20:00)
+## Trang thai hien tai (2026-04-09)
 
-**Trang thai:** Step 5 DANG CHAY — 28/49 categories complete, 23,700 SP.
+**Trang thai:** Step 5 HOAN THANH — 49/49 categories, 79,382 SP.
 **Branch:** `feature/tiki-scraper`
 
 ### Da hoan thanh:
@@ -29,23 +29,25 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] Toi uu scraper: thread-local session reuse + skip JSON retry (tang ~17% toc do)
 - [x] Toi uu scraper: max_redirects=3 + skip redirect loop ngay (khong retry)
 - [x] Them skip category da hoan thanh khi resume (flag "complete" trong checkpoint)
+- [x] Step 5: Scale — 49/49 categories DONE, 79,382 SP (may thue + may ca nhan song song)
 
 ### Chua lam:
-- [ ] Step 5: Scale — cao 100K+ SP (28/49 done, 23,700 SP). Con 21 categories lon (~220K uoc tinh, thuc te ~60-80K do SP bi xoa)
-  - May thue: chay cac category >5K SP (8214 da xong)
-  - May ca nhan: chay cac category 2-5K SP
-  - Xem chi tiet: `tiki_categories_report.md`
-- [ ] Step 6: Merge Kaggle 41K (thoi trang) + Tiki scraper (dien tu, gia dung)
+- [ ] Step 6: Merge Kaggle 41K (thoi trang) + Tiki scraper 79K (dien tu, gia dung)
 - [ ] Tien xu ly du lieu: loc features <600 chars, dedup, weighted sampling, LLM summary
 - [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training Qwen 3.5 4B, GD3: scraping realtime, GD4: chatbot)
 
 ### Quyet dinh da dua ra:
 - Se thue may de cao du lieu (khong chay tren WSL2)
-- Muc tieu dau tien: 100K SP de test, sau do scale len
 - OVER_CAP: chon Adaptive Price-Range Slicing + Sort Rotation Fallback (industry-standard, Apify khuyen dung)
 - Khong cao san khac (Shopee anti-bot, TGDD/Lazada ton thoi gian). Neu thieu data → them category Tiki
 - Fine-tune: Qwen 3.5 4B thay vi Llama (tot hon cho tieng Viet)
-- Du lieu can: 100-150K SP la du cho training (Tiki ~80-100K + Kaggle 41K)
+- Du lieu can: 100-150K SP la du cho training (Tiki 79K + Kaggle 41K = ~121K raw)
+
+### Ket qua scraping (2026-04-09):
+- **49/49 categories DONE** — 48 JSONL files (8085 Laptop: 0 SP, tat ca 21 SP bi filter/xoa)
+- **79,382 SP thuc te** tu 281K uoc tinh API (ty le 28.2%)
+- Categories cong nghe/phu kien: ty le thap (6-55%) do nhieu SP bi xoa
+- Categories dien lanh/bach hoa/the thao: ty le cao (50-87%)
 
 ### Luu y ky thuat:
 - Tiki API bao `paging.total = 2000` khi bi cap (khong bao so thuc). Detection phai dung `total >= 2000` (khong phai `> 2000`)
@@ -130,4 +132,4 @@ uv run scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py
 
 ---
 
-*Cap nhat: 2026-04-08 20:00 — Step 5 dang chay. 28/49 categories complete, 23,700 SP. May thue chay categories lon, may ca nhan chay categories nho.*
+*Cap nhat: 2026-04-09 — Step 5 HOAN THANH. 49/49 categories, 79,382 SP. Chuyen sang Step 6: merge + tien xu ly.*

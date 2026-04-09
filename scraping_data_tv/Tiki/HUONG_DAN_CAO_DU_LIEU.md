@@ -2,10 +2,8 @@
 
 ## Tong quan
 
-- **Muc tieu:** Cao ~100K san pham tu Tiki VN
-- **Thoi gian:** ~6-10 gio voi 5 workers
-- **Output:** JSONL files trong folder `Tiki_dataset_scrape/`
-- **Khong can WSL**, chay truc tiep tren Windows
+- **Trang thai:** HOAN THANH — 49/49 categories, **79,382 SP**
+- **Output:** 48 JSONL files trong folder `Tiki_dataset_scrape/`
 - **Tu dong xu ly OVER_CAP:** Categories >2000 SP duoc chia khoang gia tu dong (Price-Range Slicing)
 
 ---
@@ -40,6 +38,7 @@ uv --version
 
 ```cmd
 git clone https://github.com/Sunny-sunnyy/DACN3.git
+git checkout feature/tiki-scraper
 cd DACN3/tech2ai
 uv sync
 ```
@@ -352,4 +351,4 @@ for f in sorted(Path('scraping_data_tv/Tiki/checkpoints').glob('*.json')):
 
 ---
 
-*Tao ngay: 2026-04-07. Cap nhat: 2026-04-08 — Thread-local session, skip redirect/JSON, complete flag, max_redirects=3, zip checkpoints, song song may thue + may ca nhan.*
+*Tao ngay: 2026-04-07. Cap nhat: 2026-04-09 — HOAN THANH 49/49 categories, 79,382 SP.*

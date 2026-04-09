@@ -203,24 +203,24 @@ Chi tiet: xem `HUONG_DAN_VUOT_CAP_2000.md`
 
 ---
 
-### Step 5: Scale — cao 100K+ san pham (DANG CHAY)
+### Step 5: Scale — cao 100K+ san pham (HOAN THANH)
 
-**Trang thai (2026-04-08):** 28/49 categories complete, 23,700 SP.
+**Hoan thanh:** 2026-04-09 — 49/49 categories, **79,382 SP** tu 48 JSONL files.
 
 **May thue (RTX 5060 Ti, i7-12700K, 28GB RAM, 1Gbps VN):**
-- 7 workers, ~7.7 SP/s (nhanh do nhieu SP bi skip)
-- Da chay xong: 8214 (Phu Kien Dien Thoai, 79K uoc tinh → ~5K thuc te do nhieu SP bi xoa)
-- Con lai: 13 categories >5K SP
+- 7 workers, ~7.7 SP/s
+- 12 categories lon (>5K SP uoc tinh)
 
 **May ca nhan (WSL2, i5-11400H, 7.6GB RAM):**
 - 3 workers, ~3.5 SP/s
-- Da chay xong: 22 categories <2K SP + 6 categories 2-3K SP
-- Con lai: 8 categories 2-5K SP
+- 37 categories nho-vua (<5K SP uoc tinh)
 
-**Phat hien thuc te:**
-- Tiki API bao total cao (VD: 79K cho 8214) nhung thuc te chi ~20-30% SP con ton tai
+**Ket qua thuc te:**
+- API uoc tinh: 281,056 SP → Thuc te: 79,382 SP (ty le 28.2%)
 - Nhieu SP bi xoa/redirect → scraper skip ngay (non-JSON, redirect loop)
-- Uoc tinh tong data thuc te sau khi cao het: ~60-80K SP (khong phai 281K nhu API bao)
+- 8085 (Laptop): 0 SP — tat ca 21 SP bi filter/xoa, khong tao JSONL
+- Categories cong nghe/phu kien: ty le thap (6-55%)
+- Categories dien lanh/the thao: ty le cao (51-87%)
 
 ---
 
@@ -264,7 +264,7 @@ Tiki it chong bot hon Shopee, nhung van can than trong:
 | Step 4b: Re-scan + report | 30 phut | ~1 phut | HOAN THANH |
 | Step 4c: Test OVER_CAP | 1 gio | ~2 phut | HOAN THANH |
 | Step 4d: Adaptive Slicing + Sort Fallback | 2 gio | ~10 phut test | HOAN THANH |
-| Step 5: Scale full (VPS + local) | - | ~14-20 gio | DANG CHAY (28/49) |
+| Step 5: Scale full (VPS + local) | - | ~14-20 gio | HOAN THANH (49/49, 79,382 SP) |
 | Step 6: Merge + Tien xu ly | 1 gio | 30 phut | CHUA LAM |
 
 ---
@@ -448,4 +448,4 @@ Tong mat ~200K SP neu khong xu ly.
 
 ---
 
-*Cap nhat: 2026-04-08 20:00 — Step 5 dang chay. 28/49 complete, 23,700 SP. May thue + may ca nhan chay song song.*
+*Cap nhat: 2026-04-09 — Step 5 HOAN THANH. 49/49 categories, 79,382 SP. Chuyen sang Step 6: merge + tien xu ly.*
