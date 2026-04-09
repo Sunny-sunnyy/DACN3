@@ -547,6 +547,86 @@ Sources:
 - Khi evaluate: chuyen ve VND goc (exp) de tinh MAE/MAPE
 - Prompt completion (cho LLM fine-tune): van dung VND nguyen (`"Gia: 299000"`) — model hoc pattern so
 
+### 3f. Qwen3.5 — model fine-tune cho bai toan du doan gia (nghien cuu cho plan rieng)
+
+**Qwen3.5 Small Series (02/2026):** 0.8B, 2B, **4B**, **9B**, 27B
+
+#### So sanh Qwen3.5-4B-Base vs Qwen3.5-9B-Base
+
+| | **Qwen3.5-4B-Base** | **Qwen3.5-9B-Base** |
+|---|---|---|
+| Params | 4B (5B safetensors) | 9B (10B safetensors) |
+| Hidden dims | 2560 | 4096 |
+| Layers | 32 | 32 |
+| Context | 262K (extendable 1M) | 262K (extendable 1M) |
+| Languages | 201 | 201 |
+| **VRAM bf16** | **~8 GB** | **~18 GB** |
+| **VRAM LoRA (Unsloth)** | **~10 GB** | **~22 GB** |
+| Overall score (vs 397B flagship) | ~85% | ~90% |
+| Math (HMMT) | 74.0 | 83.2 |
+| Downloads/thang | 88K | 106K |
+| Kien truc | Gated DeltaNet + Gated Attention + FFN | Giong 4B nhung lon hon |
+
+**Chenh lech chi ~5%** giua 4B va 9B, nhung VRAM gap doi (8 vs 18 GB).
+
+**Khuyen nghi:**
+- **Qwen3.5-4B-Base** — phu hop RTX 3090 (24GB VRAM), du cho regression task
+- **Qwen3.5-9B-Base** — chi dung neu co RTX 5090 (32GB) hoac A100 (40/80GB)
+- **Dung Base**, khong dung Instruct — bai toan regression, format prompt-completion don gian
+
+Sources:
+- [Qwen3.5-4B-Base (HuggingFace)](https://huggingface.co/Qwen/Qwen3.5-4B-Base)
+- [Qwen3.5 4B vs 9B Comparison](https://sonusahani.com/blogs/qwen-08b-vs-2b-vs-4b-vs-9b)
+
+#### Unsloth vs HuggingFace TRL — fine-tune framework
+
+| | **Unsloth** | **HuggingFace TRL (SFTTrainer)** |
+|---|---|---|
+| Toc do | **2-5x nhanh hon** | Baseline |
+| VRAM | **50-70% it hon** | Baseline |
+| Do chinh xac | **0% suy giam** (khong xap xi) | Baseline |
+| Cach hoat dong | Rewrite PyTorch modules → Triton kernels | Standard PyTorch |
+| Tuong thich | SFTTrainer, DPOTrainer, PPOTrainer | Native |
+| Ho tro Qwen3.5 | **Co** — toan bo family (0.8B → 122B) | Co |
+| GPU | NVIDIA GPUs | NVIDIA + AMD |
+
+**CANH BAO QUAN TRONG tu Unsloth docs:**
+> "Not recommended to do **QLoRA (4-bit)** training for Qwen3.5 due to higher than normal quantization differences."
+> Khuyen nghi dung **LoRA (bf16)** thay vi QLoRA (4-bit).
+
+**Hyperparameters khuyen nghi (tu Unsloth Qwen3.5 guide):**
+
+```python
+# LoRA config
+r = 16
+lora_alpha = 16
+lora_dropout = 0
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
+                  "gate_proj", "up_proj", "down_proj"]
+
+# Training
+max_seq_length = 2048
+per_device_train_batch_size = 1
+gradient_accumulation_steps = 4
+warmup_steps = 10
+optimizer = "adamw_8bit"
+```
+
+**VRAM fine-tune (Unsloth LoRA bf16):**
+- Qwen3.5-4B: ~10 GB → **vua RTX 3090 (24GB)**
+- Qwen3.5-9B: ~22 GB → **vua RTX 3090 (24GB) nhung sat**
+- Qwen3.5-9B thoai mai: RTX 5090 (32GB) hoac A100
+
+**Khuyen nghi framework: Unsloth** — nhanh hon 2-5x, it VRAM 50-70%, ho tro Qwen3.5.
+
+**Khuyen nghi method: LoRA (bf16)** thay vi QLoRA (4-bit) — theo khuyen nghi chinh thuc cua Unsloth cho Qwen3.5.
+
+Sources:
+- [Unsloth Qwen3.5 Fine-tuning Guide](https://unsloth.ai/docs/models/qwen3.5/fine-tune)
+- [Unsloth vs Standard Training](https://medium.com/@balci.pelin/unsloth-vs-standard-training-92d4c35b8ad8)
+- [Unsloth + HuggingFace TRL Blog](https://huggingface.co/blog/unsloth-trl)
+- [Unsloth GitHub](https://github.com/unslothai/unsloth)
+
 ---
 
 ## 4. Tech stack
@@ -564,6 +644,7 @@ Sources:
 | Vietnamese BERT | vinai/phobert-base (tuy chon) |
 | LLM rewrite | Groq Batch API (litellm) |
 | Frontier LLM | Qwen3-8B / GPT-5-nano (litellm) |
+| LLM fine-tune | Qwen3.5-4B-Base (LoRA bf16 via Unsloth) |
 | Vector DB | ChromaDB (cho RAG) |
 | Dataset hub | HuggingFace datasets |
 | GPU training | Google Colab Pro (A100) / Vast.ai (RTX 3090/5090) |
