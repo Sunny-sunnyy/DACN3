@@ -225,11 +225,27 @@ Thong so: 1 cau ve tinh nang/thong so noi bat
 #### 4a. DNN (Deep Neural Network)
 
 Adapt tu `deep_neural_network.py` tieng Anh:
-- **Embedding model:** `multilingual-e5-base` thay vi `all-MiniLM-L6-v2`
-  - Ly do: E5-base hieu tieng Viet tot hon MiniLM
-  - 768 dims (vs 384 dims MiniLM) — nhieu thong tin hon
+
+**Chon embedding model — 2 phuong an:**
+
+| | **PA1: AITeamVN/Vietnamese_Embedding** | **PA2: dangvantuan/vietnamese-embedding** |
+|---|---|---|
+| Base | BAAI/bge-m3 | PhoBERT (RoBERTa) |
+| Params | 568M | 135M |
+| Dims | 1024 | 768 |
+| Max tokens | 2048 | 512 |
+| Pre-tokenize | Khong can | **Can `pyvi.ViTokenizer`** |
+| STS Viet (Pearson) | Chua co benchmark | **88.33** (STSB-vn) |
+| Retrieval Viet (Acc@1) | **0.727** (Legal Zalo) | Chua co benchmark |
+| Downloads/thang | 350K | 235K |
+| Uu diem | 1024d nhieu thong tin, max 2048 tokens xu ly text dai, khong can pre-tokenize | Nhe gap 4x (135M vs 568M), nhanh, it RAM |
+| Nhuoc diem | Lon, ton RAM/GPU hon | Can pyvi, max 512 tokens (cat features dai) |
+| Phu hop khi | GPU du manh (A100, RTX 3090+), data features dai | GPU han che, can toc do |
+
+**Khuyen nghi:** PA1 (`AITeamVN/Vietnamese_Embedding`) — 1024 dims tot hon cho DNN regression, max 2048 tokens xu ly features dai, khong can pre-tokenize. Neu GPU/RAM han che thi dung PA2.
+
 - **Kien truc:** Giu nguyen ResidualBlock network
-- **Input:** text embedding (768d) + metadata (category encoding, brand encoding, text length)
+- **Input:** text embedding (1024d hoac 768d) + metadata (category encoding, brand encoding, text length)
 - **Output:** predicted price (VND)
 - **Training:** GPU (Colab A100 hoac RTX 3090)
 
@@ -274,12 +290,33 @@ Adapt tu `deep_neural_network.py` tieng Anh:
 
 ### 3b. Embedding models cho tieng Viet
 
-| Model | Dims | Tieng Viet | Toc do | Ghi chu |
-|---|---|---|---|---|
-| `multilingual-e5-base` | 768 | Tot | Vua | **Khuyen dung** — da dung trong plan tong the |
-| `multilingual-e5-large` | 1024 | Tot hon | Cham | Neu can chat luong cao hon |
-| `bkai-foundation-models/vietnamese-bi-encoder` | 768 | Rat tot | Vua | Chuyen cho tieng Viet, nhung it community |
-| `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | 384 | Kha | Nhanh | Nhe, nhanh, nhung kem chinh xac |
+**So sanh chi tiet (da nghien cuu 2026-04-09):**
+
+| Model | Base | Params | Dims | Max tokens | Pre-tokenize | Dac diem |
+|---|---|---:|---:|---:|---|---|
+| **AITeamVN/Vietnamese_Embedding** | bge-m3 | 568M | 1024 | 2048 | Khong | Retrieval tot nhat (Acc@1: 0.727 Legal Zalo) |
+| **dangvantuan/vietnamese-embedding** | PhoBERT | 135M | 768 | 512 | Can `pyvi` | STS tot nhat (Pearson: 88.33 STSB-vn) |
+| multilingual-e5-base | XLM-R | 278M | 768 | 512 | Khong | Da ngon ngu, khong toi uu cho VN |
+| multilingual-e5-large | XLM-R | 560M | 1024 | 512 | Khong | Tot hon e5-base nhung cham |
+| bkai-foundation-models/vietnamese-bi-encoder | PhoBERT | 135M | 768 | 256 | Khong | Chuyen VN nhung Acc@1 thap hon (0.711) |
+| keepitreal/vietnamese-sbert | PhoBERT | 135M | 768 | 512 | Khong | STS Pearson: 84.51 |
+
+**Benchmark Vietnamese:**
+
+| Model | STS-vn Pearson | Legal Zalo Acc@1 |
+|---|---:|---:|
+| AITeamVN/Vietnamese_Embedding | - | **0.727** |
+| dangvantuan/vietnamese-embedding | **88.33** | - |
+| bkai-foundation-models/vietnamese-bi-encoder | 78.05 | 0.711 |
+| keepitreal/vietnamese-sbert | 84.51 | - |
+| multilingual-e5-base (BGE-M3) | - | 0.568 |
+
+**Khuyen nghi:** `AITeamVN/Vietnamese_Embedding` (PA1) hoac `dangvantuan/vietnamese-embedding` (PA2).
+Chi tiet so sanh 2 phuong an: xem Day 4, muc 4a.
+
+Sources:
+- https://huggingface.co/AITeamVN/Vietnamese_Embedding
+- https://huggingface.co/dangvantuan/vietnamese-embedding
 
 ### 3c. Vietnamese tokenization cho TF-IDF
 
