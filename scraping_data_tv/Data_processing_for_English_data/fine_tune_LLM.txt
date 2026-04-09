@@ -1,0 +1,1957 @@
+WEEK 7
+DAY 1	
+164. Day 1 - Introduction to QLoRA for Fine-Tuning Open-Source Models
+Chào bạn Hieu, chúc mừng bạn đã hoàn thành Tuần 6 đầy thử thách và bước sang Tuần 7 – một tuần cực kỳ quan trọng đối với một LLM Engineer: Fine-tuning (Tinh chỉnh) mô hình mã nguồn mở.
+Dựa trên tài liệu slide (Copy of LLM Week 7 Day 1.pdf) và bản phiên âm bài giảng, tôi xin tổng hợp nội dung bài học Day 1 - Introduction to QLoRA như sau:
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Chuyển hướng chiến lược: Sau khi nhận thấy việc Fine-tune các mô hình Frontier (như GPT-4) tốn kém và không hiệu quả cho bài toán "kiến thức" (như dự đoán giá), tuần này tập trung vào việc tinh chỉnh các mô hình Open Source (Mã nguồn mở) nhỏ gọn (Llama 3.2 3B).
+•	Vấn đề tài nguyên: Việc huấn luyện lại toàn bộ mô hình (Full Fine-tuning) đòi hỏi phần cứng khổng lồ mà cá nhân khó đáp ứng (ví dụ: mô hình 3 tỷ tham số cần ~13GB VRAM chỉ để load, chưa kể training).
+•	Giải pháp QLoRA: Bài học giới thiệu kỹ thuật QLoRA (Quantized Low-Rank Adaptation). Đây là chìa khóa giúp chạy và train các mô hình LLM trên GPU miễn phí (như Google Colab T4) bằng cách:
+1.	Quantization (Q): Nén mô hình gốc xuống 4-bit.
+2.	LoRA: Chỉ train một lượng rất nhỏ tham số phụ (Adapters).
+________________________________________
+2. Nội dung chính
+A. Bối cảnh & Mục tiêu (The Context)
+•	Dự án Capstone: Tiếp tục với dự án "The Price Is Right" (Dự đoán giá sản phẩm).
+•	Mục tiêu tuần 7: Tạo ra một mô hình Open Source nhỏ (Llama 3.2 3B) có hiệu suất tương đương với các Frontier Model (như GPT-4/Claude) nhưng chi phí vận hành rẻ hơn hàng nghìn lần.
+•	Định nghĩa lại "Xây dựng mô hình": Trong thực tế kỹ thuật, "xây dựng mô hình" thường không phải là train từ đầu (from scratch) mà là Fine-tuning một mô hình đã được các ông lớn (Meta, Mistral) train trước (Pre-trained).
+B. Giải thích kỹ thuật LoRA (Low-Rank Adaptation)
+Thay vì thay đổi tất cả trọng số (weights) của mô hình gốc:
+1.	Đóng băng (Freeze): Giữ nguyên toàn bộ trọng số của mô hình gốc.
+2.	Thêm Adapters: Chèn các ma trận nhỏ (Low Rank Matrices) vào các lớp của mô hình (thường là các lớp Attention).
+3.	Train Adapters: Chỉ huấn luyện các ma trận nhỏ này.
+o	Công thức tư duy: $W_{mới} = W_{gốc} + \Delta W$
+o	Trong đó $\Delta W$ được phân tách thành 2 ma trận nhỏ $A \times B$.
+C. Giải thích kỹ thuật Quantization (The 'Q' in QLoRA)
+•	Vấn đề: Mô hình Llama 3.2 (3 tỷ tham số) ở độ chính xác 32-bit tốn khoảng 13GB bộ nhớ. GPU miễn phí thường chỉ có 15-16GB, không đủ chỗ trống để tính toán Gradient khi training.
+•	Giải pháp: Giảm độ chính xác của trọng số gốc.
+o	32-bit (Full precision) -> 13GB.
+o	8-bit -> ~3.6GB.
+o	4-bit -> ~2.2GB (Mức sử dụng trong QLoRA).
+•	Cơ chế: Mô hình gốc được nén xuống 4-bit (để tiết kiệm RAM), nhưng các Adapter (phần đang học) vẫn giữ ở 32-bit hoặc 16-bit để đảm bảo độ chính xác khi tính toán.
+D. 3 Siêu tham số quan trọng (Key Hyperparameters)
+Giảng viên giới thiệu 3 tham số bạn sẽ phải cấu hình trong code (vào các buổi sau):
+1.	Rank (r): Kích thước của ma trận Adapter.
+o	Quy tắc: Bắt đầu với 8, tăng lên 16, 32... (Số càng lớn càng học được nhiều chi tiết nhưng tốn RAM hơn).
+2.	Alpha ($\alpha$): Hệ số nhân (scaling factor) để quyết định mức độ ảnh hưởng của Adapter lên mô hình gốc.
+o	Quy tắc: Thường đặt Alpha = $2 \times r$.
+3.	Target Modules: Các lớp nào trong mạng nơ-ron sẽ được gắn Adapter.
+o	Quy tắc: Bắt đầu bằng việc gắn vào các lớp Attention Heads (cơ chế chú ý).
+________________________________________
+3. Kiến trúc & Quy trình (Pipeline)
+Dưới đây là mô hình hóa luồng dữ liệu trong QLoRA mà bài học mô tả:
+Đoạn mã
+graph TD
+    Input[Dữ liệu đầu vào (Prompt)] --> FrozenModel[Mô hình gốc (Llama 3.2 3B)]
+    Input --> Adapter[LoRA Adapter (Trainable)]
+    
+    subgraph "Mô hình gốc (Frozen)"
+        FrozenModel -- Quantization 4-bit --> CompressedWeights[Trọng số nén 4-bit]
+        Note1[Chiếm ~2.2GB VRAM]
+    end
+    
+    subgraph "LoRA Adapter (Active)"
+        Adapter -- Matrix A x B --> LowRankCalc[Tính toán 32-bit/16-bit]
+        Note2[Chiếm rất ít VRAM (<1%)]
+    end
+    
+    CompressedWeights --> OutputBase
+    LowRankCalc --> OutputDelta
+    
+    OutputBase -- Cộng gộp (+) --> OutputFinal[Kết quả dự đoán]
+    OutputDelta -- Cộng gộp (+) --> OutputFinal
+Phân tích Pipeline:
+1.	Tiết kiệm bộ nhớ: Nhờ nén mô hình gốc (nhánh trái), ta giải phóng phần lớn VRAM.
+2.	Hiệu quả tính toán: Việc Backpropagation (lan truyền ngược để học) chỉ diễn ra ở nhánh bên phải (Adapter), giảm khối lượng tính toán đi hàng nghìn lần.
+________________________________________
+4. Phân tích Code
+Hiện tại bạn chưa cung cấp file code cụ thể cho bài học Day 1 của Tuần 7 (file xử_lý_dữ_liệu.docx chứa code của tuần 6). Tuy nhiên, dựa trên nội dung lý thuyết, tôi sẽ mô tả cấu trúc code cấu hình QLoRA mà bạn chắc chắn sẽ gặp trong các buổi tới (sử dụng thư viện peft và bitsandbytes):
+Python
+# --- MÔ PHỎNG CODE CẤU HÌNH QLORA (Dựa trên lý thuyết bài học) ---
+
+# 1. Cấu hình Quantization (Nén mô hình gốc)
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,            # Kích hoạt 4-bit quantization (như slide trang 13)
+    bnb_4bit_quant_type="nf4",    # Kiểu dữ liệu Normal Float 4 (tối ưu cho trọng số phân phối chuẩn)
+    bnb_4bit_compute_dtype=torch.float16 # Tính toán ở dạng 16-bit để nhanh hơn
+)
+
+# 2. Cấu hình LoRA (Tạo Adapter)
+peft_config = LoraConfig(
+    r=16,                         # Rank: Kích thước ma trận nén (Rule of thumb: start with 8 or 16)
+    lora_alpha=32,                # Alpha: Hệ số scaling (Rule of thumb: Alpha = 2 * r)
+    target_modules=["q_proj", "v_proj"], # Target Modules: Áp dụng vào các lớp Attention (Query, Value)
+    lora_dropout=0.05,            # Kỹ thuật chống học vẹt (Overfitting)
+    bias="none",
+    task_type="CAUSAL_LM"         # Loại tác vụ: Language Modeling
+)
+
+# 3. Load Model
+model = AutoModelForCausalLM.from_pretrained(
+    "meta-llama/Llama-3.2-3B",
+    quantization_config=bnb_config # Áp dụng cấu hình nén 4-bit
+)
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+1.	PEFT (Parameter-Efficient Fine-Tuning):
+o	LoRA và QLoRA thuộc nhóm kỹ thuật PEFT. Thay vì tinh chỉnh 100% tham số (Full Fine-tuning), PEFT chỉ tinh chỉnh < 1% tham số nhưng đạt hiệu quả gần tương đương.
+o	Điều này cho phép lưu trữ hàng trăm adapter khác nhau cho các tác vụ khác nhau (1 adapter cho code, 1 adapter cho y tế...) mà chỉ cần dùng chung 1 mô hình gốc (Base Model).
+2.	Tại sao là 4-bit?
+o	Con số này không ngẫu nhiên. Các nghiên cứu (đặc biệt là paper về QLoRA của Tim Dettmers) chỉ ra rằng 4-bit là giới hạn nén tối đa mà sự suy giảm chất lượng mô hình (degradation) là không đáng kể so với lợi ích về bộ nhớ.
+3.	Llama 3.2 3B:
+o	Đây là dòng mô hình mới của Meta tối ưu cho thiết bị biên (Edge devices) và laptop. Việc chọn mô hình này cho khóa học là rất hợp lý vì nó đủ nhỏ để chạy mượt mà trên Google Colab Free Tier nhưng đủ thông minh nhờ thừa hưởng kiến trúc của Llama 3.1 405B.
+Tổng kết: Buổi học này đặt nền móng lý thuyết. Bạn đã hiểu tại sao chúng ta có thể train AI xịn trên máy tính cá nhân. Các buổi tiếp theo sẽ đi vào thực hành: Chuẩn bị dữ liệu -> Train -> Evaluate.
+165. Day 1 - LoRA: Training LLaMA 3.2 with Low-Rank Adapters 
+Chào bạn, với tư cách là trợ lý giảng dạy chuyên về LLM Engineering, tôi đã tổng hợp toàn bộ nội dung của buổi học Day 1 - Tuần 7 dựa trên ngữ cảnh từ tuần trước (file xử_lý_dữ_liệu.docx), slide bài giảng (Copy of LLM Week 7 Day 1.pdf) và bản phiên âm bạn cung cấp.
+Dưới đây là báo cáo chi tiết:
+________________________________________
+1. Chủ đề bài học
+165. Day 1 - Introduction to QLoRA: Training LLaMA 3.2 with Low-Rank Adapters
+2. Tóm tắt cốt lõi
+•	Chuyển đổi chiến lược: Sau khi thử nghiệm Fine-tuning Frontier Model (GPT-4o-mini) ở Tuần 6 không đạt kỳ vọng về bài toán "kiến thức", tuần này chuyển sang Fine-tuning mô hình mã nguồn mở (Open Source) là Llama 3.2 (3B).
+•	Giải quyết bài toán phần cứng: Để huấn luyện một mô hình 3 tỷ tham số (cần ~13GB VRAM ở chế độ thường) trên các GPU giới hạn (như Colab T4), bài học giới thiệu kỹ thuật QLoRA.
+•	Cơ chế QLoRA: Là sự kết hợp của hai "chiêu trò" (tricks):
+1.	LoRA (Low-Rank Adaptation): Đóng băng trọng số gốc, chỉ huấn luyện các ma trận nhỏ (adapters) thêm vào.
+2.	Q (Quantization): Nén trọng số gốc từ 32-bit xuống 4-bit để giảm bộ nhớ.
+3. Nội dung chính
+A. Ngữ cảnh & Mục tiêu (Context from Week 6)
+•	Dự án Capstone: Tiếp tục dự án "The Price Is Right" (Dự đoán giá sản phẩm). Tuần 6 chúng ta đã dùng Deep Neural Network để đạt kết quả tốt (Redemption), nhưng tuần này mục tiêu là đạt hiệu suất tương đương Frontier Model bằng một mô hình nhỏ, tự chủ và chi phí thấp1111.
+•	Đối tượng: Mô hình Llama 3.2 3B của Meta. Đây là mô hình nhỏ (3 tỷ tham số), được tối ưu cho thiết bị biên (Edge/Phone), nhưng vẫn rất lớn để training nếu không có kỹ thuật chuyên biệt.
+B. Giải mã LoRA (Low-Rank Adaptation)
+Đây là kỹ thuật cốt lõi để "dạy" mô hình mà không cần thay đổi bộ não gốc của nó.
+1.	Đóng băng (Freeze): Giữ nguyên 100% trọng số của mô hình gốc (Base Model). Không thực hiện tối ưu hóa (Gradient Descent) trên các tham số này.
+2.	Mô-đun mục tiêu (Target Modules): Chọn các lớp quan trọng trong kiến trúc Transformer (thường là các lớp Attention) để tác động vào2.
+3.	Bộ điều hợp (Adapters): Thay vì thay đổi ma trận trọng số lớn, ta tạo ra hai ma trận nhỏ A và B (Low Rank Matrices).
+o	Ma trận A và B được nhân với nhau để tạo ra kích thước tương đương ma trận gốc, sau đó cộng kết quả vào mô-đun mục tiêu.
+o	Quy trình: Forward Pass vẫn đi qua mô hình gốc, nhưng kết quả cuối cùng được cộng thêm giá trị từ Adapter.
+C. Giải mã Q (Quantization)
+Đây là kỹ thuật nén dữ liệu để "nhét" mô hình vào GPU.
+•	Vấn đề: Mô hình 3B ở dạng 32-bit (Full Precision) tốn khoảng 13GB VRAM.
+•	Giải pháp: Nén trọng số mô hình gốc xuống 4-bit (kiểu dữ liệu NF4 - Normal Float 4).
+•	Kết quả: Dung lượng mô hình giảm từ 13GB xuống còn khoảng 2.2GB, cho phép chạy thoải mái trên GPU miễn phí3333.
+•	Lưu ý: Mô hình gốc nén xuống 4-bit, nhưng các Adapter (phần đang học) vẫn giữ ở độ chính xác cao (16-bit/32-bit) để đảm bảo việc học hiệu quả4.
+D. Các siêu tham số (Hyperparameters) quan trọng
+Slide bài giảng nhấn mạnh 3 tham số cần cấu hình khi code:
+1.	Rank (r): Kích thước của ma trận Adapter. (Quy tắc: Bắt đầu với 8, 16, 32...) 5.
+2.	Alpha ($\alpha$): Hệ số tỉ lệ (scaling factor). Giúp khuếch đại hoặc giảm thiểu tác động của Adapter lên mô hình gốc. (Quy tắc: $\alpha = 2 \times r$).
+3.	Target Modules: Các lớp mạng nơ-ron được chọn để gắn Adapter (thường là Attention heads)6.
+4. Kiến trúc & Quy trình (Pipeline)
+Dựa trên mô tả trong Transcript và Slide, quy trình QLoRA hoạt động như sau:
+1.	Input: Dữ liệu huấn luyện (Prompt dự đoán giá).
+2.	Base Model (Llama 3.2): Được tải vào bộ nhớ dưới dạng 4-bit (đóng băng).
+3.	LoRA Branch (Nhánh phụ):
+o	Khởi tạo 2 ma trận nhỏ $A$ và $B$ với Rank thấp ($r$).
+o	Tính toán: $\Delta W = (A \times B) \times \frac{\alpha}{r}$.
+4.	Output: Kết quả đầu ra = Output của Base Model + Output của LoRA Branch.
+5.	Backpropagation: Chỉ tính toán Gradient và cập nhật trọng số cho ma trận $A$ và $B$.
+________________________________________
+5. Phân tích Code (Cấu hình Conceptual)
+Lưu ý: Bạn chưa cung cấp file code .py hoặc .ipynb cụ thể cho bài học Day 1 Tuần 7 trong nội dung upload. Tuy nhiên, dựa trên Slide (trang 12) và Transcript, tôi sẽ phân tích các logic cấu hình mà giảng viên đã giới thiệu (đây là phần bạn sẽ phải code trong các ngày tiếp theo).
+Python
+# --- MÔ PHỎNG CẤU HÌNH DỰA TRÊN LÝ THUYẾT BÀI HỌC ---
+
+# 1. Cấu hình LoRA (LoraConfig)
+# Logic: Định nghĩa hình dạng và cách thức hoạt động của các Adapter.
+lora_config = LoraConfig(
+    r = 16,                      # [Rank] Số chiều của ma trận nén.
+                                 # Giải thích: Quyết định độ phức tạp của Adapter. Số càng lớn càng học được nhiều nhưng tốn VRAM.
+                                 # Bài học gợi ý: Bắt đầu từ 8, gấp đôi lên 16, 32... [cite: 2994]
+    
+    lora_alpha = 32,             # [Alpha] Hệ số Scaling.
+                                 # Giải thích: Kiểm soát mức độ ảnh hưởng của kiến thức mới (Adapter) so với kiến thức cũ (Base Model).
+                                 # Quy tắc ngón tay cái: Alpha = 2 * r [cite: 2997]
+    
+    target_modules = ["q_proj", "v_proj"], # [Target Modules]
+                                 # Giải thích: Chỉ định gắn adapter vào lớp nào. Thường là lớp Attention (Query, Value) [cite: 2999]
+    ...
+)
+
+# 2. Cấu hình Quantization (BitsAndBytesConfig)
+# Logic: Nén mô hình gốc để tiết kiệm bộ nhớ "Q" trong QLoRA.
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit = True,         # Kích hoạt nén 4-bit [cite: 3006]
+    bnb_4bit_quant_type = "nf4", # Kiểu dữ liệu tối ưu cho trọng số phân phối chuẩn
+    bnb_4bit_compute_dtype = torch.float16 # Tính toán Adapter ở 16-bit (nhanh hơn 32-bit) 
+)
+6. Kiến thức liên quan & Mở rộng
+•	PEFT (Parameter-Efficient Fine-Tuning): QLoRA là một dạng của PEFT. Thay vì tinh chỉnh 100% tham số (Full Fine-tuning), PEFT chỉ tinh chỉnh <1% tham số nhưng đạt hiệu quả tương đương. Điều này cho phép một Base Model có thể "gánh" nhiều Adapter khác nhau (một adapter chuyên code, một adapter chuyên y tế...).
+•	Tại sao Llama 3.2? Đây là dòng mô hình mới của Meta, mặc dù nhỏ (3B) nhưng được thừa hưởng quy trình training của mô hình lớn 405B (thông qua kỹ thuật Knowledge Distillation). Nó là ứng cử viên hoàn hảo để thực hành trên Google Colab Free Tier.
+•	VRAM Impact:
+o	Llama 3B (32-bit): ~12-13GB VRAM.
+o	Llama 3B (8-bit): ~3.6GB VRAM.
+o	Llama 3B (4-bit - QLoRA): ~2.2GB VRAM.
+o	Ý nghĩa: Bạn có thể chạy mô hình này ngay cả trên các GPU yếu hoặc Laptop có GPU rời.
+
+166. Day 1 - LoRA Hyperparameters and QLoRA Quantization Explained  
+Chào bạn, tiếp tục chuỗi bài học của Tuần 7, phần này đi sâu vào "cơ chế hoạt động" (the mechanics) của QLoRA. Giảng viên không chỉ giải thích cách nó vận hành mà còn đưa ra các quy tắc ngón tay cái (Rules of Thumb) cực kỳ quý giá để bạn thiết lập thông số khi code thực tế.
+Dưới đây là tổng hợp chi tiết bài học Day 1 - LoRA Hyperparameters and QLoRA Quantization Explained:
+________________________________________
+1. Cơ chế hoạt động của LoRA (Recap)
+Trước khi đi vào các tham số, hãy hình dung lại bức tranh toàn cảnh về cách LoRA hoạt động để "hack" quy trình training:
+•	Freeze (Đóng băng): Toàn bộ trọng số của mô hình gốc (Llama 3.2 3B) được giữ nguyên, không thay đổi.
+•	Adapter (Bộ điều hợp): Với mỗi mô-đun mục tiêu (Target Module), ta thêm vào một cặp ma trận nhỏ gọi là LoRA A và LoRA B.
+•	Phép toán: Thay vì train ma trận lớn $W$, ta train A và B.
+o	Kết quả cập nhật = $(A \times B) \times Scaling$.
+o	Sau đó cộng kết quả này vào trọng số cũ của mô hình gốc.
+________________________________________
+2. Ba Siêu tham số (Hyperparameters) Cốt lõi
+Khi cấu hình LoRA (trong thư viện peft), bạn sẽ phải đối mặt với 3 tham số quan trọng nhất. Đây là hướng dẫn thiết lập từ giảng viên:
+A. Rank (r) - Kích thước ma trận nén
+•	Định nghĩa: Số chiều (dimension) của các ma trận nhỏ A và B.
+•	Ý nghĩa: r càng nhỏ thì càng ít tham số cần train (nhẹ máy), nhưng r quá nhỏ có thể không học được các đặc điểm phức tạp.
+•	Quy tắc ngón tay cái:
+o	Thường là lũy thừa của 2 (Power of 2): 8, 16, 32, 64...
+o	Tại sao là lũy thừa của 2? Đây gần như là một "truyền thuyết đô thị" (urban legend) trong giới AI rằng nó tối ưu bộ nhớ hơn. Thực tế bạn có thể chọn r=11, nhưng r=8 hoặc r=16 là tiêu chuẩn ngành.
+o	Khởi điểm: Bắt đầu với r = 8 hoặc 16.
+B. Alpha (lora_alpha) - Hệ số tỷ lệ
+•	Định nghĩa: Hệ số dùng để khuếch đại (scale up) kết quả của $A \times B$ trước khi cộng vào mô hình gốc.
+•	Quy tắc ngón tay cái:
+o	Alpha = 2 $\times$ Rank.
+o	Ví dụ: Nếu chọn r = 32 $\rightarrow$ đặt alpha = 64.
+o	Kinh nghiệm giảng viên: Việc thử các tỷ lệ khác thường cho kết quả kém hơn một chút, nên cứ tuân theo quy tắc $2x$ là an toàn nhất.
+C. Target Modules - Các lớp cần train
+•	Định nghĩa: Bạn muốn gắn Adapter vào đâu trong mạng nơ-ron?
+•	Quy tắc ngón tay cái:
+o	Ưu tiên số 1: Attention Heads (Các lớp chú ý: q_proj, v_proj). Đây là nơi mô hình "suy nghĩ" nên tác động vào đây hiệu quả nhất.
+o	Mở rộng: Có thể train thêm các lớp MLP (Multi-Layer Perceptrons) để tăng khả năng học, nhưng sẽ tốn VRAM và thời gian hơn.
+________________________________________
+3. Giải mã QLoRA (Quantization)
+Đây là chữ "Q" biến việc train mô hình 3 tỷ tham số trên máy cá nhân thành hiện thực.
+Vấn đề của 32-bit
+•	Mô hình Llama 3.2 3B có 3 tỷ tham số.
+•	Mỗi tham số là một số thực 32-bit (4 bytes).
+•	Tổng dung lượng: $3 tỷ \times 4 bytes \approx 13 GB$ (chỉ để load mô hình, chưa kể train).
+Giải pháp 4-bit (Quantization)
+•	Ý tưởng: Giảm độ chính xác của trọng số để tiết kiệm bộ nhớ.
+•	So sánh trực quan:
+o	32-bit: Giống như một công tắc đèn mờ (dimmer) có thể vặn vô hạn vị trí.
+o	4-bit: Giới hạn công tắc đó chỉ còn đúng 16 vị trí ($2^4 = 16$).
+•	Hiệu quả: Dung lượng giảm từ 13GB xuống còn ~2.2GB (khoảng 1/4).
+•	Chất lượng: Hiệu suất mô hình có giảm, nhưng giảm rất ít so với lợi ích về bộ nhớ. Nó giống như nén file nhạc MP3: dung lượng nhỏ hơn nhiều so với file WAV gốc nhưng nghe vẫn rất ổn.
+Hai lưu ý kỹ thuật quan trọng (Technical Nuances)
+Giảng viên nhấn mạnh 2 điểm dễ gây nhầm lẫn:
+1.	Không phải số nguyên (Integers): Dù 4-bit chỉ có 16 giá trị (0-15), nhưng trong QLoRA, chúng được ánh xạ tới các giá trị số thực (Floats) tuân theo phân phối chuẩn (Normal Float 4 - NF4), giúp giữ lại thông tin tốt nhất có thể chứ không phải cắt cụt thô thiển.
+2.	Chỉ nén mô hình gốc:
+o	Base Model: Được nén xuống 4-bit (Quantized).
+o	LoRA Adapters (A & B): Vẫn giữ ở 32-bit hoặc 16-bit.
+o	Tại sao? Vì Adapter là phần chúng ta cần tính toán đạo hàm (gradient) chính xác để học, nên không thể nén phần này.
+Tổng kết bài học
+Hôm nay bạn đã nắm được lý thuyết nền tảng cho việc thực hành trong tuần này:
+1.	Dùng LoRA để chỉ train <1% tham số (với r, alpha và target_modules).
+2.	Dùng Quantization (Q) để nén mô hình gốc xuống 4-bit, giảm VRAM từ 13GB -> 2GB.
+$\rightarrow$ Kết hợp lại thành QLoRA.
+167. Day 1 - Setting Up Google Colab and Exploring LLaMA 3.2 Model Architecture 
+Chào bạn,
+Dưới đây là tổng hợp nội dung bài học Lesson 167 - Setting Up Google Colab and Exploring LLaMA 3.2 Model Architecture thuộc Tuần 7.
+Đây là bước chuẩn bị môi trường thực hành và "mổ xẻ" kiến trúc mô hình gốc trước khi chúng ta tiến hành nén nó (Quantization) ở bài sau.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Chuyển môi trường: Rời khỏi Cursor (Local/VS Code) để chuyển sang Google Colab. Lý do: Cần sử dụng GPU T4 miễn phí của Google để chạy mô hình.
+•	Thiết lập môi trường: Cài đặt thư viện bitsandbytes (để hỗ trợ lượng tử hóa sau này) và xử lý lỗi thường gặp về CUDA bằng cách khởi động lại runtime.
+•	Phân tích mô hình gốc: Tải mô hình Llama 3.2 3B ở chế độ đầy đủ (Full Precision - 32-bit).
+•	Kết quả quan trọng: Mô hình gốc chiếm ~12.9 GB VRAM, gần như chiếm trọn bộ nhớ của GPU T4 (15GB), chứng minh sự cần thiết của việc nén (Quantization) nếu muốn Fine-tune.
+________________________________________
+2. Nội dung chính
+A. Thiết lập Google Colab (Setup)
+•	GPU T4: Bắt buộc phải chuyển Runtime Type sang T4 GPU (Miễn phí).
+•	Lỗi kinh điển bitsandbytes: Khi cài đặt thư viện này, Colab thường báo lỗi "CUDA required but not available".
+o	Giải pháp: Sau khi chạy lệnh pip install, bắt buộc phải Restart Session (Khởi động lại phiên) để Colab nhận diện driver mới.
+•	Hugging Face Login: Cần đăng nhập bằng Token (đã tạo ở Tuần 3) để tải được model Llama 3.2 (vì đây là Gated Model - model cần xin quyền truy cập).
+B. Mổ xẻ Kiến trúc Llama 3.2 3B (Architecture Breakdown)
+Giảng viên tải mô hình và in cấu trúc các lớp (Layers) ra để phân tích. Dưới đây là luồng đi của dữ liệu:
+1.	Embedding Layer (Lớp nhúng):
+o	Input: Vector One-hot khổng lồ kích thước 128,256 (Tương ứng với bộ từ vựng - Vocabulary size của Llama).
+o	Output: Nén xuống còn 3,072 chiều (Hidden size).
+o	Ý nghĩa: Chuyển đổi từ ID của token sang vector ngữ nghĩa.
+2.	Decoder Layers (28 lớp xếp chồng nhau):
+o	Đây là "bộ não" xử lý chính. Mỗi lớp gồm:
+o	Self-Attention: Gồm các ma trận Q, K, V, O. Input/Output đều là 3,072 chiều.
+o	MLP (Multi-Layer Perceptron): Mạng nơ-ron truyền thẳng.
+	Nó "phình" dữ liệu từ 3,072 lên 8,192 (Intermediate size) để xử lý phức tạp.
+	Sau đó nén lại về 3,072.
+o	Normalization: Chuẩn hóa dữ liệu (RMSNorm).
+3.	Output Head (Lớp đầu ra):
+o	Input: 3,072 chiều.
+o	Output: Phóng ngược trở lại 128,256 chiều.
+o	Ý nghĩa: Mỗi con số trong 128k đầu ra này đại diện cho xác suất của token tiếp theo.
+________________________________________
+3. Phân tích Code (Conceptual)
+Dựa trên mô tả trong bài giảng, đây là các khối code bạn sẽ thao tác trên Colab:
+Python
+# KHỐI 1: Cài đặt thư viện
+# Lưu ý: -q là quiet (ít log), -U là upgrade (bản mới nhất)
+!pip install -q -U bitsandbytes transformers peft accelerate
+
+# QUAN TRỌNG: Sau bước này phải Restart Runtime nếu gặp lỗi CUDA!
+Python
+# KHỐI 2: Đăng nhập Hugging Face
+from huggingface_hub import login
+# Colab sẽ hiện ô input để bạn nhập Token (Token quyền Write/Read từ HF)
+login()
+Python
+# KHỐI 3: Tải và Kiểm tra Mô hình Gốc (Full Precision)
+import torch
+from transformers import AutoModelForCausalLM
+
+base_model_id = "meta-llama/Llama-3.2-3B"
+
+# Tải model (Mặc định là float32 hoặc float16 tùy cấu hình)
+model = AutoModelForCausalLM.from_pretrained(
+    base_model_id,
+    device_map="auto" # Tự động đưa vào GPU
+)
+
+# In cấu trúc model
+print(model) 
+# -> Sẽ thấy các lớp: Embedding, LlamaDecoderLayer (0-27), LlamaRMSNorm, lm_head...
+
+# Kiểm tra bộ nhớ VRAM
+print(model.get_memory_footprint()) 
+# -> Output: ~12,900,000,000 bytes (khoảng 12.9 GB)
+Giải thích Logic:
+•	Mục đích của khối code này là để thấy sự tốn kém của mô hình gốc.
+•	Với 12.9 GB VRAM bị chiếm dụng chỉ để chứa mô hình, bạn chỉ còn ~2GB dư trên GPU T4 (tổng 15GB). Số dư này không đủ để thực hiện Backpropagation (huấn luyện), vì quá trình train cần lưu thêm Gradients và Optimizer states (tốn gấp nhiều lần dung lượng model).
+•	$\rightarrow$ Kết luận: Không thể train model này theo cách thông thường trên Colab miễn phí.
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+1.	Tại sao lại là con số 128,256?
+o	Đây là kích thước bộ từ vựng (Vocabulary Size) của Tokenizer Llama 3. Nó bao gồm các từ, một phần của từ, ký tự đặc biệt và các token đa ngôn ngữ.
+o	Con số này lớn hơn nhiều so với Llama 2 (32k), giúp model hiểu ngôn ngữ tốt hơn nhưng cũng làm tăng kích thước lớp Embedding và Output Head.
+2.	One-Hot Vector (Vectơ nóng):
+o	Máy tính không hiểu chữ, nó cần số.
+o	Ví dụ: Nếu từ điển có 5 từ [táo, cam, nho, mít, dừa].
+o	Từ "nho" (vị trí số 3) sẽ được biểu diễn là [0, 0, 1, 0, 0].
+o	Trong Llama 3.2, vectơ này dài tới 128,256 số 0 và chỉ có một số 1. Lớp Embedding có nhiệm vụ "nén" vectơ thưa thớt này thành một vectơ đặc (dense vector) chứa thông tin ngữ nghĩa.
+3.	Lưu ý thực hành:
+o	Cuối bài học, giảng viên yêu cầu Restart Session một lần nữa.
+o	Mục đích: Xóa mô hình 13GB khỏi bộ nhớ GPU để dọn chỗ cho bài học tiếp theo (load mô hình dạng 4-bit). Nếu không restart, bạn sẽ bị lỗi OOM (Out Of Memory) ngay lập tức ở bài sau.
+168. Day 1 - Loading Models with 8-bit and 4-bit Quantization Using QloRA 
+Chào bạn,
+Chúng ta vừa đi qua một bài thực hành cực kỳ "mãn nhãn" về mặt số liệu. Bài học này chứng minh sức mạnh thực tế của Quantization (Lượng tử hóa) và LoRA.
+Dưới đây là tổng hợp chi tiết bài học Day 1 - Loading Models with 8-bit and 4-bit Quantization Using QLoRA, bao gồm các con số cụ thể về bộ nhớ và giải thích toán học đằng sau kích thước của Adapter.
+________________________________________
+1. Tóm tắt cốt lõi
+•	Mục tiêu: So sánh mức tiêu thụ VRAM của mô hình Llama 3.2 3B ở các chế độ 32-bit (gốc), 8-bit và 4-bit.
+•	Kết quả ấn tượng:
+o	32-bit: ~13 GB (Gần như quá tải T4 GPU).
+o	8-bit: ~3.6 GB.
+o	4-bit (QLoRA): ~2.2 GB (Cực kỳ nhẹ, dư nhiều chỗ để training).
+•	Minh chứng LoRA: Load thử một mô hình đã Fine-tune để "soi" cấu trúc bên trong, thấy rõ sự xuất hiện của các ma trận lora_A và lora_B song song với các lớp Attention.
+________________________________________
+2. Quy trình & Kết quả Chi tiết
+A. 8-bit Quantization
+•	Thao tác: Khởi động lại Session (để xóa RAM), sau đó load model với cấu hình load_in_8bit=True.
+•	Cơ chế: Mỗi tham số được nén xuống còn 256 giá trị khả thi ($2^8$).
+•	Quan sát cấu trúc: Các lớp Linear (tuyến tính) thông thường chuyển thành Linear8bitLt.
+•	Bộ nhớ: Giảm xuống còn 3.6 GB.
+B. 4-bit Quantization (Tiêu chuẩn của QLoRA)
+•	Thao tác: Sử dụng cấu hình BitsAndBytesConfig chuyên sâu.
+o	load_in_4bit=True
+o	bnb_4bit_quant_type="nf4" (Normal Float 4 - tối ưu cho phân phối chuẩn của trọng số).
+o	use_double_quant=True (Kỹ thuật lượng tử hóa kép để tiết kiệm thêm chút bộ nhớ).
+•	Cơ chế: Mỗi tham số chỉ còn 16 giá trị khả thi ($2^4$), nhưng được ánh xạ thông minh qua NF4 để giữ độ chính xác.
+•	Bộ nhớ: Giảm sâu xuống còn 2.2 GB.
+C. Load Model đã Fine-tune (Peeking into the Future)
+Giảng viên load một mô hình đã gắn Adapter (rank 32) để chúng ta hình dung "nội thất" bên trong.
+•	Tổng dung lượng: 2.2 GB (Base 4-bit) + 73 MB (Adapter).
+•	Cấu trúc mạng nơ-ron:
+o	Base model (Attention layers): Đã biến thành Linear4bit.
+o	Xuất hiện thêm: LoraLayer.
+o	Bên trong LoraLayer: Có 2 ma trận lora_A và lora_B.
+	lora_A: Kích thước [3072 $\times$ 32].
+	lora_B: Kích thước [32 $\times$ 3072].
+o	Lưu ý: Ma trận A và B này KHÔNG bị nén, chúng vẫn là Float32 (để đảm bảo độ chính xác khi học).
+________________________________________
+3. Phân tích Toán học: Tại sao Adapter nặng 73MB?
+Đây là phần tính toán thú vị giảng viên thực hiện cuối bài để minh bạch hóa con số 73MB.
+Thông số đầu vào:
+•	Rank (r): 32.
+•	Hidden Size (d): 3072 (Kích thước chiều ẩn của Llama 3.2).
+•	Target Modules: 4 mô-đun (q_proj, k_proj, v_proj, o_proj).
+•	Số lớp (Layers): 28 lớp.
+•	Kiểu dữ liệu Adapter: Float32 (4 bytes/tham số).
+Công thức tính:
+1.	Số tham số cho 1 module (ví dụ q_proj):
+o	Ma trận A: $d \times r = 3072 \times 32 = 98,304$ tham số.
+o	Ma trận B: $r \times d = 32 \times 3072 = 98,304$ tham số.
+o	Tổng 1 module = $196,608$ tham số.
+2.	Tổng tham số cho toàn bộ mạng:
+o	Tổng = (Tham số 1 module) $\times$ (4 modules: Q, K, V, O) $\times$ (28 layers).
+o	Tổng = $196,608 \times 4 \times 28 \approx$ 22,020,096 tham số (~22 triệu).
+o	Lưu ý: Trong bài giảng, giảng viên tính ra khoảng 18 triệu do có thể có sự khác biệt nhỏ trong cách đếm bias hoặc số lượng module thực tế được kích hoạt trong config demo, nhưng logic là như vậy.
+3.	Dung lượng (Size in MB):
+o	Size = Số tham số $\times$ 4 bytes (Float32).
+o	Size $\approx 18,000,000 \times 4 \text{ bytes} \approx 72-73 \text{ MB}$.
+$\rightarrow$ Kết luận: Chúng ta thêm vào 18 triệu tham số mới, nhưng chỉ tốn 73MB. Đây là cái giá cực rẻ để tinh chỉnh hành vi của một mô hình 3 tỷ tham số.
+________________________________________
+4. Phân tích Code thực hành
+Dưới đây là đoạn code tái hiện logic cấu hình 4-bit mà bạn sẽ dùng nhiều nhất:
+Python
+import torch
+from transformers import BitsAndBytesConfig, AutoModelForCausalLM
+
+# 1. Cấu hình Quantization (Q)
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,              # Kích hoạt 4-bit
+    bnb_4bit_quant_type="nf4",      # Dùng Normal Float 4 (tối ưu nhất hiện nay)
+    bnb_4bit_use_double_quant=True, # Nén cả hằng số lượng tử hóa (tiết kiệm thêm)
+    bnb_4bit_compute_dtype=torch.float16 # Tính toán ở dạng 16-bit (cho nhanh)
+)
+
+# 2. Load Model với cấu hình trên
+model = AutoModelForCausalLM.from_pretrained(
+    "meta-llama/Llama-3.2-3B",
+    quantization_config=bnb_config,
+    device_map="auto"
+)
+
+# 3. Kiểm tra bộ nhớ
+print(f"Memory footprint: {model.get_memory_footprint() / 1e9:.2f} GB")
+# Output mong đợi: ~2.2 GB
+5. Lưu ý quan trọng khi thực hành
+1.	Restart Session: Giảng viên nhắc đi nhắc lại việc này. Trên Colab Free, GPU chỉ có 15GB. Nếu bạn load model 8-bit (3.6GB) xong mà không xóa đi (bằng cách restart), rồi load tiếp model 4-bit (2.2GB), RAM sẽ đầy và gây lỗi OOM (Out Of Memory).
+2.	Bản chất file Adapter: Khi bạn lưu model sau khi train, bạn chỉ lưu file nặng 73MB này. Khi dùng, bạn load base model (nặng 2GB) rồi "gắn" file 73MB này vào. Điều này giúp chia sẻ model cực dễ dàng.
+169. Day 1 - LoRA Parameter Calculations and Model Size on Hugging Face 
+Chào bạn, đây là bài học cuối cùng của Day 1 - Tuần 7. Sau khi đã đi qua lý thuyết và các con số tính toán trên giấy, bài này giảng viên sẽ đưa ra "bằng chứng thép" trên thực tế để xác nhận độ chính xác của các tính toán đó.
+Dưới đây là tổng hợp nội dung bài 169. Day 1 - LoRA Parameter Calculations and Model Size on Hugging Face:
+________________________________________
+1. Tóm tắt cốt lõi
+•	Lý thuyết khớp với thực tế: Tính toán lý thuyết cho thấy Adapter (r=32) nặng khoảng 73MB. Kiểm tra file thực tế trên Hugging Face xác nhận con số là 73.4MB.
+•	Hiệu quả lưu trữ: So với mô hình gốc Llama 13GB, việc chỉ cần lưu trữ 73MB để thay đổi hành vi mô hình là một bước đột phá về hiệu suất.
+•	Chiến lược huấn luyện: Giảng viên giới thiệu hai lộ trình: "Light" (nhẹ nhàng cho người mới) và "Heavy" (chuyên sâu với nhiều dữ liệu và adapter lớn hơn).
+________________________________________
+2. Nội dung chính
+A. Xác thực con số "thần thánh" 73MB
+Trong bài trước, chúng ta đã tính toán:
+•	Cấu hình: Rank ($r$) = 32, Target modules = Attention layers (Q, K, V, O).
+•	Số tham số: ~18 triệu tham số.
+•	Kích thước tính toán: $18 \text{ triệu} \times 4 \text{ bytes (Float32)} \approx \mathbf{72-73 \text{ MB}}$.
+Kiểm chứng thực tế:
+Giảng viên mở một model đã train xong trên Hugging Face, vào tab Files and versions và tìm thấy file adapter_model.safetensors.
+•	Kích thước thực tế trên đĩa: 73.4 MB.
+•	Kết luận: QLoRA thực sự hoạt động như quảng cáo. Bạn chỉ cần tải Base Model (2.2GB - 4bit) và file Adapter tí hon này (73MB) để có một mô hình thông minh theo ý muốn.
+B. Giới thiệu lộ trình "Heavy Training" (Huấn luyện hạng nặng)
+Ngoài lộ trình tiêu chuẩn (Light), giảng viên sẽ thực hiện một bài test "điên rồ" (Crazy run) để đẩy giới hạn mô hình:
+•	Dữ liệu: Dùng toàn bộ 800,000 mẫu dữ liệu (thay vì 20,000 mẫu).
+•	Rank ($r$): Tăng lên 256 (rất cao so với chuẩn 32/64).
+•	Target Modules: Nhắm mục tiêu vào cả Attention layers VÀ MLP layers (Gate, Up, Down projections).
+•	Kết quả dự kiến:
+o	Số tham số train: ~389 triệu.
+o	Kích thước Adapter: ~1.56 GB.
+•	Mục đích: Để xem khi dồn toàn lực, mô hình nguồn mở nhỏ bé này có thể thông minh đến mức nào.
+C. Chiến lược chọn Hyperparameters (Target Modules)
+Câu hỏi lớn đặt ra: Làm sao biết nên gắn Adapter vào module nào (Attention hay MLP)?
+•	Không có công thức ma thuật: Đây là siêu tham số (Hyperparameter), nghĩa là phải thử và sai (Trial & Error).
+•	Quy tắc ngón tay cái (Rules of Thumb):
+1.	Bắt đầu (Start): Luôn bắt đầu với Attention Layers (Q, K, V, O). Đây là tiêu chuẩn ngành.
+2.	Mở rộng (Scale up): Nếu model học chưa đủ tốt (Underfitting) hoặc bạn muốn nó có khả năng diễn giải mạnh hơn $\rightarrow$ Thêm các lớp MLP.
+3.	Hiếm gặp: Thêm vào lớp đầu ra (LM Head) - thường chỉ dùng khi bạn muốn thay đổi hoàn toàn cấu trúc câu trả lời.
+________________________________________
+3. Tổng kết Day 1 - Tuần 7
+Chúc mừng bạn đã hoàn thành ngày đầu tiên của tuần Fine-tuning! Hãy cùng nhìn lại hành trình hôm nay:
+1.	Từ API đến "Em yêu khoa học": Chúng ta không còn chỉ gọi API của người khác, chúng ta đang can thiệp vào "nội tạng" của mô hình.
+2.	Hiểu về QLoRA: Công thức QLoRA = Quantization (4-bit) + LoRA (Low-Rank Adapters).
+o	Base Model nén xuống 4-bit (chỉ tốn 2.2GB VRAM).
+o	Adapter giữ nguyên 32-bit (nhưng siêu nhỏ, chỉ tốn vài chục MB).
+3.	Nắm vững 3 Siêu tham số vàng:
+o	Rank ($r$): Độ lớn của ma trận học (thường là 8, 16, 32...).
+o	Alpha ($\alpha$): Hệ số nhân (thường là $2 \times r$).
+o	Target Modules: Nơi gắn adapter (Ưu tiên Attention layers).
+Bước tiếp theo (Day 2): Ngày mai chúng ta sẽ quay lại với Dữ liệu. Chúng ta cần chuẩn bị tập dữ liệu (Dataset) sao cho phù hợp với định dạng mà mô hình Llama yêu cầu và thiết lập quy trình đánh giá (Evaluation) để biết mô hình có thực sự khôn lên hay không.
+Hẹn gặp bạn vào ngày mai!
+DAY 2
+170. Day 2 - Preparing Your Dataset for Fine-Tuning with Token Limits
+Chào bạn, chúc mừng bạn đã hoàn thành bài học ngày thứ 2 của tuần 7. Đây là một bước đệm cực kỳ quan trọng để chuẩn bị cho quá trình huấn luyện thực tế (Fine-tuning) ở các buổi tiếp theo.
+Dưới đây là tổng hợp chi tiết kiến thức của buổi học Day 2 - Preparing Your Dataset for Fine-Tuning with Token Limits.
+________________________________________
+1. Chủ đề bài học
+Day 2 - Preparing Your Dataset for Fine-Tuning with Token Limits
+(Ngày 2 - Chuẩn bị tập dữ liệu cho Fine-tuning với giới hạn Token)
+2. Tóm tắt cốt lõi
+Bài học tập trung vào kỹ thuật xử lý và tối ưu hóa dữ liệu đầu vào trước khi đưa vào mô hình ngôn ngữ (LLM). Điểm quan trọng nhất là việc phân tích độ dài token của dữ liệu và thiết lập một giới hạn cắt (Cutoff Limit) hợp lý (110 tokens). Việc này nhằm cân bằng giữa việc giữ lại thông tin quan trọng và tiết kiệm bộ nhớ GPU, giúp quá trình huấn luyện nhanh hơn và hiệu quả hơn. Cuối cùng, dữ liệu được chuyển đổi sang định dạng Prompt-Completion để sẵn sàng cho Supervised Fine-Tuning (SFT).
+3. Nội dung chính & Các bước thực hiện
+Buổi học đi qua quy trình chuẩn bị dữ liệu (Data Preparation Pipeline) với các bước cụ thể sau:
+A. Khởi tạo và Tải dữ liệu
+•	Sử dụng tập dữ liệu sản phẩm ("The Price Is Right" items) đã chuẩn bị từ tuần trước.
+•	Tải mô hình cơ sở (Base Model) là meta-llama/Llama-3.2-3B để lấy Tokenizer tương ứng. Việc dùng đúng Tokenizer của model sẽ train là bắt buộc để tính toán số lượng token chính xác.
+B. Phân tích độ dài Token (Token Analysis)
+•	Vấn đề: Dữ liệu văn bản có độ dài không đồng đều. Một số mô tả rất dài (lên tới 245+ tokens), trong khi đa số ngắn hơn 100 tokens.
+•	Tại sao quan trọng? Bộ nhớ GPU tiêu tốn tỉ lệ thuận (tuyến tính) với độ dài chuỗi (sequence length) tối đa. Nếu giữ lại các chuỗi quá dài, hệ thống phải cấp phát bộ nhớ lớn cho tất cả các mẫu (thông qua cơ chế padding), gây lãng phí tài nguyên và làm chậm quá trình train.
+•	Thực hiện: Vẽ biểu đồ phân phối (Histogram) số lượng token của các mô tả sản phẩm.
+C. Thiết lập Giới hạn (Cutoff Strategy)
+•	Quyết định: Chọn ngưỡng cắt là 110 tokens.
+•	Đánh đổi (Trade-off):
+o	Với ngưỡng 110, khoảng 5.7% số lượng mẫu sẽ bị cắt bớt phần đuôi.
+o	Lợi ích: Loại bỏ phần "đuôi dài" (long tail) của dữ liệu, giúp giảm đáng kể yêu cầu bộ nhớ và tăng tốc độ train.
+o	Giả định hợp lý: Các thông tin quan trọng nhất của sản phẩm thường nằm ở phần đầu mô tả, nên việc cắt phần đuôi ít ảnh hưởng đến khả năng học của mô hình.
+D. Tạo định dạng Prompt-Completion (Formatting)
+•	Chuyển đổi dữ liệu thô thành cặp câu hỏi và câu trả lời để mô hình học (Instruction format):
+o	Prompt (Đầu vào): Bao gồm câu hỏi chuẩn ("What does this cost..."), mô tả sản phẩm (đã bị cắt nếu quá dài), và tiền tố câu trả lời ("Price is $").
+o	Completion (Đầu ra mong muốn): Là giá tiền của sản phẩm.
+•	Kỹ thuật Rounding (Làm tròn):
+o	Với tập Train/Validation: Giá được làm tròn đến số nguyên gần nhất (Ví dụ: 79.00) để mô hình dễ học quy luật hơn.
+o	Với tập Test: Giữ nguyên giá trị thực tế để đánh giá chính xác hiệu năng dự đoán sau này.
+E. Đẩy dữ liệu lên Hub
+•	Lưu tập dữ liệu đã xử lý (Prompts) lên Hugging Face Hub để tái sử dụng cho buổi học Fine-tuning ngày mai.
+________________________________________
+4. Phân tích Code
+Dưới đây là phân tích các đoạn code quan trọng từ file items.py và day2.ipynb.
+File: items.py
+Đây là nơi định nghĩa logic xử lý từng điểm dữ liệu.
+Python
+# Class Item đại diện cho một sản phẩm
+class Item(BaseModel):
+    # ... khai báo các trường dữ liệu ...
+
+    def make_prompts(self, tokenizer, max_tokens, do_round):
+        """
+        Hàm tạo Prompt và Completion cho quá trình Fine-tuning.
+        Logic quan trọng: Cắt ngắn văn bản (Truncation) và Định dạng giá (Formatting).
+        """
+        # 1. Tokenize phần tóm tắt (summary)
+        tokens = tokenizer.encode(self.summary, add_special_tokens=False)
+        
+        # 2. Xử lý giới hạn Token (Truncation Logic)
+        if len(tokens) > max_tokens:
+            # Nếu dài hơn max_tokens (110), cắt bớt và giải mã lại thành text
+            summary = tokenizer.decode(tokens[:max_tokens]).rstrip()
+        else:
+            # Nếu ngắn hơn thì giữ nguyên
+            summary = self.summary
+            
+        # 3. Tạo Prompt (Đầu vào cho mô hình)
+        # Cấu trúc: Câu hỏi + Mô tả (đã xử lý) + Tiền tố câu trả lời
+        self.prompt = f"{QUESTION}\n\n{summary}\n\n{PREFIX}"
+        
+        # 4. Tạo Completion (Đầu ra mong muốn - Label)
+        # Nếu do_round=True (Train/Val): Làm tròn giá thành số nguyên + ".00"
+        # Nếu do_round=False (Test): Giữ nguyên giá gốc
+        self.completion = f"{round(self.price)}.00" if do_round else str(self.price)
+File: day2.ipynb
+File notebook điều phối toàn bộ quy trình.
+Python
+# 1. Tải Tokenizer của Model Llama 3.2 3B
+# Cần dùng đúng tokenizer của model sẽ train để đếm token chính xác
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+
+# 2. Phân tích độ dài token
+# Đếm số token trong phần summary của tất cả sản phẩm
+token_counts = [item.count_tokens(tokenizer) for item in tqdm(items)]
+
+# 3. Vẽ biểu đồ phân phối (Histogram)
+# Giúp hình dung "long tail" - những mẫu dữ liệu quá dài gây tốn bộ nhớ
+plt.hist(token_counts, rwidth=0.7, color="skyblue", bins=range(0, 200, 10))
+# ... code vẽ biểu đồ ...
+
+# 4. Thiết lập ngưỡng cắt (Hyperparameter: CUTOFF)
+CUTOFF = 110
+# Tính toán xem bao nhiêu phần trăm dữ liệu sẽ bị ảnh hưởng
+cut = len([count for count in token_counts if count > CUTOFF])
+# Kết quả in ra: khoảng 5.7% mẫu sẽ bị cắt ngắn
+
+# 5. Áp dụng tạo Prompt cho các tập dữ liệu
+# Tập Train và Validation: Bật chế độ làm tròn giá (True)
+for item in tqdm(train+val):
+    item.make_prompts(tokenizer, CUTOFF, True)
+
+# Tập Test: Tắt chế độ làm tròn giá (False) để giữ giá trị thực
+for item in tqdm(test):
+    item.make_prompts(tokenizer, CUTOFF, False)
+
+# 6. Upload lên Hugging Face Hub để dùng cho Day 3
+Item.push_prompts_to_hub(dataset, train, val, test)
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+1. Token Limit & Bộ nhớ GPU
+•	Cơ chế Padding: Trong một batch huấn luyện, tất cả các mẫu phải có độ dài bằng nhau. Nếu bạn cho phép độ dài tối đa là 245 (để chứa mẫu dài nhất), thì các mẫu ngắn (ví dụ 50 tokens) sẽ phải "độn" (pad) thêm 195 token vô nghĩa. Điều này lãng phí bộ nhớ và tính toán.
+•	Quy tắc ngón tay cái: Việc cắt bỏ 5-10% dữ liệu dài nhất thường mang lại lợi ích về hiệu suất (tốc độ train, kích thước batch lớn hơn) nhiều hơn là thiệt hại do mất thông tin.
+2. Data Formatting cho SFT (Supervised Fine-Tuning)
+•	Để fine-tune các mô hình instruction (hoặc chat), dữ liệu thường cần theo định dạng hội thoại hoặc cặp Prompt -> Completion.
+•	Việc thêm "tiền tố" (như Price is $) vào cuối Prompt được gọi là Prompt Engineering ngay trong khâu data preparation. Nó giúp "mớm" lời cho mô hình, định hướng mô hình trả lời theo đúng định dạng mong muốn ngay từ token đầu tiên sinh ra.
+3. Hyperparameter ẩn: Data Selection
+•	Giảng viên nhấn mạnh rằng CUTOFF (110) cũng là một siêu tham số (hyperparameter). Thay đổi tập dữ liệu (cắt nhiều hay ít, làm sạch ra sao) thường tác động đến kết quả cuối cùng mạnh mẽ hơn là việc tinh chỉnh các thông số kỹ thuật như Learning Rate hay LoRA Rank.
+
+171. Day 2 - Fine-Tuning Data Prep: Rounding Prices and Token Length Optimization 
+Chào bạn, chúng ta lại tiếp tục đi sâu vào phần 2 của buổi học Day 2.
+Nếu như phần trước chúng ta tập trung vào việc cắt ngắn dữ liệu (Truncation) để tiết kiệm bộ nhớ, thì phần này giảng viên đi sâu vào chiến lược định dạng dữ liệu (Data Formatting Strategy) và tối ưu hóa siêu tham số (Hyperparameter Optimization).
+Dưới đây là tổng hợp chi tiết nội dung:
+1. Chủ đề bài học
+Day 2 - Fine-Tuning Data Prep: Rounding Prices and Token Length Optimization
+(Ngày 2 - Chuẩn bị dữ liệu Fine-tuning: Làm tròn giá và Tối ưu hóa độ dài Token)
+2. Tóm tắt cốt lõi
+Bài học giải thích lý do kỹ thuật đằng sau việc làm tròn giá (Rounding) trong tập huấn luyện (Training Set) nhưng giữ nguyên giá trong tập kiểm thử (Test Set). Đồng thời, xác định độ dài chuỗi (Sequence Length) tối ưu là 128 tokens dựa trên cấu trúc bộ nhớ máy tính (lũy thừa của 2) và đặc tính Tokenizer của Llama.
+3. Nội dung chính
+A. Chiến lược Làm tròn giá (Rounding Strategy)
+Giảng viên áp dụng hai chiến lược xử lý giá khác nhau cho Train và Test:
+1.	Với Training Data (Dữ liệu huấn luyện): LÀM TRÒN (Rounding)
+o	Thực hiện: Làm tròn giá đến số nguyên gần nhất (Ví dụ: $99.99 $\rightarrow$ $100).
+o	Lý do:
+	Bản chất của LLM: LLM thực hiện nhiệm vụ dự đoán token tiếp theo (Next Token Prediction), về mặt kỹ thuật là một bài toán Phân loại (Classification) chứ không phải Hồi quy (Regression).
+	Tối ưu hóa Hàm mất mát (Loss Function): Nếu giữ lại số lẻ (cents), mô hình sẽ bị "phân tâm". Nó sẽ coi việc dự đoán sai số lẻ (ví dụ 0.99 vs 0.10) quan trọng ngang bằng việc dự đoán sai hàng trăm đô la.
+	Mục tiêu: Chúng ta muốn mô hình tập trung năng lượng vào việc đoán đúng "độ lớn" của giá trị (Dollars) thay vì chi tiết nhỏ nhặt (Cents).
+2.	Với Test Data (Dữ liệu kiểm thử): KHÔNG LÀM TRÒN (No Rounding)
+o	Thực hiện: Giữ nguyên giá trị thực tế (Ví dụ: $44.74).
+o	Lý do: Để đảm bảo tính công bằng khi so sánh ("Apples to Apples") với các kết quả trước đó của GPT-4 hoặc con người. Việc đánh giá năng lực mô hình phải dựa trên thực tế.
+B. Tối ưu hóa độ dài chuỗi (Sequence Length Optimization)
+•	Tính toán lại độ dài:
+o	Độ dài tóm tắt (đã cắt ở phần trước): 110 tokens.
+o	Độ dài mẫu câu hỏi + Tiền tố ("Price is $"): ~16 tokens.
+o	Tổng cộng thực tế: 110 + 16 = 126 tokens (max).
+•	Quyết định con số 128:
+o	Giảng viên chọn max_seq_length = 128.
+o	Lý do kỹ thuật: 128 là lũy thừa của 2 ($2^7$). Trong khoa học máy tính và kiến trúc GPU, việc cấp phát bộ nhớ theo lũy thừa của 2 thường hiệu quả hơn về mặt tính toán và quản lý bộ nhớ.
+o	Lý do an toàn: 128 > 126, tạo ra một khoảng đệm nhỏ (buffer) để đảm bảo không có dữ liệu nào bị cắt mất phần giá tiền quan trọng.
+C. Lợi thế của Llama Tokenizer
+•	Một phát hiện thú vị: Tokenizer của Llama mã hóa các số có 3 chữ số (0-999) thành 1 token duy nhất.
+o	Ví dụ: Số 450 là 1 token.
+o	Với các model khác, 450 có thể bị tách thành 4, 5, 0 (3 tokens) hoặc 45, 0.
+•	Ý nghĩa: Điều này biến bài toán dự đoán giá (dưới $1000) trở thành việc chọn đúng 1 token trong số hàng nghìn token có thể. Nó củng cố quan điểm đây là bài toán phân loại (Classification) và giúp Llama học nhanh hơn, chính xác hơn cho tác vụ này.
+4. Phân tích Code & Dữ liệu
+File day2.ipynb - Phân tích độ dài Token tổng thể
+Python
+# Đoạn code tính toán độ dài thực tế của Prompt (bao gồm cả câu hỏi + giá)
+# Kết quả cho thấy max là 126, trung bình là 101.
+# Giảng viên quyết định chọn 128.
+
+# ... (Logic tưởng tượng dựa trên mô tả, không hiển thị trực tiếp trong snippet nhưng được đề cập) ...
+# Việc thiết lập max_seq_length=128 sẽ được cấu hình trong Trainer ở Day 3.
+File items.py - Cấu trúc dữ liệu cuối cùng
+Python
+    def to_datapoint(self) -> dict:
+        # Chuẩn bị định dạng dữ liệu để đẩy lên Hub
+        # Hugging Face Trainer thường mong đợi cột 'prompt' và 'completion'
+        return {"prompt": self.prompt, "completion": self.completion}
+
+    @staticmethod
+    def push_prompts_to_hub(...):
+        # Đẩy dataset lên Hub với tên mới: items_prompts_...
+        # Dataset này có 2 cột chính: prompt (đầu vào) và completion (đầu ra mong muốn)
+5. Kiến thức liên quan & Mở rộng
+1. Regression vs. Classification trong LLM
+•	Regression (Hồi quy): Dự đoán một con số liên tục (ví dụ: nhiệt độ, giá nhà). Khoảng cách giữa 99 và 100 là gần, khoảng cách giữa 50 và 100 là xa.
+•	Classification (Phân loại): Dự đoán nhãn (label). Trong LLM, token "100" và token "99" là hai nhãn khác biệt hoàn toàn, giống như nhãn "Mèo" và "Chó".
+•	Khi training LLM để đoán số, chúng ta đang ép bài toán Hồi quy vào khuôn khổ Phân loại. Việc Tokenizer gộp số thành 1 token (như Llama) giúp việc "ép" này tự nhiên và hiệu quả hơn.
+2. Power of Two (Lũy thừa của 2)
+•	Trong lập trình GPU (CUDA), bộ nhớ thường được quản lý theo các khối (blocks/pages) có kích thước là lũy thừa của 2 (32, 64, 128, 256, 512...).
+•	Việc chọn max_length=128 thay vì 126 giúp căn chỉnh bộ nhớ (memory alignment) tốt hơn, tránh lãng phí (fragmentation) và có thể tăng tốc độ tính toán dù rất nhỏ. Đây là một "thói quen tốt" (best practice) của các kỹ sư AI.
+3. Cấu trúc dataset cho Fine-tuning
+•	Có nhiều định dạng dữ liệu cho Fine-tuning, nhưng phổ biến nhất cho Supervised Fine-Tuning (SFT) cơ bản là:
+o	Instruction Format: {"instruction": "...", "input": "...", "output": "..."}
+o	Prompt/Completion Format: {"prompt": "...", "completion": "..."} (Dạng chúng ta đang dùng).
+•	Việc đặt tên cột đúng chuẩn (như prompt, completion, text, label) giúp các thư viện như trl (Transformer Reinforcement Learning) hoặc huggingface/transformers tự động nhận diện mà không cần cấu hình ánh xạ (mapping) phức tạp.
+
+172. Day 2 - Preparing Hugging Face Datasets and Testing Base LLaMA 3.2 Model
+Pythonimport json
+
+# Read NEW_Week_7_Day_2_base_model_evaluation.ipynb
+with open('NEW_Week_7_Day_2_base_model_evaluation.ipynb', 'r') as f:
+    eval_content = json.load(f)
+
+print("NEW_Week_7_Day_2_base_model_evaluation.ipynb cells preview:")
+for cell in eval_content['cells'][:10]:
+    print(cell['source'])
+
+Kết quả chạy mã
+NEW_Week_7_Day_2_base_model_evaluation.ipynb cells preview:
+['# The Price is Right\n', '\n', '### Week 7 Day 2\n', '\n', 'Selecting our model and evaluating the base model against the task.\n', '\n', 'Keep in mind: our base model has 8 billion params, quantized down to 4 bits\n', 'Compared with GPT-5 at TRILLIONS of params!']
+['!pip install -q --upgrade bitsandbytes']
+['!wget -q https://raw.githubusercontent.com/ed-donner/llm_engineering/main/week7/util.py -O util.py']
+['# imports\n', '\n', 'import os\n', 'import re\n', 'import math\n', 'from tqdm import tqdm\n', 'from google.colab import userdata\n', 'from huggingface_hub import login\n', 'import torch\n', 'import transformers\n', 'from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments, set_seed\n', 'from peft import LoraConfig, PeftModel\n', 'from datasets import load_dataset, Dataset, DatasetDict\n', 'from datetime import datetime\n', 'import matplotlib.pyplot as plt\n', 'from util import evaluate']
+['# Constants\n', '\n', 'BASE_MODEL = "meta-llama/Llama-3.2-3B"\n', 'PROJECT_NAME = "price"\n', '\n', 'LITE_MODE = True\n', '\n', 'DATA_USER = "ed-donner"\n', 'DATASET_NAME = f"{DATA_USER}/items_prompts_lite" if LITE_MODE else f"{DATA_USER}/items_prompts_full"\n', '\n', '# Hyper-parameters\n', '\n', 'QUANT_4_BIT = True']
+['### Log in to HuggingFace\n', '\n', "If you don't already have a HuggingFace account, visit https://huggingface.co to sign up and create a token.\n", '\n', 'Then select the Secrets for this Notebook by clicking on the key icon in the left, and add a new secret called `HF_TOKEN` with the value as your token.']
+['# Log in to HuggingFace\n', '\n', "hf_token = userdata.get('HF_TOKEN')\n", 'login(hf_token, add_to_git_credential=True)']
+['# Load our data\n', '\n', "We uploaded it to Hugging Face, so it's easy to retrieve it now"]
+['dataset = load_dataset(DATASET_NAME)\n', "train = dataset['train']\n", "val = dataset['val']\n", "test = dataset['test']"]
+['train[0]']
+
+Chào bạn, phần này của buổi học Day 2 tập trung vào việc hoàn tất chuẩn bị dữ liệu, đẩy lên Hugging Face Hub, và thực hiện bước quan trọng đầu tiên trong quá trình Fine-tuning: Đánh giá mô hình cơ sở (Base Model Evaluation).
+Dưới đây là tổng hợp chi tiết nội dung:
+1. Chủ đề bài học
+Day 2 - Preparing Hugging Face Datasets and Testing Base LLaMA 3.2 Model
+(Ngày 2 - Chuẩn bị Dataset trên Hugging Face và Kiểm thử mô hình LLaMA 3.2 cơ sở)
+2. Tóm tắt cốt lõi
+Giảng viên hoàn thành quy trình xử lý dữ liệu với việc kiểm tra lần cuối các tập dữ liệu (Train, Test) và xác nhận độ dài chuỗi tối ưu là 128 tokens. Sau đó, dữ liệu được tải lên Hugging Face Hub. Phần quan trọng nhất là thiết lập môi trường trên Google Colab, tải mô hình LLaMA 3.2 3B (lượng tử hóa 4-bit) và chạy thử nghiệm suy luận (inference) ban đầu để xem mô hình "chưa học gì" (Base Model) hoạt động ra sao. Kết quả cho thấy mô hình cơ sở có thể dự đoán nhưng độ chính xác chưa cao.
+3. Nội dung chính & Các bước thực hiện
+A. Kiểm tra & Tải lên Dữ liệu (Final Data Check & Upload)
+•	Kiểm tra lần cuối (Sanity Check):
+o	Train Data (Mục 0): Hiển thị prompt và completion (giá đã làm tròn, ví dụ $64.00).
+o	Test Data (Mục 0): Hiển thị prompt và completion (giá thực tế, ví dụ $219).
+o	Phân phối Token: Xác nhận token dài nhất là 126. Với bộ đệm an toàn, chọn max_seq_length = 128.
+•	Hugging Face Upload:
+o	Tạo ra 2 dataset trên Hub: items_prompts_light (bản rút gọn) và items_prompts_full (bản đầy đủ).
+o	Cấu trúc chuẩn: Chỉ gồm 2 cột prompt và completion, đúng định dạng mà các thư viện training của Hugging Face mong đợi.
+B. Thiết lập Môi trường Colab (Colab Setup)
+•	Kết nối GPU: Sử dụng T4 GPU (miễn phí) trên Google Colab.
+•	Cài đặt thư viện: Cài bitsandbytes (quan trọng cho lượng tử hóa 4-bit) và tải file tiện ích util.py (chứa hàm evaluate để vẽ biểu đồ đánh giá đẹp mắt).
+•	Tải dữ liệu về: Dùng thư viện datasets để tải ngược dataset vừa up lên về lại Colab.
+C. Tải Mô hình Cơ sở (Loading Base Model)
+•	Model: meta-llama/Llama-3.2-3B.
+•	Quantization (Lượng tử hóa): Cấu hình BitsAndBytesConfig để tải mô hình ở dạng 4-bit.
+o	Kích thước mô hình giảm xuống chỉ còn 2.2 GB VRAM.
+•	Tokenizer Fix: Áp dụng đoạn mã "thần chú" để sửa lỗi padding cho Llama (padding token = eos token, padding side = right).
+D. Suy luận với Mô hình Cơ sở (Base Model Inference)
+•	Thử nghiệm (Zero-shot Inference):
+o	Đưa mô hình vào trạng thái suy luận (torch.no_grad()).
+o	Cho mô hình đoán giá của sản phẩm đầu tiên trong tập Test (cái bàn đạp guitar distortion).
+o	Thực tế: $219.
+o	Dự đoán của Base Llama: $349.99 (khá sai lệch nhưng nằm trong vùng giá hợp lý).
+o	Nhận xét: Mô hình cơ sở có khả năng hiểu ngữ cảnh nhưng chưa chính xác về giá. Nó cần được Fine-tune.
+4. Phân tích Code
+File NEW_Week_7_Day_2_base_model_evaluation.ipynb
+•	Tải util.py:
+Python
+!wget -q https://raw.githubusercontent.com/ed-donner/llm_engineering/main/week7/util.py -O util.py
+from util import evaluate # Hàm này giúp đánh giá và vẽ biểu đồ so sánh sai số
+•	Hàm dự đoán model_predict (Logic suy luận):
+Python
+def model_predict(item):
+    # ... (chuẩn bị input) ...
+    # Chuyển model sang chế độ eval (không tính gradient để tiết kiệm nhớ/nhanh)
+    with torch.no_grad():
+        # Sinh ra tối đa 8 token mới (đủ để chứa giá tiền)
+        outputs = model.generate(**inputs, max_new_tokens=8, ...)
+    # ... (decode và lấy phần văn bản mới sinh ra) ...
+•	Cấu hình Tokenizer (Mẹo quan trọng):
+Python
+tokenizer.pad_token = tokenizer.eos_token # Dùng token kết thúc câu làm token đệm
+tokenizer.padding_side = "right" # Đệm vào bên phải (quy chuẩn cho Llama khi train)
+5. Kiến thức mở rộng
+•	Base Model Performance: Việc test Base Model trước khi train là cực kỳ quan trọng để thiết lập Baseline (Điểm chuẩn). Nếu sau khi Fine-tune mà kết quả không tốt hơn Base Model thì quá trình train thất bại.
+•	Inference Mode (torch.no_grad()): Khi chỉ chạy dự đoán (inference), luôn nhớ tắt tính toán gradient. Nó giúp giảm tiêu thụ bộ nhớ GPU đi một nửa và tăng tốc độ xử lý đáng kể.
+•	Quantization Impact: Việc nén mô hình xuống 4-bit (2.2GB) giúp nó chạy mượt mà trên T4 GPU (16GB VRAM) mà vẫn chừa đủ chỗ cho quá trình training (sẽ tốn thêm VRAM cho optimizer states và gradients sau này).
+
+173. Day 2 - Base Models vs Chat Models: Understanding LLaMA Fine-Tuning 
+Pythonprint("No code analysis needed for this specific final part of the lesson.")
+
+Kết quả chạy mã
+No code analysis needed for this specific final part of the lesson.
+
+Chào bạn, chúng ta đã đến phần cuối cùng và cũng là phần rất quan trọng của bài học Day 2, giải thích sâu hơn về bản chất của mô hình LLM.
+Đây là phần kết thúc, tổng hợp kiến thức và chuẩn bị tinh thần cho buổi học "trọng đại" ngày mai.
+Dưới đây là nội dung chi tiết:
+1. Chủ đề bài học
+Day 2 - Base Models vs Chat Models: Understanding LLaMA Fine-Tuning
+(Ngày 2 - Mô hình Cơ sở vs Mô hình Trò chuyện: Hiểu về Fine-tuning LLaMA)
+2. Tóm tắt cốt lõi
+Giảng viên phân biệt rõ ràng hai loại mô hình LLM chính: Base Model (Mô hình cơ sở) và Chat/Instruct Model (Mô hình hướng dẫn). Bài học giải thích lý do tại sao đối với tác vụ dự đoán giá, chúng ta chọn Base Model và sử dụng cấu trúc dữ liệu đơn giản (Prompt-Completion) thay vì cấu trúc hội thoại phức tạp. Kết quả đánh giá Base Model LLaMA 3.2 3B 4-bit cho thấy độ chính xác thấp (Error ~$110), thậm chí kém hơn một thuật toán đoán mò (Constant Baseline), đặt ra "sân khấu" lý tưởng để chứng minh sức mạnh của Fine-tuning trong các buổi học tới.
+3. Nội dung chính
+A. Phân biệt Base Model và Chat/Instruct Model
+•	Base Model (Mô hình Cơ sở):
+o	Chức năng: Chỉ đơn thuần dự đoán token tiếp theo dựa trên chuỗi đầu vào (giống tính năng "Predictive Text" trên điện thoại).
+o	Cấu trúc Input: Chuỗi văn bản liên tục, không có định dạng đặc biệt.
+o	Ví dụ: GPT-2, GPT-3 ban đầu.
+o	Ứng dụng: Tốt cho việc dạy kỹ năng mới, chuyên biệt mà không cần giao tiếp hội thoại.
+•	Chat/Instruct Model (Mô hình Hướng dẫn/Trò chuyện):
+o	Chức năng: Được Fine-tune thêm từ Base Model để hiểu và phản hồi theo cấu trúc hội thoại (System, User, Assistant).
+o	Cấu trúc Input: Yêu cầu các token đặc biệt (special tokens) để phân chia vai trò (như <|user|>, <|assistant|>).
+o	Ứng dụng: Tốt cho chatbot, trợ lý ảo, làm theo chỉ dẫn phức tạp.
+B. Tại sao chọn Base Model cho dự án này?
+•	Mục tiêu: Dự đoán giá (một con số) từ mô tả. Đây là một kỹ năng đơn lẻ, không cần hội thoại.
+•	Hiệu quả: Thực nghiệm của giảng viên cho thấy Base Model hoạt động tốt hơn Chat Model cho tác vụ này. Chat Model cần nhiều token đặc biệt hơn ("rườm rà" hơn) và đôi khi bị nhiễu bởi khả năng "chém gió" của nó.
+•	Chiến lược: Sử dụng cấu trúc dữ liệu đơn giản: Prompt (Câu hỏi + Mô tả) -> Completion (Giá). Base Model sẽ học cách "hoàn thành câu" bằng con số giá tiền.
+C. Kết quả Đánh giá Base Model (The Baseline)
+•	Thực hiện: Chạy hàm evaluate trên toàn bộ tập Test với mô hình LLaMA 3.2 3B 4-bit chưa fine-tune.
+•	Kết quả:
+o	Sai số trung bình (MAE): $110.72.
+o	So sánh:
+	Tệ hơn Constant Baseline ($106.18 - phương pháp luôn đoán giá trung bình).
+	Tệ hơn con người (Ed) và các model lớn khác.
+o	Kết luận: Mô hình cơ sở, dù có kiến thức thế giới, nhưng "chưa biết" cách thực hiện nhiệm vụ dự đoán giá này một cách chính xác.
+4. Bức tranh toàn cảnh (The Big Picture)
+•	Mục tiêu tuần này: Biến mô hình "tí hon" LLaMA 3.2 3B (chạy trên điện thoại được, 2.2GB) từ chỗ "ngốc nghếch" (lỗi $110) trở thành một chuyên gia có thể cạnh tranh với con người hoặc các mô hình lớn hơn.
+•	Tiến độ khóa học: Bạn đã hoàn thành 80% chặng đường. Từ việc dùng API, RAG, Vector DB, giờ đây bạn đang đi sâu vào "nội tạng" của LLM: Quantization, LoRA, Base vs Instruct, và Data Curation.
+5. Lời nhắn cho ngày mai
+Ngày mai (Day 3) sẽ là "Ngày lớn nhất" (Biggest Day) của khóa học. Bạn sẽ chính thức tự tay viết code để huấn luyện (Fine-tune) mô hình LLM độc quyền của riêng mình. Mọi sự chuẩn bị về dữ liệu và kiến thức nền tảng hôm nay sẽ được đền đáp.
+Hãy nghỉ ngơi và chuẩn bị tinh thần tốt nhất cho buổi thực hành Training vào ngày mai nhé!
+
+DAY 3
+174. Day 3 - Fine-Tuning Hyperparameters: QLoRA Settings and Training Config 
+Chào bạn Hieu, tôi là Gemini, trợ lý AI chuyên về LLM Engineering. Rất vui được đồng hành cùng bạn trong buổi học quan trọng này.
+Dựa trên bản phiên âm, Slide bài giảng (Week 7 Day 3) và các file code hỗ trợ (items.py, util.py) mà bạn cung cấp, tôi xin tổng hợp lại nội dung buổi học Day 3 - Fine-Tuning Hyperparameters: QLoRA Settings and Training Config.
+Đây là buổi học mang tính bước ngoặt, chuyển từ giai đoạn chuẩn bị (data, evaluation) sang giai đoạn thực chiến (training).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học tập trung vào việc thiết lập cấu hình cho quá trình Supervised Fine-Tuning (SFT) mô hình Llama 3.2 cho dự án "The Price Is Right". Điểm mấu chốt là hiểu và lựa chọn đúng 10 siêu tham số (Hyperparameters) quan trọng: 5 tham số dành cho kiến trúc QLoRA (để chạy được trên phần cứng giới hạn) và 5 tham số dành cho quá trình huấn luyện (Training loop) để mô hình học hiệu quả mà không bị Overfitting.
+________________________________________
+2. Nội dung chính (Main Content)
+A. Bối cảnh & Mục tiêu
+•	Dự án: The Price Is Right (Dự đoán giá sản phẩm từ mô tả).
+•	Trạng thái hiện tại: Base model (Llama 3.2 4-bit) có sai số trung bình (MAE) là $110.72. Mục tiêu là Fine-tune để giảm con số này xuống.
+•	Công cụ: Sử dụng kỹ thuật QLoRA để Fine-tune mô hình mã nguồn mở.
+B. 5 Siêu tham số QLoRA (QLoRA Hyperparameters)
+Đây là các tham số định nghĩa cấu trúc của Adapter (phần được train thêm vào):
+1.	Target Modules: Xác định các lớp (layers) nào trong mạng nơ-ron sẽ được gắn Adapter. Thường bắt đầu với các lớp attention (q_proj, v_proj...) và có thể mở rộng ra các lớp khác (MLP).
+2.	r (Rank): Số chiều (dimension) của ma trận LoRA. r càng lớn thì khả năng học càng cao nhưng tốn bộ nhớ hơn.
+3.	Alpha: Hệ số tỷ lệ (scaling factor) khi cộng trọng số LoRA vào trọng số gốc. Quy tắc ngón tay cái: Alpha = 2 * r.
+4.	Quantization (Lượng tử hóa): Giảm độ chính xác của Base Model xuống 4-bit hoặc 8-bit để tiết kiệm VRAM, chấp nhận hy sinh một chút độ chính xác để đổi lấy khả năng train được trên GPU giới hạn.
+5.	Dropout: Xác suất ngẫu nhiên "tắt" (zero out) một số nơ-ron trong quá trình train (thường là 10% hoặc 0.1).
+o	Mục đích: Chống Overfitting (học vẹt). Giúp mạng nơ-ron không phụ thuộc vào các đường dẫn cụ thể, từ đó có khả năng Generalization (khái quát hóa) tốt hơn trên dữ liệu mới.
+C. 5 Siêu tham số Huấn luyện (Training Hyperparameters)
+Đây là các tham số điều khiển quá trình cập nhật trọng số:
+1.	Epochs: Số lần mô hình nhìn thấy toàn bộ tập dữ liệu.
+2.	Batch Size: Số lượng mẫu dữ liệu được đưa vào xử lý cùng lúc trong một bước.
+o	Quy tắc: Chọn kích thước lớn nhất mà GPU chứa nổi (thường là lũy thừa của 2: 16, 32, 64...).
+o	Batch lớn giúp train nhanh hơn nhưng Batch nhỏ đôi khi tạo ra nhiễu (noise) giúp mô hình thoát khỏi cực tiểu địa phương.
+3.	Learning Rate (Tốc độ học): Kích thước bước nhảy khi cập nhật trọng số.
+o	Thường bắt đầu với 2e-4 (0.0002) hoặc 1e-4.
+o	Quá lớn: Không hội tụ được. Quá nhỏ: Học rất lâu.
+4.	Gradient Accumulation: (Được nhắc trong Slide) Kỹ thuật tích lũy gradient qua nhiều bước nhỏ trước khi cập nhật trọng số, giúp mô phỏng Batch Size lớn khi VRAM hạn chế.
+5.	Optimizer: (Được nhắc trong Slide) Thuật toán tối ưu hóa (ví dụ: AdamW, PagedAdamW) dùng để cập nhật trọng số dựa trên gradient.
+________________________________________
+3. Kiến trúc & Quy trình (Training Process)
+Dựa trên Slide và giải thích của giảng viên, quy trình huấn luyện bao gồm 4 bước lặp đi lặp lại (The Four Steps Of Training):
+1.	Forward Pass: Đưa dữ liệu vào mô hình -> Dự đoán kết quả.
+2.	Loss Calculation: So sánh dự đoán với thực tế (Ground Truth) để tính sai số (Loss).
+3.	Backward Pass: Tính toán Gradient (hướng cần điều chỉnh) để giảm Loss.
+4.	Optimization: Cập nhật trọng số của Adapter (một bước nhỏ) dựa trên Gradient và Learning Rate.
+________________________________________
+4. Phân tích Code (Code Analysis)
+Lưu ý: Trong danh sách file bạn tải lên chưa có file notebook thực hiện Training (thường là Day_3_Training.ipynb). Tuy nhiên, bạn có cung cấp items.py và util.py, đây là xương sống xử lý dữ liệu để đưa vào quá trình Training được nhắc đến trong bài. Tôi sẽ phân tích 2 file này.
+A. File items.py: Cấu trúc dữ liệu đầu vào
+File này định nghĩa cách dữ liệu được chuẩn bị để đưa vào mô hình (Prompt Engineering cho Training).
+Python
+from pydantic import BaseModel
+from typing import Optional, Self
+
+# Tiền tố và câu hỏi mặc định để định hướng mô hình
+PREFIX = "Price is $"
+QUESTION = "What does this cost to the nearest dollar?"
+
+class Item(BaseModel):
+    """
+    Class đại diện cho một sản phẩm. Dùng Pydantic để kiểm soát kiểu dữ liệu.
+    Đây là đơn vị dữ liệu cơ bản sẽ được đưa vào Training.
+    """
+    title: str
+    category: str
+    price: float
+    summary: Optional[str] = None
+    prompt: Optional[str] = None
+    completion: Optional[str] = None # Đây là cái chúng ta muốn model học (Target)
+
+    def make_prompt(self, text: str):
+        """
+        Hàm quan trọng nhất: Tạo ra PROMPT hoàn chỉnh để đưa vào LLM.
+        Cấu trúc: Câu hỏi -> Thông tin sản phẩm -> Tiền tố câu trả lời.
+        """
+        # ... (đoạn code xử lý token limit - cắt bớt nếu quá dài) ...
+        
+        # Tạo prompt theo format chuẩn
+        self.prompt = f"{QUESTION}\n\n{summary}\n\n{PREFIX}"
+        
+        # Chuẩn bị câu trả lời mẫu (Ground Truth) để tính Loss
+        # Ví dụ: "150.00"
+        self.completion = f"{round(self.price)}.00" if do_round else str(self.price)
+
+    def to_datapoint(self) -> dict:
+        """
+        Chuyển đổi object thành dictionary để thư viện 'datasets' của HuggingFace hiểu được.
+        SFTTrainer cần định dạng {prompt: ..., completion: ...} này.
+        """
+        return {"prompt": self.prompt, "completion": self.completion}
+B. File util.py: Công cụ đánh giá (Evaluation)
+File này chứa logic để đo lường độ hiệu quả của mô hình (trước và sau khi Fine-tune).
+Python
+from sklearn.metrics import mean_squared_error, r2_score
+
+class Tester:
+    """
+    Class dùng để chạy test hàng loạt và tính toán sai số.
+    """
+    def __init__(self, predictor, data, title=None, size=DEFAULT_SIZE):
+        self.predictor = predictor  # Hàm dự đoán (model inference)
+        self.data = data            # Dữ liệu test
+        # ...
+
+    def report(self):
+        """
+        Báo cáo kết quả. Đây là nơi con số $110.72 được tính ra.
+        """
+        # Tính sai số trung bình (Mean Absolute Error)
+        average_error = sum(self.errors) / self.size
+        
+        # Tính MSE và R-squared (các chỉ số thống kê học máy)
+        mse = mean_squared_error(self.truths, self.guesses)
+        
+        # In kết quả ra màn hình
+        title = f"{self.title} results<br><b>Error:</b> ${average_error:,.2f}..."
+        self.chart(title)
+________________________________________
+5. Kiến thức liên quan & mở rộng
+Tại sao Dropout lại quan trọng?
+Giảng viên gọi Dropout là một kỹ thuật "hacky" (nghe có vẻ "mẹo vặt") nhưng cực kỳ hiệu quả. Hãy tưởng tượng:
+•	Nếu không có Dropout: Các nơ-ron có thể "phối hợp" với nhau để ghi nhớ chính xác từng mẫu dữ liệu (Overfitting).
+•	Khi có Dropout (ví dụ 10%): Mỗi lần train, một nhóm nơ-ron ngẫu nhiên bị tắt. Mạng nơ-ron buộc phải học các đặc trưng (features) mạnh mẽ và độc lập hơn, vì nó không thể dựa dẫm vào bất kỳ nơ-ron cụ thể nào. Điều này giúp mô hình "Khái quát hóa" (Generalization) tốt hơn khi gặp dữ liệu lạ.
+Batch Size và Bộ nhớ GPU
+•	Trade-off: Batch size càng lớn, gradient càng ổn định (ít nhiễu), nhưng tốn VRAM. Batch size nhỏ, gradient nhiều nhiễu hơn nhưng có thể giúp model thoát khỏi các điểm tối ưu cục bộ (local minima).
+•	Gradient Accumulation: Nếu GPU của bạn chỉ chịu được Batch Size = 4, nhưng bạn muốn mô phỏng Batch Size = 32 để gradient ổn định hơn. Bạn có thể set Gradient Accumulation Steps = 8. Mô hình sẽ chạy forward/backward 8 lần, cộng dồn gradient lại rồi mới update trọng số 1 lần.
+Hyperparameter Optimization (HPO)
+Quá trình tìm ra bộ tham số tốt nhất (Learning rate bao nhiêu? Rank bao nhiêu?) gọi là HPO. Thực chất, giảng viên nói vui đây là "cách gọi sang trọng của việc Thử và Sai (Trial & Error)". Bạn sẽ cần thử nghiệm nhiều lần để tìm ra cấu hình tối ưu cho bài toán cụ thể của mình.
+175. Day 3 - Learning Rate, Optimizers, and Training Hyperparameters for LoRA
+Chào bạn Hieu, tôi tiếp tục đồng hành cùng bạn.
+Dựa trên phiên âm mới nhất về Day 3 - Learning Rate, Optimizers, and Training Hyperparameters for LoRA, đây là tổng hợp kiến thức chuyên sâu về các "cần gạt" (levers) quan trọng nhất để điều khiển quá trình huấn luyện mô hình AI.
+Đây là phần lý thuyết cốt lõi giải thích tại sao mô hình lại học được (hoặc không học được).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học tập trung giải thích cơ chế "tìm đường xuống đáy thung lũng" (tối ưu hóa Loss) của mô hình. Điểm mấu chốt là tìm sự cân bằng cho Learning Rate (Tốc độ học): không quá lớn để tránh đi chệch hướng, không quá nhỏ để tránh bị kẹt ở điểm tối ưu cục bộ (Local Minima). Giảng viên giới thiệu các công cụ hỗ trợ gồm LR Schedulers (Lập lịch tốc độ học), Optimizers (Bộ tối ưu hóa - Adam), và quy trình 4 bước huấn luyện áp dụng cho QLoRA.
+________________________________________
+2. Nội dung chính (Main Content)
+A. Learning Rate (LR) - "Bước chân" của mô hình
+Tốc độ học quyết định độ lớn của bước cập nhật trọng số sau mỗi lần tính toán sai số.
+•	Vấn đề "Thung lũng" (The Valley Analogy): Mục tiêu của training là đi xuống điểm thấp nhất của thung lũng (Global Minimum - nơi Loss thấp nhất).
+•	Nếu LR quá lớn: Bạn bước những bước khổng lồ, có thể nhảy vọt qua thung lũng sang sườn núi bên kia, hoặc tệ hơn là nhảy ra xa khỏi mục tiêu.
+•	Nếu LR quá nhỏ:
+o	Tốn rất nhiều thời gian để hội tụ.
+o	Nguy cơ kẹt ở Local Minima: Bạn có thể đi xuống một cái hố nhỏ (Local Minima) và kẹt ở đó vì bước chân quá nhỏ không đủ đà để leo ra ngoài tìm cái hố lớn hơn (Global Minimum) ở bên cạnh.
+•	Giải pháp: Thử nghiệm (Trial & Error) và dùng Scheduler.
+B. Learning Rate Scheduler - Điều chỉnh tốc độ linh hoạt
+Thay vì giữ LR cố định, chúng ta thay đổi nó theo thời gian:
+•	Chiến lược Cosine Scheduler with Warmup:
+1.	Warmup (Khởi động): Bắt đầu với LR nhỏ, tăng dần lên mức tối đa. Giúp mô hình ổn định hướng đi ban đầu.
+2.	Cosine Decay (Giảm dần): Sau khi đạt đỉnh, giảm dần LR theo hình sin (cosine).
+	Giai đoạn đầu (LR lớn): Giúp nhảy thoát khỏi các Local Minima để tìm vùng Global Minimum.
+	Giai đoạn cuối (LR nhỏ): Giúp đi chậm lại để "chui" lọt vào điểm đáy thấp nhất một cách chính xác.
+C. Gradient Accumulation - "Tích tiểu thành đại"
+•	Cơ chế: Thay vì cập nhật trọng số ngay sau mỗi batch, ta chạy Forward/Backward pass nhiều lần (tích lũy Gradient), sau đó mới Update một lần.
+•	Tác dụng: Giả lập Batch Size lớn hơn mức phần cứng cho phép.
+•	Lưu ý: Giảng viên quyết định không dùng kỹ thuật này trong bài thực hành sắp tới vì nó có thể gây nhiễu, nhưng đây là kỹ thuật quan trọng cần biết khi thiếu VRAM.
+D. Optimizer - "Người dẫn đường"
+Cách thức thực hiện bước nhảy dựa trên Gradient.
+•	SGD (Stochastic Gradient Descent): Đơn giản, cứ thấy dốc xuống là đi. Dễ bị kẹt hoặc đi đường vòng vèo.
+•	Adam (Adaptive Moment Estimation): Thông minh hơn, sử dụng Momentum (Quán tính).
+o	Nếu đang lao dốc nhanh, nó sẽ giữ đà đó (giống hòn bi lăn), giúp vượt qua các gờ nhỏ hoặc vùng phẳng.
+o	Tốn bộ nhớ hơn SGD một chút nhưng hiệu quả cao hơn nhiều.
+o	Trong QLoRA, thường dùng biến thể paged_adamw_32bit để tiết kiệm bộ nhớ.
+________________________________________
+3. Kiến trúc & Quy trình (The 4 Steps of Training for QLoRA)
+Giảng viên nhấn mạnh lại quy trình huấn luyện, nhưng đặt trong ngữ cảnh QLoRA (chỉ train Adapter):
+1.	Forward Pass:
+o	Input đi qua Base Model (đóng băng 4-bit) + Các ma trận LoRA (đang train).
+o	Dự đoán kết quả (Prediction).
+2.	Loss Calculation:
+o	So sánh Prediction với Ground Truth (dữ liệu completion trong file items.py bạn đã làm).
+3.	Backward Pass:
+o	Tính toán Gradient. Quan trọng: Chỉ tính Gradient cho các tham số trong ma trận LoRA (rank 32), bỏ qua 3 tỷ tham số của Llama 3.2.
+4.	Optimization:
+o	Optimizer (Adam) dùng Gradient và Learning Rate để cập nhật trọng số của ma trận LoRA.
+________________________________________
+4. Phân tích Code (Cấu hình minh họa)
+Dựa trên nội dung giảng dạy, đây là đoạn code cấu hình (thường nằm trong transformers.TrainingArguments) mà bạn sẽ thiết lập để hiện thực hóa các lý thuyết trên:
+Python
+from transformers import TrainingArguments
+
+training_args = TrainingArguments(
+    # ... các cấu hình output ...
+    
+    # 1. Learning Rate: Bắt đầu với con số phổ biến cho QLoRA (thường là 2e-4)
+    learning_rate=2e-4, 
+    
+    # 2. Batch Size: Tận dụng tối đa GPU
+    per_device_train_batch_size=4, # Ví dụ
+    
+    # 3. Gradient Accumulation: Giảng viên nói sẽ không dùng (đặt là 1)
+    # Nếu VRAM yếu, bạn có thể tăng lên 4 hoặc 8
+    gradient_accumulation_steps=1, 
+    
+    # 4. Optimizer: Sử dụng Adam (phiên bản Paged để tiết kiệm VRAM cho Colab)
+    optim="paged_adamw_32bit",
+    
+    # 5. LR Scheduler: Dùng Cosine với Warmup như bài giảng
+    lr_scheduler_type="cosine",
+    warmup_ratio=0.03, # Dành 3% thời gian đầu để khởi động (warmup)
+    
+    # 6. Epochs: Số vòng lặp (sẽ đề cập ở phần sau, thường là 1 hoặc 3 cho SFT)
+    num_train_epochs=1, 
+    
+    # Logging
+    logging_steps=1, # Theo dõi Loss sau mỗi bước để vẽ biểu đồ
+)
+Giải thích logic:
+•	optim="paged_adamw_32bit": Đây là kỹ thuật quan trọng của QLoRA. Nó đẩy các trạng thái của Optimizer sang CPU RAM khi GPU VRAM bị đầy, tránh lỗi Out Of Memory (OOM).
+•	warmup_ratio=0.03: Giúp tránh "sốc nhiệt" cho mô hình ở những bước đầu tiên khi Gradient còn chưa ổn định.
+________________________________________
+5. Kiến thức liên quan & mở rộng
+Momentum (Quán tính) trong Optimizer
+Hãy tưởng tượng bạn thả một hòn bi từ đỉnh núi xuống.
+•	SGD: Giống như một người leo núi bị bịt mắt, chỉ cảm nhận độ dốc ngay dưới chân. Nếu gặp một vùng đất phẳng (plateau), người đó sẽ đứng yên vì không thấy dốc nữa.
+•	Adam (với Momentum): Giống như hòn bi lăn. Khi xuống dốc nó tích lũy vận tốc. Khi gặp vùng đất phẳng, vận tốc cũ (Momentum) sẽ đẩy hòn bi lăn tiếp qua vùng phẳng đó để tìm con dốc tiếp theo. Đây là lý do Adam hội tụ nhanh hơn và thoát Local Minima tốt hơn.
+Hyperparameter Optimization (HPO)
+Giảng viên gọi HPO là "cách nói sang chảnh của Trial & Error". Trong thực tế, các kỹ sư LLM thường dùng các thư viện như Optuna hoặc Ray Tune để tự động chạy thử hàng chục cấu hình (Learning rate khác nhau, Batch size khác nhau...) để tìm ra bộ tham số tốt nhất, thay vì đoán mò. Nhưng với người mới, bắt đầu bằng các "Rule of thumb" (2e-4 cho QLoRA) là đủ.
+
+176. Day 3 - Setting Up Training: Hyperparameters, qLoRA Config & Weights & Biases 
+Chào bạn Hieu, tôi là Gemini, trợ lý AI chuyên về LLM Engineering của bạn.
+Chúng ta đang bước vào giai đoạn "Set the stage" (Thiết lập sân khấu) cho quá trình Fine-tuning. Dựa trên bản phiên âm và file notebook NEW_Week_7_Day_3_TRAINING.ipynb, buổi học này không phải là lý thuyết suông mà là cấu hình thực tế để đảm bảo quá trình training chạy mượt mà trên Google Colab (đặc biệt là bản miễn phí T4).
+Dưới đây là tổng hợp chi tiết nội dung:
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học tập trung vào việc thiết lập môi trường và cấu hình các thông số kỹ thuật cho quá trình huấn luyện (Training Run). Điểm nhấn bao gồm:
+•	Chế độ chạy (Modes): Phân biệt giữa Light Mode (cho GPU T4 miễn phí) và Full Mode (cho GPU A100 mạnh mẽ).
+•	Giám sát (Monitoring): Tích hợp công cụ Weights & Biases (W&B) để theo dõi biểu đồ Loss theo thời gian thực.
+•	Cấu hình Hyperparameters: Thiết lập chi tiết 3 nhóm tham số: Cấu hình chung, Cấu hình QLoRA, và Cấu hình tối ưu hóa (Optimizer/Scheduler).
+2. Nội dung chính (Main Content)
+A. Thiết lập Môi trường: Light Mode vs. Full Mode
+Giảng viên đưa ra hai chiến lược cấu hình để phù hợp với phần cứng:
+Đặc điểm	Light Mode (Khuyên dùng cho học tập)	Full Mode (Dành cho Production/GPU mạnh)
+GPU yêu cầu	T4 (Google Colab Free)	A100 / H100
+Dữ liệu	Tập con nhỏ (~20k mẫu)	Toàn bộ dữ liệu (~800k mẫu)
+Batch Size	32 (Vừa khít VRAM 16GB)	256
+LoRA Rank (r)	32	256 (Rất cao, giúp học sâu hơn)
+Target Modules	Chỉ các lớp Attention	Tất cả các lớp Linear (MLP, Gate...)
+Epochs	1	3
+B. Công cụ theo dõi: Weights & Biases (W&B)
+•	Trong transcript, giảng viên gọi vui là "Wonderbar", thực chất là W&B.
+•	Đây là nền tảng tiêu chuẩn công nghiệp (Industry Standard) để theo dõi thí nghiệm AI.
+•	Nó giúp bạn vẽ biểu đồ Training Loss và Validation Loss tự động, thay vì phải ngồi nhìn màn hình đen trắng chạy dòng lệnh.
+C. Chiến lược "Early Stopping" thủ công
+•	Chúng ta cấu hình save_steps (lưu checkpoint) thường xuyên (mỗi 100 bước).
+•	Mục đích: Để sau khi train xong, ta có thể nhìn lại biểu đồ trên W&B. Nếu thấy Validation Loss bắt đầu tăng lên (dấu hiệu Overfitting) tại bước 500, ta có thể quay lại và tải checkpoint tại bước 500 đó để sử dụng, bỏ qua các bước sau.
+________________________________________
+3. Phân tích Code (Code Analysis)
+Dựa trên file NEW_Week_7_Day_3_TRAINING.ipynb bạn cung cấp, đây là các khối code quan trọng nhất thiết lập nên "bộ não" của quá trình training.
+Khối 1: Cài đặt thư viện và Khởi tạo
+Python
+# Cài đặt các thư viện cần thiết
+# trl: Transformer Reinforcement Learning (Thư viện chứa SFTTrainer để fine-tune)
+# bitsandbytes: Để lượng tử hóa model xuống 4-bit
+# wandb: Để theo dõi quá trình train
+!pip install -q --upgrade bitsandbytes==0.48.2 trl==0.25.1
+!pip install -q wandb
+Khối 2: Cấu hình Hằng số & Hyperparameters (Quan trọng nhất)
+Đây là nơi giảng viên chuyển hóa lý thuyết thành code.
+Python
+# --- CẤU HÌNH CHUNG ---
+# LITE_MODE = True: Chạy trên T4 (Free Colab)
+# LITE_MODE = False: Chạy trên A100 (Paid)
+LITE_MODE = True 
+
+# Tên dự án trên HuggingFace và W&B
+PROJECT_NAME = "price"
+# Tên người dùng HuggingFace của bạn (Cần thay đổi chỗ này)
+HF_USERNAME = "hieu-llm-engineer" 
+
+# Tạo tên phiên chạy duy nhất dựa trên thời gian thực
+from datetime import datetime
+run_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
+if LITE_MODE:
+    run_name += "-light"
+
+# --- HYPERPARAMETERS ---
+
+# 1. Training Config
+# Nếu Lite mode: chạy 1 vòng (epoch), nếu Full: chạy 3 vòng
+NUM_TRAIN_EPOCHS = 1 if LITE_MODE else 3
+
+# Kích thước Batch: Số lượng mẫu dữ liệu nạp vào GPU cùng lúc
+# 32 là con số "ma thuật" vừa khít T4 16GB VRAM
+per_device_train_batch_size = 32 if LITE_MODE else 256
+
+# Độ dài tối đa của câu input (Prompt + Completion). 
+# 128 tokens là đủ cho bài toán giá cả này.
+MAX_SEQ_LENGTH = 128 
+
+# 2. QLoRA Config
+# Quantization: Nén model xuống 4-bit để tiết kiệm bộ nhớ
+Load_in_4bit = True 
+
+# Rank (r): Số chiều của ma trận Adapter. 
+# 32 là mức tiêu chuẩn, 256 là mức cao cho Full mode.
+lora_r = 32 if LITE_MODE else 256 
+
+# Alpha: Hệ số tỷ lệ, thường gấp đôi r (Rule of thumb)
+lora_alpha = lora_r * 2 
+
+# Target Modules: Các lớp mạng sẽ được gắn Adapter để train
+# Lite mode: Chỉ train lớp Attention để nhẹ máy
+# Full mode: Train cả lớp MLP (Gate, Up, Down projections) để thông minh hơn
+target_modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj'] 
+if not LITE_MODE:
+    target_modules += ['gate_proj', 'up_proj', 'down_proj']
+
+# Dropout: Tắt ngẫu nhiên 10% nơ-ron để chống học vẹt (Overfitting)
+lora_dropout = 0.1 
+
+# 3. Optimizer Config
+# Tốc độ học: 2e-4 (0.0002) - Điểm khởi đầu chuẩn cho QLoRA
+learning_rate = 2e-4 
+
+# Lịch trình học: Cosine (Giảm dần theo hình sin mượt mà)
+lr_scheduler_type = "cosine" 
+warmup_ratio = 0.03 # Dành 3% thời gian đầu để khởi động nhẹ nhàng
+Khối 3: Cấu hình Logging & Saving
+Logic để lưu model định kỳ, phục vụ cho chiến lược Early Stopping thủ công.
+Python
+# Tần suất đánh giá (Validation) và lưu model (Saving)
+# Lite mode: Lưu mỗi 100 bước (step). Full mode: Lưu mỗi 200 bước.
+save_steps = 100 if LITE_MODE else 200 
+logging_steps = 10 # Ghi log loss mỗi 10 bước
+
+# Số lượng mẫu dùng để đánh giá (Validation set)
+# Không dùng hết tập validation để tiết kiệm thời gian
+val_size = 500 if LITE_MODE else 1000
+________________________________________
+4. Kiến thức liên quan & mở rộng
+Tại sao lại là "Lũy thừa của 2" (Powers of Two)?
+Giảng viên có nhắc đến việc chọn Batch Size là 32, 128, 256... và gọi đó là một "huyền thoại đô thị" (urban legend) nhưng vẫn tuân theo.
+•	Thực tế: Kiến trúc phần cứng GPU (các khối CUDA cores) và bộ nhớ được thiết kế tối ưu cho các tính toán nhị phân. Dữ liệu có kích thước là lũy thừa của 2 thường giúp tận dụng tối đa băng thông bộ nhớ và hiệu suất tính toán. Tuy nhiên, với các thư viện hiện đại, việc chọn số lẻ (như 30) không gây hại nhiều, nhưng số chẵn (đặc biệt là lũy thừa 2) vẫn là một thói quen tốt ("best practice") để tránh lãng phí tài nguyên dù nhỏ nhất.
+W&B và tầm quan trọng của Visualization
+Khi train LLM, console chỉ hiện các con số khô khan: Loss: 2.5 -> 2.1 -> 1.8.
+Với W&B, bạn sẽ thấy:
+•	Đường Training Loss đi xuống (Model đang học).
+•	Đường Validation Loss đi xuống (Model đang khái quát tốt).
+•	Nếu Training Loss xuống thấp mà Validation Loss vọt lên cao -> BÁO ĐỘNG ĐỎ: OVERFITTING. Lúc này bạn cần dừng train ngay.
+Cosine Scheduler
+Tại sao không giữ tốc độ học cố định?
+•	Hãy tưởng tượng bạn đang lái xe về nhà. Khi còn xa (lúc đầu train), bạn chạy nhanh (Learning rate cao). Khi gần đến cổng nhà (gần điểm tối ưu), bạn phải rà phanh, đi chậm lại (Learning rate giảm dần theo hàm Cosine) để đỗ xe chính xác vào gara, tránh đâm vào tường.
+Bài học này thiết lập toàn bộ "bảng điều khiển" cho chuyến bay Training sắp tới. Bạn đã sẵn sàng để nhấn nút "Start Training" chưa?
+
+177. Day 3 - Setting Up Weights & Biases and the HuggingFace SFT Trainer 
+Chào bạn Hieu, tôi là Gemini, trợ lý AI chuyên về LLM Engineering.
+Chúng ta đang ở giai đoạn "lắp ráp" cuối cùng. Sau khi đã chuẩn bị dữ liệu, tải model, và chốt các siêu tham số, bây giờ là lúc kết nối tất cả lại với nhau thông qua công cụ Weights & Biases (W&B) và class SFTTrainer của HuggingFace.
+Dưới đây là tổng hợp chi tiết bước thiết lập này:
+1. Tóm tắt cốt lõi
+Phần này hướng dẫn cách kết nối hệ thống training với Weights & Biases (để theo dõi biểu đồ Loss theo thời gian thực) và khởi tạo SFTTrainer (cỗ máy tự động hóa quy trình huấn luyện). Giảng viên nhấn mạnh việc quản lý bộ nhớ đĩa (Disk space) thông qua việc giới hạn số lượng checkpoint và tầm quan trọng của chiến lược đánh giá (Evaluation Strategy) để phát hiện Overfitting.
+2. Nội dung chính
+A. Weights & Biases (W&B) - "Hộp đen" giám sát
+•	Tên gọi: Giảng viên gọi vui là "Wonderbar", nhưng tên chính xác là Weights & Biases (wandb).
+•	Vai trò: Đây là tiêu chuẩn công nghiệp để theo dõi thí nghiệm ML. Thay vì ngồi nhìn màn hình console chạy chữ, W&B sẽ vẽ biểu đồ trực quan về Training Loss và Validation Loss.
+•	Thiết lập: Cần tạo tài khoản tại wandb.ai, lấy API Key và nhập vào Notebook. Nếu bạn không muốn dùng, có thể set thành False, nhưng rất khuyến khích dùng để có cái nhìn chuyên nghiệp.
+B. Cấu hình Training (TrainingArguments)
+Đây là nơi bạn "nói" cho Trainer biết phải làm gì:
+•	BF16: False trên T4 (vì T4 không hỗ trợ tốt bfloat16), nhưng True trên A100.
+•	Save Strategy (Chiến lược lưu): Cực kỳ quan trọng.
+o	save_total_limit = 10: Chỉ giữ lại 10 checkpoint gần nhất. Nếu không có dòng này, ổ cứng Google Colab sẽ bị đầy nhanh chóng và gây crash. Khi lưu checkpoint thứ 11, nó sẽ xóa checkpoint cũ nhất.
+•	Eval Strategy (Chiến lược đánh giá): Được thiết lập để chạy mỗi khi Model được lưu (steps). Điều này giúp bạn có các điểm dữ liệu để so sánh hiệu suất model liên tục.
+C. SFTTrainer - "Người quản lý" quy trình
+•	Vai trò: Thay vì viết tay vòng lặp 4 bước (Forward -> Loss -> Backward -> Optimize) như tuần trước, SFTTrainer (từ thư viện trl) sẽ làm tất cả tự động.
+•	Đầu vào: Nó nhận Model gốc, Dataset (Train & Val), LoRA Config, và Training Arguments.
+•	Xử lý dữ liệu:
+o	Trainer mặc định tìm kiếm 2 trường thông tin: prompt và completion trong dataset (đúng như format bạn đã chuẩn bị ở file items.py).
+o	Nó tự động thêm token kết thúc câu (EOS token) vào cuối mỗi mẫu dữ liệu để Model biết khi nào cần dừng nói.
+3. Phân tích Code
+Dưới đây là các khối lệnh quan trọng để thiết lập Trainer:
+Python
+# 1. Khởi tạo Weights & Biases
+import wandb
+
+# Đăng nhập và khởi tạo project
+# 'price' là tên dự án, 'run_name' là tên phiên chạy (có timestamp)
+wandb.init(project="price", name=run_name) 
+Python
+# 2. Thiết lập Training Arguments
+from transformers import TrainingArguments
+
+training_args = TrainingArguments(
+    output_dir="./results",
+    num_train_epochs=NUM_TRAIN_EPOCHS,     # 1 hoặc 3 epoch
+    per_device_train_batch_size=32,        # Batch size
+    gradient_accumulation_steps=1,
+    optim="paged_adamw_32bit",             # Optimizer tiết kiệm bộ nhớ
+    save_steps=save_steps,                 # Lưu sau mỗi X bước
+    logging_steps=10,                      # Ghi log sau mỗi 10 bước
+    learning_rate=2e-4,                    # Tốc độ học
+    weight_decay=0.001,
+    fp16=False,                            # T4 dùng fp32 hoặc mix, A100 dùng bf16
+    bf16=False,                            # Set True nếu dùng A100
+    max_grad_norm=0.3,                     # Cắt gradient để tránh bùng nổ
+    max_steps=-1,
+    warmup_ratio=0.03,                     # Khởi động
+    group_by_length=True,
+    lr_scheduler_type="cosine",            # Lịch trình học hình sin
+    report_to="wandb",                     # Báo cáo về W&B
+    evaluation_strategy="steps",           # Đánh giá theo bước
+    eval_steps=save_steps,                 # Đánh giá cùng lúc với khi lưu
+    save_total_limit=10                    # Chỉ giữ 10 bản lưu cuối cùng
+)
+Python
+# 3. Khởi tạo SFTTrainer
+from trl import SFTTrainer
+
+trainer = SFTTrainer(
+    model=base_model,                      # Llama 3.2 4-bit
+    train_dataset=train_dataset,           # Dữ liệu train
+    eval_dataset=eval_dataset,             # Dữ liệu validation (đã rút gọn còn 500 mẫu)
+    peft_config=peft_config,               # Cấu hình LoRA (r, alpha, modules...)
+    dataset_text_field="text",             # (Mặc định nó tự ghép prompt + completion)
+    max_seq_length=128,                    # Độ dài tối đa
+    tokenizer=tokenizer,                   # Tokenizer để xử lý văn bản
+    args=training_args,                    # Các tham số cài đặt ở trên
+)
+
+# Lưu ý: SFTTrainer hiện đại đã tự động map cột 'prompt' và 'completion' 
+# để tạo thành input cho quá trình training.
+4. Kiến thức mở rộng: Tại sao cần save_total_limit?
+Khi huấn luyện các mô hình lớn, mỗi Checkpoint (bản lưu trạng thái mô hình tại một thời điểm) có thể chiếm dung lượng rất lớn.
+•	Với QLoRA, chúng ta chỉ lưu Adapter (nhẹ, khoảng vài trăm MB), nhưng nếu bạn lưu quá nhiều phiên bản (ví dụ: cứ 50 bước lưu 1 lần trong 1000 bước), thư mục dự án sẽ phình to lên hàng GB.
+•	Trên Google Colab (vốn có dung lượng ổ đĩa hạn chế), việc không giới hạn số bản lưu (save_total_limit) là nguyên nhân hàng đầu gây ra lỗi Disk Full khiến quá trình training bị crash giữa chừng một cách đáng tiếc.
+Mọi thứ đã sẵn sàng. Cỗ máy SFTTrainer đã được nạp đạn (Data), lên nòng (Config) và gắn ống ngắm (W&B). Chỉ còn một bước nữa: Khai hỏa (Training)!
+178. Day 3 - Running Fine-Tuning with TRL and Monitoring Training in Weights & Biases 
+Chào bạn Hieu, tôi là Gemini, trợ lý AI của bạn.
+Chúng ta đã đến giây phút "bấm nút" quan trọng nhất. Sau bao nhiêu công sức chuẩn bị dữ liệu, cấu hình environment, thiết lập hyperparams, đây là lúc cỗ máy bắt đầu hoạt động.
+Dựa trên phiên âm và file notebook NEW_Week_7_Day_3_TRAINING.ipynb, dưới đây là tổng hợp nội dung phần Running Fine-Tuning & Monitoring.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Nội dung phần này tập trung vào việc thực thi quá trình huấn luyện bằng thư viện TRL (SFTTrainer) và giám sát sức khỏe của mô hình thông qua Weights & Biases (W&B). Giảng viên hướng dẫn cách đọc các biểu đồ quan trọng (Training Loss, Learning Rate) và chiến lược bảo vệ thành quả (Save Model) ngay lập tức để tránh rủi ro mất kết nối trên Google Colab.
+________________________________________
+2. Nội dung chính (Main Content)
+A. Khởi động Training (The "Magic" Line)
+•	Chỉ cần một dòng lệnh duy nhất: trainer.train().
+•	Cảnh báo (Warnings): Sẽ có nhiều dòng cảnh báo hiện ra (về cache, về version...). Giảng viên khuyên: "Hãy lờ nó đi" (Safely ignored). Trong Data Science, nếu code vẫn chạy và không crash, các cảnh báo thường không đáng lo ngại.
+B. Kiểm tra Tài nguyên (GPU Health Check)
+•	Ngay khi train bắt đầu, cần kiểm tra tab "Resources" của Colab.
+•	Bộ nhớ VRAM: Trên GPU T4 (16GB), mô hình Llama 3.2 + QLoRA đang chiếm khoảng ~15GB. Mức này là "sát ván" (tight) nhưng an toàn.
+•	Xử lý sự cố: Nếu gặp lỗi Out Of Memory (OOM), giải pháp là giảm batch_size xuống (từ 32 -> 16 -> 8).
+C. Giám sát trên Weights & Biases (Monitoring)
+Khi click vào link W&B, bạn sẽ thấy "bảng điện tâm đồ" của mô hình:
+1.	Training Loss (Đường đi xuống):
+o	Biểu thị sai số trên dữ liệu huấn luyện.
+o	Được cập nhật liên tục (mỗi 5 hoặc 10 bước).
+o	Đặc điểm: Đường này thường gập ghềnh (noisy) vì mỗi batch dữ liệu là ngẫu nhiên và khác nhau.
+2.	Learning Rate (Đường cong):
+o	Giai đoạn Warmup: Tăng vọt từ 0 lên đỉnh (2e-4).
+o	Giai đoạn Decay: Giảm dần theo hình sin (Cosine Scheduler).
+3.	Validation Loss (Quan trọng nhất):
+o	Biểu thị sai số trên tập dữ liệu kiểm thử (không được học).
+o	Được cập nhật thưa hơn (mỗi 100 bước).
+o	Đặc điểm: Đây là thước đo trung thực nhất về khả năng "Generalization" (khái quát hóa) của mô hình. Nếu Training Loss giảm mà Validation Loss tăng -> Overfitting.
+D. Lưu trữ (Saving Strategy)
+•	Google Colab bản miễn phí có thể ngắt kết nối (disconnect) bất cứ lúc nào.
+•	Chiến lược: Đẩy mô hình lên Hugging Face Hub (push_to_hub) ngay khi train xong để đảm bảo an toàn.
+________________________________________
+3. Phân tích Code (Code Analysis)
+Dựa trên file NEW_Week_7_Day_3_TRAINING.ipynb:
+Python
+# 1. Dòng lệnh khởi động tất cả
+# SFTTrainer sẽ tự động thực hiện vòng lặp 4 bước: Forward -> Loss -> Backward -> Optimize
+train_result = trainer.train() 
+
+# 2. Lưu kết quả training cục bộ
+trainer.save_model()
+
+# 3. Đẩy kết quả lên Cloud (Hugging Face Hub)
+# Đây là bước "bảo hiểm" quan trọng nhất. 
+# private=True: Để chỉ mình bạn xem được model này.
+trainer.push_to_hub(commit_message="Training complete", private=True)
+Giải thích Logic:
+•	trainer.train(): Bên dưới, hàm này quản lý việc nạp dữ liệu theo batch, chuyển dữ liệu vào GPU, tính toán gradient và cập nhật trọng số LoRA.
+•	Các cảnh báo xuất hiện thường do thư viện transformers hoặc bitsandbytes cập nhật nhanh hơn code, nhưng miễn là thanh tiến trình (progress bar) chạy, mọi thứ vẫn ổn.
+________________________________________
+4. Kiến thức liên quan & mở rộng
+Tại sao Training Loss lại "rung lắc" (Noisy)?
+Giảng viên có một so sánh rất hay:
+•	Training Loss: Giống như việc bạn làm bài kiểm tra mỗi ngày, nhưng đề bài thay đổi liên tục (Batch dữ liệu ngẫu nhiên). Hôm nay đề dễ điểm cao (Loss thấp), mai đề khó điểm thấp (Loss cao). Do đó biểu đồ bị rung.
+•	Validation Loss: Giống như bài thi cuối kỳ chuẩn hóa. Bạn làm cùng một bộ đề (Cố định tập Validation) sau mỗi giai đoạn ôn thi. Do đó, kết quả này mượt mà hơn và đáng tin cậy hơn để đánh giá trình độ thực sự.
+Warmup Steps là gì?
+Trong biểu đồ Learning Rate, bạn thấy nó không bắt đầu ngay ở mức cao nhất (2e-4) mà đi từ 0 lên.
+•	Lý do: Khi mới bắt đầu, các trọng số LoRA được khởi tạo ngẫu nhiên, Gradient rất hỗn loạn. Nếu áp dụng Learning Rate lớn ngay lập tức, mô hình có thể bị "sốc" và phân kỳ (diverge - Loss tăng vọt không kiểm soát).
+•	Warmup giúp mô hình "làm nóng" nhẹ nhàng trước khi chạy tốc độ tối đa.
+Colab "Runtime Disconnect"
+Đây là cơn ác mộng của mọi người dùng Free.
+•	Mẹo: Hãy giữ tab Colab hoạt động (active), thỉnh thoảng cuộn chuột hoặc click vào ô code để Google biết bạn vẫn đang làm việc.
+•	Nếu bị ngắt giữa chừng: Bạn có thể resume từ checkpoint gần nhất (trong thư mục results/checkpoint-xxx), nhưng tốt nhất vẫn là cố gắng train một mạch cho xong (khoảng 1 tiếng với Light Mode).
+Chúc mừng bạn! Nếu bạn thấy thanh tiến trình đang chạy và Loss đang giảm, bạn đang chính thức tạo ra trí tuệ nhân tạo riêng của mình. Hẹn gặp lại bạn ở Day 4 để phân tích kết quả!
+DAY 4
+179. Day 4 - Monitoring Your Fine-Tuning Run with Weights & Biases
+Chào bạn Minh Hiếu,
+Dưới đây là tổng hợp nội dung chi tiết cho bài học "Day 4 - Monitoring Your Fine-Tuning Run with Weights & Biases" thuộc tuần 7 của khóa học, dựa trên phân tích phiên âm và các tài liệu bạn đã cung cấp.
+________________________________________
+1. Chủ đề bài học
+179. Day 4 - Monitoring Your Fine-Tuning Run with Weights & Biases
+(Ngày 4 - Giám sát quá trình Fine-Tuning với Weights & Biases)
+2. Yêu cầu chi tiết
+🌟 Tóm tắt cốt lõi
+Bài học tập trung vào kỹ năng giám sát và đánh giá quá trình huấn luyện mô hình ngôn ngữ lớn (LLM). Điểm cốt lõi là sử dụng công cụ Weights & Biases (W&B) để trực quan hóa các biểu đồ Training Loss (Hàm mất mát trên tập huấn luyện) và Validation Loss (Hàm mất mát trên tập kiểm thử). Qua đó, người kỹ sư có thể xác định xem mô hình có thực sự "học" được kiến thức mới hay chỉ đang "học vẹt" (overfitting) hoặc học sai hướng.
+📝 Nội dung chính
+Nội dung bài học đi sâu vào các bước phân tích kết quả chạy (run) từ buổi trước:
+1.	Kiểm tra trạng thái Training (Reviewing the Run):
+o	Xem xét quá trình chạy trên Google Colab.
+o	Quan sát log hiển thị từng bước (step), ví dụ: quá trình đã hoàn thành bước 1/100 và tính toán loss lần đầu tiên.
+2.	Sử dụng Weights & Biases (W&B):
+o	Chuyển sang giao diện dashboard của W&B để xem các biểu đồ trực quan thay vì chỉ nhìn số liệu thô trên terminal.
+o	Phân tích Training Loss:
+	Hiện tượng: Loss giảm rất mạnh ngay từ đầu (ví dụ từ 3.0 xuống 1.3), sau đó đi ngang hoặc giảm chậm.
+	Giải thích: Sự sụt giảm ban đầu là do mô hình nhanh chóng học được định dạng (format) của câu trả lời (ví dụ: luôn phải trả lời là "Price is $..."). Đây chưa phải là học kiến thức sâu, mà là học cấu trúc.
+	Kỹ thuật: Sử dụng tính năng Smoothing trên W&B để làm mượt đường biểu đồ, loại bỏ nhiễu (jitter) để nhìn rõ xu hướng giảm thực sự.
+3.	Phân tích Validation Loss (Eval Loss) - "Phép màu" nằm ở đây:
+o	Đây là chỉ số quan trọng nhất để đánh giá khả năng tổng quát hóa (generalization) của mô hình.
+o	Được tính toán trên tập dữ liệu giữ lại (held-out validation set) mỗi 100 bước (hoặc theo cấu hình eval_steps).
+o	Mục tiêu: Eval Loss phải giảm dần theo thời gian. Nếu Training Loss giảm mà Eval Loss tăng, mô hình đang bị Overfitting (học vẹt dữ liệu train nhưng không áp dụng được cho dữ liệu mới).
+o	Kết quả thực tế: Trong bài, Eval Loss giảm nhẹ (từ ~1.29 xuống ~1.24). Dù con số nhỏ nhưng xác nhận việc fine-tuning là hiệu quả.
+4.	Quan sát Learning Rate (Tốc độ học):
+o	Biểu đồ hiển thị hình dạng của Cosine Scheduler: Tăng dần từ 0 trong giai đoạn khởi động (warmup) và sau đó giảm dần về 0. Điều này giúp mô hình ổn định lúc đầu và tinh chỉnh tốt hơn về sau.
+________________________________________
+💻 Phân tích Code
+Dựa trên file Fine_tune_Llama3_2_qlora (4).ipynb và nội dung bài học, dưới đây là phân tích các đoạn code thiết lập việc giám sát này.
+Lưu ý: Phần code này nằm trong cấu hình TrainingArguments của thư viện transformers.
+Python
+# Cấu hình tham số huấn luyện (Training Arguments) liên quan đến giám sát
+training_args = TrainingArguments(
+    output_dir="./results",
+    
+    # Cấu hình báo cáo (Logging)
+    report_to="wandb",          # Gửi log metrics trực tiếp lên Weights & Biases
+    run_name="llama-3.2-finetune", # Đặt tên cho run để dễ quản lý trên dashboard
+    
+    # Cấu hình tần suất đánh giá và log
+    logging_steps=25,           # Ghi lại log training loss mỗi 25 bước (steps)
+    eval_strategy="steps",      # Đánh giá trên tập validation theo số bước (thay vì theo epoch)
+    eval_steps=100,             # Chạy đánh giá (tính Eval Loss) mỗi 100 bước
+    
+    # Cấu hình lưu trữ
+    save_strategy="steps",      # Lưu checkpoint model theo số bước
+    save_steps=100,             # Lưu checkpoint mỗi 100 bước
+    
+    # Learning Rate Scheduler (được nhắc đến trong bài)
+    learning_rate=2e-4,         # Tốc độ học tối đa
+    lr_scheduler_type="cosine", # Kiểu lịch trình cosine (tăng rồi giảm dần)
+    warmup_ratio=0.05,          # 5% số bước đầu dùng để warm-up (tăng dần LR từ 0)
+    
+    # Các tham số khác
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    # ...
+)
+
+# Khởi tạo Trainer
+trainer = SFTTrainer(
+    model=model,
+    args=training_args,
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["test"], # Cung cấp tập validation để tính Eval Loss
+    # ...
+)
+Giải thích logic & Mục đích:
+•	report_to="wandb": Đây là dòng lệnh kích hoạt "phép màu". Nó bảo Trainer tự động đẩy mọi thông số (loss, learning rate, v.v.) lên server của W&B.
+•	eval_strategy="steps" & eval_steps=100: Rất quan trọng. Vì việc fine-tuning có thể tốn nhiều thời gian, chúng ta không đợi hết 1 epoch mới kiểm tra. Chúng ta muốn biết mô hình có đang học tốt hay không ("Eval Loss" có giảm không) cứ sau mỗi 100 bước cập nhật trọng số.
+•	lr_scheduler_type="cosine": Điều khiển biểu đồ Learning Rate mà giáo viên đã chỉ ra (hình quả núi), giúp quá trình training hội tụ tốt hơn.
+________________________________________
+🧠 Kiến thức liên quan & mở rộng
+1. Training Loss vs. Validation Loss (Quy tắc ngón tay cái)
+•	Training Loss giảm, Validation Loss giảm: Tốt (Lý tưởng). Mô hình đang học và tổng quát hóa tốt.
+•	Training Loss giảm, Validation Loss tăng: Overfitting (Báo động đỏ). Mô hình đang học thuộc lòng dữ liệu train. Cần dừng train (Early Stopping), tăng Regularization (Dropout), hoặc giảm kích thước mô hình/tăng dữ liệu.
+•	Training Loss cao, Validation Loss cao: Underfitting. Mô hình chưa đủ phức tạp hoặc chưa được train đủ lâu.
+2. Tại sao Loss giảm sốc lúc đầu? (Initial Drop)
+Trong các tác vụ GenAI có cấu trúc (như JSON output hoặc format cố định "Price is $..."), mô hình học cú pháp (syntax) nhanh hơn học ngữ nghĩa (semantics).
+•	Giai đoạn 1 (Sốc): Mô hình nhận ra "À, mình luôn phải bắt đầu câu bằng 'Price is $'". Điều này rất dễ đoán nên Loss giảm cực nhanh.
+•	Giai đoạn 2 (Phẳng): Mô hình bắt đầu phải đoán con số cụ thể (ví dụ: $50 hay $100?). Đây là kiến thức khó, nên Loss giảm rất chậm. Đây mới là lúc việc "học" thực sự diễn ra.
+3. Cross Entropy Loss
+Chỉ số "Loss" mà W&B hiển thị thực chất là Cross Entropy Loss.
+•	Nó đo lường độ chênh lệch giữa phân phối xác suất dự đoán của mô hình (ví dụ: 70% là chữ 'A', 30% là chữ 'B') và nhãn thực tế (100% là chữ 'A').
+•	Giá trị càng thấp (về 0) nghĩa là mô hình càng tự tin và chính xác.
+•	Công thức đơn giản hóa: Loss = -log(xác suất mô hình dự đoán đúng token thực tế). Nếu mô hình dự đoán đúng token đó với xác suất 1.0 (100%), Loss = 0.
+4. "Cheating" trong Demo (Lưu ý thực tế)
+Trong video, giáo viên nói ông ấy "lừa dối" (cheating) bằng cách mở một Run đã chạy xong từ trước. Trong thực tế làm việc, bạn thường phải chờ đợi (có thể vài tiếng hoặc vài ngày). Kỹ năng quan trọng là nhìn vào biểu đồ sớm (sau vài trăm bước) để quyết định có nên kill (hủy) quá trình chạy để tiết kiệm tiền GPU nếu thấy Eval Loss không giảm hoặc tăng lên.
+
+180. Day 4 - Full Dataset Training on Google Colab A100 with 800K Data Points
+Chào bạn Minh Hiếu,
+Dưới đây là tổng hợp nội dung chi tiết cho bài học "Day 4 - Full Dataset Training on Google Colab A100 with 800K Data Points". Đây là bước chuyển đổi quan trọng từ việc chạy thử nghiệm (demo) sang huấn luyện thực tế quy mô lớn (production-grade).
+________________________________________
+1. Chủ đề bài học
+180. Day 4 - Full Dataset Training on Google Colab A100 with 800K Data Points
+(Ngày 4 - Huấn luyện trên toàn bộ tập dữ liệu với Google Colab A100)
+2. Yêu cầu chi tiết
+🌟 Tóm tắt cốt lõi
+Bài học hướng dẫn cách thiết lập và chạy quá trình Fine-tuning quy mô lớn (Full Run) trên toàn bộ tập dữ liệu 800,000 điểm dữ liệu. Điểm nhấn là việc chuyển đổi phần cứng từ T4 (Free) sang A100 (Paid - 80GB VRAM) để đáp ứng khối lượng tính toán khổng lồ. Giảng viên cũng chia sẻ về các siêu tham số (hyperparameters) hạng nặng ($r=256$) và kinh nghiệm quản lý tài nguyên GPU.
+📝 Nội dung chính
+1.	Chuẩn bị môi trường ("Clean Slate"):
+o	Sao chép Notebook cũ ra một bản mới để giữ lịch sử chạy trước đó.
+o	Chuyển đổi Runtime Type trên Google Colab sang A100 GPU (yêu cầu Colab Pro hoặc mua Compute Units).
+o	Lý do chọn A100: Cần bộ nhớ VRAM lớn (80GB) để chứa mô hình và batch size lớn, giúp tăng tốc độ train trên dữ liệu khổng lồ.
+2.	Cấu hình "Heavy Duty":
+o	Tắt chế độ LIGHT_MODE (False).
+o	Epochs: Tăng lên 3 (thay vì 1).
+o	Dataset: Sử dụng toàn bộ 800k mẫu.
+o	LoRA Rank ($r$): Đặt ở mức cao 256.
+o	Validation: Tăng số mẫu kiểm thử lên 1000 điểm (thay vì 500) để đánh giá chính xác hơn.
+3.	Thực thi và Giám sát:
+o	Quá trình Tokenization (chuyển văn bản thành số) sẽ mất nhiều thời gian hơn do dữ liệu lớn.
+o	Theo dõi VRAM: Đã sử dụng tới 70.1 GB / 80 GB của A100.
+o	Thời gian dự kiến: Khoảng 15 giờ cho 3 epochs (mỗi epoch ~7 giờ).
+________________________________________
+💻 Phân tích Code
+Dựa trên file Fine_tune_Llama3_2_qlora (4).ipynb và nội dung bài giảng, phần code quan trọng nhất nằm ở việc thiết lập các hằng số dựa trên LIGHT_MODE.
+Python
+# --- Cấu hình Siêu tham số (Hyperparameters) ---
+
+# Chuyển LIGHT_MODE thành False để chạy Full Training
+LIGHT_MODE = False 
+
+# Cấu hình dựa trên chế độ chạy
+if LIGHT_MODE:
+    # Cấu hình nhẹ cho T4 GPU (Demo)
+    NUM_EPOCHS = 1
+    BATCH_SIZE = 4
+    GRADIENT_ACCUMULATION_STEPS = 4
+    LORA_R = 16          # Rank thấp để tiết kiệm bộ nhớ
+    LORA_ALPHA = 32
+    # ...
+else:
+    # Cấu hình nặng cho A100 GPU (Production)
+    NUM_EPOCHS = 3       # Train kỹ hơn (lặp lại 3 lần toàn bộ dữ liệu)
+    BATCH_SIZE = 16      # Tăng Batch size thực tế (lưu ý: code trong bài giảng dùng 256 tổng thể qua accumulation)
+    # Trong bài giảng, giảng viên nhắc đến Batch Size 256, 
+    # thường đạt được bằng cách: device_batch_size * gradient_accumulation
+    
+    LORA_R = 256         # Rank cực cao: Cho phép mô hình học được các đặc trưng phức tạp hơn
+    LORA_ALPHA = 512     # Quy tắc ngón tay cái: Alpha = 2 * r (hoặc r tùy cài đặt)
+    # ...
+
+# --- Thiết lập Trainer ---
+training_args = TrainingArguments(
+    # ...
+    per_device_train_batch_size=BATCH_SIZE, 
+    gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
+    num_train_epochs=NUM_EPOCHS,
+    # fp16=True hoặc bf16=True (A100 hỗ trợ bf16 tốt hơn)
+    bf16=True, # Sử dụng BFloat16 trên A100 để tính toán nhanh và ổn định hơn FP16
+    # ...
+)
+Ghi chú giải thích:
+•	LIGHT_MODE = False: Đây là công tắc chính. Khi tắt nó, script sẽ tự động tải file dữ liệu đầy đủ (items_prompts_full) thay vì file rút gọn (items_prompts_lite).
+•	LORA_R = 256: Rank càng cao, ma trận thích ứng (adapter matrix) càng lớn, mô hình càng "thông minh" nhưng tốn VRAM hơn.
+•	bf16=True: A100 hỗ trợ định dạng số BFloat16 (Brain Floating Point). Đây là định dạng tối ưu cho Deep Learning, tránh bị tràn số (overflow) tốt hơn FP16 truyền thống dùng trên T4.
+________________________________________
+🧠 Kiến thức liên quan & mở rộng
+1. Tại sao A100 lại là "Quái vật"? (The A100 Beast)
+•	VRAM: A100 có 80GB VRAM (so với 16GB của T4). Trong Deep Learning, "VRAM is King". VRAM lớn cho phép bạn nhét vừa batch size lớn hơn.
+•	Batch Size lớn = Gradient ổn định: Khi bạn tính toán gradient trên 256 mẫu cùng lúc (thay vì 4), hướng di chuyển của mô hình sẽ chính xác và mượt mà hơn, giúp mô hình hội tụ tốt hơn.
+2. Nghịch lý bộ nhớ GPU (The VRAM Paradox)
+Giảng viên chia sẻ một kinh nghiệm thực tế rất thú vị:
+•	Khi ông thử giảm $r$ từ 256 xuống 32 (nghĩ rằng sẽ nhẹ hơn), GPU lại bị OOM (Out of Memory).
+•	Lý do (phỏng đoán): Cách các thư viện (PyTorch/BitsAndBytes) phân bổ bộ nhớ và tối ưu hóa tính toán (memory fragmentation). Đôi khi, các kích thước ma trận "tròn trịa" (lũy thừa của 2 lớn) được tối ưu tốt hơn và quản lý bộ nhớ hiệu quả hơn các kích thước nhỏ nhưng lẻ tẻ.
+•	Bài học: VRAM usage khá khó đoán. Nếu bị OOM, giải pháp đơn giản nhất là giảm Batch Size.
+3. Chiến lược "Pay as you go" và Early Stopping
+•	Chi phí: Chạy A100 rất tốn kém (vài USD/giờ). Bạn cần mua "Compute Units" trên Colab.
+•	Không cần chạy hết: Dù set 3 epochs (15 tiếng), bạn có thể dừng bất cứ lúc nào. Thông thường, mô hình có thể đã đạt hiệu suất rất tốt chỉ sau 0.5 hoặc 1 epoch.
+•	Cách dừng: Chỉ cần ngắt kết nối (Runtime -> Disconnect) nhưng hãy đảm bảo bạn đã lưu checkpoint mô hình thường xuyên (thông qua save_steps trong code) hoặc đẩy lên Hugging Face Hub.
+4. Google Colab 24h Limit
+•	Ngay cả khi trả tiền, Colab vẫn có giới hạn phiên chạy tối đa (thường là 24h cho gói Pro/Pro+).
+•	Với thời gian train dự kiến 15h, bạn đang ở vùng an toàn. Nhưng nếu train model lớn hơn nữa, bạn cần kỹ thuật "Checkpoint & Resume" (lưu lại để hôm sau train tiếp từ điểm đó).
+
+181. Day 4 - Monitoring Training Loss and Learning Rate in Weights & Biases
+Chào bạn Minh Hiếu,
+Dưới đây là tổng hợp nội dung chi tiết cho bài học "Day 4 - Monitoring Training Loss and Learning Rate in Weights & Biases". Bài học này rất quan trọng để giúp bạn đọc hiểu và phân tích biểu đồ huấn luyện, từ đó nhận biết được mô hình đang học tốt hay đang gặp vấn đề (như overfitting).
+________________________________________
+1. Chủ đề bài học
+181. Day 4 - Monitoring Training Loss and Learning Rate in Weights & Biases
+(Ngày 4 - Giám sát Training Loss và Tốc độ học trên Weights & Biases)
+2. Yêu cầu chi tiết
+🌟 Tóm tắt cốt lõi
+Bài học hướng dẫn cách phân tích các chỉ số huấn luyện trên dashboard của Weights & Biases (W&B).
+•	Training Loss: Quan sát độ mượt (smoothness) và xu hướng giảm. Nhận diện các "bậc thang" (steps) giảm đột ngột sau mỗi epoch và ý nghĩa tiêu cực tiềm ẩn của chúng (dấu hiệu overfitting).
+•	Learning Rate: Hiểu về cơ chế "Warm-up" (tăng dần lúc đầu) và "Decay" (giảm dần về sau) trải dài qua toàn bộ quá trình huấn luyện (3 epochs).
+•	Vấn đề Overfitting: Giải thích tại sao việc Loss giảm mạnh ở các epoch sau trên cùng tập dữ liệu có thể là dấu hiệu mô hình đang "học vẹt" (memorizing) thay vì "học hiểu" (generalizing).
+📝 Nội dung chính
+1.	Phân tích Training Loss (Mất mát huấn luyện):
+o	Độ mượt (Smoothness): Biểu đồ Training Loss trông mượt mà hơn so với các bài trước.
+	Lý do: Sử dụng Batch Size lớn (256). Batch lớn giúp trung bình hóa nhiễu (noise) tốt hơn, đường biểu đồ ít bị rung lắc (jittery).
+	Lưu ý: Batch Size nhỏ đôi khi tốt hơn vì "nhiễu" giúp mô hình thoát khỏi các điểm cực tiểu cục bộ (local minima), nhưng Batch lớn giúp tận dụng tối đa sức mạnh phần cứng A100 và train nhanh hơn.
+o	Hiện tượng "Bậc thang" (The Steps): Biểu đồ có hình dạng "lao dốc" (slam down) rõ rệt mỗi khi chuyển sang epoch mới (Epoch 1 -> Epoch 2 -> Epoch 3).
+	Giải thích: Khi bắt đầu Epoch 2, mô hình gặp lại chính những dữ liệu nó đã thấy ở Epoch 1. Vì đã biết trước "đáp án", Loss giảm mạnh.
+	Cảnh báo: Nếu mức giảm này quá lớn, đó là dấu hiệu Overfitting. Mô hình đang học thuộc lòng (ví dụ: thấy "táo Golden Delicious" là auto điền giá "$5") thay vì học quy luật chung. Điều này giống như tạo ra hàng loạt câu lệnh if-else khổng lồ.
+2.	Phân tích Learning Rate (Tốc độ học):
+o	Cơ chế: Biểu đồ Learning Rate có hình dạng "quả núi": Tăng dần trong giai đoạn Warm-up, sau đó giảm dần theo hàm Cosine.
+o	Phạm vi áp dụng: Scheduler áp dụng cho toàn bộ quá trình training (3 epochs) chứ không phải reset lại sau mỗi epoch.
+o	Ý nghĩa: Giúp mô hình bắt đầu học nhanh và rộng, sau đó dần dần tinh chỉnh chi tiết (học chậm lại) để hội tụ tốt nhất.
+3.	Tầm quan trọng của Validation Loss:
+o	Để biết chắc chắn mô hình có đang học tốt hay không (tránh Overfitting), ta không thể chỉ nhìn Training Loss.
+o	Phải nhìn vào Validation Loss (Eval Loss): Chỉ số đo trên tập dữ liệu chưa từng thấy (held-out data). Đây mới là thước đo cho khả năng tổng quát hóa (generalization) của mô hình.
+________________________________________
+💻 Phân tích Code (Liên quan đến Scheduler)
+Dựa trên nội dung bài giảng và file Fine_tune_Llama3_2_qlora (4).ipynb, dưới đây là đoạn cấu hình liên quan đến Learning Rate Scheduler:
+Python
+# Cấu hình trong TrainingArguments
+training_args = TrainingArguments(
+    # ...
+    learning_rate=2e-4,          # Tốc độ học tối đa (đỉnh của biểu đồ)
+    lr_scheduler_type="cosine",  # Kiểu biểu đồ: Hình Cosine (cong xuống)
+    warmup_ratio=0.05,           # 5% thời gian đầu dùng để Warm-up (đi từ 0 lên 2e-4)
+    num_train_epochs=3,          # Tổng thời gian train là 3 epochs
+    # ...
+)
+Ghi chú giải thích:
+•	lr_scheduler_type="cosine": Tạo ra đường cong mềm mại cho Learning Rate, giảm dần về 0 ở cuối quá trình train.
+•	warmup_ratio=0.05: Trong 5% số bước đầu tiên (ví dụ tổng 1000 bước thì 50 bước đầu), Learning Rate sẽ tăng tuyến tính từ 0 lên 2e-4. Giai đoạn này giúp ổn định trọng số ban đầu trước khi train mạnh.
+•	Hệ quả: Scheduler tính toán dựa trên total_steps = steps_per_epoch * num_train_epochs. Do đó, biểu đồ LR sẽ là một đường cong liên tục suốt 3 epochs, không bị ngắt quãng.
+________________________________________
+🧠 Kiến thức liên quan & mở rộng
+1. Batch Size: Lớn vs. Nhỏ (Trade-off)
+•	Batch Size Lớn (256):
+o	Ưu điểm: Tận dụng tốt GPU (A100), tính toán nhanh, gradient ổn định (ít nhiễu).
+o	Nhược điểm: Tốn VRAM, có thể hội tụ đến điểm tối ưu "phẳng" (sharp minima) kém bền vững hơn, đôi khi giảm khả năng tổng quát hóa.
+•	Batch Size Nhỏ (32):
+o	Ưu điểm: Ít tốn VRAM, nhiễu (noise) giúp mô hình thoát kẹt (escape local minima), thường cho khả năng tổng quát hóa tốt hơn (flat minima).
+o	Nhược điểm: Train chậm hơn, gradient biến động mạnh.
+2. Overfitting & Memorization
+•	Memorization (Học vẹt): Mô hình nhớ chính xác từng cặp input-output trong tập train. Loss train cực thấp, nhưng gặp dữ liệu lạ là sai.
+•	Generalization (Học hiểu): Mô hình học được quy luật (pattern, trend). Loss train có thể không thấp bằng học vẹt, nhưng Loss validation thấp và ổn định.
+•	Dấu hiệu trên biểu đồ: Training Loss giảm sâu liên tục, trong khi Validation Loss bắt đầu đi ngang hoặc tệ hơn là tăng ngược trở lại (đáy hình chữ U).
+3. Tại sao Scheduler lại quan trọng?
+Hãy tưởng tượng bạn đang lái xe xuống một thung lũng (tìm điểm Loss thấp nhất):
+•	Lúc đầu (High LR): Bạn ở trên đỉnh dốc, cần lái nhanh để xuống dưới.
+•	Lúc sau (Low LR): Bạn đã gần đến đáy thung lũng, cần lái chậm, nhích từng chút một để tìm đúng điểm thấp nhất (đáy vực) thay vì phóng vèo qua nó sang sườn dốc bên kia.
+•	Warm-up: Giống như khởi động xe máy, cần nổ máy chạy rà một chút cho nóng máy rồi mới vít ga, tránh bị "chết máy" (phân kỳ gradient) ngay lúc đầu.
+
+182. Day 4 - Analyzing Weights & Biases Results and Catching Overfitting
+Chào bạn Minh Hiếu,
+Dưới đây là tổng hợp nội dung chi tiết cho bài học "Day 4 - Analyzing Weights & Biases Results and Catching Overfitting". Bài học này là một case study điển hình về việc phát hiện Overfitting (quá khớp) bằng cách so sánh Training Loss và Validation Loss.
+________________________________________
+1. Chủ đề bài học
+182. Day 4 - Analyzing Weights & Biases Results and Catching Overfitting
+(Ngày 4 - Phân tích kết quả trên Weights & Biases và Phát hiện Overfitting)
+2. Yêu cầu chi tiết
+🌟 Tóm tắt cốt lõi
+Bài học hướng dẫn cách đọc và phân tích kết quả huấn luyện (Run Results) trên Weights & Biases.
+•	Phát hiện Overfitting: Dấu hiệu rõ ràng nhất là khi bước sang Epoch thứ 3, Training Loss giảm mạnh (do học vẹt), nhưng Validation Loss (Eval Loss) lại tăng vọt.
+•	Chọn Checkpoint tốt nhất: Điểm tối ưu không phải là điểm cuối cùng (final step), mà là điểm có Eval Loss thấp nhất (trong bài là tại bước 6200).
+•	Thử nghiệm Hyperparameters: Khuyến khích người học đóng vai trò "Data Scientist" để thử nghiệm các giá trị khác nhau (Learning Rate, Dropout, Rank) nhằm tìm ra cấu hình tốt nhất.
+📝 Nội dung chính
+1.	Phân tích Eval Loss - Câu chuyện của 3 Epochs:
+o	Đầu quá trình (Epoch 1 & 2): Eval Loss giảm đều đặn từ ~1.27 xuống đáy thấp nhất là 1.124 (tại bước 6200). Đây là giai đoạn mô hình học tập hiệu quả nhất.
+o	Hiện tượng Spike (Tăng vọt): Có một đoạn Eval Loss tăng vọt ngắn lúc đầu do Learning Rate đạt đỉnh (Warm-up xong), khiến mô hình nhảy ra khỏi local minimum. Sau đó nó ổn định lại và giảm tiếp.
+o	Thảm họa Epoch 3 (Overfitting): Ngay khi bắt đầu Epoch 3 (khoảng sau bước 6200), Eval Loss đột ngột tăng lên 1.283 và giữ ở mức cao, thậm chí tệ hơn lúc mới bắt đầu.
+	Nguyên nhân: Mô hình đã học quá kỹ (over-memorize) tập huấn luyện trong 2 epochs đầu. Khi gặp lại dữ liệu cũ lần thứ 3, nó "học vẹt" cực nhanh (Training Loss giảm), nhưng mất khả năng tổng quát hóa trên dữ liệu mới (Eval Loss tăng).
+2.	Chiến lược chọn Checkpoint (Model Selection):
+o	Vì chúng ta lưu checkpoint thường xuyên (mỗi 100 bước), chúng ta có thể quay lại quá khứ.
+o	Quyết định: Không lấy model tại bước cuối cùng (Epoch 3). Thay vào đó, tải lại checkpoint tại bước 6200 (cuối Epoch 2) nơi có Eval Loss thấp nhất (1.124).
+o	Bài học: Training lâu hơn không phải lúc nào cũng tốt hơn. "More epochs" có thể gây hại nếu không kiểm soát được Overfitting.
+3.	Tối ưu hóa Hyperparameters (Thử & Sai):
+o	Giảng viên chia sẻ cách dùng W&B để so sánh nhiều Run khác nhau (ví dụ: High LR vs. Low LR).
+o	Gợi ý cải thiện: Nếu muốn train được Epoch 3 mà không bị Overfitting, có thể thử:
+	Tăng Dropout: Từ 0.1 lên 0.2 để buộc mô hình không phụ thuộc vào các neuron cụ thể.
+	Giảm Rank ($r$): Giảm khả năng ghi nhớ chi tiết thừa của mô hình.
+	Early Stopping: Dừng train ngay khi Eval Loss bắt đầu tăng.
+________________________________________
+💻 Phân tích Code
+Trong bài học này không có code mới được viết, nhưng nó dựa trên việc phân tích kết quả từ đoạn code cấu hình Trainer trước đó. Đặc biệt là phần lưu trữ checkpoint để chúng ta có thể "quay xe".
+Python
+# Đoạn code liên quan đến việc lưu trữ và đánh giá
+training_args = TrainingArguments(
+    # ...
+    evaluation_strategy="steps", # Đánh giá theo bước
+    eval_steps=100,              # Đánh giá mỗi 100 bước để vẽ biểu đồ chi tiết
+    save_strategy="steps",       # Lưu checkpoint theo bước
+    save_steps=100,              # Lưu lại model mỗi 100 bước 
+    load_best_model_at_end=True, # Tự động load model tốt nhất khi train xong (dựa trên metric)
+    metric_for_best_model="eval_loss", # Chọn model có Eval Loss thấp nhất
+    # ...
+)
+Ghi chú giải thích:
+•	save_steps=100: Rất quan trọng. Nếu chúng ta chỉ lưu ở cuối epoch (ví dụ mỗi 7 tiếng), chúng ta sẽ mất cơ hội lấy được model tại "đỉnh cao phong độ" (bước 6200).
+•	load_best_model_at_end=True: Một tính năng cực hay của Hugging Face Trainer. Kể cả khi train lố sang Epoch 3 bị overfitting, Trainer sẽ tự động trả về trạng thái trọng số tốt nhất (bước 6200) khi kết thúc lệnh .train().
+________________________________________
+🧠 Kiến thức liên quan & mở rộng
+1. Overfitting - "Kẻ thù" thầm lặng
+•	Biểu hiện: Training Loss giảm đẹp (như thác đổ), nhưng Validation Loss đi ngang hoặc tăng ngược lên (hình chữ U).
+•	Tại sao Epoch 3 lại tệ? Với mô hình lớn (LLM) và kỹ thuật LoRA mạnh ($r=256$), mô hình có dung lượng bộ nhớ rất lớn. Sau 2 lần nhìn thấy toàn bộ dữ liệu (2 epochs), nó đã bắt đầu "nhớ" đáp án thay vì học quy luật. Lần thứ 3 chỉ làm củng cố cái sự "nhớ vẹt" đó.
+2. W&B Comparison Tool
+•	Trong thực tế, bạn sẽ chạy hàng chục thí nghiệm (Experiments).
+•	W&B cho phép bạn bật/tắt các đường biểu đồ của từng Run để so sánh trực quan.
+•	Ví dụ: Run A (LR=2e-4) vs. Run B (LR=1e-4). Nếu Run A hội tụ nhanh hơn nhưng sau đó bị vọt Loss, còn Run B chậm mà chắc -> Chọn Run B hoặc điều chỉnh LR Schedule.
+3. Hyperparameter Tuning Strategies
+•	Grid Search: Thử tất cả các tổ hợp (tốn kém).
+•	Random Search: Chọn ngẫu nhiên (thường hiệu quả bất ngờ).
+•	Babysitting: (Cách chúng ta đang làm) Quan sát từng Run, phân tích biểu đồ, rồi đoán và điều chỉnh tham số cho Run tiếp theo. Đây là cách tốt nhất để học và hiểu sâu về mô hình (Data Scientist mindset).
+4. Thử thách cho người học
+•	Con số cần đánh bại: Eval Loss = 1.12345 (tại bước 6201).
+•	Đây là mức loss thấp nhất mà giảng viên đạt được. Bạn có thể thử chỉnh sửa dropout, lora_r, learning_rate để xem có phá được kỷ lục này không.
+
+183. Day 4 - Managing Runs in Weights & Biases and Selecting Best Model Checkpoints
+Chào bạn Minh Hiếu,
+Dưới đây là tổng hợp nội dung chi tiết cho bài học "Day 4 - Managing Runs in Weights & Biases and Selecting Best Model Checkpoints". Bài học này hoàn thiện quy trình huấn luyện bằng cách hướng dẫn cách quản lý phiên chạy và chọn ra mô hình tốt nhất từ lịch sử.
+________________________________________
+1. Chủ đề bài học
+183. Day 4 - Managing Runs in Weights & Biases and Selecting Best Model Checkpoints
+(Ngày 4 - Quản lý Run trên Weights & Biases và Chọn Checkpoint mô hình tốt nhất)
+2. Yêu cầu chi tiết
+🌟 Tóm tắt cốt lõi
+Bài học hướng dẫn các kỹ thuật quản lý dự án thực tế sau khi training xong:
+•	Quản lý trên W&B: Đổi tên hiển thị (Display Name) cho các Run quan trọng để dễ nhận diện trong danh sách dài dằng dặc các thử nghiệm.
+•	Hugging Face Hub như Git: Hiểu rằng mỗi lần lưu checkpoint là một "commit". Cách tìm và chọn đúng phiên bản mô hình (Commit ID) có hiệu suất tốt nhất (Eval Loss thấp nhất) thay vì dùng phiên bản cuối cùng.
+•	Tầm quan trọng của Test Set: Giải thích lý do tại sao cần bộ dữ liệu thứ 3 (Test Data) tách biệt hoàn toàn với Validation Data để đánh giá khách quan, tránh hiện tượng thiên kiến do chọn mô hình (data leakage/cheating).
+📝 Nội dung chính
+1.	Tổ chức Project trên Weights & Biases:
+o	Các Run mặc định được đặt tên theo timestamp (thời gian chạy), giúp biết thứ tự nhưng khó nhớ nội dung.
+o	Mẹo: Sử dụng tính năng Edit Run Name để đặt "biệt danh" (ví dụ: main-best, high-lr-experiment) giúp dễ dàng tìm lại sau này. Việc này chỉ đổi nhãn hiển thị, không ảnh hưởng dữ liệu gốc.
+2.	Khai thác Hugging Face Hub (Model Repository):
+o	Model được upload lên Hub chứa đầy đủ các file cần thiết:
+	adapter_model.safetensors (~1.56GB): Trọng số đã tinh chỉnh.
+	adapter_config.json: Chứa các siêu tham số ($r=256$, $\alpha=512$, target modules...).
+o	Tính năng "History/Commits": Đây là cỗ máy thời gian. Mỗi lần Trainer lưu checkpoint (mỗi 100 bước), nó tạo ra một commit mới.
+o	Thao tác chọn model:
+	Tìm commit ứng với bước 6200 (nơi có Eval Loss thấp nhất 1.12345).
+	Copy Commit ID (mã hash SHA).
+	Ứng dụng: Ngày mai khi chạy Inference (dự đoán), ta sẽ chỉ định tải đúng phiên bản này.
+3.	Triết lý về 3 tập dữ liệu (Train - Val - Test):
+o	Training Set: Để mô hình học (cập nhật trọng số).
+o	Validation Set: Dùng để chọn mô hình tốt nhất (Early Stopping, Hyperparameter Tuning).
+	Vấn đề: Vì ta dùng tập này để ra quyết định chọn model, mô hình đã gián tiếp "học" (bias) theo tập này.
+o	Test Set: Phải được giữ kín hoàn toàn (Held-out). Chỉ dùng một lần duy nhất khi đã chốt xong model để báo cáo hiệu suất thực tế. Đây là trọng tài công tâm nhất.
+________________________________________
+💻 Phân tích Code
+Trong bài học này không có code mới để chạy, nhưng giảng viên nhắc đến việc sử dụng Commit ID trong code Inference sắp tới. Dưới đây là cách nó sẽ được sử dụng (preview):
+Python
+from peft import PeftModel
+
+# Thay vì chỉ load model mới nhất, ta chỉ định cụ thể phiên bản (revision)
+model_name = "ed-donner/llama-3.2-finetune-price" # Tên repo trên HF
+commit_hash = "e4f8a..." # Mã Commit ID copy từ bước 6200
+
+# Load model gốc
+base_model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-3B")
+
+# Load trọng số LoRA từ đúng checkpoint tốt nhất
+peft_model = PeftModel.from_pretrained(
+    base_model,
+    model_name,
+    revision=commit_hash  # <--- CHÌA KHÓA QUAN TRỌNG
+)
+Ghi chú giải thích:
+•	revision: Tham số này cho phép thư viện transformers hoặc peft tải về trạng thái file tại một thời điểm cụ thể trong lịch sử Git. Nếu không có tham số này, nó mặc định tải phiên bản mới nhất (main branch) - vốn là phiên bản đã bị Overfitting ở Epoch 3.
+________________________________________
+🧠 Kiến thức liên quan & mở rộng
+1. Tại sao Hugging Face hoạt động như Git?
+•	Hugging Face Hub thực chất được xây dựng trên nền tảng Git-LFS (Large File Storage).
+•	Mọi thay đổi (upload file, sửa README, lưu checkpoint) đều là một Git Commit.
+•	Điều này cực kỳ hữu ích cho MLOps (Machine Learning Operations) vì nó đảm bảo tính tái lập (reproducibility). Bạn luôn có thể quay lại chính xác trạng thái mô hình của tuần trước.
+2. Data Leakage (Rò rỉ dữ liệu) trong Model Selection
+•	Một sai lầm phổ biến của người mới: Dùng Validation Set để chọn model, rồi báo cáo kết quả trên chính Validation Set đó và gọi là "độ chính xác".
+•	Thực tế: Kết quả đó thường lạc quan hơn thực tế (over-optimistic) vì bạn đã chọn ra "ứng cử viên may mắn nhất" phù hợp với bộ đề đó.
+•	Giải pháp: Luôn dành riêng Test Set. Đừng bao giờ chạm vào nó cho đến phút cuối cùng.
+3. Kết thúc ngày 4 - Chuẩn bị cho ngày 5
+•	Chúng ta đã có: Model đã train xong, đã upload, đã xác định được checkpoint "vàng" (Golden Checkpoint).
+•	Ngày mai (Day 5): Sẽ là ngày của sự thật. Chạy model này trên Test Set để xem nó có thực sự thông minh hơn, dự đoán giá chính xác hơn các mô hình cũ hay không.
+DAY 5
+184. Day 5 - Results Day: Running Inference on Fine-Tuned Models & Loss Calculation D
+Chào bạn, chúc mừng bạn đã đi đến ngày thứ 5 của tuần 7! Đây là thời khắc quan trọng nhất: "The Moment of Truth" (Thời khắc của sự thật).
+Hôm nay, chúng ta không chỉ chạy code để xem kết quả mà còn đi sâu vào "hộp đen" để hiểu cách mô hình thực sự học thông qua cơ chế Loss Calculation (Tính toán mất mát) và Backpropagation (Lan truyền ngược).
+Dưới đây là tổng hợp chi tiết bài học Day 5 dựa trên các tài liệu bạn cung cấp.
+________________________________________
+1. Tóm tắt cốt lõi
+Bài học hôm nay tập trung vào hai khía cạnh:
+1.	Thực hành (Inference): Kiểm thử mô hình nguồn mở (Llama 3.2 3B) đã được Fine-tune bằng phương pháp QLoRA trên tập dữ liệu "The Price Is Right". Mục tiêu là xem liệu mô hình nhỏ bé này có thể dự đoán giá cả chính xác hơn con người hoặc các mô hình lớn hơn hay không1.
+2.	Lý thuyết (Theory): Giải thích tường tận về Cross-Entropy Loss - thước đo sự sai lệch của mô hình ngôn ngữ, và cách quy trình Backpropagation giúp tối ưu hóa trọng số (weights) để giảm thiểu sai số này2222.
+________________________________________
+2. Nội dung chính
+Buổi học được chia thành các phần chính sau:
+A. "The Big Reveal" - Kết quả đào tạo
+•	Chúng ta đang cố gắng đánh bại hiệu suất "Human level" (mức độ con người) với sai số trung bình là $87.62, hoặc tiến gần đến GPT-4o-mini ($62.51)3333.
+•	Mô hình Llama 3.2 3B tuy nhỏ và đã bị lượng tử hóa (quantized) xuống 4-bit để chạy trên GPU miễn phí (T4), nhưng nhờ Fine-tuning, nó được kỳ vọng sẽ hiểu sâu sắc về nhiệm vụ định giá cụ thể này.
+B. Quy trình đào tạo 4 bước (The 4 Steps of Training)
+Giảng viên ôn lại và đào sâu vào quy trình cốt lõi mà chúng ta đã thực hiện:
+1.	Forward Pass (Lan truyền xuôi): Dữ liệu đi qua mô hình (Base + LoRA adapters) để đưa ra dự đoán4444.
+2.	Loss Calculation (Tính toán mất mát): So sánh dự đoán của mô hình với thực tế (Ground truth) để xem nó "sai" đến mức nào5555.
+3.	Backward Pass (Lan truyền ngược/Backprop): Tính toán độ dốc (gradients) để biết cần điều chỉnh tham số nào và điều chỉnh bao nhiêu để giảm lỗi. Quá trình này sử dụng quy tắc chuỗi (Chain Rule) trong toán học6666.
+4.	Optimization (Tối ưu hóa): Cập nhật trọng số (weights) một bước cực nhỏ (learning rate) ngược chiều đạo hàm để cải thiện kết quả lần sau7777.
+C. Bản chất của Loss trong LLM: Cross-Entropy
+•	LLM không chỉ dự đoán một token duy nhất, nó đưa ra phân phối xác suất cho tất cả các token có thể8.
+•	Để tính Loss, chúng ta không dùng hiệu số tuyệt đối (như $99 - $89). Thay vào đó, chúng ta hỏi: "Mô hình đã gán bao nhiêu % xác suất cho đáp án ĐÚNG?"9.
+•	Công thức: $Loss = -\log(P_{correct\_token})$10101010.
+o	Nếu mô hình tự tin 100% vào đáp án đúng ($P=1$), Loss = 0.
+o	Nếu xác suất cho đáp án đúng thấp, Loss sẽ rất cao (phạt nặng sự sai lầm).
+________________________________________
+3. Kiến trúc & Quy trình Inference (Pipeline)
+Khi chạy suy luận (Inference) với mô hình đã Fine-tune, pipeline dữ liệu diễn ra như sau:
+1.	Input Prompt: Câu hỏi về sản phẩm (Ví dụ: "Price is $?")11.
+2.	Tokenizer: Chuyển văn bản thành số (Token IDs).
+3.	Base Model (Frozen): Llama 3.2 3B (đã lượng tử hóa 4-bit) xử lý các đặc trưng ngôn ngữ chung12.
+4.	LoRA Adapters (Active): Các ma trận nhỏ (A và B) mà chúng ta đã đào tạo được chèn vào luồng xử lý để "bẻ lái" kết quả theo nhiệm vụ định giá13.
+5.	Logits & Softmax: Đầu ra thô được chuyển thành xác suất14.
+6.	Next Token: Chọn token có xác suất cao nhất (Ví dụ: "9")15.
+________________________________________
+4. Phân tích Code (Notebook Analysis)
+Dưới đây là phân tích các khối code quan trọng trong file NEW_Week_7_Day_5_Testing_our_Fine_tuned_model.ipynb.
+Khối 1: Cấu hình và Chuẩn bị môi trường
+Python
+# Constants (Hằng số cấu hình)
+BASE_MODEL = "meta-llama/Llama-3.2-3B"
+PROJECT_NAME = "price"
+HF_USER = "ed-donner"
+
+# Cấu hình Quantization (Lượng tử hóa)
+# Mục đích: Giảm kích thước mô hình để chạy vừa trên GPU T4 của Colab
+QUANT_4_BIT = True
+capability = torch.cuda.get_device_capability()
+use_bf16 = capability[0] >= 8 # Kiểm tra xem GPU có hỗ trợ bfloat16 không (T4 thì không, A100 thì có)
+Khối 2: Thiết lập Quantization (BitsAndBytes)
+Python
+if QUANT_4_BIT:
+  quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True, # Tiết kiệm bộ nhớ hơn nữa bằng cách lượng tử hóa các hằng số lượng tử
+    bnb_4bit_compute_dtype=torch.bfloat16 if use_bf16 else torch.float16, # Kiểu dữ liệu tính toán
+    bnb_4bit_quant_type="nf4" # Normal Float 4 - tối ưu cho phân phối trọng số của Neural Network
+  )
+Khối 3: Load Model và Tokenizer (Quan trọng nhất)
+Python
+# 1. Load Tokenizer
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
+tokenizer.pad_token = tokenizer.eos_token # Thiết lập token đệm (padding)
+tokenizer.padding_side = "right" # Padding bên phải để không ảnh hưởng đến dự đoán token tiếp theo
+
+# 2. Load Base Model (Mô hình gốc Llama 3.2)
+base_model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    quantization_config=quant_config, # Áp dụng cấu hình 4-bit đã khai báo ở trên
+    device_map="auto", # Tự động phân bổ vào GPU
+)
+
+# 3. Load Fine-tuned Model (Kết hợp Base + LoRA Adapter)
+# Đây là bước "ghép" các trọng số chúng ta đã train vào mô hình gốc
+if REVISION:
+  fine_tuned_model = PeftModel.from_pretrained(base_model, HUB_MODEL_NAME, revision=REVISION)
+else:
+  fine_tuned_model = PeftModel.from_pretrained(base_model, HUB_MODEL_NAME)
+
+print(f"Memory footprint: {fine_tuned_model.get_memory_footprint() / 1e6:.1f} MB")
+Khối 4: Hàm dự đoán (Inference)
+Python
+def model_predict(item):
+    # Chuyển prompt thành tensor và đưa vào GPU
+    inputs = tokenizer(item["prompt"], return_tensors="pt").to("cuda")
+
+    # Tắt tính toán gradient vì ta chỉ đang chạy thử (Inference), không train
+    with torch.no_grad():
+        # Yêu cầu mô hình sinh ra tối đa 8 token mới (đủ cho con số giá tiền)
+        output_ids = fine_tuned_model.generate(**inputs, max_new_tokens=8)
+
+    # Lấy độ dài của prompt đầu vào
+    prompt_len = inputs["input_ids"].shape[1]
+
+    # Chỉ lấy phần mô hình mới sinh ra (bỏ phần prompt gốc)
+    generated_ids = output_ids[0, prompt_len:]
+
+    # Giải mã từ ID số về lại chữ viết (text)
+    return tokenizer.decode(generated_ids)
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+Để nắm vững bài học này, bạn cần lưu ý các khái niệm sau:
+•	Cross-Entropy Loss (Hàm mất mát chéo):
+o	Trong các bài toán hồi quy (như dự đoán giá nhà bằng số thực), chúng ta dùng MSE (Mean Squared Error).
+o	Nhưng trong LLM, bản chất là bài toán phân loại (chọn token tiếp theo trong từ điển 128k từ). Cross-Entropy đo lường khoảng cách giữa hai phân phối xác suất: phân phối dự đoán của mô hình và phân phối thực tế (luôn là 100% tại từ đúng).
+•	Softmax Function:
+o	Đây là hàm kích hoạt ở lớp cuối cùng. Nó biến đổi các con số thô (logits) có thể là âm hoặc dương vô cùng thành một danh sách các xác suất có tổng bằng 1 (100%)16.
+•	Tại sao lại dùng Logarit âm (-log)?
+o	Xác suất ($p$) luôn nằm trong khoảng $[0, 1]$.
+o	$\log(1) = 0$ (Đúng tuyệt đối $\rightarrow$ Mất mát bằng 0).
+o	$\log(0.0001)$ là một số âm rất lớn.
+o	Dấu trừ ($-$) phía trước để biến nó thành số dương. $\rightarrow$ Nếu xác suất dự đoán sai càng thấp, Loss càng cao17171717.
+Bài học này đánh dấu việc bạn đã hoàn thành một chu trình End-to-End của một kỹ sư LLM: Từ việc chọn vấn đề, chuẩn bị dữ liệu, chọn mô hình, Fine-tune, và cuối cùng là kiểm thử và hiểu sâu về toán học đằng sau nó.
+Bạn có muốn tôi giải thích kỹ hơn về phần Toán học của Backpropagation hoặc hỗ trợ bạn chạy thử đoạn code này trên máy của bạn không?
+
+185. Day 5 - Cross-Entropy Loss: How LLMs Calculate Probability Distributions 
+Chào bạn, tiếp tục với nội dung của Day 5, sau khi đã đi qua tổng quan về kết quả Fine-tuning, chúng ta sẽ đi sâu vào một khía cạnh lý thuyết cực kỳ quan trọng nhưng thường bị hiểu sai: Cách thực sự mà LLM tính toán sai số (Loss) thông qua Cross-Entropy.
+Dưới đây là tổng hợp kiến thức chuyên sâu từ bài giảng của tôi, giải thích cơ chế "hộp đen" về xác suất bên trong LLM.
+________________________________________
+TỔNG HỢP KIẾN THỨC: CROSS-ENTROPY LOSS & PROBABILITY DISTRIBUTION
+1. Sự thật về Forward Pass (Lan truyền xuôi)
+Trước đây, để đơn giản hóa, chúng ta thường nói: "Forward pass dự đoán token tiếp theo". Nhưng về mặt kỹ thuật, điều này chưa chính xác.
+•	Thực tế: Forward pass không đưa ra một token duy nhất. Nó đưa ra một Phân phối xác suất (Probability Distribution) cho toàn bộ các token có trong bộ từ vựng (Vocabulary).
+•	Quy mô: Nếu bộ từ vựng có 128.000 token, lớp cuối cùng (LM Head) sẽ trả về một vector có 128.000 chiều. Mỗi phần tử trong đó tương ứng với xác suất để token đó là token tiếp theo.
+•	Tổng bằng 1: Toàn bộ các xác suất này cộng lại phải chính xác bằng 1 (100%).
+2. Vai trò của hàm Softmax
+Làm thế nào để các con số thô (logits) từ mạng nơ-ron trở thành xác suất (từ 0 đến 1)?
+•	Chúng ta sử dụng một hàm gọi là Softmax. Hàm này biến đổi đầu ra của lớp cuối cùng thành các con số xác suất, đảm bảo tính chất "tổng bằng 1".
+3. Inference (Suy luận) vs. Training (Huấn luyện)
+Cách chúng ta sử dụng phân phối xác suất này khác nhau tùy vào giai đoạn:
+•	Khi Inference (Sử dụng model): Chúng ta thực hiện lấy mẫu (sampling) từ phân phối này.
+o	Temperature = 0: Chọn token có xác suất cao nhất (Max).
+o	Temperature > 0: Chọn ngẫu nhiên một token dựa trên tỷ lệ xác suất (tạo ra sự sáng tạo/đa dạng).
+•	Khi Training (Tính toán Loss): Chúng ta không quan tâm model chọn cái gì, chúng ta quan tâm model gán bao nhiêu niềm tin cho đáp án đúng.
+4. Bản chất của Loss Calculation (Tính toán mất mát)
+Đây là khoảnh khắc "Aha!" của bài học.
+•	Ví dụ: Model dự đoán token tiếp theo là "99" (với xác suất cao nhất là 15%), nhưng đáp án thực tế (Ground Truth) là "89".
+•	Quy tắc bất ngờ: Khi tính Loss, chúng ta HOÀN TOÀN BỎ QUA việc model dự đoán "99". Việc nó dự đoán sai cái gì không quan trọng.
+•	Câu hỏi duy nhất: "Mô hình đã gán bao nhiêu % xác suất cho token ĐÚNG (là 89)?"
+o	Nếu model gán cho "89" xác suất 100% (1.0) $\rightarrow$ Loss = 0 (Hoàn hảo).
+o	Nếu model gán cho "89" xác suất thấp (ví dụ 0.01%) $\rightarrow$ Loss phải rất cao (Phạt nặng).
+5. Công thức Cross-Entropy Loss
+Để hiện thực hóa quy tắc trên, chúng ta dùng công thức: Negative Log Likelihood (Log âm của xác suất thực tế).
+$$Loss = -\log(P_{correct\_token})$$
+•	Tại sao lại dùng Log âm?
+o	$\log(1) = 0$: Nếu tự tin 100% vào đáp án đúng, sai số bằng 0.
+o	$\log(\text{số nhỏ}) = \text{số âm lớn}$: Nếu tự tin thấp, giá trị log sẽ rất âm. Thêm dấu trừ (-) phía trước sẽ biến nó thành một số dương rất lớn (Loss cao).
+•	Tại sao gọi là Cross-Entropy? Đây là thuật ngữ mượn từ lý thuyết thông tin, đo lường sự khác biệt giữa hai phân phối xác suất (phân phối dự đoán của model và phân phối thực tế - nơi xác suất của token đúng là 100%).
+6. Tại sao không dùng phép trừ đơn giản (Difference/MSE)?
+•	LLM giải quyết bài toán Phân loại (Classification): Dự đoán xem token nào trong 128.000 token là đúng. Nó không phải bài toán Hồi quy (Regression) dự đoán giá trị số học.
+•	Cross-Entropy hoạt động hiệu quả cho mọi loại dữ liệu (giá cả, văn bản tiếng Anh, code...) vì nó làm việc trên xác suất, không làm việc trên giá trị của token.
+Tóm lại
+Quy trình tính toán Loss diễn ra như sau:
+1.	Model Output (Logits) $\rightarrow$ 2. Softmax (Ra xác suất) $\rightarrow$ 3. Nhìn vào xác suất của Token ĐÚNG $\rightarrow$ 4. Tính Negative Log $\rightarrow$ 5. Ra kết quả Cross-Entropy Loss.
+Sau khi có con số Loss này, chúng ta mới thực hiện Backpropagation (Lan truyền ngược) để tối ưu hóa trọng số, giúp lần sau xác suất của token đúng sẽ cao hơn một chút.
+186. Day 5 - Testing Our Fine-Tuned LoRA Model Against GPT-4o Nanoc 
+Chào bạn, đây là tổng hợp nội dung bài học Day 5 - Testing Our Fine-Tuned LoRA Model Against GPT-4o Nano dựa trên bản phiên âm và file code bạn cung cấp.
+Buổi học này là "Ngày phán xét" (Results Day), nơi chúng ta kiểm chứng xem liệu một mô hình nhỏ (3B params), mã nguồn mở, chạy trên phần cứng miễn phí (T4 GPU) có thể đánh bại con người và cạnh tranh với các mô hình thương mại hàng đầu (GPT-4o) sau khi được Fine-tune hay không.
+1. Tóm tắt cốt lõi
+•	Mục tiêu: Chạy suy luận (Inference) trên mô hình Llama 3.2 3B đã được tinh chỉnh bằng phương pháp QLoRA trên tập dữ liệu định giá sản phẩm.
+•	Kết quả ấn tượng: Mô hình đạt sai số trung bình (MAE) là $65.40.
+•	So sánh:
+o	Đánh bại con người: Tốt hơn mức sai số của chuyên gia (Ed) là $87.62.
+o	Tiệm cận GPT-4o Nano: Rất gần với mức sai số $62.51 của GPT-4o Nano.
+•	Kết luận: Chứng minh rằng mô hình nhỏ, mã nguồn mở được tinh chỉnh chuyên biệt có thể đạt hiệu suất tương đương các mô hình biên giới (Frontier models) với chi phí cực thấp.
+2. Nội dung chính & Các bước thực hiện
+Quy trình của buổi học tập trung vào việc thiết lập môi trường Inference và đánh giá:
+1.	Thiết lập môi trường:
+o	Sử dụng GPU T4 (miễn phí trên Colab).
+o	Cài đặt các thư viện cần thiết: bitsandbytes, trl, peft, transformers.
+o	Tải tập lệnh đánh giá (util.py) và các hằng số cấu hình.
+2.	Cấu hình Model & LoRA:
+o	Xác định chế độ chạy (LITE_MODE hoặc Full mode) để chọn đúng checkpoint từ Hugging Face.
+o	Sử dụng lượng tử hóa 4-bit (4-bit quantization) để mô hình chạy mượt mà trên bộ nhớ hạn chế của T4.
+3.	Load Model (Bước quan trọng nhất):
+o	Tải mô hình gốc (Base Model): Llama 3.2 3B.
+o	Tải Adapter (LoRA weights): Các ma trận trọng số đã được train và lưu trên Hugging Face.
+o	Hợp nhất (Merge) hoặc gắn Adapter vào Base Model bằng thư viện PEFT.
+4.	Kiểm tra tài nguyên:
+o	Kiểm tra memory footprint (dấu chân bộ nhớ). Kết quả khoảng 2.27 GB, cực kỳ nhẹ nhờ lượng tử hóa và bản chất của LoRA.
+5.	Chạy Inference & Đánh giá:
+o	Duyệt qua tập dữ liệu kiểm thử (Test set - chưa từng được model nhìn thấy khi train).
+o	Mô hình dự đoán giá.
+o	So sánh với giá thực tế để tính sai số.
+________________________________________
+3. Phân tích Code
+Dưới đây là phân tích các đoạn code quan trọng trong file NEW_Week_7_Day_5_Testing_our_Fine_tuned_model.ipynb giúp thực hiện quy trình trên.
+A. Cấu hình Model và Tên dự án
+Khối code này định nghĩa chúng ta sẽ lấy model nào, phiên bản nào từ Hugging Face.
+Python
+# Xác định xem đang chạy chế độ Lite (nhanh/thử nghiệm) hay Full
+if LITE_MODE:
+  RUN_NAME = "2025-11-30_15.10.55-lite"
+  REVISION = None # Dùng phiên bản mới nhất
+else:
+  RUN_NAME = "2025-11-28_18.47.07"
+  REVISION = "b19c8bfea3b6ff62237fbb0a8da9779fc12cefbd" # Dùng mã hash cụ thể của checkpoint tốt nhất (step 6200)
+
+PROJECT_RUN_NAME = f"{PROJECT_NAME}-{RUN_NAME}"
+HUB_MODEL_NAME = f"{HF_USER}/{PROJECT_RUN_NAME}" # Tên repo trên Hugging Face chứa LoRA adapters
+B. Cấu hình Quantization (Lượng tử hóa)
+Để chạy trên GPU T4 (16GB VRAM) một cách hiệu quả nhất.
+Python
+# Cấu hình để nén mô hình xuống 4-bit
+if QUANT_4_BIT:
+  quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True, # Quantize cả các tham số quantization để tiết kiệm thêm nhớ
+    bnb_4bit_compute_dtype=torch.bfloat16 if use_bf16 else torch.float16, # Dùng float16 trên T4
+    bnb_4bit_quant_type="nf4" # Kiểu dữ liệu Normal Float 4 tối ưu cho trọng số mô hình
+  )
+C. Tải Base Model và LoRA Adapters (Trái tim của bài học)
+Đây là bước kết hợp "bộ não chung" (Base model) và "kỹ năng chuyên biệt" (LoRA adapters).
+Python
+# 1. Tải Tokenizer của Llama 3.2
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
+tokenizer.pad_token = tokenizer.eos_token # Thiết lập token đệm
+
+# 2. Tải Mô hình gốc (Base Model) với cấu hình 4-bit
+base_model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    quantization_config=quant_config,
+    device_map="auto", # Tự động phân bổ vào GPU
+)
+
+# 3. Tải và gắn LoRA Adapters vào Base Model
+# PeftModel.from_pretrained sẽ lấy base_model và phủ lên đó các lớp adapter từ HUB_MODEL_NAME
+if REVISION:
+  fine_tuned_model = PeftModel.from_pretrained(base_model, HUB_MODEL_NAME, revision=REVISION)
+else:
+  fine_tuned_model = PeftModel.from_pretrained(base_model, HUB_MODEL_NAME)
+
+# In ra dung lượng bộ nhớ để kiểm tra độ nhẹ của model
+print(f"Memory footprint: {fine_tuned_model.get_memory_footprint() / 1e6:.1f} MB")
+Giải thích: Bạn sẽ thấy mô hình chỉ chiếm khoảng ~2.2GB. Điều này cho thấy LoRA không tải thêm một bản sao mô hình khổng lồ nào nữa, mà chỉ tải các ma trận sai số rất nhỏ (khoảng 70MB) và áp dụng lên mô hình gốc.
+D. Hàm Dự đoán (Inference)
+Python
+def model_predict(item):
+    # Chuyển prompt câu hỏi thành dạng tensor và đưa vào GPU
+    inputs = tokenizer(item["prompt"], return_tensors="pt").to("cuda")
+
+    # Tắt tính toán gradient (torch.no_grad) vì ta chỉ chạy dự đoán, không train, giúp tiết kiệm bộ nhớ và tăng tốc
+    with torch.no_grad():
+        # Yêu cầu model sinh ra tối đa 8 token mới (đủ để chứa con số giá tiền)
+        output_ids = fine_tuned_model.generate(**inputs, max_new_tokens=8)
+
+    # Cắt bỏ phần prompt đầu vào, chỉ lấy phần model mới sinh ra
+    prompt_len = inputs["input_ids"].shape[1]
+    generated_ids = output_ids[0, prompt_len:]
+
+    # Giải mã từ ID số sang văn bản (ví dụ: "99")
+    return tokenizer.decode(generated_ids)
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	PEFT (Parameter-Efficient Fine-Tuning):
+o	Trong bài này, PeftModel là class quản lý việc ghép nối Base Model và Adapter. Kỹ thuật này cho phép chúng ta chia sẻ Base Model cho nhiều tác vụ khác nhau, chỉ cần thay đổi các file Adapter rất nhẹ (vài chục MB) thay vì phải lưu trữ nhiều model 3GB-70GB.
+•	Revision/Checkpointing:
+o	Trong code có sử dụng REVISION. Đây là thực hành tốt trong MLOps. Khi train, model được lưu lại tại nhiều bước (step). Việc chỉ định rõ mã hash (SHA) của checkpoint tốt nhất (ví dụ: step 6200 có loss thấp nhất trên tập validation) đảm bảo kết quả kiểm thử là tối ưu nhất, tránh việc sử dụng checkpoint cuối cùng (có thể bị overfitting).
+•	Ý nghĩa của kết quả $65.40:
+o	Việc một model 3 tỷ tham số (Llama 3.2 3B) sau khi fine-tune đánh bại con người và tiệm cận model hàng đầu (GPT-4o) chứng minh sức mạnh của Domain Adaptation (Thích ứng miền).
+o	Mô hình nhỏ nhưng "học chuyên sâu" (Deep expertise) tốt hơn mô hình lớn nhưng "biết tuốt" (Generalist) trong các tác vụ hẹp cụ thể.
+
+187. Day 5 - Fine-Tuned LLaMA 3.2 Crushes GPT-5.1 and Frontier Models 
+Chào bạn, đây là tổng hợp nội dung bài học cuối cùng của Tuần 7: Day 5 - Fine-Tuned LLaMA 3.2 Crushes GPT-5.1 and Frontier Models.
+Đây là buổi học mang tính chất tổng kết và ăn mừng chiến thắng, nơi chúng ta chứng kiến sức mạnh thực sự của mô hình nguồn mở được tinh chỉnh kỹ lưỡng (Full Fine-tuning) so với các mô hình thương mại hàng đầu.
+________________________________________
+1. Tóm tắt cốt lõi
+•	Kết quả chấn động: Mô hình LLaMA 3.2 (3B tham số) sau khi được Fine-tune đầy đủ (Full Mode) đã đạt chỉ số sai số tuyệt đối trung bình (MAE) là $39.85.
+•	Chiến thắng áp đảo: Kết quả này không chỉ đánh bại mức "Human level" ($87) mà còn vượt qua GPT-4o-mini ($62.51) và đánh bại mọi mô hình biên giới (frontier models) khác trong bài kiểm tra định giá cụ thể này.
+•	Bài học rút ra: Một mô hình nhỏ được chuyên biệt hóa (Fine-tuning) với dữ liệu độc quyền chất lượng cao có thể đánh bại các mô hình tổng quát khổng lồ (Generalist Models) tốn hàng trăm triệu đô la để huấn luyện.
+________________________________________
+2. Nội dung chính & Các bước thực hiện
+Buổi học tập trung vào việc chạy thử nghiệm phiên bản "Full Mode" (khác với "Lite Mode" ở bài trước) và tổng kết tuần học.
+A. Thiết lập chạy "Full Mode"
+•	Khởi động lại (Restart Runtime): Để xóa sạch bộ nhớ RAM và đảm bảo môi trường sạch sẽ, giảng viên yêu cầu khởi động lại phiên làm việc trước khi chạy mô hình đầy đủ.
+•	Cấu hình: Chuyển LITE_MODE thành False. Chúng ta sẽ tải toàn bộ tập dữ liệu và sử dụng checkpoint tốt nhất từ quá trình huấn luyện dài hơi.
+•	Kích thước mô hình:
+o	Base model: ~2.2 GB (như cũ).
+o	Adapters: Tăng lên ~1.56 GB (so với chỉ ~70MB ở bản Lite). Điều này là do tham số r (rank) được tăng lên 256 (thay vì 32), và áp dụng LoRA lên cả các lớp MLP chứ không chỉ lớp Attention.
+B. Thời khắc của sự thật (The Moment of Truth)
+•	Sau khi chạy dự đoán trên tập Test set, kết quả trả về con số 39.85.
+•	So sánh trên bảng xếp hạng (Leaderboard):
+1.	Fine-tuned LLaMA 3.2 (Full): $39.85 (VÔ ĐỊCH).
+2.	Deep Neural Network: ~$45 (Làm khá tốt).
+3.	Fine-tuned GPT-4o-mini: ~$62.51 (Thất vọng).
+4.	Human (Ed): $87.
+5.	Traditional ML: Kết quả tệ nhất.
+C. Bài tập về nhà & Hướng tới Tuần 8
+•	Thử thách: Giảng viên thách thức học viên thực hiện Hyperparameter Optimization (HPO) để đánh bại con số $39.85. Vẫn còn dư địa để tối ưu hóa thêm.
+•	Xem trước Tuần 8:
+o	Đưa mô hình vào sản xuất (Productionizing) với nền tảng Serverless (Modal).
+o	Xây dựng hệ thống RAG quy mô lớn.
+o	Tạo giải pháp Agentic AI (AI tác nhân) sử dụng chính mô hình chúng ta vừa train.
+________________________________________
+3. Phân tích Code (Full Mode Logic)
+Dựa trên file code NEW_Week_7_Day_5_Testing_our_Fine_tuned_model.ipynb và ngữ cảnh bài giảng, đây là sự thay đổi quan trọng:
+Python
+# Constants
+# Trong bài trước chúng ta dùng LITE_MODE = True.
+# Hôm nay, logic sẽ chuyển sang nhánh False.
+LITE_MODE = False  # <--- Thay đổi quan trọng nhất
+
+if LITE_MODE:
+  RUN_NAME = "2025-11-30_15.10.55-lite"
+  REVISION = None
+else:
+  # Sử dụng checkpoint từ lần chạy huấn luyện "Full" (2 epochs, r=256)
+  RUN_NAME = "2025-11-28_18.47.07"
+  # Mã hash cụ thể của checkpoint tốt nhất (được lưu tại bước tối ưu nhất)
+  REVISION = "b19c8bfea3b6ff62237fbb0a8da9779fc12cefbd"
+
+# ... (Các bước load model tương tự bài trước)
+Giải thích sự khác biệt:
+•	Khi LITE_MODE = False, mã sẽ tải về một phiên bản Adapter nặng hơn rất nhiều (~1.5GB).
+•	Lý do Adapter nặng hơn: Trong cấu hình LoRA của lần train Full (đã thực hiện ở các bài trước), chúng ta đã đặt r=256 (Rank lớn) và target_modules="all-linear" (áp dụng LoRA lên tất cả các lớp tuyến tính, bao gồm cả MLP layers). Điều này giúp mô hình có khả năng học sâu hơn và biểu diễn tri thức phức tạp hơn, dẫn đến kết quả vượt trội.
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+Tại sao "Mô hình nhỏ" lại thắng "Mô hình lớn"?
+Đây là minh chứng cho nguyên lý Domain Adaptation (Thích ứng miền):
+•	Frontier Models (GPT-4, Claude 3.5): Là những "Generalist" (nhà thông thái tổng quát). Họ biết mọi thứ từ làm thơ, code, đến lịch sử, nhưng kiến thức về giá cả cụ thể của một danh mục sản phẩm hẹp (như trong tập dữ liệu này) chỉ là một phần rất nhỏ trong kho dữ liệu khổng lồ của họ.
+•	Fine-tuned Model: Là "Specialist" (chuyên gia). Bằng cách cho model thấy hàng nghìn ví dụ cụ thể về cách định giá trong ngữ cảnh này, chúng ta đã biến nó thành chuyên gia hàng đầu trong lĩnh vực hẹp đó.
+•	Kết luận: Nếu bạn có dữ liệu độc quyền (proprietary data) và mục tiêu rõ ràng, bạn hoàn toàn có thể xây dựng mô hình nguồn mở vượt trội hơn các mô hình thương mại đắt đỏ.
+Hyperparameter Optimization (HPO) là gì?
+Đây là gợi ý bài tập về nhà của giảng viên. HPO là quá trình thử nghiệm các bộ tham số khác nhau khi train để tìm ra kết quả tốt nhất. Các tham số bạn có thể điều chỉnh để cố gắng đánh bại con số $39.85 bao gồm:
+•	learning_rate: Tốc độ học (thử tăng/giảm nhẹ).
+•	r (Rank) và alpha của LoRA: Thử các kích thước khác nhau.
+•	batch_size và gradient_accumulation_steps.
+•	Cách xử lý dữ liệu đầu vào (Data Augmentation hoặc làm sạch dữ liệu kỹ hơn).
+Chúc mừng bạn đã hoàn thành Tuần 7! Bạn đã chính thức nắm được quy trình huấn luyện LLM để đánh bại cả những mô hình AI mạnh nhất thế giới trong các tác vụ cụ thể. Tuần 8 sẽ đưa mô hình này ra thế giới thực!
+
+
+	
