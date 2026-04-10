@@ -1,0 +1,18 @@
+name: e-commerce-scraping
+channels:
+  - conda-forge
+dependencies:
+  - beautifulsoup4
+  - lxml
+  - numpy
+  - pandas
+  - python
+  - requests
+  - pip:
+    - google_api_python_client
+    - google_auth_oauthlib
+    - selenium
+    - selenium-requests
+    - webdriver-manager
+    - sqlalchemy
+    - sqlalchemy_utils

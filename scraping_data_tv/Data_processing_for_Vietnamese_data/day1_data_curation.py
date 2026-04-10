@@ -24,9 +24,10 @@ TRAIN_SIZE = 100_000
 VAL_SIZE = 5_000
 TEST_SIZE = 5_000
 
-# Weighted sampling: category penalties (adjust after EDA)
+# Weighted sampling: category penalties (reviewed after EDA 2026-04-10)
 CATEGORY_PENALTIES = {
-    # "Thoi Trang": 0.3,  # uncomment after EDA if needed
+    "Thời Trang": 0.4,
+    "Nhà Cửa - Đời Sống": 0.7,
 }
 
 

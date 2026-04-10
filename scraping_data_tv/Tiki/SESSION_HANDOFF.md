@@ -5,10 +5,10 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-09)
+## Trang thai hien tai (2026-04-10)
 
-**Trang thai:** Step 5 HOAN THANH + Kaggle da convert. Tong 120,985 SP.
-**Branch:** `feature/tiki-scraper`
+**Trang thai:** Day 0 — Can cao them du lieu (73 Tiki categories + trang khac). Day 1 da chay 1 lan (110K SP, push HF Hub) nhung can re-run sau khi co data moi.
+**Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
 - [x] Step 1: Test Tiki API v2 — thanh cong, khong bi anti-bot
@@ -36,17 +36,26 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Fix: LS/PS line terminators, price float→int
 
 ### Chua lam:
-- [ ] Tien xu ly du lieu: loc features <600 chars, dedup, weighted sampling, LLM summary
+- [ ] **Day 0:** Cao them 73 Tiki categories (~9K SP them)
+- [ ] **Day 0:** Test + chay scraper co san (Hasaki, BiboMart, CoopMart...) → convert CSV→JSONL
+- [ ] **Day 0:** (Uu tien 3) Viet scraper moi TGDD/FPT/Meta.vn
+- [ ] **Day 1:** Re-run pipeline voi data moi, 9 categories, penalties
+- [ ] **Day 2:** LLM rewrite (Groq Batch API)
+- [ ] **Day 3:** Baseline ML (XGBoost, LightGBM, CatBoost)
+- [ ] **Day 4:** DNN + Frontier LLM
 - [ ] Cac giai doan tiep theo trong Project_Development_Plan.md (GD2: training Qwen 3.5 4B, GD3: scraping realtime, GD4: chatbot)
 
 ### Quyet dinh da dua ra:
 - Se thue may de cao du lieu (khong chay tren WSL2)
 - OVER_CAP: chon Adaptive Price-Range Slicing + Sort Rotation Fallback (industry-standard, Apify khuyen dung)
-- Khong cao san khac (Shopee anti-bot, TGDD/Lazada ton thoi gian). Neu thieu data → them category Tiki
 - Fine-tune: Qwen 3.5 4B thay vi Llama (tot hon cho tieng Viet)
 - Du lieu hien co: Tiki scraper 79,382 SP + Kaggle 41,603 SP = **120,985 SP raw**
 - Kaggle brand = ten the loai file (khong dung brand goc vi 74% la OEM/empty)
 - Giu tat ca SP (khong loc gia, khong loc features length) — se xu ly o buoc tien xu ly
+- **(2026-04-10) Cao them du lieu:** Them 73 Tiki categories + scraper co san (Hasaki, BiboMart, CoopMart...) + scraper moi (TGDD, FPT, Meta.vn)
+- **(2026-04-10) 9 categories:** Gop DienLanh+DienGiaDung, PhuKienTT+ThoiTrang, DoChoi+MeVaBe. Bo NhaSach, TheThao.
+- **(2026-04-10) Category penalties:** Thoi Trang 0.4, Nha Cua 0.7
+- **(2026-04-10) TRAIN_SIZE:** Giam tu 100K xuong 80K (cho room penalty)
 
 ### Ket qua du lieu (2026-04-09):
 - **Scraper:** 49/49 categories DONE — 48 JSONL files, 79,382 SP (8085 Laptop: 0 SP)
@@ -65,22 +74,40 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Tien xu ly du lieu tieng Viet (Day 1-4)
+### Prompt A: Day 0 — Thu thap them du lieu (HIEN TAI)
+
+```
+Doc cac file sau de nap ngu canh:
+
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet (Day 0-4), 9 categories muc tieu, danh sach Tiki categories can them
+2. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai hien tai
+3. "scraping_data_tv/Tiki/tiki_scraper/config.py" — 49 categories da cao
+4. "scraping_data_tv/Tiki/tiki_scraper/scraper.py" — pipeline scraper hien tai
+5. "scraping_data_tv/e-commerce-sites-scraping/" — code scraper co san (Hasaki, BiboMart, CoopMart...)
+6. "scraping_data_tv/Data_processing_for_Vietnamese_data/day1/2026-04-09-day1-data-curation-vi.md" — ket qua Day 1 (EDA, phan tich)
+
+Buoc tiep: Them 73 Tiki categories vao config.py, chay scraper. Sau do test scraper co san (Hasaki, BiboMart...).
+Hay hoi toi nhung cau hoi can thiet.
+```
+
+### Prompt B: Day 1-4 — Tien xu ly du lieu tieng Viet (sau khi Day 0 xong)
 
 ```
 Doc cac file sau de nap ngu canh:
 
 1. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet tien xu ly tieng Viet
 2. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai du lieu hien tai
-3. "scraping_data_tv/Tiki/tiki_categories_report.md" — bao cao 49 categories + Kaggle
+3. "scraping_data_tv/Tiki/tiki_categories_report.md" — bao cao categories
 4. "segment4/mo_ta_du_an/Project_Development_Plan.md" — ke hoach tong the du an
 5. "scraping_data_tv/Data_processing_for_English_data" chua code va tai lieu xu ly du lieu tieng Anh (tham khao)
 6. "scraping_data_tv/Tiki" chua codebase va docs cao du lieu Tiki
+7. "scraping_data_tv/Data_processing_for_Vietnamese_data/day1/2026-04-09-day1-data-curation-vi.md" — ket qua Day 1
+8. "scraping_data_tv/Data_processing_for_Vietnamese_data" — code hien tai (pricer_vi/, day1_data_curation.py)
 
-Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet de hieu ro yeu cau.
+Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet.
 ```
 
-### Prompt B: Scraping du lieu Tiki (da hoan thanh, chi dung khi can sua scraper)
+### Prompt C: Scraping du lieu Tiki (chi dung khi can sua scraper)
 
 ```
 Doc cac file sau de nap ngu canh:
@@ -89,13 +116,14 @@ Doc cac file sau de nap ngu canh:
 2. "scraping_data_tv/Tiki/plan_scraping_tiki.md" — plan chi tiet Tiki scraper
 3. "segment4/mo_ta_du_an/Project_Development_Plan.md" — ke hoach tong the du an
 
-Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet de hieu ro yeu cau.
+Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet.
 ```
 
 ### Khi nao can doc them:
 - Neu lam viec voi **tien xu ly du lieu**: doc `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md`
 - Neu lam viec voi **search_key pipeline** (segment4): doc them `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`
-- Neu lam viec voi **scraper code**: doc them `scraping_data_tv/Tiki/tiki_scraper/scraper.py`
+- Neu lam viec voi **scraper code Tiki**: doc them `scraping_data_tv/Tiki/tiki_scraper/scraper.py`
+- Neu lam viec voi **scraper code khac**: doc them `scraping_data_tv/e-commerce-sites-scraping/`
 - Neu can **code tham khao tieng Anh**: doc `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/`
 
 ---
@@ -150,4 +178,4 @@ uv run scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py
 
 ---
 
-*Cap nhat: 2026-04-09 — Step 5 + Kaggle convert DONE. 120,985 SP (54 files). Chuyen sang tien xu ly.*
+*Cap nhat: 2026-04-10 — Day 1 da chay (110K SP, push HF). Can cao them 73 Tiki cat + trang khac truoc khi re-run Day 1.*
