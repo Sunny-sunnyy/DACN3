@@ -88,7 +88,19 @@ SCRAPE_CATEGORIES = [
     (27550, "Phu kien thoi trang nam", 2911),
     (8370, "Mat kinh", 3749),
 
+    # === LAM DEP - SUC KHOE (them 2026-04-10) ===
+    (1584, "Trang diem", 1223),
+    (5873, "San pham thien nhien & Khac", 1275),
+    (2322, "Thuc pham chuc nang", 2924),
+    (2307, "May Massage & Thiet bi cham soc suc khoe", 3370),
+
     # === BACH HOA ===
+    # === BACH HOA (them 2026-04-10) ===
+    (53582, "Ruou, bia va nuoc len men", 849),
+    (53562, "Sua va cac San pham tu sua", 493),
+    (68576, "Ngu coc va mut", 141),
+    (24024, "Do Uong Khong Con", 106),
+
     (4421, "Do An Vat", 1691),
     (15074, "Thuc pham Dong hop va Kho", 2789),
     (4422, "Gia Vi va Che Bien", 1554),

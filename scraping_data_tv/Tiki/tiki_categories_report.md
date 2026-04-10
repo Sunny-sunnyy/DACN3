@@ -1,10 +1,9 @@
 # Tiki Categories Report
 
 **Cap nhat:** 2026-04-10
-**Tong categories da cao:** 49/122 sub-categories
-**Tong SP da cao:** 79,382 (Tiki) + 41,603 (Kaggle) = **120,985 SP**
-**Sau dedup:** 114,778 SP
-**Categories can cao them:** 73 sub-categories (~32K uoc tinh)
+**Tong categories da cao:** 58/122 sub-categories (49 cu + 9 moi)
+**Tong SP da cao:** 83,698 (Tiki) + 41,603 (Kaggle) = **125,301 SP**
+**Categories can cao them:** 64 sub-categories (~22K uoc tinh)
 
 ---
 
@@ -173,24 +172,24 @@
 | 27612 | Balo, cap, tui chong soc laptop | 195 | CHUA CAO |
 | 68140 | Phu kien du lich | 53 | CHUA CAO |
 
-### LAM DEP - SUC KHOE them (parent 1520) — 5 categories, ~9,368 uoc tinh
+### LAM DEP - SUC KHOE them (parent 1520) — 5 categories, 3,676 SP (cao 2026-04-10)
 
-| ID | Category | Uoc tinh | Trang thai |
-|------:|---|-------:|:---:|
-| 2307 | May Massage & Thiet bi cham soc suc khoe | 3,370 | CHUA CAO |
-| 2322 | Thuc pham chuc nang | 2,924 | CHUA CAO |
-| 5873 | San pham thien nhien & Khac | 1,275 | CHUA CAO |
-| 1584 | Trang diem | 1,223 | CHUA CAO |
-| 1625 | Cham soc rang mieng | 576 | CHUA CAO |
+| ID | Category | Uoc tinh | Da cao | Ty le | Trang thai |
+|------:|---|-------:|-------:|------:|:---:|
+| 2307 | May Massage & Thiet bi cham soc suc khoe | 3,370 | 939 | 28% | DONE |
+| 2322 | Thuc pham chuc nang | 2,924 | 1,003 | 34% | DONE |
+| 5873 | San pham thien nhien & Khac | 1,275 | 698 | 55% | DONE |
+| 1584 | Trang diem | 1,223 | 692 | 57% | DONE |
+| 1625 | Cham soc rang mieng | 576 | 344 | 60% | DONE |
 
-### BACH HOA them (parent 4384) — 4 categories, ~1,589 uoc tinh
+### BACH HOA them (parent 4384) — 4 categories, 640 SP (cao 2026-04-10)
 
-| ID | Category | Uoc tinh | Trang thai |
-|------:|---|-------:|:---:|
-| 53582 | Ruou, bia va nuoc len men | 849 | CHUA CAO |
-| 53562 | Sua va cac San pham tu sua | 493 | CHUA CAO |
-| 68576 | Ngu coc va mut | 141 | CHUA CAO |
-| 24024 | Do Uong Khong Con | 106 | CHUA CAO |
+| ID | Category | Uoc tinh | Da cao | Ty le | Trang thai |
+|------:|---|-------:|-------:|------:|:---:|
+| 53582 | Ruou, bia va nuoc len men | 849 | 321 | 38% | DONE |
+| 53562 | Sua va cac San pham tu sua | 493 | 255 | 52% | DONE |
+| 68576 | Ngu coc va mut | 141 | 49 | 35% | DONE |
+| 24024 | Do Uong Khong Con | 106 | 15 | 14% | DONE |
 
 ### DIEN TU - DIEN LANH them (parent 4221) — 3 categories, ~617 uoc tinh
 
@@ -244,13 +243,13 @@
 | 1 | **Thoi Trang** (gop PK TT + Tui Vi) | 4,941 | 17,144 | 41,603 | -- | 15K (sample) |
 | 2 | **Nha Cua - Doi Song** (gop Ve sinh) | 25,251 | 3,008 | -- | -- | 15K (sample) |
 | 3 | **Dien Tu - Cong Nghe** (gop Laptop + TBSPKS) | 20,890 | -- | -- | -- | 15K (sample) |
-| 4 | **Lam Dep - Suc Khoe** | 5,643 | 9,368 | -- | Hasaki, Cocoshop | 15K+ |
+| 4 | **Lam Dep - Suc Khoe** | 9,319 | -- | -- | Hasaki, Cocoshop | 15K+ |
 | 5 | **Dien Lanh + Dien Gia Dung** (gop) | 5,720 | 617 | -- | TGDD, FPT, Meta.vn | 10K+ |
 | 6 | **Me va Be** (gop Do Choi) | 6,170 | -- | -- | BiboMart, ConCung, KidsPlaza | 10K+ |
-| 7 | **Bach Hoa** | 4,388 | 1,589 | -- | CoopMart, WinMart, BachHoaXanh | 10K+ |
+| 7 | **Bach Hoa** | 5,028 | -- | -- | CoopMart, WinMart, BachHoaXanh | 10K+ |
 | 8 | **O To - Xe May** | 2,473 | 389 | -- | -- | ~3K |
 | | **BO:** Nha Sach Tiki (1,672), The Thao (228) | | | | | |
 
 ---
 
-*Cap nhat: 2026-04-10 — Scan 73 categories chua cao. 9 categories muc tieu.*
+*Cap nhat: 2026-04-10 — 58/122 categories DONE (49 cu + 9 moi). Tong 125,301 SP.*

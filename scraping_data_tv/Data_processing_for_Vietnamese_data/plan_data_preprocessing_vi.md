@@ -23,7 +23,6 @@
 - Cao them du lieu tu Tiki (73 categories chua cao) + cac trang khac (scraper co san + scraper moi)
 - Gop categories: Dien Gia Dung + Dien Lanh, Phu kien TT + Thoi Trang, Do Choi + Me va Be
 - Bo: Nha Sach Tiki (sach khong phai hang tieu dung), The Thao (chi 228 SP)
-- Giam TRAIN_SIZE xuong 80K, cho room penalty hoat dong
 - Target: **9 categories, moi cat >= 10K** (tru O To chap nhan nho hon)
 
 ### 1.2. Du lieu hien co (Day 1 da chay)
