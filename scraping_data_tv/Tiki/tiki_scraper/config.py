@@ -126,6 +126,39 @@ SCRAPE_CATEGORIES = [
     (4388, "Giay ve sinh va giay an", 275),
     (4386, "Ve sinh nha cua", 243),
     (4441, "Diet con trung", 104),
+
+    # === THOI TRANG NU (parent 931) ===
+    (4554, "Do lot nu", 3310),
+    (1508, "Do ngu - Do mac nha nu", 1110),
+    (941, "Dam nu", 1050),
+    (936, "Ao vest - Ao khoac nu", 870),
+    (933, "Ao thun nu", 573),
+    (27600, "Quan nu", 472),
+    (935, "Ao kieu nu", 377),
+    (6179, "Trang phuc boi nu", 318),
+    (934, "Ao so mi nu", 267),
+    (5404, "Chan vay", 265),
+    (1702, "Ao lien quan - Bo trang phuc", 264),
+    (4553, "Do doi - Do gia dinh", 94),
+    (49384, "Thoi trang nu trung nien", 56),
+    (10389, "Ao crop-top", 54),
+
+    # === THOI TRANG NAM (parent 915) ===
+    (917, "Ao thun nam", 1541),
+    (918, "Ao so mi nam", 856),
+    (925, "Ao vest - Ao khoac nam", 761),
+    (27548, "Do lot nam", 534),
+    (27562, "Quan dai nam", 492),
+    (67329, "Quan short nam", 380),
+    (10382, "Ao hoodie nam", 136),
+    (67309, "Bo trang phuc nam", 134),
+    (4546, "Ao ni - Ao len nam", 114),
+    (16004, "Do boi nam", 82),
+    (27570, "Do ngu nam", 68),
+
+    # === O TO - XE MAY (bo sung) ===
+    (8597, "Xe may", 270),
+    (6070, "Xe dien", 119),
 ]
 
 BASE_HEADERS = {
