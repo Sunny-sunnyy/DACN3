@@ -1,4 +1,7 @@
-"""Day 1: Data Curation — Load, clean, dedup, EDA, weighted sampling, split, push to HF Hub."""
+"""Day 1: Data Curation — Load, clean, dedup, EDA, weighted sampling, split, push to HF Hub.
+
+Updated 2026-04-10: 8 categories, category mapping, sub-category overrides.
+"""
 
 import json
 import random
@@ -20,35 +23,103 @@ DATA_DIR = SCRIPT_DIR.parent / "Tiki" / "Tiki_dataset_scrape"
 OUTPUT_DIR = SCRIPT_DIR / "output"
 RANDOM_SEED = 42
 HF_DATASET_NAME = "SeanSunny/items_raw_tv"
-TRAIN_SIZE = 100_000
+TRAIN_SIZE = 80_000
 VAL_SIZE = 5_000
 TEST_SIZE = 5_000
 
-# Weighted sampling: category penalties (reviewed after EDA 2026-04-10)
+# --- 8 Target Categories ---
+# Map Tiki parent categories (from category.split(" > ")[0]) to 8 targets.
+# None = drop the category.
+CATEGORY_MAP = {
+    # === Thoi Trang (gop tat ca fashion + phu kien + balo) ===
+    "Thời Trang": "Thời Trang",
+    "Thời trang nữ": "Thời Trang",
+    "Thời trang nam": "Thời Trang",
+    "Phụ kiện thời trang": "Thời Trang",
+    "Balo và Vali": "Thời Trang",
+    # === Nha Cua - Doi Song (gop cham soc nha cua) ===
+    "Nhà Cửa - Đời Sống": "Nhà Cửa - Đời Sống",
+    "Chăm sóc nhà cửa": "Nhà Cửa - Đời Sống",
+    # === Dien Tu - Cong Nghe ===
+    "Laptop - Máy Vi Tính - Linh kiện": "Điện Tử - Công Nghệ",
+    "Thiết Bị Số - Phụ Kiện Số": "Điện Tử - Công Nghệ",
+    # === Lam Dep - Suc Khoe ===
+    "Làm Đẹp - Sức Khỏe": "Làm Đẹp - Sức Khỏe",
+    # === Me va Be (gop Do Choi) ===
+    "Đồ Chơi - Mẹ & Bé": "Mẹ và Bé",
+    # === Dien Lanh va Gia Dung ===
+    "Điện Gia Dụng": "Điện Lạnh và Gia Dụng",
+    "Điện Tử - Điện Lạnh": "Điện Lạnh và Gia Dụng",
+    # === Bach Hoa ===
+    "Bách Hóa Online": "Bách Hóa",
+    # === O To - Xe May ===
+    "Ô Tô - Xe Máy - Xe Đạp": "Ô Tô - Xe Máy",
+    # === BO ===
+    "Nhà Sách Tiki": None,
+}
+
+# Sub-category overrides: items whose Tiki parent is wrong for our mapping.
+# Check sub-category (parts[1]) to re-route specific items.
+# Format: substring in sub-category → target category
+SUBCATEGORY_OVERRIDES = {
+    "Thể thao": "Nhà Cửa - Đời Sống",       # Tiki parent: Lam Dep, but we want: Nha Cua
+    "Quà lưu niệm": "Mẹ và Bé",              # Tiki parent: Nha Sach, but we want: Me va Be
+    "Văn phòng phẩm": "Nhà Cửa - Đời Sống",  # Tiki parent: Nha Sach, rescue into Nha Cua
+}
+
+# Weighted sampling: category penalties
 CATEGORY_PENALTIES = {
-    "Thời Trang": 0.4,
-    "Nhà Cửa - Đời Sống": 0.7,
+    "Thời Trang": 0.35,
+    "Nhà Cửa - Đời Sống": 0.50,
 }
 
 
+def _map_category(raw_cat: str, is_kaggle: bool) -> str | None:
+    """Map a raw category string to one of 8 target categories, or None to drop."""
+    if is_kaggle:
+        return "Thời Trang"
+
+    parts = raw_cat.split(" > ")
+    parent = parts[0]
+    sub = parts[1] if len(parts) > 1 else ""
+
+    # Check sub-category overrides first (higher priority)
+    for keyword, target in SUBCATEGORY_OVERRIDES.items():
+        if keyword in sub or keyword in parent:
+            return target
+
+    # Map by parent category
+    if parent in CATEGORY_MAP:
+        return CATEGORY_MAP[parent]
+
+    # Unknown parent — warn and drop
+    return None
+
+
 def load_all_items() -> list[Item]:
-    """Load all 54 JSONL files, parse into Item objects."""
+    """Load all JSONL files, parse into Item objects with 8-category mapping."""
     items = []
+    dropped_cats = Counter()
     for filepath in sorted(DATA_DIR.glob("*.jsonl")):
         is_kaggle = "kaggle" in filepath.name
         count = 0
         for line in open(filepath, encoding="utf-8"):
             datapoint = json.loads(line)
-            if is_kaggle:
-                category = "Thời Trang"
-            else:
-                raw_cat = datapoint.get("category", "")
-                category = raw_cat.split(" > ")[0] if " > " in raw_cat else raw_cat
+            raw_cat = datapoint.get("category", "")
+            category = _map_category(raw_cat, is_kaggle)
+            if category is None:
+                dropped_cats[raw_cat.split(" > ")[0] if " > " in raw_cat else raw_cat] += 1
+                continue
             item = parse(datapoint, category)
             if item:
                 items.append(item)
                 count += 1
         print(f"  {filepath.name}: {count:,} items")
+
+    if dropped_cats:
+        print(f"\nDropped categories:")
+        for cat, cnt in dropped_cats.most_common():
+            print(f"  {cat}: {cnt:,} items")
     return items
 
 

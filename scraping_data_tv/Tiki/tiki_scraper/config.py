@@ -159,6 +159,39 @@ SCRAPE_CATEGORIES = [
     # === O TO - XE MAY (bo sung) ===
     (8597, "Xe may", 270),
     (6070, "Xe dien", 119),
+
+    # === NHOM 1: CATEGORIES CON THIEU (them 2026-04-10) ===
+
+    # NHA CUA - DOI SONG (them)
+    (53050, "Dung cu va Thiet bi tien ich", 4019),
+
+    # ME VA BE (them — parent 2549)
+    (2551, "Ta Bim", 774),
+    (8339, "Dinh duong cho be", 772),
+    (2640, "Cham soc me mang thai sau sinh", 326),
+    (10418, "Dinh duong cho nguoi lon", 140),
+    (10416, "Dinh duong cho me", 75),
+    (5164, "Do dung cho nguoi gia", 46),
+    (6568, "Thuc pham an dam", 6),
+
+    # DIEN TU - DIEN LANH (them)
+    (3869, "Tu uop ruou", 26),
+
+    # DIEN TU - CONG NGHE (them)
+    (2667, "Thiet Bi Choi Game va Phu Kien", 83),
+    (8095, "Laptop", 21),
+
+    # === NHOM 2: CATEGORIES TUY CHON (them 2026-04-10) ===
+
+    # NHA CUA - DOI SONG (gop)
+    (23054, "Do tho cung", 1232),
+    (10068, "Nhac cu", 836),
+
+    # ME VA BE (gop)
+    (18328, "Qua luu niem", 3320),
+
+    # BACH HOA (gop)
+    (11347, "Bo qua tang", 78),
 ]
 
 BASE_HEADERS = {
