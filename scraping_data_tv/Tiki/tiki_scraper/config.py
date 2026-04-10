@@ -106,6 +106,26 @@ SCRAPE_CATEGORIES = [
     (4422, "Gia Vi va Che Bien", 1554),
     (22998, "Do uong", 2741),
     (5451, "Cham soc thu cung", 2796),
+
+    # === TUI - VI - BALO (them 2026-04-10) ===
+    (27608, "Balo", 1589),
+    (8387, "Tui du lich va phu kien", 581),
+    (6526, "Vali - phu kien vali", 514),
+    (27612, "Balo - cap - tui chong soc laptop", 195),
+    (68140, "Phu kien du lich", 53),
+
+    # === DIEN TU - DIEN LANH (bo sung) ===
+    (3868, "Tu dong - Tu mat", 350),
+    (8074, "Phu kien dien lanh", 217),
+    (3863, "May say quan ao", 50),
+
+    # === VE SINH NHA CUA (them 2026-04-10) ===
+    (4399, "Ve sinh nha bep", 1401),
+    (4400, "Ve sinh nha tam", 511),
+    (4387, "Giat giu va Cham soc quan ao", 474),
+    (4388, "Giay ve sinh va giay an", 275),
+    (4386, "Ve sinh nha cua", 243),
+    (4441, "Diet con trung", 104),
 ]
 
 BASE_HEADERS = {
