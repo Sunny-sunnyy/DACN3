@@ -22,8 +22,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR.parent / "Tiki" / "Tiki_dataset_scrape"
 OUTPUT_DIR = SCRIPT_DIR / "output"
 RANDOM_SEED = 42
-HF_DATASET_NAME = "SeanSunny/items_raw_tv_v2"
-TRAIN_SIZE = 80_000
+HF_DATASET_NAME = "SeanSunny/items_raw_tv_v3"
+TRAIN_SIZE = 100_000
 VAL_SIZE = 5_000
 TEST_SIZE = 5_000
 
@@ -69,8 +69,8 @@ SUBCATEGORY_OVERRIDES = {
 
 # Weighted sampling: category penalties
 CATEGORY_PENALTIES = {
-    "Thời Trang": 0.35,
-    "Nhà Cửa - Đời Sống": 0.50,
+    "Thời Trang": 0.40,
+    "Nhà Cửa - Đời Sống": 0.60,
 }
 
 
