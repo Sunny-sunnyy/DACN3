@@ -28,6 +28,7 @@ EMOJI_PATTERN = re.compile(
 HTML_ENTITY_PATTERN = re.compile(r"&#x[0-9a-fA-F]+;|&[a-z]+;")
 SEPARATOR_PATTERN = re.compile(r"[-=]{5,}")
 SKU_PATTERN = re.compile(r"\b(?=[A-Z0-9]{8,}\b)(?=.*[A-Z])(?=.*\d)[A-Z0-9]+\b")
+BARCODE_PATTERN = re.compile(r"\|?\s*Barcode:\s*[^|]*\|", re.IGNORECASE)
 MULTI_SPACE_PATTERN = re.compile(r"\s+")
 
 
@@ -41,7 +42,9 @@ def clean_text(text: str) -> str:
     text = EMOJI_PATTERN.sub("", text)
     # 4. Remove separators (-----, =====)
     text = SEPARATOR_PATTERN.sub("", text)
-    # 5. Remove SKU/product codes (8+ chars, uppercase+digits)
+    # 5. Remove barcode entries (Hasaki: "| Barcode: 8999999581770 |") — before SKU removal
+    text = BARCODE_PATTERN.sub("", text)
+    # 5b. Remove SKU/product codes (8+ chars, uppercase+digits)
     text = SKU_PATTERN.sub("", text)
     # 6. Normalize whitespace (\n, \r, \t, multi-space -> single space)
     text = MULTI_SPACE_PATTERN.sub(" ", text).strip()
