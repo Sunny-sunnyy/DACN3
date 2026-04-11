@@ -4,8 +4,11 @@
 
 - **Trang:** hasaki.vn (my pham chinh hang)
 - **Tech:** JSON API (khong can Selenium/Chrome)
-- **Category:** Tat ca map vao **"Lam Dep - Suc Khoe"**
+- **Category:** Tat ca 130 categories map vao **"Lam Dep - Suc Khoe"**
+- **Tong SP:** ~11,407 san pham (xem `hasaki_categories_report.md`)
 - **Output:** JSONL files trong `scrap/data/`
+- **File naming:** `hasaki_category_{id}.jsonl` (khi cao 1 category), `hasaki_all_{date}.jsonl` (khi cao tat ca)
+- **Block handling:** Tu dong doi 60s + rotate session khi bi 403/429
 - **Schema:** `{title, price, features, brand, category}` — tuong thich Tiki pipeline
 
 ---
@@ -40,9 +43,20 @@ uv sync
 
 ---
 
-## Buoc 2: Test nhanh (2 phut)
+## Buoc 2: Xem report categories (1 lan)
 
-### 2.1. Test 1 category, 5 SP
+```bash
+# Xem toan bo categories va so SP
+uv run scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py --report
+```
+
+Ket qua: file `hasaki_categories_report.md` gom 130 categories, tong ~11,407 SP.
+
+---
+
+## Buoc 3: Test nhanh (2 phut)
+
+### 3.1. Test 1 category, 5 SP
 
 ```bash
 uv run scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py --test
@@ -58,15 +72,16 @@ Found 130 leaf categories
 === DONE: 5 products total ===
 ```
 
-### 2.2. Test 1 category cu the, nhieu SP hon
+### 3.2. Test 1 category cu the, nhieu SP hon
 
 ```bash
 # Cao 50 SP tu "Sua Rua Mat" (id=19) voi 3 workers
+# File output: scrap/data/hasaki_category_19.jsonl
 uv run scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py \
     --category 19 --max 50 --workers 3
 ```
 
-### 2.3. Kiem tra output
+### 3.3. Kiem tra output
 
 ```bash
 # Dem so dong
@@ -88,20 +103,18 @@ Kiem tra:
 
 ---
 
-## Buoc 3: Cao het 1 category (test full)
+## Buoc 4: Cao het 1 category (test full)
 
 ```bash
-# Xoa file test cu
-rm -f scraping_data_tv/e-commerce-sites-scraping/scrap/data/hasaki_test_*.jsonl
-
-# Cao het tat ca san pham trong "Sua Rua Mat" (id=19)
+# Cao het tat ca san pham trong "Chong Nang Da Mat" (id=11)
+# File output: scrap/data/hasaki_category_11.jsonl
 uv run scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py \
-    --category 19 --workers 3
+    --category 11 --workers 3
 ```
 
 Se hien:
 ```
---- Category: Sua Rua Mat (id=19) ---
+--- Category: Chong Nang Da Mat (id=11) ---
   Found 200+ product IDs, workers=3
   Progress: 50/200 (48 saved, 3.7 SP/s, ETA 40s)
   Progress: 100/200 (97 saved, 3.5 SP/s, ETA 28s)
@@ -111,21 +124,19 @@ Se hien:
 
 ---
 
-## Buoc 4: Cao tat ca categories (full run)
+## Buoc 5: Cao tat ca categories (full run)
 
 ```bash
-# Xoa file test/old
-rm -f scraping_data_tv/e-commerce-sites-scraping/scrap/data/hasaki*.jsonl
-
 # Cao tat ca 130 categories voi 3 workers
+# File output: scrap/data/hasaki_all_2026-04-11.jsonl
 uv run scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py --workers 3
 ```
 
 **Uoc tinh:**
 - 130 leaf categories
-- ~10,000-15,000 SP tong
+- **~11,407 SP** (da scan tu report)
 - 3 workers = 3.7 SP/s
-- **Thoi gian: ~45-70 phut**
+- **Thoi gian: ~50-60 phut**
 
 ### Theo doi tien do
 
@@ -165,13 +176,14 @@ uv run scraping_data_tv/Data_processing_for_Vietnamese_data/day1_data_curation.p
 
 ## Cac lenh tham khao
 
-| Lenh | Muc dich |
-|------|----------|
-| `--test` | Test nhanh: 1 category, 5 SP |
-| `--category 19 --max 50` | Cao 50 SP tu 1 category |
-| `--category 19 --workers 3` | Cao het 1 category, 3 workers |
-| `--workers 3` | Cao tat ca, 3 workers |
-| `--workers 5` | Cao tat ca, 5 workers (nhanh hon) |
+| Lenh | Muc dich | Output file |
+|------|----------|-------------|
+| `--test` | Test nhanh: 1 category, 5 SP | `hasaki_test_{date}.jsonl` |
+| `--report` | Scan tat ca categories, in so SP | `hasaki_categories_report.md` |
+| `--category 11 --max 50 --workers 3` | Cao 50 SP tu 1 category | `hasaki_category_11.jsonl` |
+| `--category 11 --workers 3` | Cao het 1 category | `hasaki_category_11.jsonl` |
+| `--workers 3` | Cao tat ca 130 categories | `hasaki_all_{date}.jsonl` |
+| `--workers 5` | Cao tat ca (nhanh hon) | `hasaki_all_{date}.jsonl` |
 
 | Folder | Noi dung |
 |--------|---------|
