@@ -175,3 +175,32 @@ Hay hoi toi nhung cau hoi can thiet.
 ```
 
 *Cap nhat: 2026-04-10 — Day 1 DONE. EDA reviewed. Chuyen sang Day 0 (thu thap them du lieu) truoc khi re-run Day 1.*
+
+---
+
+## CẬP NHẬT 2026-04-10: Hoàn tất thu thập Tiki & Re-run Day 1 Pipeline
+
+### 1. Trạng thái thu thập dữ liệu Tiki (ĐÃ HOÀN TẤT)
+- Chạy scraper thành công 111/113 categories (thu được **102,117 sản phẩm** thô).
+- Tích hợp thêm dataset Kaggle (**41,603 sản phẩm**).
+- Tổng data Raw đạt **143,263 sản phẩm**. 
+- Quyết định **không cào thêm** 3 categories còn sót lại của Tiki vì số lượng quá ít (~150 SP), không đáng kể.
+
+### 2. Phân tích & Xử lý thành công Data Imbalance và lỗi Category "Root"
+- Dataset Kaggle có hơn 41k dữ liệu mang category là "Root" hoặc sub-category quá chi tiết. Đã map toàn bộ 100% dữ liệu Kaggle này về danh mục "Thời Trang".
+- Bóp gọn 168 parent categories nhỏ lẻ thô thành **8 categories** chuẩn.
+- Áp dụng các ngoại lệ (Override) linh hoạt theo đúng Business Logic: Đưa *Thể thao* vào *Nhà Cửa - Đời Sống*, *Quà lưu niệm* vào *Mẹ và Bé*, v.v.
+
+### 3. Nhận xét sau khi Re-run `day1_data_curation.py`
+- **Deduplication:** Xử lý mất ~6,700 dòng dữ liệu trùng lặp, giữ lại tập 136,545 sản phẩm sạch.
+- **Weighted Sampling (90,000 SP - 80k train / 5k val / 5k test):** Hệ thống Penalty hoạt động **cực kỳ xuất sắc**:
+  - "Thời Trang" (nhận mức phạt 0.35) đã ép dữ liệu giảm mạnh từ 56,170 (39.2% RAW) xuống mức cân bằng 21,659 (24.1% Valid). 
+  - "Nhà Cửa - Đời Sống" (nhận mức phạt 0.50) được duy trì hợp lý ở mức 24,054 (26.7%).
+  - Các danh mục còn lại (Điện tử, Làm đẹp, Mẹ và Bé...) được bảo toàn lượng phân bố một cách lý tưởng.
+- Dataset cuối cùng hoàn toàn sạch sẽ, cân xứng, sẵn sàng đẩy lên Hub bản V2 (`SeanSunny/items_raw_tv_v2`).
+
+### 4. Kết quả biểu đồ EDA (`output/`)
+- Mọi quan sát từ `01_before_dedup`, `02_after_dedup` cho đến `03_after_sampling` trực quan xác định biểu đồ Bar Chart và Pie Chart đã đi từ trạng thái "biến dạng" (Thời trang chiếm gần một nửa tròn xoe) sửa về trạng thái phẳng (flat/balanced) hơn nhiều.
+
+
+## Cần cào thêm dữ liệu từ các trang khác như Hasaki, BiboMart, CoopMart... để tăng số lượng dữ liệu cho các danh mục còn thiếu. 
