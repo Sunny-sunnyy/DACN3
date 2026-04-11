@@ -10,7 +10,7 @@
 
 | Phase | Trang | Trang thai | SP | Ghi chu |
 |---|---|---|---|---|
-| **P1a** | **Hasaki** | **SCRAPER DONE — chua chay full** | test 50 SP OK | 130 categories, 3 workers = 3.7 SP/s |
+| **P1a** | **Hasaki** | **DONE** | **11,410** | 128/130 categories, 0 blocks, 3 workers |
 | P1b | Cocolux | Chua bat dau | 0 | Thay Cocoshop (da chet) |
 | P2 | BiboMart, ConCung, KidsPlaza | Chua bat dau | 0 | |
 | P3 | CoopMart, WinMart, BachHoaXanh, FujiMart | Chua bat dau | 0 | |

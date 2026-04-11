@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-10)
+## Trang thai hien tai (2026-04-11)
 
-**Trang thai:** Day 0 — Can cao them du lieu (73 Tiki categories + trang khac). Day 1 da chay 1 lan (110K SP, push HF Hub) nhung can re-run sau khi co data moi.
+**Trang thai:** Day 0 dang tien hanh — Hasaki DONE (11,410 SP). Can cao tiep Cocolux + merge vao pipeline. Day 1 da chay 1 lan (110K SP, push HF Hub) nhung can re-run sau khi co data moi tu e-commerce sites.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -36,9 +36,10 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Fix: LS/PS line terminators, price float→int
 
 ### Chua lam:
-- [ ] **Day 0:** Cao them 73 Tiki categories (~9K SP them)
-- [ ] **Day 0:** Test + chay scraper co san (Hasaki, BiboMart, CoopMart...) → convert CSV→JSONL
-- [ ] **Day 0:** (Uu tien 3) Viet scraper moi TGDD/FPT/Meta.vn
+- [ ] **Day 0:** Cao Cocolux (~5-10K SP) → bo sung "Lam Dep - Suc Khoe"
+- [ ] **Day 0:** Merge Hasaki + Cocolux JSONL vao Tiki_dataset_scrape/
+- [ ] **Day 0:** (Uu tien 2) Cao BiboMart, ConCung, KidsPlaza (Me va Be)
+- [ ] **Day 0:** (Uu tien 3) Cao CoopMart, WinMart, BachHoaXanh (Bach Hoa)
 - [ ] **Day 1:** Re-run pipeline voi data moi, 9 categories, penalties
 - [ ] **Day 2:** LLM rewrite (Groq Batch API)
 - [ ] **Day 3:** Baseline ML (XGBoost, LightGBM, CatBoost)
@@ -49,19 +50,22 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - Se thue may de cao du lieu (khong chay tren WSL2)
 - OVER_CAP: chon Adaptive Price-Range Slicing + Sort Rotation Fallback (industry-standard, Apify khuyen dung)
 - Fine-tune: Qwen 3.5 4B thay vi Llama (tot hon cho tieng Viet)
-- Du lieu hien co: Tiki scraper 79,382 SP + Kaggle 41,603 SP = **120,985 SP raw**
+- Du lieu hien co: Tiki 79,382 SP + Kaggle 41,603 SP + **Hasaki 11,410 SP** = **132,395 SP raw**
 - Kaggle brand = ten the loai file (khong dung brand goc vi 74% la OEM/empty)
 - Giu tat ca SP (khong loc gia, khong loc features length) — se xu ly o buoc tien xu ly
-- **(2026-04-10) Cao them du lieu:** Them 73 Tiki categories + scraper co san (Hasaki, BiboMart, CoopMart...) + scraper moi (TGDD, FPT, Meta.vn)
 - **(2026-04-10) 9 categories:** Gop DienLanh+DienGiaDung, PhuKienTT+ThoiTrang, DoChoi+MeVaBe. Bo NhaSach, TheThao.
 - **(2026-04-10) Category penalties:** Thoi Trang 0.4, Nha Cua 0.7
 - **(2026-04-10) TRAIN_SIZE:** Giam tu 100K xuong 80K (cho room penalty)
+- **(2026-04-11) Hasaki:** Cao xong 128/130 categories = 11,410 SP. Khong bi block. Scraper co workers, resume, report.
+- **(2026-04-11) E-commerce plan:** He thong 10 trang TMDT, 4 phases. Phase 1a (Hasaki) DONE.
 
-### Ket qua du lieu (2026-04-09):
-- **Scraper:** 49/49 categories DONE — 48 JSONL files, 79,382 SP (8085 Laptop: 0 SP)
+### Ket qua du lieu (2026-04-11):
+- **Tiki scraper:** 49/49 categories DONE — 48 JSONL files, 79,382 SP (8085 Laptop: 0 SP)
 - **Kaggle:** 6 CSV → 6 JSONL, 41,603 SP (thoi trang: balo, giay, tui, phu kien)
-- **Tong:** 54 JSONL files, **120,985 SP**
-- Ty le thuc te scraper: 28.2% (281K uoc tinh API → 79K thuc te, nhieu SP bi xoa)
+- **Hasaki:** 128/130 categories DONE — 128 JSONL files, **11,410 SP** (2 cat 0 SP: Son Mong, Nuoc Rua Mong)
+- **Tong:** 182 JSONL files, **132,395 SP**
+- Ty le thuc te Tiki: 28.2% (281K uoc tinh API → 79K thuc te, nhieu SP bi xoa)
+- Ty le thuc te Hasaki: ~100% (11,407 uoc tinh → 11,410 thuc te)
 
 ### Luu y ky thuat:
 - Tiki API bao `paging.total = 2000` khi bi cap (khong bao so thuc). Detection phai dung `total >= 2000` (khong phai `> 2000`)
@@ -74,57 +78,58 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Day 0 — Thu thap them du lieu (HIEN TAI)
+### Prompt A: Cao tiep du lieu e-commerce (HIEN TAI — Phase 1b Cocolux)
 
 ```
 Doc cac file sau de nap ngu canh:
 
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet (Day 0-4), 9 categories muc tieu, danh sach Tiki categories can them
-2. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai hien tai
-3. "scraping_data_tv/Tiki/tiki_scraper/config.py" — 49 categories da cao
-4. "scraping_data_tv/Tiki/tiki_scraper/scraper.py" — pipeline scraper hien tai
-5. "scraping_data_tv/e-commerce-sites-scraping/" — code scraper co san (Hasaki, BiboMart, CoopMart...)
-6. "scraping_data_tv/Data_processing_for_Vietnamese_data/day1/2026-04-09-day1-data-curation-vi.md" — ket qua Day 1 (EDA, phan tich)
+1. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai tong the hien tai
+2. "scraping_data_tv/e-commerce-sites-scraping/scrap/e-commerce-plan.md" — plan cao 10 trang TMDT, trang thai cac phases
+3. "scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py" — scraper Hasaki da hoan thanh (tham khao pattern)
+4. "scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_categories_report.md" — bao cao Hasaki (128/130 cat, 11,410 SP)
+5. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan Day 0-4
 
-Buoc tiep: Them 73 Tiki categories vao config.py, chay scraper. Sau do test scraper co san (Hasaki, BiboMart...).
+Hasaki da DONE (11,410 SP). Buoc tiep: Viet scraper Cocolux (cocolux.com), sau do merge tat ca vao pipeline.
 Hay hoi toi nhung cau hoi can thiet.
 ```
 
-### Prompt B: Day 1-4 — Tien xu ly du lieu tieng Viet (sau khi Day 0 xong)
+### Prompt B: Merge du lieu + Re-run Day 1 pipeline
 
 ```
 Doc cac file sau de nap ngu canh:
 
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet tien xu ly tieng Viet
-2. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai du lieu hien tai
-3. "scraping_data_tv/Tiki/tiki_categories_report.md" — bao cao categories
-4. "segment4/mo_ta_du_an/Project_Development_Plan.md" — ke hoach tong the du an
-5. "scraping_data_tv/Data_processing_for_English_data" chua code va tai lieu xu ly du lieu tieng Anh (tham khao)
-6. "scraping_data_tv/Tiki" chua codebase va docs cao du lieu Tiki
-7. "scraping_data_tv/Data_processing_for_Vietnamese_data/day1/2026-04-09-day1-data-curation-vi.md" — ket qua Day 1
-8. "scraping_data_tv/Data_processing_for_Vietnamese_data" — code hien tai (pricer_vi/, day1_data_curation.py)
+1. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai tong the
+2. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan tien xu ly tieng Viet
+3. "scraping_data_tv/Tiki/tiki_categories_report.md" — bao cao Tiki categories
+4. "scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_categories_report.md" — bao cao Hasaki (DONE)
+5. "scraping_data_tv/Data_processing_for_Vietnamese_data/day1/2026-04-09-day1-data-curation-vi.md" — ket qua Day 1 lan truoc
+6. "scraping_data_tv/Data_processing_for_Vietnamese_data" — code hien tai (pricer_vi/, day1_data_curation.py)
 
-Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet.
+Du lieu: Tiki 79K + Kaggle 42K + Hasaki 11K = 132K SP. Can merge Hasaki JSONL vao Tiki_dataset_scrape/, re-run Day 1 pipeline.
+Hay hoi toi nhung cau hoi can thiet.
 ```
 
-### Prompt C: Scraping du lieu Tiki (chi dung khi can sua scraper)
+### Prompt C: Day 2-4 — LLM rewrite + Training (sau khi Day 1 xong)
 
 ```
 Doc cac file sau de nap ngu canh:
 
-1. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai hien tai
-2. "scraping_data_tv/Tiki/plan_scraping_tiki.md" — plan chi tiet Tiki scraper
+1. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai tong the
+2. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet Day 2-4
 3. "segment4/mo_ta_du_an/Project_Development_Plan.md" — ke hoach tong the du an
+4. "scraping_data_tv/Data_processing_for_English_data" chua code va tai lieu xu ly du lieu tieng Anh (tham khao)
+5. "scraping_data_tv/Data_processing_for_Vietnamese_data" — code hien tai
 
-Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhung cau hoi can thiet.
+Day 0-1 done. Buoc tiep: Day 2 LLM rewrite (Groq Batch API), Day 3 ML baseline, Day 4 DNN.
+Hay hoi toi nhung cau hoi can thiet.
 ```
 
 ### Khi nao can doc them:
-- Neu lam viec voi **tien xu ly du lieu**: doc `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md`
-- Neu lam viec voi **search_key pipeline** (segment4): doc them `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`
-- Neu lam viec voi **scraper code Tiki**: doc them `scraping_data_tv/Tiki/tiki_scraper/scraper.py`
-- Neu lam viec voi **scraper code khac**: doc them `scraping_data_tv/e-commerce-sites-scraping/`
-- Neu can **code tham khao tieng Anh**: doc `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/`
+- **Scraper e-commerce moi**: doc `scraping_data_tv/e-commerce-sites-scraping/scrap/e-commerce-plan.md` + `hasaki_scraper.py` (tham khao pattern)
+- **Tien xu ly du lieu**: doc `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md`
+- **Scraper Tiki**: doc `scraping_data_tv/Tiki/tiki_scraper/scraper.py`
+- **Code tham khao tieng Anh**: doc `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/`
+- **Ke hoach du an**: doc `segment4/mo_ta_du_an/Project_Development_Plan.md`
 
 ---
 
@@ -132,21 +137,21 @@ Sau do cho toi biet ban da nam duoc gi va buoc tiep theo la gi. Hay hoi toi nhun
 
 | File | Muc dich |
 |------|----------|
-| `scraping_data_tv/Tiki/plan_scraping_tiki.md` | Plan Tiki scraper (trang thai, benchmark, cach chay) |
-| `scraping_data_tv/Tiki/HUONG_DAN_CAO_DU_LIEU.md` | Huong dan cao tren may thue + resume nhieu buoi |
-| `scraping_data_tv/Tiki/HUONG_DAN_VUOT_CAP_2000.md` | Van de OVER_CAP + 3 phuong an + ket qua test |
-| `scraping_data_tv/Tiki/tiki_categories_report.csv` | Bang danh muc 122 sub-categories voi SP count + OVER_CAP status |
-| `scraping_data_tv/Tiki/tiki_categories_report.md` | Bang danh muc (Markdown) |
-| `scraping_data_tv/Tiki/run_scraper.py` | CLI: `--test`, `--all`, `--category`, `--workers`, `--max` |
-| `scraping_data_tv/Tiki/tiki_scraper/scraper.py` | Pipeline chinh: listing -> filter -> detail -> JSONL |
-| `scraping_data_tv/Tiki/tiki_scraper/config.py` | 49 categories, rate limits, delays |
-| `scraping_data_tv/Tiki/step1/step1_notes.md` | Ket qua test API + benchmark |
-| `scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py` | Script test 3 phuong an vuot OVER_CAP |
-| `scraping_data_tv/Tiki/convert_kaggle_csv.py` | Convert Kaggle CSV → JSONL (6 files thoi trang) |
-| `segment4/mo_ta_du_an/Project_Development_Plan.md` | Ke hoach tong the 5 giai doan (8 thang) |
-
-| `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md` | Tai lieu search_key pipeline (tieng Anh) |
-| `CLAUDE.md` | Quy tac code, workflow, debugging |
+| **E-COMMERCE SCRAPERS** | |
+| `scraping_data_tv/e-commerce-sites-scraping/scrap/e-commerce-plan.md` | Plan cao 10 trang TMDT (trang thai, benchmark) |
+| `scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_scraper.py` | Hasaki scraper (DONE, 11,410 SP) |
+| `scraping_data_tv/e-commerce-sites-scraping/scrap/hasaki_categories_report.md` | Bao cao 130 categories Hasaki (DONE) |
+| `scraping_data_tv/e-commerce-sites-scraping/scrap/HUONG_DAN_CAO_DU_LIEU_HASAKI.md` | Huong dan chay Hasaki scraper |
+| `scraping_data_tv/e-commerce-sites-scraping/scrap/data/` | Output JSONL files (128 files Hasaki) |
+| **TIKI** | |
+| `scraping_data_tv/Tiki/tiki_categories_report.md` | Bao cao 122 sub-categories Tiki (DONE) |
+| `scraping_data_tv/Tiki/HUONG_DAN_CAO_DU_LIEU.md` | Huong dan cao Tiki |
+| `scraping_data_tv/Tiki/tiki_scraper/scraper.py` | Pipeline chinh Tiki |
+| `scraping_data_tv/Tiki/run_scraper.py` | CLI Tiki scraper |
+| **DATA PROCESSING** | |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md` | Plan tien xu ly Day 0-4 |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/day1_data_curation.py` | Day 1 pipeline |
+| `segment4/mo_ta_du_an/Project_Development_Plan.md` | Ke hoach tong the 5 giai doan |
 ---
 
 ## Lenh chay nhanh
@@ -178,4 +183,4 @@ uv run scraping_data_tv/Tiki/step1/04_test_overcap_solutions.py
 
 ---
 
-*Cap nhat: 2026-04-10 — Day 1 da chay (110K SP, push HF). Can cao them 73 Tiki cat + trang khac truoc khi re-run Day 1.*
+*Cap nhat: 2026-04-11 — Hasaki DONE (11,410 SP). Tong 132K SP. Can cao Cocolux, merge, re-run Day 1.*
