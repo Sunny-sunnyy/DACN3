@@ -372,30 +372,40 @@ def main():
     date_str = datetime.date.today().isoformat()
     if args.test:
         output_file = DATA_DIR / f"hasaki_test_{date_str}.jsonl"
-    elif args.category:
-        output_file = DATA_DIR / f"hasaki_category_{args.category}.jsonl"
-    else:
-        output_file = DATA_DIR / f"hasaki_all_{date_str}.jsonl"
 
-    print(f"\nOutput: {output_file}")
+    print(f"\nOutput dir: {DATA_DIR}")
     print(f"Categories: {len(categories)}, workers: {workers}")
     if max_per_cat > 0:
         print(f"Max products per category: {max_per_cat}")
 
     total = 0
+    skipped = 0
     t_global = time.time()
 
     for idx, cat in enumerate(categories):
+        # Per-category file naming (enables resume)
+        if args.test:
+            out_file = output_file
+        else:
+            out_file = DATA_DIR / f"hasaki_category_{cat['id']}.jsonl"
+
+        # Skip if file already exists (resume support)
+        if out_file.exists() and out_file.stat().st_size > 0 and not args.test:
+            line_count = sum(1 for _ in open(out_file, encoding="utf-8"))
+            print(f"\n[{idx+1}/{len(categories)}] Category {cat['name']} (id={cat['id']}) — SKIP ({line_count} SP already saved)")
+            skipped += 1
+            continue
+
         print(f"\n[{idx+1}/{len(categories)}]", end="")
-        count = scrape_category(session, cat, output_file, max_per_cat, workers)
+        count = scrape_category(session, cat, out_file, max_per_cat, workers)
         total += count
 
     elapsed = time.time() - t_global
     speed = total / elapsed if elapsed > 0 else 0
     print(f"\n{'='*60}")
-    print(f"DONE: {total} products total in {elapsed:.0f}s ({elapsed/60:.1f} min)")
-    print(f"Speed: {speed:.1f} SP/s")
-    print(f"Output: {output_file}")
+    print(f"DONE: {total} products scraped, {skipped} categories skipped (already done)")
+    print(f"Time: {elapsed:.0f}s ({elapsed/60:.1f} min), Speed: {speed:.1f} SP/s")
+    print(f"Output dir: {DATA_DIR}")
     print(f"{'='*60}")
 
 
