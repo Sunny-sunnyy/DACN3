@@ -1,7 +1,7 @@
 # Bach Hoa Scraping Plan — Bo sung category "Bach Hoa"
 
 **Ngay tao:** 2026-04-11
-**Cap nhat:** 2026-04-11 17:00
+**Cap nhat:** 2026-04-11 20:20
 **Muc tieu:** Cao 5-10K SP tu trang FMCG → bo sung "Bach Hoa" (hien co 4,284 SP trong sample)
 **Output format:** JSONL (title, price, features, brand, category)
 **Category map:** Tat ca → "Bach Hoa"
@@ -14,7 +14,7 @@
 | # | Trang | Trang thai | SP | Do kho | Uu tien |
 |---|---|---|---|---|---|
 | ~~1~~ | ~~**FujiMart** (fujimart.vn)~~ | **BO — KHONG CO GIA** | 0 | N/A | ~~P1~~ |
-| 2 | **WinMart** (winmart.vn) | **API DA TIM DUOC** — san sang viet scraper | 0 | THAP | **P1** |
+| 2 | **WinMart** (winmart.vn) | **DONE** — 3,232 SP scraped | 3,232 | THAP | **P1** |
 | 3 | **BachHoaXanh** (bachhoaxanh.com) | CHUA BAT DAU — can API discovery | 0 | CAO | P2 |
 | 4 | **CoopMart** (cooponline.vn) | CHUA BAT DAU — SPA React | 0 | TRUNG BINH | P3 |
 
@@ -96,11 +96,12 @@ accept: application/json
 
 ## PHUONG AN THUC HIEN
 
-### WinMart (P1 — lam truoc)
-1. Liet ke tat ca category slugs (DevTools hoac tim categories API)
-2. Viet `winmart_scraper.py` theo pattern `hasaki_scraper.py`
-3. **CHAY TU MAY LOCAL (mang VN)** — API bi timeout tu server ngoai
-4. Output: per-category JSONL files
+### WinMart (P1 — DA XONG)
+1. ~~Liet ke tat ca category slugs~~ → 92 slugs tu sitemap.xml, dung 18 parent slugs
+2. ~~Viet `winmart_scraper.py`~~ → DONE (test/report/scrape modes)
+3. ~~CHAY TU MAY LOCAL~~ → DA CHAY OK tu WSL (khong bi timeout)
+4. Output: 18 JSONL files, 3,232 SP → da copy sang Tiki_dataset_scrape/
+5. **CATEGORY_MAP da fix:** them "Thuc pham" + "Phi thuc pham" → "Bach Hoa"
 
 ### BachHoaXanh (P2)
 - **Phuong an uu tien:** DevTools API discovery (giong da lam voi WinMart)
@@ -140,4 +141,4 @@ Giong Tiki pipeline (de `day1_data_curation.py` tu dong load):
 
 ---
 
-*Cap nhat: 2026-04-11 17:00. WinMart API discovery THANH CONG. FujiMart BO. BachHoaXanh/CoopMart can API discovery.*
+*Cap nhat: 2026-04-11 21:30. WinMart DONE (3,232 SP). FujiMart BO. BachHoaXanh/CoopMart TAM DUNG — du lieu hien tai du (Bach Hoa 8,137 raw, 5,538 trong sample). Co the quay lai neu Day 2-4 cho thay can them.*

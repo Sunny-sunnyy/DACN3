@@ -1,7 +1,7 @@
 # Bach Hoa (FMCG) Categories Report
 
-**Cap nhat:** 2026-04-11 17:00
-**Trang thai:** WinMart API DA TIM DUOC — san sang viet scraper
+**Cap nhat:** 2026-04-11 20:20
+**Trang thai:** WinMart DONE (3,232 SP). BachHoaXanh/CoopMart CHUA BAT DAU.
 **Muc tieu:** Bo sung category "Bach Hoa" (hien 4,284 SP), target 8K-10K+
 **Category map:** Tat ca → Bach Hoa
 
@@ -12,12 +12,12 @@
 | # | Trang | Trang thai | SP da cao | SP uoc tinh | Ghi chu |
 |---|---|---|---:|---:|---|
 | ~~1~~ | ~~FujiMart (fujimart.vn)~~ | **BO** | 0 | ~~500-1,500~~ | Khong co gia ("Lien he") |
-| 2 | **WinMart** (winmart.vn) | **API DA TIM DUOC** | 0 | 5,000-8,000 | JSON API, san sang viet scraper |
+| 2 | **WinMart** (winmart.vn) | **DONE** | 3,232 | 5,000-8,000 | JSON API, 18 categories |
 | 3 | BachHoaXanh (bachhoaxanh.com) | CHUA BAT DAU | 0 | 5,000-10,000 | JS-rendered, can API discovery |
 | 4 | CoopMart (cooponline.vn) | CHUA BAT DAU | 0 | 3,000-5,000 | SPA React, can API discovery |
-| | **TONG** | | **0** | **13,000-23,000** | |
+| | **TONG** | | **3,232** | **13,000-23,000** | |
 
-**Thu tu uu tien:** WinMart (P1, API da co) > BachHoaXanh (P2) > CoopMart (P3)
+**Thu tu uu tien:** ~~WinMart (P1, DONE)~~ > BachHoaXanh (P2) > CoopMart (P3)
 
 ---
 
@@ -200,21 +200,18 @@ URL pattern: `winmart.vn/{slug}--c{id}`
 | Trang | Trang thai | Uoc tinh SP | Da cao | Ghi chu |
 |---|---|---:|---:|---|
 | ~~FujiMart~~ | BO | ~~500-1,500~~ | 0 | Khong co gia |
-| **WinMart** | **API DA TIM** | 5,000-8,000 | 0 | San sang viet scraper, CAN CHAY TU MANG VN |
+| **WinMart** | **DONE** | 5,000-8,000 | 3,232 | 18 categories, CATEGORY_MAP da fix |
 | BachHoaXanh | CHUA BAT DAU | 5,000-10,000 | 0 | Can API discovery |
 | CoopMart | CHUA BAT DAU | 3,000-5,000 | 0 | Can API discovery |
-| **TONG** | | **13,000-23,000** | **0** | |
+| **TONG** | | **13,000-23,000** | **3,232** | |
 
 ### Buoc tiep theo (thu tu uu tien)
 
-1. **WinMart scraper** — API da co, viet scraper theo pattern `hasaki_scraper.py`
-   - Liet ke tat ca category slugs (qua DevTools hoac tim API categories)
-   - Test pageSize toi da
-   - Xac nhan chay duoc tu may local (mang VN)
-   - **LUU Y: Can chay tu may co IP VN** (API bi timeout tu server ngoai)
+1. ~~**WinMart scraper**~~ — **DONE (3,232 SP)**, da copy sang Tiki_dataset_scrape/
+   - CATEGORY_MAP da fix: "Thuc pham" + "Phi thuc pham" → "Bach Hoa"
 2. **BachHoaXanh** — API discovery (DevTools Network tab)
 3. **CoopMart** — API discovery (DevTools Network tab)
 
 ---
 
-*Cap nhat: 2026-04-11 17:00. WinMart API discovery THANH CONG. Can chay scraper tu may VN.*
+*Cap nhat: 2026-04-11 21:30. WinMart DONE (3,232 SP). BachHoaXanh/CoopMart TAM DUNG — du lieu hien tai du cho Day 1 v4 (Bach Hoa 8,137 raw). Co the quay lai sau neu can.*

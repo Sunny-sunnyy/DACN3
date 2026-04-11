@@ -260,54 +260,32 @@ manufacturer, capacity, effect, price, source, href
 
 ---
 
-### Day 1: Data Curation (Tuyen chon du lieu) — DA CHAY, CAN RE-RUN
+### Day 1: Data Curation (Tuyen chon du lieu) — HOAN TAT (v4)
 
 **Muc tieu:** Load tat ca JSONL files → clean → dedup → EDA → split → push HF Hub
 
-**Thay doi so voi lan chay truoc:**
-- Them data tu Day 0 (Tiki them + trang khac)
-- Gop categories: Dien Gia Dung + Dien Lanh, Phu kien TT + Thoi Trang, Do Choi + Me va Be
-- Bo: Nha Sach Tiki, The Thao
-- TRAIN_SIZE = 80,000 (giam tu 100K)
-- Category penalties: Thoi Trang 0.4, Nha Cua 0.7
-- Gop Laptop-MVTLK + Thiet Bi So → "Dien Tu - Cong Nghe"
+**Config v4 (chot):**
+- TRAIN_SIZE = 110,000 (total 120K: 110K/5K/5K)
+- Category penalties: Thoi Trang 0.40, Nha Cua 0.60
+- HF_DATASET_NAME = "SeanSunny/items_raw_tv_v4"
+- 8 categories (gop tu 168 parent categories)
 
-**Pipeline:** Load → Clean (9-step) → Category mapping → Dedup → EDA → Weighted sampling (penalty) → Split → Push HF
+**Pipeline:** Load → Clean (9-step) → Category mapping → Dedup → EDA → Weighted sampling (price^2 + penalty) → Split → Push HF
 
-**Category mapping logic (trong parser hoac day1_data_curation.py):**
+**Ket qua v4:**
+- 263 JSONL files → 158,362 raw → ~157,722 loaded → ~146,850 dedup → 120,000 sample
+- Bach Hoa tang tu 4,284 (v3) → 8,137 raw (v4) nho WinMart +3,232 SP
+- Phan bo sau sampling gan voi thuc te TMDT VN (da phan tich va chap nhan)
 
-```python
-CATEGORY_MAP = {
-    # Gop Dien Tu - Dien Lanh + Dien Gia Dung
-    "Điện Tử - Điện Lạnh": "Dien Tu - Dien Lanh va Gia Dung",
-    "Điện Gia Dụng": "Dien Tu - Dien Lanh va Gia Dung",
-    # Gop Phu kien TT vao Thoi Trang
-    "Phụ kiện thời trang": "Thoi Trang",
-    "Thời Trang": "Thoi Trang",
-    # Gop Do Choi + Me va Be
-    "Đồ Chơi - Mẹ & Bé": "Me va Be",
-    # Gop Laptop + Thiet Bi So
-    "Laptop - Máy Vi Tính - Linh kiện": "Dien Tu - Cong Nghe",
-    "Thiết Bị Số - Phụ Kiện Số": "Dien Tu - Cong Nghe",
-    # Giu nguyen
-    "Nhà Cửa - Đời Sống": "Nha Cua - Doi Song",
-    "Làm Đẹp - Sức Khỏe": "Lam Dep - Suc Khoe",
-    "Bách Hóa Online": "Bach Hoa",
-    "Ô Tô - Xe Máy - Xe Đạp": "O To - Xe May",
-    # Bo
-    "Nhà Sách Tiki": None,  # Bo
-}
-# Cac trang khac (Hasaki, BiboMart, CoopMart...) → map theo category tuong ung
-```
-
-**Tieu chi hoan thanh Day 1 (cap nhat):**
-- [ ] Load thanh cong 150K+ SP (bao gom data moi)
-- [ ] Category mapping 9 categories
-- [ ] Lam sach + dedup → ~120-140K SP
-- [ ] EDA report (bieu do phan phoi 9 categories)
-- [ ] Penalty: Thoi Trang 0.4, Nha Cua 0.7
-- [ ] Split 80K/5K/5K — khong co data leakage
-- [ ] Push dataset len HuggingFace Hub
+**Tieu chi hoan thanh Day 1:**
+- [x] Load thanh cong 158K SP (Tiki 102K + Kaggle 42K + Hasaki 11K + WinMart 3.2K)
+- [x] Category mapping 8 categories (gop 168 parents, bo Nha Sach Tiki)
+- [x] Lam sach + dedup → ~146,850 SP
+- [x] EDA report (15 bieu do: before dedup, after dedup, after sampling)
+- [x] Penalty: Thoi Trang 0.40, Nha Cua 0.60
+- [x] Split 110K/5K/5K — khong co data leakage
+- [x] Notebook `day1_data_curation.ipynb` da tao
+- [ ] Push dataset len HuggingFace Hub (can chay notebook)
 
 ---
 
@@ -396,4 +374,4 @@ Thong so: 1 cau ve tinh nang/thong so noi bat
 
 ---
 
-*Cap nhat: 2026-04-10. Them Day 0 (thu thap du lieu). 9 categories muc tieu. Uu tien: Tiki → scraper co san → scraper moi.*
+*Cap nhat: 2026-04-11. Day 0-1 HOAN TAT. 8 categories (khong phai 9). Day 1 v4: 110K train, 120K total. Buoc tiep: Day 2 LLM rewrite.*

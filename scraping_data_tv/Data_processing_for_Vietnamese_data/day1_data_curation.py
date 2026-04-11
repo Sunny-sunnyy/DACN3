@@ -22,8 +22,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR.parent / "Tiki" / "Tiki_dataset_scrape"
 OUTPUT_DIR = SCRIPT_DIR / "output"
 RANDOM_SEED = 42
-HF_DATASET_NAME = "SeanSunny/items_raw_tv_v3"
-TRAIN_SIZE = 100_000
+HF_DATASET_NAME = "SeanSunny/items_raw_tv_v4"
+TRAIN_SIZE = 110_000
 VAL_SIZE = 5_000
 TEST_SIZE = 5_000
 
@@ -52,6 +52,9 @@ CATEGORY_MAP = {
     "Điện Tử - Điện Lạnh": "Điện Lạnh và Gia Dụng",
     # === Bach Hoa ===
     "Bách Hóa Online": "Bách Hóa",
+    # WinMart mch1 categories (WinMart uses mch hierarchy, not Tiki parent names)
+    "Thực phẩm": "Bách Hóa",
+    "Phi thực phẩm": "Bách Hóa",
     # === O To - Xe May ===
     "Ô Tô - Xe Máy - Xe Đạp": "Ô Tô - Xe Máy",
     # === BO ===
