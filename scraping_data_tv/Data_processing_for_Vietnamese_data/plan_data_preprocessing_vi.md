@@ -1,7 +1,7 @@
 # Plan: Tien xu ly du lieu tieng Viet cho bai toan du doan gia
 
 **Ngay tao:** 2026-04-09
-**Cap nhat:** 2026-04-10
+**Cap nhat:** 2026-04-13
 **Branch:** `feature/data-preprocessing-vi`
 **Muc tieu:** Thu thap va tien xu ly 150K+ SP tieng Viet (9 categories, moi cat >= 10K) → dataset chuan cho training
 **Ngan sach LLM rewrite:** ~$10-15 (Groq Batch API)
@@ -336,12 +336,18 @@ Thong so: [LLM generated]
 
 ---
 
-### Day 3: Baseline Models & Traditional ML
+### Day 3: Baseline Models & Traditional ML — SAN SANG THUC HIEN
 
-(Giu nguyen nhu plan cu)
+**Plan chi tiet:** `day3/plan_day3.md`
 
-**Models:** Random, Mean, Median, Linear Regression, XGBoost, LightGBM, CatBoost
-**Metrics:** MAE (VND), MAPE (%), MSE, R2
+**Models:** Random, Mean, Median, Linear Regression, Random Forest, XGBoost, LightGBM, CatBoost
+**Metrics:** RMSLE (primary), MAE (VND), MAPE (%), R2
+
+**Tokenization:** 2 kien truc so sanh:
+- A: TF-IDF + n-gram (1,2) — nhanh, khong can dependency
+- B: Underthesea pre-tokenize + TF-IDF — chinh xac hon cho tu ghep tieng Viet
+
+**Data cleaning note:** 28% titles chua SKU codes. Phan tich cho thay impact thap (TF-IDF tu loai rare codes). De nguyen, review lai neu ket qua khong tot. Chi tiet: xem Section 9 trong `day3/plan_day3.md`.
 
 ---
 
