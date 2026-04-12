@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-12 12:00)
+## Trang thai hien tai (2026-04-12 15:00)
 
-**Trang thai:** Day 0-1 HOAN TAT. Day 2 DANG CHAY (batch processing 120K items qua Groq). Buoc tiep: **hoan thanh Day 2 fetch + push HF Hub**.
+**Trang thai:** Day 0-2 HOAN TAT. Dataset final `SeanSunny/items_tv_v4` da push (120K items co summary + prompt). Buoc tiep: **Day 3 Baseline ML**.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -16,16 +16,14 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] Hasaki scraper — 128/130 categories, 11,410 SP
 - [x] WinMart scraper — 18 categories, 3,232 SP (API discovery + scraper)
 - [x] Day 1 v1-v4: iterate pipeline, chot v4 config
-- [x] HF dataset `SeanSunny/items_raw_tv_v4` da push (120K items)
-- [x] **Day 2 code DONE:** preprocessor.py, batch.py, notebook v2
-- [x] **Day 2 test DONE:** items 0-30 test thanh cong (test batch + preprocessor)
-- [x] **Day 2 batch submitted:** 120 batches (1000 items/batch) da gui len Groq
-- [ ] **Day 2 batch fetching:** Dang fetch ket qua tu Groq
+- [x] HF dataset `SeanSunny/items_raw_tv_v4` da push (120K items raw)
+- [x] **Day 2 HOAN TAT:** 120K items rewrite thanh cong
+  - LLM (gpt-oss-20b) tao Mo ta + Thong so, title/category/brand tu data goc
+  - 120 batches, resubmit 44 failed (spend limit) + fix 3 partial
+  - Missing summaries: 0, push thanh cong `SeanSunny/items_tv_v4`
 
 ### Dang lam / Buoc tiep:
-- [ ] **Hoan thanh Batch.fetch()** → kiem tra 120/120 done
-- [ ] **Build prompts** + clean up + push `SeanSunny/items_tv_v4`
-- [ ] **Day 3:** Baseline ML (XGBoost, LightGBM, CatBoost)
+- [ ] **Day 3:** Baseline ML (Random, Mean, Median, LinearRegression, XGBoost, LightGBM, CatBoost)
 - [ ] **Day 4:** DNN + Frontier LLM
 
 ### Quyet dinh da dua ra:
@@ -43,48 +41,22 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ### Ket qua du lieu:
 - **Day 1 (v4):** 158K raw → 147K dedup → 120K sample (110K/5K/5K)
-- **Day 2 (dang chay):** 120 batches submitted, ~$9-10 Groq, output_vi/ chua ket qua
+- **Day 2 (DONE):** 120K items, 0 missing, push `SeanSunny/items_tv_v4`
+  - Summary: Tieu de/Danh muc/Thuong hieu (data goc) + Mo ta/Thong so (LLM)
+  - Prompt: "San pham nay gia bao nhieu?\n\n[summary]\n\nGia: [price VND]"
+  - Schema final: title, category, price, summary, prompt (full/brand/id = null)
 
 ### Luu y ky thuat:
 - Tiki API cap 2000 SP/category; dung Adaptive Price-Range Slicing de vuot
 - WinMart API: `api-crownx.winmart.vn`, chi dung parent slugs
-- day1_data_curation.py: DA FIX CATEGORY_MAP (them 2 keys moi cho WinMart)
+- **Day 2:** Groq spend limit gay fail 44 batches + 3 partial → resubmit thanh cong
 - **Day 2:** Batch.save() ngay sau Batch.run() de khong mat batch_ids
-- **Day 2:** Polling loop cho Batch.fetch(): while loop + sleep 30s
-- **Day 2:** batches_vi/ (303MB requests), output_vi/ (ket qua), batches_vi.pkl (state)
 
 ---
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Day 2 — Hoan thanh batch + push HF Hub (HIEN TAI)
-
-```
-Doc cac file sau de nap ngu canh:
-0. "scraping_data_tv/Tiki/SESSION_HANDOFF.md" — trang thai tong the
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md" — plan chi tiet Day 0-4
-2. "scraping_data_tv/Data_processing_for_Vietnamese_data/day2/2026-04-12-day2-llm-preprocessing-vi.md" — huong dan Day 2 chi tiet
-3. "scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/" — tat ca file .py (items.py, parser.py, preprocessor.py, batch.py)
-4. "scraping_data_tv/Data_processing_for_Vietnamese_data/day2_llm_preprocessing_v2.ipynb" — notebook Day 2 (dang chay)
-
-Trang thai:
-- Day 0-1 HOAN TAT. 120K items da push len SeanSunny/items_raw_tv_v4
-- Day 2 DANG CHAY: 120 batches da submit len Groq (gpt-oss-20b)
-- LLM chi tao 2 truong (Mo ta + Thong so), title/category/brand lay tu data goc
-- build_summary() ghep 5 truong thanh summary
-- Chi phi ~$9-10, batches_vi/ chua requests, output_vi/ chua responses
-
-Buoc tiep:
-1. Kiem tra Batch.fetch() da 120/120 chua
-2. Neu chua: tiep tuc fetch (polling loop hoac chay thu cong)
-3. Neu xong: check missing summaries → build prompts → clean up → push SeanSunny/items_tv_v4
-4. Day 3: Baseline ML, Day 4: DNN + Frontier LLM
-
-Luon dung uv de chay code.
-Hay hoi toi nhung cau hoi can thiet.
-```
-
-### Prompt B: Day 3-4 — ML + DNN (sau khi Day 2 xong va push HF Hub)
+### Prompt A: Day 3-4 — ML + DNN (HIEN TAI)
 
 ```
 Doc cac file sau de nap ngu canh:
@@ -162,4 +134,4 @@ cd scraping_data_tv/Data_processing_for_Vietnamese_data && uv run day1_data_cura
 
 ---
 
-*Cap nhat: 2026-04-12 12:00 — Day 0-1 HOAN TAT. Day 2 DANG CHAY (120 batches submitted, Groq gpt-oss-20b). Buoc tiep: hoan thanh fetch + push SeanSunny/items_tv_v4.*
+*Cap nhat: 2026-04-12 15:00 — Day 0-2 HOAN TAT. Dataset SeanSunny/items_tv_v4 da push (120K items). Buoc tiep: Day 3 Baseline ML.*

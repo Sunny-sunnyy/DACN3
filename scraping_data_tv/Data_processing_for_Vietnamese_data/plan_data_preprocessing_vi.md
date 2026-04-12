@@ -289,7 +289,7 @@ manufacturer, capacity, effect, price, source, href
 
 ---
 
-### Day 2: LLM Preprocessing (Tien xu ly bang LLM) — DANG CHAY
+### Day 2: LLM Preprocessing (Tien xu ly bang LLM) — HOAN TAT
 
 **Muc tieu:** Dung LLM tao Mo ta + Thong so cho 120K items, ghep voi data goc thanh summary chuan
 
@@ -330,9 +330,9 @@ Thong so: [LLM generated]
 - [x] SYSTEM_PROMPT 2 truong da test (items 0-30, ca preprocessor va batch)
 - [x] Chon model: gpt-oss-20b (hoat dong tot cho tieng Viet, chi phi thap)
 - [x] 120 batches da submit len Groq
-- [ ] Batch.fetch() 120/120 done
-- [ ] Check missing summaries = 0
-- [ ] Build prompts + clean up + push SeanSunny/items_tv_v4
+- [x] Batch.fetch() 120/120 done (resubmit 44 failed + fix 3 partial do spend limit)
+- [x] Check missing summaries = 0
+- [x] Build prompts + clean up + push SeanSunny/items_tv_v4
 
 ---
 
@@ -395,4 +395,4 @@ Thong so: [LLM generated]
 
 ---
 
-*Cap nhat: 2026-04-12. Day 0-1 HOAN TAT. Day 2 DANG CHAY (120 batches, gpt-oss-20b). Buoc tiep: fetch + push SeanSunny/items_tv_v4, sau do Day 3.*
+*Cap nhat: 2026-04-12. Day 0-2 HOAN TAT. Dataset SeanSunny/items_tv_v4 da push (120K items, 0 missing). Buoc tiep: Day 3 Baseline ML.*
