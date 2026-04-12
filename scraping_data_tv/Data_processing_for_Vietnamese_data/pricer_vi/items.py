@@ -3,8 +3,8 @@ from datasets import Dataset, DatasetDict, load_dataset
 from typing import Optional, Self
 
 
-PREFIX = "Gia: "
-QUESTION = "San pham nay gia bao nhieu?"
+PREFIX = "Giá: "
+QUESTION = "Sản phẩm này giá bao nhiêu?"
 
 
 class Item(BaseModel):

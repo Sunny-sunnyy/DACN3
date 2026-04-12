@@ -289,29 +289,50 @@ manufacturer, capacity, effect, price, source, href
 
 ---
 
-### Day 2: LLM Preprocessing (Tien xu ly bang LLM)
+### Day 2: LLM Preprocessing (Tien xu ly bang LLM) — DANG CHAY
 
-(Giu nguyen nhu plan cu — xem chi tiet trong commit truoc)
+**Muc tieu:** Dung LLM tao Mo ta + Thong so cho 120K items, ghep voi data goc thanh summary chuan
 
-**Muc tieu:** Dung LLM rewrite descriptions thanh format chuan, ngan gon, dong nhat
+**Quyet dinh thiet ke (2026-04-12):**
+- LLM chi tao **2 truong** (Mo ta + Thong so) — khong de LLM viet lai title/category/brand (bi sai)
+- Title/category/brand lay tu data goc (chinh xac 100%)
+- `build_summary()` ghep 5 truong thanh 1 chuoi summary
+- Brand rong → "Khong ro"
+- Column names giu tieng Anh (title, category, price, summary, prompt)
 
-**SYSTEM_PROMPT tieng Viet:**
+**SYSTEM_PROMPT (2 truong):**
 ```
-Tieu de: Viet lai tieu de ngan gon chinh xac
-Danh muc: VD Dien tu
-Thuong hieu: Ten thuong hieu
+Tao mo ta ngan gon cho mot san pham. Chi tra loi dung 2 dong theo dinh dang sau. Khong bao gom ma san pham.
 Mo ta: 1 cau mo ta san pham
-Thong so: 1 cau ve tinh nang/thong so noi bat
+Thong so: 1 cau ve tinh nang noi bat
 ```
 
-**Model:** Test tren Groq: qwen-qwq-32b, llama-3.3-70b, gemma2-9b → chon tot nhat
-**Batch:** Groq Batch API, 1000 SP/batch, ~$10-15 cho 120K SP
+**Summary format (5 truong):**
+```
+Tieu de: [item.title — data goc]
+Danh muc: [item.category — data goc, 1 trong 8 categories]
+Thuong hieu: [item.brand — data goc, hoac "Khong ro"]
+Mo ta: [LLM generated]
+Thong so: [LLM generated]
+```
+
+**Model:** groq/openai/gpt-oss-20b (reasoning_effort="low")
+**Batch:** Groq Batch API, 1000 SP/batch, 120 batches, ~$9-10
+**Input:** SeanSunny/items_raw_tv_v4 | **Output:** SeanSunny/items_tv_v4
+
+**Code:**
+- `pricer_vi/preprocessor.py` — SYSTEM_PROMPT, build_summary(), Preprocessor class
+- `pricer_vi/batch.py` — Batch class (Groq Batch API, tich hop build_summary)
+- `day2_llm_preprocessing_v2.ipynb` — Notebook chinh
+- `day2_llm_preprocessing.py` — Test script (items 21-30)
 
 **Tieu chi hoan thanh Day 2:**
-- [ ] SYSTEM_PROMPT tieng Viet da test va chon
-- [ ] Chon model tot nhat cho tieng Viet
-- [ ] Batch processing thanh cong
-- [ ] Push dataset co summary len HuggingFace Hub
+- [x] SYSTEM_PROMPT 2 truong da test (items 0-30, ca preprocessor va batch)
+- [x] Chon model: gpt-oss-20b (hoat dong tot cho tieng Viet, chi phi thap)
+- [x] 120 batches da submit len Groq
+- [ ] Batch.fetch() 120/120 done
+- [ ] Check missing summaries = 0
+- [ ] Build prompts + clean up + push SeanSunny/items_tv_v4
 
 ---
 
@@ -374,4 +395,4 @@ Thong so: 1 cau ve tinh nang/thong so noi bat
 
 ---
 
-*Cap nhat: 2026-04-11. Day 0-1 HOAN TAT. 8 categories (khong phai 9). Day 1 v4: 110K train, 120K total. Buoc tiep: Day 2 LLM rewrite.*
+*Cap nhat: 2026-04-12. Day 0-1 HOAN TAT. Day 2 DANG CHAY (120 batches, gpt-oss-20b). Buoc tiep: fetch + push SeanSunny/items_tv_v4, sau do Day 3.*
