@@ -17,8 +17,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] WinMart scraper — 18 categories, 3,232 SP (API discovery + scraper)
 - [x] Day 1 v1-v4: iterate pipeline, chot v4 config
 - [x] HF dataset `SeanSunny/items_raw_tv_v4` da push (120K items raw)
-- [x] **Day 2 HOAN TAT:** 120K items rewrite thanh cong
-  - LLM (gpt-oss-20b) tao Mo ta + Thong so, title/category/brand tu data goc
+- [x] **Day 2 HOAN TAT:** 120K items rewrite thanh cong (mất khoảng 6 tiếng để chạy và hết 5$ cho 120k sản phẩm)
+  - LLM (gpt-oss-20b) tao Mo ta + Thong so, title/category/brand tu data goc 
   - 120 batches, resubmit 44 failed (spend limit) + fix 3 partial
   - Missing summaries: 0, push thanh cong `SeanSunny/items_tv_v4`
 
@@ -36,7 +36,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - 8 categories (chot): Thoi Trang, Dien Tu Cong Nghe, Nha Cua, Bach Hoa, Lam Dep, Me va Be, Dien Lanh Gia Dung, O To Xe May
 - Penalty: Thoi Trang 0.40, Nha Cua 0.60
 - **Day 2:** LLM chi tao 2 truong (Mo ta + Thong so), title/category/brand lay tu data goc
-- **Day 2:** Model: groq/openai/gpt-oss-20b, chi phi thuc te cho 120k san pham la 5$
+- **Day 2:** Model: groq/openai/gpt-oss-20b, chi phi thuc te cho 120k san pham la 5$, thời gian chạy: 6h
 - **Day 2:** SYSTEM_PROMPT 2 truong + build_summary() ghep 5 truong
 - **Day 2:** Column names giu tieng Anh (title, category, price, summary, prompt)
 - **Day 2:** Brand rong → "Khong ro" trong summary
