@@ -1,6 +1,6 @@
 """Day 2: LLM Preprocessor — Single-item rewrite via litellm.
 
-LLM only generates Mo ta + Thong so. Title/category/brand come from original data.
+LLM rewrites all 5 fields: Title, Category, Brand, Description, Details.
 """
 
 from litellm import completion
@@ -9,20 +9,17 @@ from pricer_vi.items import Item
 DEFAULT_MODEL_NAME = "groq/openai/gpt-oss-20b"
 DEFAULT_REASONING_EFFORT = "low"
 
-SYSTEM_PROMPT = """Tạo mô tả ngắn gọn cho một sản phẩm. Chỉ trả lời đúng 2 dòng theo định dạng sau. Không bao gồm mã sản phẩm.
+SYSTEM_PROMPT = """Tạo mô tả ngắn gọn cho một sản phẩm. Chỉ trả lời đúng 5 dòng theo định dạng sau. Không bao gồm mã sản phẩm hay mã nội bộ.
+Tiêu đề: Tiêu đề ngắn gọn, chính xác
+Danh mục: Phân loại sản phẩm
+Thương hiệu: Tên thương hiệu
 Mô tả: 1 câu mô tả sản phẩm
 Thông số: 1 câu về tính năng nổi bật"""
 
 
 def build_summary(item: Item, llm_response: str) -> str:
-    """Combine original title/category/brand with LLM-generated description/details."""
-    brand = item.brand if item.brand else "Không rõ"
-    return (
-        f"Tiêu đề: {item.title}\n"
-        f"Danh mục: {item.category}\n"
-        f"Thương hiệu: {brand}\n"
-        f"{llm_response}"
-    )
+    """Use LLM output directly as summary (all 5 fields from LLM)."""
+    return llm_response.strip()
 
 
 class Preprocessor:

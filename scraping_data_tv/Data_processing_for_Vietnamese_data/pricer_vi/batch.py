@@ -18,8 +18,8 @@ load_dotenv(override=True)
 groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 MODEL = "openai/gpt-oss-20b"
-BATCHES_FOLDER = "batches_vi"
-OUTPUT_FOLDER = "output_vi"
+BATCHES_FOLDER = "batches_vi_v2"
+OUTPUT_FOLDER = "output_vi_v2"
 state = Path("batches_vi.pkl")
 
 

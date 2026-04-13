@@ -4,7 +4,7 @@
 **Cap nhat:** 2026-04-13
 **Trang thai:** SAN SANG THUC HIEN
 **Branch:** `feature/data-preprocessing-vi`
-**Input:** `SeanSunny/items_tv_v4` (120K items: 110K train / 5K val / 5K test)
+**Input:** `SeanSunny/items_tv_v6` (120K items: 110K train / 5K val / 5K test)
 
 ---
 
@@ -299,6 +299,7 @@ SKU that su (TEBAT870...) xuat hien 1x → TF-IDF voi max_features=5000 se tu do
 2. **Phuong an 2 (Tot hon, ~$1):** Re-run Day 2 voi SYSTEM_PROMPT v3 (3 truong: Tieu de + Mo ta + Thong so). LLM se rewrite title, tu dong loai SKU codes. Da test 8 items — LLM phan biet tot specs vs noise (giu 1500W, bo TEBAT870).
 3. Kiem tra feature importance cua top models — xem co SKU codes nao lot vao top features khong.
 
+
 ---
 
 ## 10. Dependencies
@@ -325,3 +326,5 @@ underthesea = ">=6.0"
 ---
 
 *Tao: 2026-04-12. Cap nhat: 2026-04-13. Buoc tiep: Step 1 cai dependencies.*
+
+# Cập nhật 20h ngày 13/4/2026: Đã chạy lại toàn bộ data, kết quả đã xoá SKU codes, giữ lại các thông số kỹ thuật có giá trị, xem kết quả ở file day2_llm_preprocessing_v4.ipynb

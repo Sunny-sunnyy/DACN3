@@ -130,6 +130,7 @@ Luon dung uv de chay code.
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/day1_data_curation.py` | Day 1 pipeline (v4 config) |
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/day1_data_curation.ipynb` | Day 1 notebook (interactive) |
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/day2_llm_preprocessing_v2.ipynb` | Day 2 notebook chinh (v2) |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/day2_llm_preprocessing_v4.ipynb` | Day 2 notebook chinh (v4) |
 | **ENGLISH REFERENCE** | |
 | `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/evaluator.py` | Evaluator (Plotly, tham khao cho Day 3) |
 | `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/deep_neural_network.py` | DNN (tham khao cho Day 4) |
