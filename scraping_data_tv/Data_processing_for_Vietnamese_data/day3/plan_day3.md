@@ -84,7 +84,16 @@ X = vectorizer.fit_transform(tokenized_summaries)
 1. Chay model voi **Kien truc A** (TF-IDF + n-gram) truoc — baseline nhanh
 2. Chay model voi **Kien truc B** (underthesea pre-tokenize) — xem cai thien bao nhieu
 3. So sanh RMSLE/MAE/MAPE giua 2 cach → quyet dinh dung cach nao cho final
+4. Nghiên cứu thêm về:  Underthesea Unigram + Scikit-learn N-gram (Hybrid Word-Ngram) (gemini đề xuất)
+5. Nghiên cứu thêm: Chọn hướng đi Hybrid kết hợp Character N-gram:
 
+Chạy Underthesea trên văn bản (như cấu hình bạn định làm): Cứ để nó tách từ tiếng Việt. Nó sẽ giúp bạn ghép các cụm từ quan trọng lại với nhau (như điện_thoại). Mặc kệ việc nó cắt sai từ tiếng Anh.
+
+Cấu hình TfidfVectorizer (Cú "Hack" sức mạnh): Thay vì chỉ dùng từ vựng (word), bạn hãy chạy đồng thời 2 luồng TF-IDF (bằng FeatureUnion của sklearn) hoặc chọn luồng Character N-gram.
+
+Luồng 1 (Semantic): TfidfVectorizer(analyzer='word', ngram_range=(1, 2))
+
+Luồng 2 (Robustness): TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5)) (gemini đề xuất)
 ### 2.4. Chon TF-IDF thay vi CountVectorizer
 
 Nghien cuu cho thay **TF-IDF tot hon CountVectorizer** cho bai toan price prediction:
@@ -275,7 +284,7 @@ uv add xgboost lightgbm catboost plotly scikit-learn underthesea
 
 | Step | Trang thai | Ket qua | Ghi chu |
 |---|---|---|---|
-| 1. Dependencies | | | |
+| 1. Dependencies | | | | ( đã cài đặt )
 | 2. Evaluator | | | |
 | 3. Baselines | | | |
 | 4. LR + TF-IDF (A) | | | |
@@ -328,3 +337,5 @@ underthesea = ">=6.0"
 *Tao: 2026-04-12. Cap nhat: 2026-04-13. Buoc tiep: Step 1 cai dependencies.*
 
 # Cập nhật 20h ngày 13/4/2026: Đã chạy lại toàn bộ data, kết quả đã xoá SKU codes, giữ lại các thông số kỹ thuật có giá trị, xem kết quả ở file day2_llm_preprocessing_v4.ipynb
+
+# Sử dụng bộ dữ liệu: SeanSunny/items_tv_v6

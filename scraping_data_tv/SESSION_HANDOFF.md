@@ -158,4 +158,11 @@ cd scraping_data_tv/Data_processing_for_Vietnamese_data && uv run day3_baseline_
 
 ---
 
+
 *Cap nhat: 2026-04-13 — Day 0-2 HOAN TAT. Day 3 san sang thuc hien. Dataset SeanSunny/items_tv_v4 (120K items). Plan: day3/plan_day3.md.*
+
+
+
+# Cập nhật 20h ngày 13/4/2026: Đã chạy lại toàn bộ data, kết quả đã xoá SKU codes, giữ lại các thông số kỹ thuật có giá trị, xem kết quả ở file day2_llm_preprocessing_v4.ipynb
+
+# Hãy sử dụng bổ dữ liệu Dataset SeanSunny/items_tv_v6 
