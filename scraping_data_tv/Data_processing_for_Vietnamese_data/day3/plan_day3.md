@@ -346,7 +346,7 @@ underthesea = ">=6.0"
 
 ---
 
-*Tao: 2026-04-12. Cap nhat: 2026-04-14. Buoc tiep: Step 5-6 (Underthesea + Ensemble).*
+*Tao: 2026-04-12. Cap nhat: 2026-04-14. Day 3 v2 DONE. Buoc tiep: Day 3 v3 (ML optimization, Section 13).*
 
 ---
 
@@ -492,3 +492,174 @@ Tree-based models (RF, XGB, LGBM, CatBoost) KHONG predict am → RMSLE tot hon.
 - `day3_baseline_ml.py` — Script cu (full dataset, da bo)
 - `day3_baseline_ml_notebook.ipynb` — Notebook cu
 - `day3_baseline_ml_notebook_5060ti.ipynb` — Notebook cu
+
+---
+
+## 13. Day 3 v3 — ML Optimization Plan
+
+**Ngay:** 2026-04-14
+**Muc tieu:** Toi uu RMSLE tu 0.5799 xuong 0.45-0.50 bang traditional ML truoc khi chuyen sang Deep Learning.
+**Benchmark:** Kaggle Mercari top ML solutions ~0.43. Target: **RMSLE <= 0.50**
+
+### 13.1. Nghien cuu va quyet dinh
+
+**Tai sao log-transform la uu tien #1?**
+RMSLE = RMSE tren log scale. Hien tai models train toi uu MSE tren raw VND, nhung evaluate bang RMSLE (log). Khi train tren `log1p(price)`, model truc tiep toi uu metric ma ta quan tam. Ngoai ra:
+- LR het predict am (log-space luon duong sau expm1)
+- Phan phoi log(price) gan normal → tat ca models hoc tot hon
+- Ky vong: RMSLE giam 15-25%
+
+**Tai sao them category feature?**
+8 categories co price range rat khac nhau (Thoi Trang ~200K, Dien Tu ~500K). Hien tai model phai "doan" category tu text. Them category truc tiep giup model split chinh xac hon.
+
+**Tai sao KHONG dung TruncatedSVD?**
+Tree models (LightGBM, XGBoost) xu ly sparse matrix truc tiep — SVD lam mat thong tin ma khong cai thien. Chi can SVD khi dung neural network (Day 4).
+
+### 13.2. 4 Phase thuc hien
+
+#### Phase 1: Stable Baseline + Log Transform (~30 phut)
+
+**Step 1:** Evaluate v2 models tren FULL test set (3,872 items thay vi 200)
+- Tao stable baseline de so sanh cong bang
+- Ky vong: ket qua thay doi ~5-10% so voi 200 items
+
+**Step 2:** Log-transform target cho TAT CA models
+```python
+y_train = np.log1p(prices)              # train tren log scale
+model.fit(X_train, y_train)
+pred_log = model.predict(X_test)
+pred_price = np.expm1(pred_log)          # convert lai VND
+pred_price = np.clip(pred_price, 0, None)
+```
+- Chay lai: LR (Arch A + B), RF, XGBoost, LightGBM, CatBoost
+- Evaluate: size="all" (3,872 items)
+- **Ky vong: LightGBM RMSLE giam tu ~0.58 xuong ~0.48**
+- **LR RMSLE giam tu ~1.75 xuong ~0.60-0.70 (khong con predict am)**
+
+#### Phase 2: Feature Engineering (~1 tieng)
+
+**Step 3:** Them category feature (one-hot)
+```python
+from scipy.sparse import hstack
+from sklearn.preprocessing import OneHotEncoder
+
+categories = [[item.category] for item in train]
+cat_encoder = OneHotEncoder(sparse_output=True, handle_unknown='ignore')
+X_cat_train = cat_encoder.fit_transform(categories)
+X_combined = hstack([X_tfidf_train, X_cat_train])  # sparse
+```
+- 8 categories → 8 one-hot features + 10K TF-IDF = 10,008 features
+- **Ky vong: RMSLE giam them 0.02-0.05**
+
+**Step 4:** Architecture C — Hybrid tokenization (FeatureUnion)
+```python
+from sklearn.pipeline import FeatureUnion
+
+arch_c = FeatureUnion([
+    ('word', TfidfVectorizer(analyzer='word', ngram_range=(1, 2), max_features=5000)),
+    ('char', TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5), max_features=5000)),
+])
+X_train_c = arch_c.fit_transform(tokenized_train)  # 10K features
+```
+- char_wb bat duoc: brand names, model numbers, ky thuat (500ml, 128gb)
+- So sanh voi Arch B de chon final
+- **Ky vong: RMSLE giam them 0.01-0.03**
+
+#### Phase 3: Model Tuning (~1-2 tieng)
+
+**Step 5:** Ridge/Lasso thay Linear Regression
+```python
+from sklearn.linear_model import Ridge, Lasso
+ridge_model = Ridge(alpha=1.0)  # L2 regularization
+```
+- Regularization tranh overfit voi 10K sparse features
+- Grid search alpha: [0.01, 0.1, 1.0, 10, 100]
+
+**Step 6:** LightGBM hyperparameter tuning (Optuna)
+```python
+import optuna
+
+def objective(trial):
+    params = {
+        'num_leaves': trial.suggest_int('num_leaves', 50, 200),
+        'min_child_samples': trial.suggest_int('min_child_samples', 50, 200),
+        'feature_fraction': trial.suggest_float('feature_fraction', 0.3, 0.7),
+        'lambda_l1': trial.suggest_float('lambda_l1', 0.01, 1.0, log=True),
+        'learning_rate': trial.suggest_float('learning_rate', 0.03, 0.1, log=True),
+        'n_estimators': 1500,
+    }
+    model = lgb.LGBMRegressor(**params, random_state=42, n_jobs=6, verbose=-1)
+    model.fit(X_train, y_train, ...)
+    pred = np.expm1(model.predict(X_val))
+    return rmsle(val_prices, pred)
+
+study = optuna.create_study(direction='minimize')
+study.optimize(objective, n_trials=50)  # ~1-2 tieng
+```
+- Dung validation set (3,926 items) de tune, evaluate tren test set
+- **Ky vong: RMSLE giam them 0.03-0.07**
+
+#### Phase 4: Ensemble + Final Evaluation (~30 phut)
+
+**Step 7:** Weighted blending top 3 models
+```python
+from scipy.optimize import minimize
+
+def blend_rmsle(weights, preds_list, y_true):
+    blended = sum(w * p for w, p in zip(weights, preds_list))
+    return rmsle(y_true, blended)
+
+# Tim weights toi uu tren validation set
+result = minimize(blend_rmsle, x0=[0.5, 0.25, 0.25], args=(val_preds, val_prices), ...)
+```
+- Blend: LightGBM + CatBoost + XGBoost (hoac RF)
+- **Ky vong: RMSLE giam them 0.01-0.02**
+
+**Step 8:** Final evaluation + tong hop
+- Evaluate best single model + best blend tren full test set
+- Bang so sanh v2 vs v3
+- Charts: actual vs predicted cho best model
+- Per-category evaluation (RMSLE per category)
+
+### 13.3. Tieu chi thanh cong v3
+
+- [ ] Full test evaluation (3,872 items) cho v2 baseline
+- [ ] Log-transform cai thien RMSLE dang ke (target < 0.50)
+- [ ] Category feature da them va co impact
+- [ ] Arch C da so sanh voi Arch B
+- [ ] LightGBM tuning hoan tat (Optuna >= 30 trials)
+- [ ] Best RMSLE <= 0.50 (target)
+- [ ] Bang tong hop v2 vs v3
+
+### 13.4. Ky vong cai thien (cumulative)
+
+| Improvement | RMSLE estimate | Giam |
+|---|---|---|
+| v2 baseline (200 items) | 0.5799 | — |
+| + Full eval (3,872 items) | ~0.55-0.60 | stable |
+| + Log-transform | ~0.45-0.50 | -15-25% |
+| + Category feature | ~0.43-0.48 | -3-5% |
+| + Arch C (char_wb) | ~0.42-0.47 | -1-3% |
+| + LightGBM tuning | ~0.40-0.45 | -3-7% |
+| + Blending | ~0.39-0.44 | -1-2% |
+| **Target** | **<= 0.45** | |
+
+### 13.5. Dependencies them
+
+```bash
+uv add optuna  # hyperparameter tuning
+```
+
+### 13.6. File structure v3
+
+```
+Data_processing_for_Vietnamese_data/
+    day3_baseline_ml_1m_v3.py       # MOI — Script v3 (log-transform + features + tuning)
+    day3_baseline_ml_1m_v3.ipynb    # MOI — Notebook v3
+    day3/
+        plan_day3.md                # File nay
+        ketquaday3_v1.txt           # Ket qua v2
+        ketquaday3_v3.txt           # MOI — Ket qua v3
+        tokenized_train_1m.pkl      # Cache (tu v2)
+        tokenized_test_1m.pkl       # Cache (tu v2)
+```

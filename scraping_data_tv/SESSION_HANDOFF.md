@@ -68,6 +68,15 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 3:** Underthesea KHONG thread-safe, phai pre-tokenize va luu cache .pkl
 - **Day 3:** LR predict am cho SP re → clip 0 → RMSLE cuc cao (1.75) du R2 tot (52.9%)
 
+### Moi truong chay:
+- **May thue (ML/DL):** RTX 4060 Ti 16GB VRAM | i5-13400F 12C | 28GB RAM | CUDA 4352 (toi thieu)
+  - Hoac RTX 5060 Ti 16GB | Ryzen 5 7500F 6C/12T | 28GB RAM
+  - Thue 3-5 tieng/lan, co the thue nhieu lan. Moi lan co the may khac nhau.
+- **May thue (Fine-tune QLoRA):** RTX 3090 24GB VRAM | i5-13400F 12C | 56GB RAM | CUDA 10496
+  - Hoac GPU A100 tren Google Colab
+- **Workflow:** git clone → uv sync → chay .py hoac .ipynb → copy ket qua ve
+- Moi lan thue may moi: can `uv sync` lai va tokenize cache se khong co (chay lai tu dau)
+
 ---
 
 ## Prompt dau tien cho session moi
