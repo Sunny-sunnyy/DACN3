@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-13)
+## Trang thai hien tai (2026-04-14)
 
-**Trang thai:** Day 0-2 HOAN TAT. Day 3 SAN SANG THUC HIEN. Dataset final `SeanSunny/items_tv_v4` da push (120K items co summary + prompt). Buoc tiep: **Day 3 Baseline ML**.
+**Trang thai:** Day 0-3 HOAN TAT. Day 3 v2 done (filtered <= 1M VND). Best model: LightGBM RMSLE=0.5799. Buoc tiep: **Day 3 v3 — ML optimization**.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -17,16 +17,24 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] WinMart scraper — 18 categories, 3,232 SP (API discovery + scraper)
 - [x] Day 1 v1-v4: iterate pipeline, chot v4 config
 - [x] HF dataset `SeanSunny/items_raw_tv_v4` da push (120K items raw)
-- [x] **Day 2 HOAN TAT:** 120K items rewrite thanh cong (mất khoảng 6 tiếng để chạy và hết 5$ cho 120k sản phẩm)
-  - LLM (gpt-oss-20b) tao Mo ta + Thong so, title/category/brand tu data goc 
-  - 120 batches, resubmit 44 failed (spend limit) + fix 3 partial
-  - Missing summaries: 0, push thanh cong `SeanSunny/items_tv_v4`
+- [x] **Day 2 HOAN TAT:** 120K items rewrite thanh cong (6h, $5)
+  - LLM (gpt-oss-20b) tao Mo ta + Thong so, title/category/brand tu data goc
+  - Dataset: `SeanSunny/items_tv_v6`
+- [x] **Day 3 v2 HOAN TAT:** 9 baseline models, filtered <= 1M VND
+  - Data: 85K train / 3.9K val / 3.9K test (tu 120K, filter <= 1M)
+  - Best: **LightGBM RMSLE=0.5799**, MAE=114K, MAPE=59.7%, R2=52%
+  - So sanh Arch A (n-gram) vs Arch B (underthesea): B tot hon (MAE, MAPE, R2)
+  - LR paradox: R2=52.9% nhung RMSLE=1.75 (predict am → clip 0)
+  - GPU treo voi sparse matrix → dung CPU cho tat ca models
 
 ### Dang lam / Buoc tiep:
-- [ ] **Day 3:** Baseline ML — Plan chi tiet tai `day3/plan_day3.md`
-  - Models: Random, Mean, Median, LR, RF, XGBoost, LightGBM, CatBoost
-  - Metrics: RMSLE (primary), MAE (VND), MAPE (%), R2
-  - Tokenization: So sanh Kien truc A (TF-IDF + n-gram) vs B (underthesea pre-tokenize)
+- [ ] **Day 3 v3:** ML optimization — thuc nghiem them
+  - Log-transform target: train tren log1p(price), giai quyet LR negative prediction
+  - Evaluate size="all" (3,872 items) thay vi 200
+  - Them category feature (one-hot + TF-IDF)
+  - Hyperparameter tuning LightGBM
+  - Ridge/Lasso thay LR
+  - Hybrid tokenization Arch C (underthesea + char_wb n-gram)
 - [ ] **Day 4:** DNN + Frontier LLM
 
 ### Quyet dinh da dua ra:
@@ -36,67 +44,65 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - 8 categories (chot): Thoi Trang, Dien Tu Cong Nghe, Nha Cua, Bach Hoa, Lam Dep, Me va Be, Dien Lanh Gia Dung, O To Xe May
 - Penalty: Thoi Trang 0.40, Nha Cua 0.60
 - **Day 2:** LLM chi tao 2 truong (Mo ta + Thong so), title/category/brand lay tu data goc
-- **Day 2:** Model: groq/openai/gpt-oss-20b, chi phi thuc te cho 120k san pham la 5$, thời gian chạy: 6h
-- **Day 2:** SYSTEM_PROMPT 2 truong + build_summary() ghep 5 truong
-- **Day 2:** Column names giu tieng Anh (title, category, price, summary, prompt)
-- **Day 2:** Brand rong → "Khong ro" trong summary
-- **Day 2:** Output dataset: SeanSunny/items_tv_v4 (bo `_raw` vi da qua preprocessing)
+- **Day 2:** Model: groq/openai/gpt-oss-20b, chi phi thuc te cho 120k san pham la 5$, thoi gian: 6h
+- **Day 2:** Output dataset: SeanSunny/items_tv_v6
 - **Day 3:** RMSLE lam primary metric (chuan Kaggle cho e-commerce price prediction)
-- **Day 3:** So sanh 2 kien truc tokenization: A (TF-IDF + n-gram) vs B (underthesea pre-tokenize)
-- **Day 3:** SKU codes trong titles (28% items) — de nguyen, review lai neu ket qua khong tot
+- **Day 3:** Filter <= 1M VND (77.9% data). Ly do: phan phoi full dataset lech qua manh (skew=6.85)
+- **Day 3:** So sanh Arch A (n-gram) vs B (underthesea): B tot hon, tat ca ensemble dung B
+- **Day 3:** GPU treo voi sparse matrix → dung CPU cho tat ca models (XGBoost hist, CatBoost CPU)
+- **Day 3:** Best model: LightGBM RMSLE=0.5799 (cai thien 29% so voi Median baseline)
 
 ### Ket qua du lieu:
 - **Day 1 (v4):** 158K raw → 147K dedup → 120K sample (110K/5K/5K)
-- **Day 2 (DONE):** 120K items, 0 missing, push `SeanSunny/items_tv_v4`
+- **Day 2 (DONE):** 120K items, 0 missing, push `SeanSunny/items_tv_v6`
   - Summary: Tieu de/Danh muc/Thuong hieu (data goc) + Mo ta/Thong so (LLM)
   - Prompt: "San pham nay gia bao nhieu?\n\n[summary]\n\nGia: [price VND]"
-  - Schema final: title, category, price, summary, prompt (full/brand/id = null)
+- **Day 3 (DONE):** Best: LightGBM RMSLE=0.5799, MAE=114K, MAPE=59.7%, R2=52%
+  - Filter: <= 1M VND → 85K train / 3.9K val / 3.9K test
+  - Tokenization: Arch B (underthesea) tot hon Arch A (n-gram)
 
 ### Luu y ky thuat:
 - Tiki API cap 2000 SP/category; dung Adaptive Price-Range Slicing de vuot
 - WinMart API: `api-crownx.winmart.vn`, chi dung parent slugs
-- **Day 2:** Groq spend limit gay fail 44 batches + 3 partial → resubmit thanh cong
-- **Day 2:** Batch.save() ngay sau Batch.run() de khong mat batch_ids
-- **Day 3 data note:** 28% titles co SKU codes (TEBAT870, BR6221A...). Da test LLM v3 (3 truong) — LLM phan biet tot specs (giu 1500W, SPF50) vs noise (bo TEBAT870). Neu can clean: re-run Day 2 voi v3 SYSTEM_PROMPT (~$1). Chi tiet: day3/plan_day3.md Section 9.
+- **Day 3:** XGBoost/CatBoost GPU treo voi sparse matrix 85K x 10K → dung CPU
+- **Day 3:** Underthesea KHONG thread-safe, phai pre-tokenize va luu cache .pkl
+- **Day 3:** LR predict am cho SP re → clip 0 → RMSLE cuc cao (1.75) du R2 tot (52.9%)
 
 ---
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Day 3 — Baseline ML (HIEN TAI)
+### Prompt A: Day 3 v3 — ML Optimization (HIEN TAI)
 
 ```
 Doc cac file sau de nap ngu canh:
 0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day3/plan_day3.md" — plan chi tiet Day 3
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day3/plan_day3.md" — plan Day 3 + ket qua (Section 8, 12)
 2. "scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/" — tat ca file .py
-3. "scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/" — code tieng Anh (tham khao)
+3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day3_baseline_ml_1m.py" — code Day 3 v2
 
 Trang thai:
-- Day 0-2 HOAN TAT. Day 3 SAN SANG THUC HIEN.
-- Dataset final: SeanSunny/items_tv_v4 (120K items co summary + prompt)
-- Summary format: Tieu de/Danh muc/Thuong hieu (data goc) + Mo ta/Thong so (LLM)
-- Prompt format: "San pham nay gia bao nhieu?\n\n[summary]\n\nGia: [price VND]"
-- 8 categories, 110K train / 5K val / 5K test
+- Day 3 v2 HOAN TAT. Best: LightGBM RMSLE=0.5799, MAE=114K, R2=52%
+- Dataset: SeanSunny/items_tv_v6, filtered <= 1M VND (85K train / 3.9K test)
+- Tokenization: Arch B (underthesea) tot hon Arch A (n-gram)
+- GPU treo voi sparse matrix → dung CPU
 
-Buoc tiep — Day 3:
-1. Tao evaluator.py (RMSLE primary, MAE, MAPE, R2, Plotly charts). Tham khao: Code_Data_processing/pricer/evaluator.py
-2. Baseline models: Random, Mean, Median
-3. Linear Regression + TF-IDF (Kien truc A: ngram_range=(1,2))
-4. Underthesea pre-tokenize (Kien truc B) — so sanh voi A
-5. Ensemble: Random Forest, XGBoost, LightGBM, CatBoost
-6. Tong hop ket qua + charts
+Buoc tiep — Day 3 v3 (thuc nghiem them):
+1. Evaluate size="all" (3,872 items) thay vi 200 — ket qua stable hon
+2. Log-transform target: train tren log1p(price), predict, expm1 — giai quyet LR negative
+3. Them category feature (one-hot) ket hop voi TF-IDF
+4. Hyperparameter tuning cho LightGBM (best model)
+5. Ridge/Lasso thay Linear Regression
+6. Hybrid tokenization Arch C: underthesea + char_wb n-gram (FeatureUnion)
+7. Tong hop ket qua v3 + so sanh voi v2
 
 Luu y:
-- Luon dung uv de chay code (uv run, uv add)
-- 28% titles co SKU codes — de nguyen, review sau neu ket qua khong tot (xem Section 9 trong plan_day3.md)
-- Tao ca file .py (tu chay) va .ipynb (tuong tac)
+- Luon dung uv (uv run, uv add)
+- Tao file .py (tu chay) va .ipynb (tuong tac) — KHONG cap nhat .ipynb cu (loi IDE)
 - Cap nhat SESSION_HANDOFF.md moi khi ket thuc session
-
-Hay hoi toi nhung cau hoi can thiet truoc khi bat dau implement.
 ```
 
-### Prompt B: Day 4 — DNN + Frontier LLM (SAU KHI DAY 3 XONG)
+### Prompt B: Day 4 — DNN + Frontier LLM (SAU KHI DAY 3 v3 XONG)
 
 ```
 Doc cac file sau de nap ngu canh:
@@ -127,10 +133,9 @@ Luon dung uv de chay code.
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md` | Plan Day 0-4 |
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/day3/plan_day3.md` | Plan chi tiet Day 3 |
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/` | Package chinh (items, parser, preprocessor, batch) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day1_data_curation.py` | Day 1 pipeline (v4 config) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day1_data_curation.ipynb` | Day 1 notebook (interactive) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day2_llm_preprocessing_v2.ipynb` | Day 2 notebook chinh (v2) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day2_llm_preprocessing_v4.ipynb` | Day 2 notebook chinh (v4) |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/day3_baseline_ml_1m.py` | Day 3 script (filtered <= 1M) |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/day3_baseline_ml_1m.ipynb` | Day 3 notebook (filtered <= 1M) |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/day3/ketquaday3_v1.txt` | Day 3 output ket qua |
 | **ENGLISH REFERENCE** | |
 | `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/evaluator.py` | Evaluator (Plotly, tham khao cho Day 3) |
 | `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/deep_neural_network.py` | DNN (tham khao cho Day 4) |
@@ -149,20 +154,14 @@ Luon dung uv de chay code.
 ```bash
 cd tech2ai
 
-# Chay Day 3 script
-cd scraping_data_tv/Data_processing_for_Vietnamese_data && uv run day3_baseline_ml.py
+# Chay Day 3 script (filtered <= 1M VND)
+cd scraping_data_tv/Data_processing_for_Vietnamese_data && uv run day3_baseline_ml_1m.py
 
 # Hoac mo notebook
-# Mo day3_baseline_ml.ipynb trong IDE
+# Mo day3_baseline_ml_1m.ipynb trong IDE
 ```
 
 ---
 
 
-*Cap nhat: 2026-04-13 — Day 0-2 HOAN TAT. Day 3 san sang thuc hien. Dataset SeanSunny/items_tv_v4 (120K items). Plan: day3/plan_day3.md.*
-
-
-
-# Cập nhật 20h ngày 13/4/2026: Đã chạy lại toàn bộ data, kết quả đã xoá SKU codes, giữ lại các thông số kỹ thuật có giá trị, xem kết quả ở file day2_llm_preprocessing_v4.ipynb
-
-# Hãy sử dụng bổ dữ liệu Dataset SeanSunny/items_tv_v6 
+*Cap nhat: 2026-04-14 — Day 0-3 HOAN TAT. Best: LightGBM RMSLE=0.5799. Dataset SeanSunny/items_tv_v6 filtered <= 1M VND. Plan: day3/plan_day3.md.*

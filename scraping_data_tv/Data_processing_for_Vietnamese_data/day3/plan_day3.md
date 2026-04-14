@@ -1,10 +1,10 @@
 # Day 3: Baseline ML — Plan chi tiet
 
 **Ngay:** 2026-04-12
-**Cap nhat:** 2026-04-13
-**Trang thai:** SAN SANG THUC HIEN
+**Cap nhat:** 2026-04-14
+**Trang thai:** HOAN TAT (v1 — all steps done, ket qua o Section 8+12)
 **Branch:** `feature/data-preprocessing-vi`
-**Input:** `SeanSunny/items_tv_v6` (120K items: 110K train / 5K val / 5K test)
+**Input:** `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND (85K train / 3.9K val / 3.9K test)
 
 ---
 
@@ -34,7 +34,7 @@ Neu dung `CountVectorizer` mac dinh (split theo dau cach), se tach "may" va "tin
 #### Kien truc A: TF-IDF + n-gram (Khong tach tu)
 
 ```python
-vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+vectorizer = TfidfVectorizer(max_features=10000, ngram_range=(1, 2))
 X = vectorizer.fit_transform(summaries)
 ```
 
@@ -63,7 +63,7 @@ with Pool(4) as p:
     tokenized_summaries = p.map(tokenize_one, summaries)
 
 # Dung TfidfVectorizer binh thuong (da tach tu san)
-vectorizer = TfidfVectorizer(max_features=5000)
+vectorizer = TfidfVectorizer(max_features=10000)
 X = vectorizer.fit_transform(tokenized_summaries)
 ```
 
@@ -114,7 +114,7 @@ Nghien cuu cho thay **TF-IDF tot hon CountVectorizer** cho bai toan price predic
 ### 3.1. Pipeline
 
 ```
-HF Hub (items_tv_v4)
+HF Hub (items_tv_v6)
     → Item.from_hub()
     → [train, val, test] (Item objects)
     → item.summary (text)
@@ -209,7 +209,7 @@ uv add xgboost lightgbm catboost plotly scikit-learn underthesea
 **Tieu chi:** 3 models chay, in duoc MAE/MAPE.
 
 ### Step 4: Them Linear Regression + TF-IDF (Kien truc A)
-- TfidfVectorizer voi ngram_range=(1,2), max_features=5000
+- TfidfVectorizer voi ngram_range=(1,2), max_features=10000
 - Linear Regression tren TF-IDF features
 - Evaluate
 
@@ -221,6 +221,9 @@ uv add xgboost lightgbm catboost plotly scikit-learn underthesea
 - So sanh voi Kien truc A
 
 **Tieu chi:** Co ket qua so sanh A vs B.
+
+
+# Lưu ý: Lưu kết quả ra file: Sau khi tokenize xong 1 lần, hãy dùng pickle hoặc lưu thành file .txt để lần sau chạy code không cần tokenize lại từ đầu.
 
 ### Step 6: Them XGBoost, LightGBM, CatBoost
 - XGBoost: n_estimators=1000, learning_rate=0.1
@@ -256,7 +259,7 @@ uv add xgboost lightgbm catboost plotly scikit-learn underthesea
 | **Text source** | item.summary | item.summary (5 truong) |
 | **Stop words** | `stop_words='english'` | Khong dung (hoac custom) |
 | **Tokenization** | Default (English) | underthesea word_tokenize |
-| **Vectorizer** | CountVectorizer(max_features=2000) | TfidfVectorizer(max_features=5000) |
+| **Vectorizer** | CountVectorizer(max_features=2000) | TfidfVectorizer(max_features=10000) |
 | **Models** | Random, Mean, LR, RF, XGBoost | + Median, LightGBM, CatBoost |
 | **Evaluate size** | 200 (co dinh) | 200 default + option full (5K) |
 | **Metrics** | MAE ($), MSE, R2 | **RMSLE (primary)**, MAE (VND), MAPE (%), R2 |
@@ -266,32 +269,41 @@ uv add xgboost lightgbm catboost plotly scikit-learn underthesea
 
 ## 7. Tieu chi thanh cong Day 3
 
-- [ ] `evaluator.py` hoat dong: evaluate mo hinh bat ky, in metrics + ve charts
-- [ ] 3 baselines (Random, Mean, Median) chay va co ket qua
-- [ ] Linear Regression + TF-IDF chay, MAE giam so voi baselines
-- [ ] So sanh Kien truc A vs C (co/khong underthesea)
-- [ ] XGBoost, LightGBM, CatBoost chay thanh cong
-- [ ] Bang tong hop ket qua tat ca models
-- [ ] File `.py` tu chay va in ket qua
-- [ ] File `.ipynb` san sang cho user chay
-- [ ] Cap nhat `SESSION_HANDOFF.md` va `plan_data_preprocessing_vi.md`
+- [x] `evaluator.py` hoat dong: evaluate mo hinh bat ky, in metrics + ve charts
+- [x] 3 baselines (Random, Mean, Median) chay va co ket qua
+- [x] Linear Regression + TF-IDF chay, MAE giam so voi baselines
+- [x] So sanh Kien truc A vs B (co/khong underthesea)
+- [x] XGBoost, LightGBM, CatBoost chay thanh cong
+- [x] Bang tong hop ket qua tat ca models
+- [x] File `.py` tu chay va in ket qua
+- [x] File `.ipynb` san sang cho user chay
+- [x] Cap nhat `SESSION_HANDOFF.md`
 
 ---
 
 ## 8. Ket qua kiem chung
 
-(Se cap nhat sau moi step)
+### v1 — Full dataset (4.9K - 50M VND, 200 test items) — DA BO
 
 | Step | Trang thai | Ket qua | Ghi chu |
 |---|---|---|---|
-| 1. Dependencies | | | | ( đã cài đặt )
-| 2. Evaluator | | | |
-| 3. Baselines | | | |
-| 4. LR + TF-IDF (A) | | | |
-| 5. Underthesea (B) | | | |
-| 6. Ensemble models | | | |
-| 7. Tong hop | | | |
-| 8. Notebook | | | |
+| 3. Baselines | DONE | Median RMSLE=1.41 | Mean/Median gap 4.3x, phan phoi lech rat manh |
+| 4. LR + TF-IDF (A) | DONE | RMSLE=6.08, R2=52.1% | Predict am → clip 0 → RMSLE cuc cao |
+
+**Quyet dinh:** Chuyen sang filter <= 1M VND de giam skewness va de huan luyen hon.
+
+### v2 — Filtered <= 1M VND (85K train / 3.9K test, 200 test items) — KET QUA CHINH
+
+| Step | Trang thai | Ket qua | Ghi chu |
+|---|---|---|---|
+| 1. Dependencies | DONE | OK | xgboost, lightgbm, catboost, plotly, underthesea |
+| 2. Evaluator | DONE | OK | RMSLE primary, VND tick format (100k, 200k...) |
+| 3. Baselines | DONE | Median RMSLE=0.82 | Mean=0.88, Random=1.31 |
+| 4. LR + TF-IDF (A) | DONE | RMSLE=1.73, R2=50.7% | MAE tot (124K) nhung RMSLE te vi predict am |
+| 5. Underthesea (B) | DONE | RMSLE=1.75, R2=52.9% | Arch B cai thien MAE/MAPE/R2 so voi A |
+| 6. Ensemble models | DONE | LightGBM best=0.58 | RF=0.64, XGB=0.64, CatBoost=0.63 |
+| 7. Tong hop | DONE | Bang + nhan xet | day3/ketquaday3_v1.txt |
+| 8. Files | DONE | OK | day3_baseline_ml_1m.py + .ipynb |
 
 ---
 
@@ -334,8 +346,149 @@ underthesea = ">=6.0"
 
 ---
 
-*Tao: 2026-04-12. Cap nhat: 2026-04-13. Buoc tiep: Step 1 cai dependencies.*
+*Tao: 2026-04-12. Cap nhat: 2026-04-14. Buoc tiep: Step 5-6 (Underthesea + Ensemble).*
 
-# Cập nhật 20h ngày 13/4/2026: Đã chạy lại toàn bộ data, kết quả đã xoá SKU codes, giữ lại các thông số kỹ thuật có giá trị, xem kết quả ở file day2_llm_preprocessing_v4.ipynb
+---
 
-# Sử dụng bộ dữ liệu: SeanSunny/items_tv_v6
+## 11. Nhat ky thuc hien
+
+### 2026-04-13 20h: Day 2 hoan tat
+- Da chay lai toan bo data, ket qua da xoa SKU codes, giu lai cac thong so ky thuat co gia tri
+- Xem ket qua: `day2_llm_preprocessing_v4.ipynb`
+- Su dung bo du lieu: `SeanSunny/items_tv_v6`
+
+### 2026-04-14: Day 3 v1 — Full dataset (DA BO)
+
+Chay full dataset (4.9K-50M VND). Phan phoi lech qua manh (Mean/Median = 4.3x, skew=6.85).
+Quyet dinh chuyen sang filter <= 1M VND (77.9% data, skew=1.23).
+
+### 2026-04-14: Day 3 v2 — Filtered <= 1M VND — KET QUA CHINH
+
+**Du lieu:**
+- Dataset: `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND
+- Train: 85,727 | Val: 3,926 | Test: 3,872
+- Price range: 4,900 - 1,000,000 VND
+- Mean: 301,687 | Median: 229,000 | Std: 228,179 VND
+- Mean/Median = 1.32x (gan symmetric, tot cho ML)
+
+**Bang tong hop ket qua (200 test items):**
+
+| Model | RMSLE | MAE (VND) | MAPE (%) | R2 (%) |
+|-------|------:|----------:|---------:|-------:|
+| Random | 1.3126 | 343,784 | 227.0 | -200.5 |
+| Mean | 0.8786 | 189,799 | 119.4 | -0.0 |
+| Median | 0.8184 | 175,995 | 86.3 | -8.6 |
+| LR + TF-IDF (Arch A) | 1.7339 | 123,860 | 72.1 | 50.7 |
+| LR + TF-IDF (Arch B) | 1.7549 | 121,230 | 63.9 | 52.9 |
+| Random Forest (Arch B) | 0.6360 | 128,385 | 66.9 | 41.1 |
+| XGBoost (Arch B) | 0.6385 | 124,993 | 70.9 | 47.6 |
+| **LightGBM (Arch B)** | **0.5799** | **114,290** | **59.7** | 52.0 |
+| CatBoost (Arch B) | 0.6307 | 125,425 | 70.0 | 46.8 |
+
+**Best model: LightGBM — RMSLE=0.5799**
+
+---
+
+## 12. Phan tich ket qua
+
+### 12.1. Ranking theo RMSLE (primary metric)
+
+1. **LightGBM: 0.5799** — Thang toan dien (RMSLE, MAE, MAPE tot nhat)
+2. CatBoost: 0.6307
+3. Random Forest: 0.6360 (chi dung 40K/85K subset)
+4. XGBoost: 0.6385
+5. Median: 0.8184 (baseline benchmark)
+6. Mean: 0.8786
+7. Random: 1.3126
+8. LR Arch A: 1.7339
+9. LR Arch B: 1.7549
+
+### 12.2. Tai sao LR co R2 tot (52.9%) nhung RMSLE te (1.75)?
+
+**Van de cot loi: LR predict gia am cho SP re → clip ve 0 → RMSLE phat nang.**
+
+R2 va RMSLE do 2 thu khac nhau:
+- **R2** do correlation tren thang tuyen tinh (VND). LR hieu text tot → du doan dung xu huong → R2 cao.
+- **RMSLE** do sai so tuong doi tren thang log. Predict 0 cho SP gia 5,000 VND → log(1) - log(5001) = -8.5 → squared = 72.
+
+VD minh hoa:
+- SP gia 5,000 VND, LR predict -50,000 → clip 0 → RMSLE error = 8.5 (cuc lon)
+- SP gia 500,000 VND, LR predict 450,000 → RMSLE error = 0.1 (nho)
+- R2 chi quan tam "xu huong" (predict cao cho SP dat, thap cho SP re) → van tot
+- RMSLE phat tung prediction sai → LR bi phat nang vi negative predictions
+
+Tree-based models (RF, XGB, LGBM, CatBoost) KHONG predict am → RMSLE tot hon.
+
+### 12.3. Tai sao LR R2 > XGBoost/CatBoost/RF R2?
+
+| Model | R2 |
+|-------|---:|
+| LR Arch B | 52.9% |
+| LightGBM | 52.0% |
+| LR Arch A | 50.7% |
+| XGBoost | 47.6% |
+| CatBoost | 46.8% |
+| RF (40K subset) | 41.1% |
+
+**3 nguyen nhan:**
+1. **Sample size nho (200 items):** R2 co variance cao. Chenh lech 5% giua LR va XGBoost co the la noise. Can chay size="all" (3,872 items) de kiem chung.
+2. **LR extrapolate, trees khong:** LR predict tuyen tinh ra ngoai training range. Trees bi gioi han boi gia min/max trong training leaves. Voi SP co features cuc tri, LR co the predict sat hon.
+3. **RF chi dung 40K subset:** Giai thich R2=41.1% thap nhat. XGBoost/CatBoost dung full 85K nhung van thap hon LR, co the do default hyperparameters chua toi uu cho TF-IDF sparse features.
+
+### 12.4. Architecture A vs B
+
+| | Arch A (raw n-gram) | Arch B (underthesea) |
+|---|---|---|
+| RMSLE | 1.7339 | 1.7549 |
+| MAE | 123,860 | **121,230** |
+| MAPE | 72.1% | **63.9%** |
+| R2 | 50.7% | **52.9%** |
+
+- Arch B cai thien MAE (-2.1%), MAPE (-11.4%), R2 (+4.3%) so voi A
+- RMSLE tuong duong (ca 2 deu te vi negative predictions, khong phai do tokenization)
+- **Ket luan:** Underthesea tokenization giup, tat ca ensemble models dung Arch B la hop ly
+
+### 12.5. Nhan xet tong the
+
+**Tot:**
+- LightGBM RMSLE=0.58 — cai thien 29% so voi Median baseline (0.82)
+- MAE=114K VND — trung binh sai 114K cho SP duoi 1M (sai ~38% so voi mean price)
+- Filter <= 1M VND giup: phan phoi gan symmetric (skew 1.23 vs 6.85), models hoc tot hon
+
+**Chua tot:**
+- MAPE=59.7% — trung binh sai 60% gia, van cao
+- R2=52% — chi giai thich 52% variance, 48% con lai la noise
+- LR negative prediction van la van de (RMSLE=1.75 du R2 tot)
+
+**Huong cai thien cho session tiep:**
+1. Chay evaluate size="all" (3,872 items) de co ket qua stable hon
+2. Log-transform target: `y = log1p(price)` → train → `expm1(pred)` — giai quyet LR negative va RMSLE truc tiep
+3. Them category feature (one-hot) ket hop voi TF-IDF
+4. Hyperparameter tuning cho LightGBM (best model)
+5. Ridge/Lasso thay LR (regularization tranh overfit TF-IDF sparse)
+6. Hybrid tokenization: Underthesea + char_wb n-gram (Arch C)
+
+### Cau hinh chay
+
+- May thue: AMD Ryzen 5 7500F (6C/12T), 28GB RAM, RTX 5060 Ti 16GB
+- GPU: KHONG DUNG (XGBoost/CatBoost GPU treo voi sparse matrix 85K x 10K)
+- CPU: n_jobs=6, Pool(4)
+- Tokenize cache: `day3/tokenized_train_1m.pkl` + `day3/tokenized_test_1m.pkl`
+- Thoi gian: RF ~27 phut, XGBoost ~3.5 phut, LightGBM ~42 giay, CatBoost ~2.6 phut
+
+### Luu y ky thuat
+
+- Underthesea KHONG thread-safe — phai pre-tokenize test set truoc khi evaluate
+- XGBoost/CatBoost GPU treo voi sparse matrix — dung CPU (tree_method="hist")
+- File pickle portable giua cac may cung Python 3.x va cung dataset
+- Evaluate default 200 items. Size="all" cho full 3,872 items
+
+### Files
+
+- `pricer_vi/evaluator.py` — Evaluator (RMSLE, MAE, MAPE, R2, VND tick format)
+- `day3_baseline_ml_1m.py` — Script chay tu dong (filtered <= 1M)
+- `day3_baseline_ml_1m.ipynb` — Notebook tuong tac
+- `day3/ketquaday3_v1.txt` — Output .py chay tren may thue
+- `day3_baseline_ml.py` — Script cu (full dataset, da bo)
+- `day3_baseline_ml_notebook.ipynb` — Notebook cu
+- `day3_baseline_ml_notebook_5060ti.ipynb` — Notebook cu

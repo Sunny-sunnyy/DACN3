@@ -19,6 +19,15 @@ import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_error, r2_score
 from tqdm.auto import tqdm
 
+def _tick_step(max_val):
+    """Pick a round VND tick step that gives ~8-12 ticks."""
+    steps = [50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000, 5_000_000, 10_000_000]
+    for s in steps:
+        if max_val / s <= 12:
+            return s
+    return steps[-1]
+
+
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
@@ -140,8 +149,13 @@ class Tester:
             )
         )
 
-        fig.update_xaxes(range=[0, max_val])
-        fig.update_yaxes(range=[0, max_val])
+        # VND tick format: 100k, 200k, ... 1000k
+        step = _tick_step(max_val)
+        tick_vals = list(range(0, int(max_val) + step, step))
+        tick_text = [f"{v // 1000:,}k" if v > 0 else "0" for v in tick_vals]
+
+        fig.update_xaxes(range=[0, max_val], tickvals=tick_vals, ticktext=tick_text)
+        fig.update_yaxes(range=[0, max_val], tickvals=tick_vals, ticktext=tick_text)
         fig.update_layout(showlegend=False)
         fig.show()
 
@@ -198,6 +212,12 @@ class Tester:
         final_ci = ci[-1]
         title = f"{self.title} Error: {final_mean:,.0f} +/- {final_ci:,.0f} VND"
 
+        # VND tick format for y-axis
+        y_max = max(upper) if upper else final_mean * 2
+        step = _tick_step(y_max)
+        tick_vals = list(range(0, int(y_max) + step, step))
+        tick_text = [f"{v // 1000:,}k" if v > 0 else "0" for v in tick_vals]
+
         fig.update_layout(
             title=title,
             xaxis_title="Number of Datapoints",
@@ -207,6 +227,7 @@ class Tester:
             template="plotly_white",
             showlegend=False,
         )
+        fig.update_yaxes(tickvals=tick_vals, ticktext=tick_text)
 
         fig.show()
 
