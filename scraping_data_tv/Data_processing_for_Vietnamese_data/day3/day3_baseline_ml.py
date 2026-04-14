@@ -4,6 +4,11 @@ Steps 3-5: Baselines + Linear Regression + TF-IDF (Architecture A & B).
 Dataset: SeanSunny/items_tv_v6 (120K items: 110K train / 5K val / 5K test)
 """
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import random
 import time
 import numpy as np

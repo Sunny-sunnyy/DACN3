@@ -75,7 +75,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **May thue (Fine-tune QLoRA):** RTX 3090 24GB VRAM | i5-13400F 12C | 56GB RAM | CUDA 10496
   - Hoac GPU A100 tren Google Colab
 - **Workflow:** git clone → uv sync → chay .py hoac .ipynb → copy ket qua ve
-- Moi lan thue may moi: can `uv sync` lai va tokenize cache se khong co (chay lai tu dau)
+- Moi lan thue may moi: can `uv sync` lai va tokenize sẽ được tải từ gg drive về 
 
 ---
 
@@ -88,7 +88,7 @@ Doc cac file sau de nap ngu canh:
 0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
 1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day3/plan_day3.md" — plan Day 3 + ket qua (Section 8, 12)
 2. "scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/" — tat ca file .py
-3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day3_baseline_ml_1m.py" — code Day 3 v2
+3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day3/day3_baseline_ml_1m.py" — code Day 3 v2
 
 Trang thai:
 - Day 3 v2 HOAN TAT. Best: LightGBM RMSLE=0.5799, MAE=114K, R2=52%

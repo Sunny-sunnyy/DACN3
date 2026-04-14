@@ -5,10 +5,14 @@ Train: ~85K | Val: ~3.9K | Test: ~3.9K
 Primary metric: RMSLE
 """
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import random
 import time
 import pickle
-from pathlib import Path
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -28,7 +32,7 @@ from pricer_vi.evaluator import evaluate
 SEED = 42
 DATASET = "SeanSunny/items_tv_v6"
 PRICE_THRESHOLD = 1_000_000
-CACHE_DIR = Path("day3")
+CACHE_DIR = Path(__file__).resolve().parent
 USE_GPU = False  # GPU treo voi sparse matrix 85K x 10K, dung CPU
 
 random.seed(SEED)

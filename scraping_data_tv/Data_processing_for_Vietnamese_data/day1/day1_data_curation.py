@@ -3,10 +3,13 @@
 Updated 2026-04-10: 8 categories, category mapping, sub-category overrides.
 """
 
+import sys
 import json
 import random
 from pathlib import Path
 from collections import Counter
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import matplotlib
 matplotlib.use("Agg")
