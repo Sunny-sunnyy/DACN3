@@ -12,15 +12,20 @@
 
 ### 1.1. Cai Python 3.12+
 
-Tai va cai tu: https://www.python.org/downloads/release/python-31313/
+Tai va cai tu: 
+https://www.python.org/downloads/release/python-31313/
+
+winget install -e --id Python.Python.3.13
 
 Kiem tra:
 ```cmd
 python --version
 ```
 
-Cài git: https://git-scm.com/install/windows
-cài vscode: https://code.visualstudio.com/download
+Cài git: 
+https://git-scm.com/install/windows
+cài vscode: 
+https://code.visualstudio.com/download
 
 ### 1.2. Cai uv (package manager)
 
@@ -38,10 +43,13 @@ uv --version
 
 ```cmd
 git clone https://github.com/Sunny-sunnyy/DACN3.git
-git checkout feature/tiki-scraper
+#git checkout feature/tiki-scraper
+git checkout feature/data-preprocessing-vi
 cd DACN3/tech2ai
 uv sync
 ```
+
+https://drive.google.com/drive/folders/1lwU-5SbqehvW7A5KB_aKsNPj6tjKNF6r?usp=drive_link
 
 Chi can `uv sync` — tu dong cai tat ca thu vien can thiet:
 - `curl_cffi` (HTTP client, Chrome impersonation)
