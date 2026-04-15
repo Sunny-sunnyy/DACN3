@@ -336,26 +336,47 @@ Thong so: [LLM generated]
 
 ---
 
-### Day 3: Baseline Models & Traditional ML — SAN SANG THUC HIEN
+### Day 3: Baseline Models & Traditional ML — HOAN TAT (v2 + v3)
 
 **Plan chi tiet:** `day3/plan_day3.md`
+**Dataset:** SeanSunny/items_tv_v6, filtered <= 1M VND (85K train / 3.9K val / 3.9K test)
 
-**Models:** Random, Mean, Median, Linear Regression, Random Forest, XGBoost, LightGBM, CatBoost
+**Models:** 12 models (Random, Mean, Median, LR, Ridge, RF, XGBoost, LightGBM, CatBoost, LGB Tuned, Blended)
 **Metrics:** RMSLE (primary), MAE (VND), MAPE (%), R2
 
-**Tokenization:** 2 kien truc so sanh:
+**Tokenization:** 3 kien truc:
 - A: TF-IDF + n-gram (1,2) — nhanh, khong can dependency
-- B: Underthesea pre-tokenize + TF-IDF — chinh xac hon cho tu ghep tieng Viet
+- B: Underthesea pre-tokenize + TF-IDF word — tot nhat cho default models
+- C: Underthesea + FeatureUnion(word bigram + char_wb) — tot nhat khi tuning
 
-**Data cleaning note:** 28% titles chua SKU codes. Phan tich cho thay impact thap (TF-IDF tu loai rare codes). De nguyen, review lai neu ket qua khong tot. Chi tiet: xem Section 9 trong `day3/plan_day3.md`.
+**Ket qua v3:**
+- Best: **Blended RMSLE=0.5164**, MAE=110K, MAPE=44.0%, R2=47.1% (3,872 items)
+- Log-transform la cai thien lon nhat (-8.8% RMSLE)
+- RMSLE ~0.52 la tran cua TF-IDF approach → can dense embeddings
+
+**Tieu chi hoan thanh Day 3:**
+- [x] 12 models trained va evaluated (full 3,872 test items)
+- [x] 3 Architecture so sanh (A, B, C)
+- [x] Log-transform + Category one-hot + Optuna tuning + Blending
+- [x] Best: Blended RMSLE=0.5164
 
 ---
 
-### Day 4: Neural Networks & Frontier LLMs
+### Day 4: Deep Learning + Frontier LLM — DANG THUC HIEN
 
-(Giu nguyen nhu plan cu)
+**Plan chi tiet:** `day4/plan_day4.md`
+**Target:** RMSLE <= 0.40
 
-**Models:** DNN ResidualBlock (Vietnamese_Embedding 1024d), PhoBERT (optional), Qwen3-8B + RAG
+**5 DL models:**
+- Model 0: DNN ResidualBlock (HashingVectorizer / TF-IDF) — baseline DL tu khoa hoc
+- Model 1: PhoBERT-base-v2 fine-tune (vinai/phobert-base-v2, 135M params) — ky vong tot nhat
+- Model 2: Vietnamese Embedding (dangvantuan/vietnamese-embedding, frozen 768d) + MLP
+- Model 3: XLM-RoBERTa-base fine-tune (278M params) — multilingual so sanh
+- Model 4: Vietnamese Embedding + LightGBM — hybrid DL+ML
+
+**Frontier LLM (zero-shot, 200 items):** gpt-4o-mini, gpt-5-nano, gpt-5-mini
+
+**May thue:** RTX 4060 Ti 16GB VRAM hoac RTX 3090 Ti 24GB VRAM
 
 ---
 
@@ -378,11 +399,13 @@ Thong so: [LLM generated]
 | Data loading | json, pathlib |
 | EDA | pandas, matplotlib |
 | NLP tieng Viet | underthesea, unicodedata |
-| Text embeddings | AITeamVN/Vietnamese_Embedding (1024d) |
+| Text embeddings | dangvantuan/vietnamese-embedding (768d), vinai/phobert-base-v2 |
 | ML models | scikit-learn, xgboost, lightgbm, catboost |
-| DNN | PyTorch |
+| DNN | PyTorch (ResidualBlock) |
+| Transformer fine-tune | HuggingFace transformers + accelerate (PhoBERT, XLM-R) |
+| Sentence embeddings | sentence-transformers |
 | LLM rewrite | Groq Batch API (litellm) |
-| Frontier LLM | Qwen3-8B / GPT-5-nano |
+| Frontier LLM | gpt-4o-mini, gpt-5-nano, gpt-5-mini (litellm) |
 | LLM fine-tune | Qwen3.5-4B-Base (LoRA bf16 via Unsloth) |
 | Dataset hub | HuggingFace datasets |
 
@@ -395,10 +418,10 @@ Thong so: [LLM generated]
 | **Day 0: Thu thap them** | 1-2 ngay | 4-8 gio (scraping) | ~$5 (may thue) |
 | Day 1: Data Curation (re-run) | 1-2 gio | 5-10 phut | 0 |
 | Day 2: LLM Preprocessing | 2-3 gio | 2-4 gio (batch) | ~$10-15 |
-| Day 3: Baseline ML | 2-3 gio | 10-30 phut | 0 |
-| Day 4: DNN + Frontier LLM | 3-4 gio | 1-2 gio (GPU) | GPU + API |
-| **Tong** | **~3-5 ngay** | **~8-15 gio** | **~$15-25** |
+| Day 3: Baseline ML | 2-3 gio | 3 gio (RF + Optuna) | 0 |
+| Day 4: DL + Frontier LLM | 4-6 gio | 3-5 gio (GPU) | ~$5-10 (may thue + API) |
+| **Tong** | **~4-6 ngay** | **~10-20 gio** | **~$20-35** |
 
 ---
 
-*Cap nhat: 2026-04-12. Day 0-2 HOAN TAT. Dataset SeanSunny/items_tv_v4 da push (120K items, 0 missing). Buoc tiep: Day 3 Baseline ML.*
+*Cap nhat: 2026-04-15. Day 0-3 HOAN TAT. Best Day 3: Blended RMSLE=0.5164. Buoc tiep: Day 4 DL + Frontier LLM (5 DL models + 3 LLM). Plan: day4/plan_day4.md.*
