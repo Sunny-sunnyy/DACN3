@@ -77,7 +77,7 @@ def train_torch_model(model, X_train, y_train, X_val, y_val, device,
     """Train any torch model (DNN or MLP) with log-normalized target.
 
     Target transform: log(price+1) -> normalize(mean, std).
-    Loss: L1Loss on normalized space.
+    Loss: MSELoss on normalized log-space (directly optimizes RMSLE).
     Returns: trained model, y_mean, y_std, history dict.
     """
     y_train_log = torch.log(y_train + 1)
@@ -90,7 +90,7 @@ def train_torch_model(model, X_train, y_train, X_val, y_val, device,
     model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     scheduler = CosineAnnealingLR(optimizer, T_max=max(epochs, 10)) if use_scheduler else None
-    loss_fn = nn.L1Loss()
+    loss_fn = nn.MSELoss()
 
     loader = DataLoader(
         TensorDataset(X_train, y_train_norm), batch_size=batch_size, shuffle=True
@@ -129,8 +129,8 @@ def train_torch_model(model, X_train, y_train, X_val, y_val, device,
 
         print(
             f"  Epoch {epoch}/{epochs} | "
-            f"Train L1: {np.mean(losses):.4f} | "
-            f"Val L1: {val_loss:.4f} | "
+            f"Train MSE: {np.mean(losses):.4f} | "
+            f"Val MSE: {val_loss:.4f} | "
             f"Val MAE: {val_mae:,.0f} VND"
         )
 
@@ -140,6 +140,8 @@ def train_torch_model(model, X_train, y_train, X_val, y_val, device,
 def predict_batch(model, X, y_mean, y_std, device):
     """Predict prices (VND) from features. Inverse log-norm transform."""
     model.eval()
+    y_mean = y_mean.to(device)
+    y_std = y_std.to(device)
     with torch.no_grad():
         out = model(X.to(device))
         prices = torch.exp(out * y_std + y_mean) - 1
@@ -153,7 +155,7 @@ def plot_training_history(history, title="Training History"):
 
     fig = make_subplots(
         rows=1, cols=2,
-        subplot_titles=("Loss (L1 on normalized log-space)", "Val MAE (VND)"),
+        subplot_titles=("Loss (MSE on normalized log-space)", "Val MAE (VND)"),
     )
 
     fig.add_trace(
@@ -174,7 +176,7 @@ def plot_training_history(history, title="Training History"):
 
     fig.update_xaxes(title_text="Epoch", row=1, col=1)
     fig.update_xaxes(title_text="Epoch", row=1, col=2)
-    fig.update_yaxes(title_text="L1 Loss", row=1, col=1)
+    fig.update_yaxes(title_text="MSE Loss", row=1, col=1)
     fig.update_yaxes(title_text="MAE (VND)", row=1, col=2)
 
     fig.update_layout(title=title, width=900, height=400, template="plotly_white")

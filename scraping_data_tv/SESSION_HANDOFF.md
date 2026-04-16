@@ -7,7 +7,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Trang thai hien tai (2026-04-15)
 
-**Trang thai:** Day 0-3 HOAN TAT. Day 4 DANG CHAY. Phase 2 (Model 0 DNN) XONG. Buoc tiep: **Chay tiep Phase 3-5 tren may thue GPU**.
+**Trang thai:** Day 0-3 HOAN TAT. Day 4 FIX LOSS (L1→MSE). Buoc tiep: **Xoa weights/ cu, chay lai TAT CA tren may thue GPU**.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -33,8 +33,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Model classes: `pricer_vi/deep_neural_network.py`
 
 ### Dang lam / Buoc tiep:
-- [x] **Day 4 Phase 2:** Model 0 DNN bag-of-words (3 experiments) — XONG
-- [ ] **Day 4 Phase 3:** Model 2/4/5 embedding-based (6 experiments) — DANG CHAY
+- [ ] **Day 4 Phase 2:** Model 0 DNN bag-of-words (3 experiments) — CAN CHAY LAI (fix L1→MSE)
+- [ ] **Day 4 Phase 3:** Model 2/4/5 embedding-based (6 experiments)
 - [ ] **Day 4 Phase 4:** Model 1 PhoBERT fine-tune
 - [ ] **Day 4 Phase 5:** Model 3 XLM-R fine-tune
 - [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items)
@@ -44,9 +44,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 | # | Model | Ky vong RMSLE | Thuc te RMSLE | Ghi chu |
 |---|-------|---------------|---------------|---------|
-| 0a | DNN + HashingVec (h=2048) | 0.48-0.52 | **0.5319** | 77M params, MAPE=50.7% |
-| **0b** | **DNN + TF-IDF (h=2048)** | 0.48-0.52 | **0.5287** | **Best Model 0**, MAPE=42.9% |
-| 0c | DNN + TF-IDF (h=4096) | 0.46-0.50 | **0.5342** | 310M params, overfitting |
+| 0a | DNN + HashingVec (h=2048) | 0.48-0.52 | ~~0.5319~~ | L1Loss, can chay lai voi MSELoss |
+| 0b | DNN + TF-IDF (h=2048) | 0.48-0.52 | ~~0.5287~~ | L1Loss, can chay lai voi MSELoss |
+| 0c | DNN + TF-IDF (h=4096) | 0.46-0.50 | ~~0.5342~~ | L1Loss, can chay lai voi MSELoss |
 | **1** | **PhoBERT-v2 fine-tune** | **0.38-0.44** | — | |
 | 2a | dangvantuan embed + MLP | 0.42-0.48 | — | |
 | 2b | AITeamVN embed + MLP | 0.42-0.48 | — | |
@@ -80,6 +80,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 4:** Frontier LLM: prompt tieng Anh, 200 items, 3 model OpenAI
 - **Day 4:** Chi chay .ipynb (khong .py) de tiet kiem chi phi may thue
 - **Day 4:** Cache tat ca tokenized/embedding vao day4/*.pkl/*.npy
+- **Day 4:** Loss function fix: L1Loss (MAE) → MSELoss (truc tiep optimize RMSLE). CAN XOA WEIGHTS CU VA TRAIN LAI
 
 ### Ket qua du lieu:
 - **Day 1 (v4):** 158K raw → 147K dedup → 120K sample (110K/5K/5K)
@@ -90,10 +91,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 3 v3 (DONE):** Best: Blended RMSLE=0.5164, MAE=110K, MAPE=44.0%, R2=47.1% (3,872 items)
   - Filter: <= 1M VND → 85K train / 3.9K val / 3.9K test
   - Log-transform + Arch C (word+char_wb) + Category + Optuna + Blending
-- **Day 4 Phase 2 (DONE):** Model 0 DNN bag-of-words — best: 0b RMSLE=0.5287, MAE=105K, MAPE=42.9%, R2=48.6%
-  - Khong vuot Day 3 baseline (0.5164). DNN bag-of-words bi gioi han boi sparse input
-  - h=4096 (0c) kem hon h=2048 (0b) — overfitting 310M params tren 85K data
-  - TF-IDF > HashingVec (0b > 0a), nhat quan voi Day 3
+- **Day 4 Phase 2 (CAN TRAIN LAI):** Model 0 DNN bag-of-words — ket qua cu voi L1Loss (sai), can chay lai voi MSELoss
+  - Ket qua cu (L1Loss): 0b RMSLE=0.5287, MAE=105K. Can xoa weights/ va chay lai
+  - Fix: L1Loss → MSELoss truc tiep optimize RMSLE
 
 ### Luu y ky thuat:
 - Tiki API cap 2000 SP/category; dung Adaptive Price-Range Slicing de vuot
@@ -104,6 +104,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 3 v3:** Log-transform giai quyet LR negative. Ridge (0.5415) canh tranh voi ensemble
 - **Day 4:** dangvantuan embedding can pyvi segment. AITeamVN khong can segment
 - **Day 4:** PhoBERT can underthesea segment. XLM-R khong can segment
+- **Day 4:** Loss fix: L1Loss → MSELoss trong train_torch_model (RMSLE = sqrt(MSE) trong log-space)
+- **Day 4:** LightGBM eval_metric doi tu "l1" sang "mse" de monitor dung (objective mac dinh da la L2)
+- **Day 4:** predict_batch: y_mean/y_std can .to(device) khi load tu checkpoint
 
 ### Moi truong chay:
 - **May thue (ML/DL):** RTX 4060 Ti 16GB VRAM | i5-13400F 12C | 28GB RAM | CUDA 4352 (toi thieu)
@@ -205,4 +208,4 @@ uv sync && uv add transformers accelerate sentence-transformers pyvi litellm lig
 ---
 
 
-*Cap nhat: 2026-04-16 — Day 0-3 HOAN TAT. Day 4 DANG CHAY. Phase 2 (Model 0 DNN) XONG: best 0b RMSLE=0.5287 (khong vuot Day 3). Buoc tiep: Phase 3-5 embedding + Transformer.*
+*Cap nhat: 2026-04-16 — Day 0-3 HOAN TAT. Day 4 FIX LOSS: L1Loss→MSELoss (truc tiep optimize RMSLE). Ket qua Phase 2 cu khong con hop le. Buoc tiep: xoa weights/ cu, chay lai TAT CA experiments tren may thue.*

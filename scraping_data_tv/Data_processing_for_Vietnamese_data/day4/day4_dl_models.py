@@ -549,7 +549,7 @@ else:
     lgb_4a.fit(
         dv_X_train, y_train_log,
         eval_set=[(dv_X_train, y_train_log), (dv_X_val, y_val_log)],
-        eval_metric="l1",
+        eval_metric="mse",
         callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200),
                    lgb.record_evaluation(lgb_4a_eval)],
     )
@@ -560,10 +560,10 @@ evaluate_batch(test_prices, pred_4a, "Model 4a: dangvantuan+LightGBM")
 
 if lgb_4a_eval:
     fig_4a = go.Figure()
-    fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_0"]["l1"], name="Train L1", line=dict(color="steelblue")))
-    fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_1"]["l1"], name="Val L1", line=dict(color="tomato")))
+    fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_0"]["mse"], name="Train MSE", line=dict(color="steelblue")))
+    fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_1"]["mse"], name="Val MSE", line=dict(color="tomato")))
     fig_4a.update_layout(title="Model 4a: dangvantuan+LightGBM Learning Curve",
-                         xaxis_title="Boosting Round", yaxis_title="L1 (log-space)",
+                         xaxis_title="Boosting Round", yaxis_title="MSE (log-space)",
                          width=700, height=400, template="plotly_white")
     fig_4a.show()
 
@@ -590,7 +590,7 @@ else:
     lgb_4b.fit(
         at_X_train, y_train_log,
         eval_set=[(at_X_train, y_train_log), (at_X_val, y_val_log)],
-        eval_metric="l1",
+        eval_metric="mse",
         callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200),
                    lgb.record_evaluation(lgb_4b_eval)],
     )
@@ -601,10 +601,10 @@ evaluate_batch(test_prices, pred_4b, "Model 4b: AITeamVN+LightGBM")
 
 if lgb_4b_eval:
     fig_4b = go.Figure()
-    fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_0"]["l1"], name="Train L1", line=dict(color="steelblue")))
-    fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_1"]["l1"], name="Val L1", line=dict(color="tomato")))
+    fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_0"]["mse"], name="Train MSE", line=dict(color="steelblue")))
+    fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_1"]["mse"], name="Val MSE", line=dict(color="tomato")))
     fig_4b.update_layout(title="Model 4b: AITeamVN+LightGBM Learning Curve",
-                         xaxis_title="Boosting Round", yaxis_title="L1 (log-space)",
+                         xaxis_title="Boosting Round", yaxis_title="MSE (log-space)",
                          width=700, height=400, template="plotly_white")
     fig_4b.show()
 

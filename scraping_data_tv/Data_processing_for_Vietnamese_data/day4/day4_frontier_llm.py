@@ -16,14 +16,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from litellm import completion
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+DAY4 = Path.cwd()
+sys.path.insert(0, str(DAY4.parent))
 from pricer_vi.items import Item
 from pricer_vi.evaluator import evaluate
 
 # %% Config
 load_dotenv(override=True)
-
-DAY4 = Path(__file__).resolve().parent
 DATASET = "SeanSunny/items_tv_v6"
 MAX_PRICE = 1_000_000
 SIZE = 200
