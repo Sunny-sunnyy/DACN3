@@ -58,6 +58,29 @@ if DEVICE.type == "cuda":
 ALL_RESULTS = {}
 ALL_HISTORIES = {}
 
+WEIGHTS_DIR = DAY4 / "weights"
+WEIGHTS_DIR.mkdir(exist_ok=True)
+
+
+def save_torch_weights(model, y_mean, y_std, name):
+    """Save model state_dict + normalization params."""
+    path = WEIGHTS_DIR / f"{name}.pth"
+    torch.save({"state_dict": model.state_dict(), "y_mean": y_mean, "y_std": y_std}, path)
+    print(f"  Saved weights: {path.name}")
+
+
+def load_torch_weights(model, name, device):
+    """Load model state_dict + normalization params. Returns (model, y_mean, y_std) or None."""
+    path = WEIGHTS_DIR / f"{name}.pth"
+    if not path.exists():
+        return None
+    ckpt = torch.load(path, map_location=device, weights_only=True)
+    model.load_state_dict(ckpt["state_dict"])
+    model.to(device)
+    print(f"  Loaded weights: {path.name}")
+    return model, ckpt["y_mean"], ckpt["y_std"]
+
+
 # %% Helper: metrics
 def rmsle(y_true, y_pred):
     y_true = np.array(y_true, dtype=float)
@@ -342,13 +365,20 @@ X_va, y_va = prepare_dnn_data(X_hv_val, cat_val, val_prices)
 X_te, y_te = prepare_dnn_data(X_hv_test, cat_test, test_prices)
 
 model_0a = DeepNeuralNetwork(X_tr.shape[1], hidden_size=2048, num_layers=10)
-model_0a, y_mean_0a, y_std_0a, hist_0a = train_torch_model(
-    model_0a, X_tr, y_tr, X_va, y_va, DEVICE, epochs=5, batch_size=64
-)
+cached = load_torch_weights(model_0a, "model_0a_dnn_hv2048", DEVICE)
+if cached:
+    model_0a, y_mean_0a, y_std_0a = cached
+    hist_0a = None
+else:
+    model_0a, y_mean_0a, y_std_0a, hist_0a = train_torch_model(
+        model_0a, X_tr, y_tr, X_va, y_va, DEVICE, epochs=5, batch_size=64
+    )
+    save_torch_weights(model_0a, y_mean_0a, y_std_0a, "model_0a_dnn_hv2048")
 pred_0a = predict_batch(model_0a, X_te, y_mean_0a, y_std_0a, DEVICE)
 evaluate_batch(test_prices, pred_0a, "Model 0a: DNN+HashingVec (h=2048)")
-plot_training_history(hist_0a, "Model 0a: DNN+HashingVec (h=2048)")
-ALL_HISTORIES["0a"] = hist_0a
+if hist_0a:
+    plot_training_history(hist_0a, "Model 0a: DNN+HashingVec (h=2048)")
+    ALL_HISTORIES["0a"] = hist_0a
 
 del model_0a, X_tr, X_va, X_te
 torch.cuda.empty_cache()
@@ -363,13 +393,20 @@ X_va, y_va = prepare_dnn_data(X_tfidf_val, cat_val, val_prices)
 X_te, y_te = prepare_dnn_data(X_tfidf_test, cat_test, test_prices)
 
 model_0b = DeepNeuralNetwork(X_tr.shape[1], hidden_size=2048, num_layers=10)
-model_0b, y_mean_0b, y_std_0b, hist_0b = train_torch_model(
-    model_0b, X_tr, y_tr, X_va, y_va, DEVICE, epochs=5, batch_size=64
-)
+cached = load_torch_weights(model_0b, "model_0b_dnn_tfidf2048", DEVICE)
+if cached:
+    model_0b, y_mean_0b, y_std_0b = cached
+    hist_0b = None
+else:
+    model_0b, y_mean_0b, y_std_0b, hist_0b = train_torch_model(
+        model_0b, X_tr, y_tr, X_va, y_va, DEVICE, epochs=5, batch_size=64
+    )
+    save_torch_weights(model_0b, y_mean_0b, y_std_0b, "model_0b_dnn_tfidf2048")
 pred_0b = predict_batch(model_0b, X_te, y_mean_0b, y_std_0b, DEVICE)
 evaluate_batch(test_prices, pred_0b, "Model 0b: DNN+TF-IDF (h=2048)")
-plot_training_history(hist_0b, "Model 0b: DNN+TF-IDF (h=2048)")
-ALL_HISTORIES["0b"] = hist_0b
+if hist_0b:
+    plot_training_history(hist_0b, "Model 0b: DNN+TF-IDF (h=2048)")
+    ALL_HISTORIES["0b"] = hist_0b
 
 del model_0b
 torch.cuda.empty_cache()
@@ -381,15 +418,21 @@ print("#" * 60)
 print("Using TF-IDF (same data as 0b, reuse X_tr/X_va/X_te)")
 
 model_0c = DeepNeuralNetwork(X_tr.shape[1], hidden_size=4096, num_layers=10)
-model_0c, y_mean_0c, y_std_0c, hist_0c = train_torch_model(
-    model_0c, X_tr, y_tr, X_va, y_va, DEVICE, epochs=5, batch_size=64
-)
+cached = load_torch_weights(model_0c, "model_0c_dnn_tfidf4096", DEVICE)
+if cached:
+    model_0c, y_mean_0c, y_std_0c = cached
+    hist_0c = None
+else:
+    model_0c, y_mean_0c, y_std_0c, hist_0c = train_torch_model(
+        model_0c, X_tr, y_tr, X_va, y_va, DEVICE, epochs=5, batch_size=64
+    )
+    save_torch_weights(model_0c, y_mean_0c, y_std_0c, "model_0c_dnn_tfidf4096")
 pred_0c = predict_batch(model_0c, X_te, y_mean_0c, y_std_0c, DEVICE)
 evaluate_batch(test_prices, pred_0c, "Model 0c: DNN+TF-IDF (h=4096)")
-plot_training_history(hist_0c, "Model 0c: DNN+TF-IDF (h=4096)")
-ALL_HISTORIES["0c"] = hist_0c
+if hist_0c:
+    plot_training_history(hist_0c, "Model 0c: DNN+TF-IDF (h=4096)")
+    ALL_HISTORIES["0c"] = hist_0c
 
-# Save best DNN model
 best_0 = min(
     [("0a", ALL_RESULTS.get("Model 0a: DNN+HashingVec (h=2048)", {}).get("rmsle", 99)),
      ("0b", ALL_RESULTS.get("Model 0b: DNN+TF-IDF (h=2048)", {}).get("rmsle", 99)),
@@ -397,8 +440,6 @@ best_0 = min(
     key=lambda x: x[1]
 )
 print(f"\nBest Model 0 variant: {best_0[0]} (RMSLE={best_0[1]:.4f})")
-torch.save(model_0c.state_dict(), DAY4 / "dnn_best.pth")
-print(f"Saved: dnn_best.pth")
 
 del model_0c, X_tr, X_va, X_te, y_tr, y_va, y_te
 torch.cuda.empty_cache()
@@ -433,15 +474,22 @@ input_dim = dv_data["train"][0].shape[1]
 print(f"Input dim: {input_dim} (768 embedding + {cat_train.shape[1]} category)")
 
 model_2a = MLP(input_dim, hidden_sizes=(512, 256, 128))
-model_2a, y_mean_2a, y_std_2a, hist_2a = train_torch_model(
-    model_2a, dv_data["train"][0], dv_data["train"][1],
-    dv_data["val"][0], dv_data["val"][1], DEVICE,
-    epochs=30, batch_size=128, lr=0.001, use_scheduler=False,
-)
+cached = load_torch_weights(model_2a, "model_2a_mlp_dangvantuan", DEVICE)
+if cached:
+    model_2a, y_mean_2a, y_std_2a = cached
+    hist_2a = None
+else:
+    model_2a, y_mean_2a, y_std_2a, hist_2a = train_torch_model(
+        model_2a, dv_data["train"][0], dv_data["train"][1],
+        dv_data["val"][0], dv_data["val"][1], DEVICE,
+        epochs=30, batch_size=128, lr=0.001, use_scheduler=False,
+    )
+    save_torch_weights(model_2a, y_mean_2a, y_std_2a, "model_2a_mlp_dangvantuan")
 pred_2a = predict_batch(model_2a, dv_data["test"][0], y_mean_2a, y_std_2a, DEVICE)
 evaluate_batch(test_prices, pred_2a, "Model 2a: dangvantuan+MLP")
-plot_training_history(hist_2a, "Model 2a: dangvantuan+MLP")
-ALL_HISTORIES["2a"] = hist_2a
+if hist_2a:
+    plot_training_history(hist_2a, "Model 2a: dangvantuan+MLP")
+    ALL_HISTORIES["2a"] = hist_2a
 
 del model_2a
 torch.cuda.empty_cache()
@@ -456,15 +504,22 @@ input_dim = at_data["train"][0].shape[1]
 print(f"Input dim: {input_dim} (1024 embedding + {cat_train.shape[1]} category)")
 
 model_2b = MLP(input_dim, hidden_sizes=(512, 256, 128))
-model_2b, y_mean_2b, y_std_2b, hist_2b = train_torch_model(
-    model_2b, at_data["train"][0], at_data["train"][1],
-    at_data["val"][0], at_data["val"][1], DEVICE,
-    epochs=30, batch_size=128, lr=0.001, use_scheduler=False,
-)
+cached = load_torch_weights(model_2b, "model_2b_mlp_aiteamvn", DEVICE)
+if cached:
+    model_2b, y_mean_2b, y_std_2b = cached
+    hist_2b = None
+else:
+    model_2b, y_mean_2b, y_std_2b, hist_2b = train_torch_model(
+        model_2b, at_data["train"][0], at_data["train"][1],
+        at_data["val"][0], at_data["val"][1], DEVICE,
+        epochs=30, batch_size=128, lr=0.001, use_scheduler=False,
+    )
+    save_torch_weights(model_2b, y_mean_2b, y_std_2b, "model_2b_mlp_aiteamvn")
 pred_2b = predict_batch(model_2b, at_data["test"][0], y_mean_2b, y_std_2b, DEVICE)
 evaluate_batch(test_prices, pred_2b, "Model 2b: AITeamVN+MLP")
-plot_training_history(hist_2b, "Model 2b: AITeamVN+MLP")
-ALL_HISTORIES["2b"] = hist_2b
+if hist_2b:
+    plot_training_history(hist_2b, "Model 2b: AITeamVN+MLP")
+    ALL_HISTORIES["2b"] = hist_2b
 
 del model_2b
 torch.cuda.empty_cache()
@@ -482,29 +537,37 @@ dv_X_test = np.hstack([dv_emb["test"], cat_test.toarray()])
 y_train_log = np.log1p(train_prices)
 y_val_log = np.log1p(val_prices)
 
-lgb_4a_eval = {}
-lgb_4a = lgb.LGBMRegressor(
-    n_estimators=1000, learning_rate=0.1, num_leaves=31,
-    n_jobs=6, random_state=SEED, verbose=-1,
-)
-lgb_4a.fit(
-    dv_X_train, y_train_log,
-    eval_set=[(dv_X_train, y_train_log), (dv_X_val, y_val_log)],
-    eval_metric="l1",
-    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200),
-               lgb.record_evaluation(lgb_4a_eval)],
-)
+lgb_4a_path = WEIGHTS_DIR / "model_4a_lgb_dangvantuan.pkl"
+if lgb_4a_path.exists():
+    lgb_4a = joblib.load(lgb_4a_path)
+    print(f"  Loaded weights: {lgb_4a_path.name}")
+    lgb_4a_eval = None
+else:
+    lgb_4a_eval = {}
+    lgb_4a = lgb.LGBMRegressor(
+        n_estimators=1000, learning_rate=0.1, num_leaves=31,
+        n_jobs=6, random_state=SEED, verbose=-1,
+    )
+    lgb_4a.fit(
+        dv_X_train, y_train_log,
+        eval_set=[(dv_X_train, y_train_log), (dv_X_val, y_val_log)],
+        eval_metric="l1",
+        callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200),
+                   lgb.record_evaluation(lgb_4a_eval)],
+    )
+    joblib.dump(lgb_4a, lgb_4a_path)
+    print(f"  Saved weights: {lgb_4a_path.name}")
 pred_4a = np.expm1(lgb_4a.predict(dv_X_test))
 evaluate_batch(test_prices, pred_4a, "Model 4a: dangvantuan+LightGBM")
 
-# Plot LightGBM learning curve
-fig_4a = go.Figure()
-fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_0"]["l1"], name="Train L1", line=dict(color="steelblue")))
-fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_1"]["l1"], name="Val L1", line=dict(color="tomato")))
-fig_4a.update_layout(title="Model 4a: dangvantuan+LightGBM Learning Curve",
-                     xaxis_title="Boosting Round", yaxis_title="L1 (log-space)",
-                     width=700, height=400, template="plotly_white")
-fig_4a.show()
+if lgb_4a_eval:
+    fig_4a = go.Figure()
+    fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_0"]["l1"], name="Train L1", line=dict(color="steelblue")))
+    fig_4a.add_trace(go.Scatter(y=lgb_4a_eval["valid_1"]["l1"], name="Val L1", line=dict(color="tomato")))
+    fig_4a.update_layout(title="Model 4a: dangvantuan+LightGBM Learning Curve",
+                         xaxis_title="Boosting Round", yaxis_title="L1 (log-space)",
+                         width=700, height=400, template="plotly_white")
+    fig_4a.show()
 
 # %% Phase 3: Model 4b — AITeamVN embed + LightGBM
 print("\n\n" + "#" * 60)
@@ -515,29 +578,37 @@ at_X_train = np.hstack([at_emb["train"], cat_train.toarray()])
 at_X_val = np.hstack([at_emb["val"], cat_val.toarray()])
 at_X_test = np.hstack([at_emb["test"], cat_test.toarray()])
 
-lgb_4b_eval = {}
-lgb_4b = lgb.LGBMRegressor(
-    n_estimators=1000, learning_rate=0.1, num_leaves=31,
-    n_jobs=6, random_state=SEED, verbose=-1,
-)
-lgb_4b.fit(
-    at_X_train, y_train_log,
-    eval_set=[(at_X_train, y_train_log), (at_X_val, y_val_log)],
-    eval_metric="l1",
-    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200),
-               lgb.record_evaluation(lgb_4b_eval)],
-)
+lgb_4b_path = WEIGHTS_DIR / "model_4b_lgb_aiteamvn.pkl"
+if lgb_4b_path.exists():
+    lgb_4b = joblib.load(lgb_4b_path)
+    print(f"  Loaded weights: {lgb_4b_path.name}")
+    lgb_4b_eval = None
+else:
+    lgb_4b_eval = {}
+    lgb_4b = lgb.LGBMRegressor(
+        n_estimators=1000, learning_rate=0.1, num_leaves=31,
+        n_jobs=6, random_state=SEED, verbose=-1,
+    )
+    lgb_4b.fit(
+        at_X_train, y_train_log,
+        eval_set=[(at_X_train, y_train_log), (at_X_val, y_val_log)],
+        eval_metric="l1",
+        callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200),
+                   lgb.record_evaluation(lgb_4b_eval)],
+    )
+    joblib.dump(lgb_4b, lgb_4b_path)
+    print(f"  Saved weights: {lgb_4b_path.name}")
 pred_4b = np.expm1(lgb_4b.predict(at_X_test))
 evaluate_batch(test_prices, pred_4b, "Model 4b: AITeamVN+LightGBM")
 
-# Plot LightGBM learning curve
-fig_4b = go.Figure()
-fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_0"]["l1"], name="Train L1", line=dict(color="steelblue")))
-fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_1"]["l1"], name="Val L1", line=dict(color="tomato")))
-fig_4b.update_layout(title="Model 4b: AITeamVN+LightGBM Learning Curve",
-                     xaxis_title="Boosting Round", yaxis_title="L1 (log-space)",
-                     width=700, height=400, template="plotly_white")
-fig_4b.show()
+if lgb_4b_eval:
+    fig_4b = go.Figure()
+    fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_0"]["l1"], name="Train L1", line=dict(color="steelblue")))
+    fig_4b.add_trace(go.Scatter(y=lgb_4b_eval["valid_1"]["l1"], name="Val L1", line=dict(color="tomato")))
+    fig_4b.update_layout(title="Model 4b: AITeamVN+LightGBM Learning Curve",
+                         xaxis_title="Boosting Round", yaxis_title="L1 (log-space)",
+                         width=700, height=400, template="plotly_white")
+    fig_4b.show()
 
 # %% Phase 3: Model 5a — dangvantuan embed + DNN ResidualBlock
 print("\n\n" + "#" * 60)
@@ -546,15 +617,22 @@ print("#" * 60)
 
 input_dim = dv_data["train"][0].shape[1]
 model_5a = DeepNeuralNetwork(input_dim, hidden_size=1024, num_layers=6, dropout_prob=0.2)
-model_5a, y_mean_5a, y_std_5a, hist_5a = train_torch_model(
-    model_5a, dv_data["train"][0], dv_data["train"][1],
-    dv_data["val"][0], dv_data["val"][1], DEVICE,
-    epochs=10, batch_size=64, lr=0.001,
-)
+cached = load_torch_weights(model_5a, "model_5a_dnn_dangvantuan", DEVICE)
+if cached:
+    model_5a, y_mean_5a, y_std_5a = cached
+    hist_5a = None
+else:
+    model_5a, y_mean_5a, y_std_5a, hist_5a = train_torch_model(
+        model_5a, dv_data["train"][0], dv_data["train"][1],
+        dv_data["val"][0], dv_data["val"][1], DEVICE,
+        epochs=10, batch_size=64, lr=0.001,
+    )
+    save_torch_weights(model_5a, y_mean_5a, y_std_5a, "model_5a_dnn_dangvantuan")
 pred_5a = predict_batch(model_5a, dv_data["test"][0], y_mean_5a, y_std_5a, DEVICE)
 evaluate_batch(test_prices, pred_5a, "Model 5a: dangvantuan+DNN")
-plot_training_history(hist_5a, "Model 5a: dangvantuan+DNN")
-ALL_HISTORIES["5a"] = hist_5a
+if hist_5a:
+    plot_training_history(hist_5a, "Model 5a: dangvantuan+DNN")
+    ALL_HISTORIES["5a"] = hist_5a
 
 del model_5a
 torch.cuda.empty_cache()
@@ -566,17 +644,23 @@ print("#" * 60)
 
 input_dim = at_data["train"][0].shape[1]
 model_5b = DeepNeuralNetwork(input_dim, hidden_size=1024, num_layers=6, dropout_prob=0.2)
-model_5b, y_mean_5b, y_std_5b, hist_5b = train_torch_model(
-    model_5b, at_data["train"][0], at_data["train"][1],
-    at_data["val"][0], at_data["val"][1], DEVICE,
-    epochs=10, batch_size=64, lr=0.001,
-)
+cached = load_torch_weights(model_5b, "model_5b_dnn_aiteamvn", DEVICE)
+if cached:
+    model_5b, y_mean_5b, y_std_5b = cached
+    hist_5b = None
+else:
+    model_5b, y_mean_5b, y_std_5b, hist_5b = train_torch_model(
+        model_5b, at_data["train"][0], at_data["train"][1],
+        at_data["val"][0], at_data["val"][1], DEVICE,
+        epochs=10, batch_size=64, lr=0.001,
+    )
+    save_torch_weights(model_5b, y_mean_5b, y_std_5b, "model_5b_dnn_aiteamvn")
 pred_5b = predict_batch(model_5b, at_data["test"][0], y_mean_5b, y_std_5b, DEVICE)
 evaluate_batch(test_prices, pred_5b, "Model 5b: AITeamVN+DNN")
-plot_training_history(hist_5b, "Model 5b: AITeamVN+DNN")
-ALL_HISTORIES["5b"] = hist_5b
+if hist_5b:
+    plot_training_history(hist_5b, "Model 5b: AITeamVN+DNN")
+    ALL_HISTORIES["5b"] = hist_5b
 
-torch.save(model_5b.state_dict(), DAY4 / "embed_dnn_best.pth")
 del model_5b
 torch.cuda.empty_cache()
 
@@ -626,64 +710,72 @@ ds_train = PriceDataset(enc_train, y_train_log_t)
 ds_val = PriceDataset(enc_val, y_val_log_t)
 ds_test = PriceDataset(enc_test, y_test_log_t)
 
-print("Loading PhoBERT model (num_labels=1 -> regression)...")
-phobert_model = AutoModelForSequenceClassification.from_pretrained(
-    PHOBERT_NAME, num_labels=1, problem_type="regression"
-)
-
-training_args = TrainingArguments(
-    output_dir=str(PHOBERT_DIR),
-    num_train_epochs=3,
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=32,
-    learning_rate=2e-5,
-    weight_decay=0.01,
-    fp16=torch.cuda.is_available(),
-    eval_strategy="epoch",
-    save_strategy="epoch",
-    load_best_model_at_end=True,
-    metric_for_best_model="eval_loss",
-    logging_steps=100,
-    seed=SEED,
-    report_to="none",
-)
-
-trainer = Trainer(
-    model=phobert_model,
-    args=training_args,
-    train_dataset=ds_train,
-    eval_dataset=ds_val,
-)
-
-print("Training PhoBERT...")
-trainer.train()
-trainer.save_model(str(PHOBERT_DIR))
-phobert_tokenizer.save_pretrained(str(PHOBERT_DIR))
-print(f"Saved: {PHOBERT_DIR}")
-
-# Plot PhoBERT training loss from Trainer logs
-phobert_log = pd.DataFrame(trainer.state.log_history)
-fig_pho = make_subplots(rows=1, cols=2, subplot_titles=("Training Loss", "Eval Loss"))
-if "loss" in phobert_log.columns:
-    train_log = phobert_log.dropna(subset=["loss"])
-    fig_pho.add_trace(
-        go.Scatter(x=train_log["step"], y=train_log["loss"], mode="lines",
-                   name="Train Loss", line=dict(color="steelblue")),
-        row=1, col=1,
+phobert_trained = PHOBERT_DIR.exists() and (PHOBERT_DIR / "config.json").exists()
+if phobert_trained:
+    print(f"  Loading saved PhoBERT from {PHOBERT_DIR}")
+    phobert_model = AutoModelForSequenceClassification.from_pretrained(
+        str(PHOBERT_DIR), num_labels=1, problem_type="regression"
     )
-if "eval_loss" in phobert_log.columns:
-    eval_log = phobert_log.dropna(subset=["eval_loss"])
-    fig_pho.add_trace(
-        go.Scatter(x=eval_log["step"], y=eval_log["eval_loss"], mode="lines+markers",
-                   name="Eval Loss", line=dict(color="tomato")),
-        row=1, col=2,
+else:
+    print("Loading PhoBERT model (num_labels=1 -> regression)...")
+    phobert_model = AutoModelForSequenceClassification.from_pretrained(
+        PHOBERT_NAME, num_labels=1, problem_type="regression"
     )
-fig_pho.update_xaxes(title_text="Step", row=1, col=1)
-fig_pho.update_xaxes(title_text="Step", row=1, col=2)
-fig_pho.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=1)
-fig_pho.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=2)
-fig_pho.update_layout(title="Model 1: PhoBERT-v2 Training Curves", width=900, height=400, template="plotly_white")
-fig_pho.show()
+
+    training_args = TrainingArguments(
+        output_dir=str(PHOBERT_DIR),
+        num_train_epochs=3,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=32,
+        learning_rate=2e-5,
+        weight_decay=0.01,
+        fp16=torch.cuda.is_available(),
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        logging_steps=100,
+        seed=SEED,
+        report_to="none",
+    )
+
+    trainer = Trainer(
+        model=phobert_model,
+        args=training_args,
+        train_dataset=ds_train,
+        eval_dataset=ds_val,
+    )
+
+    print("Training PhoBERT...")
+    trainer.train()
+    trainer.save_model(str(PHOBERT_DIR))
+    phobert_tokenizer.save_pretrained(str(PHOBERT_DIR))
+    print(f"Saved: {PHOBERT_DIR}")
+
+    # Plot PhoBERT training loss from Trainer logs
+    phobert_log = pd.DataFrame(trainer.state.log_history)
+    fig_pho = make_subplots(rows=1, cols=2, subplot_titles=("Training Loss", "Eval Loss"))
+    if "loss" in phobert_log.columns:
+        train_log = phobert_log.dropna(subset=["loss"])
+        fig_pho.add_trace(
+            go.Scatter(x=train_log["step"], y=train_log["loss"], mode="lines",
+                       name="Train Loss", line=dict(color="steelblue")),
+            row=1, col=1,
+        )
+    if "eval_loss" in phobert_log.columns:
+        eval_log = phobert_log.dropna(subset=["eval_loss"])
+        fig_pho.add_trace(
+            go.Scatter(x=eval_log["step"], y=eval_log["eval_loss"], mode="lines+markers",
+                       name="Eval Loss", line=dict(color="tomato")),
+            row=1, col=2,
+        )
+    fig_pho.update_xaxes(title_text="Step", row=1, col=1)
+    fig_pho.update_xaxes(title_text="Step", row=1, col=2)
+    fig_pho.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=1)
+    fig_pho.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=2)
+    fig_pho.update_layout(title="Model 1: PhoBERT-v2 Training Curves", width=900, height=400, template="plotly_white")
+    fig_pho.show()
+    del trainer
 
 # Evaluate
 print("Evaluating PhoBERT on test set...")
@@ -701,7 +793,7 @@ pred_1 = np.expm1(np.array(pred_1_log))
 pred_1 = np.clip(pred_1, 0, None)
 evaluate_batch(test_prices, pred_1, "Model 1: PhoBERT-v2 fine-tune")
 
-del phobert_model, trainer
+del phobert_model
 torch.cuda.empty_cache()
 
 
@@ -728,64 +820,72 @@ xlmr_enc_test = xlmr_tokenizer(test_summaries, truncation=True, padding=True, ma
 xlmr_ds_train = PriceDataset(xlmr_enc_train, y_train_log_t)
 xlmr_ds_val = PriceDataset(xlmr_enc_val, y_val_log_t)
 
-print("Loading XLM-R model (num_labels=1 -> regression)...")
-xlmr_model = AutoModelForSequenceClassification.from_pretrained(
-    XLMR_NAME, num_labels=1, problem_type="regression"
-)
-
-xlmr_args = TrainingArguments(
-    output_dir=str(XLMR_DIR),
-    num_train_epochs=3,
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=32,
-    learning_rate=2e-5,
-    weight_decay=0.01,
-    fp16=torch.cuda.is_available(),
-    eval_strategy="epoch",
-    save_strategy="epoch",
-    load_best_model_at_end=True,
-    metric_for_best_model="eval_loss",
-    logging_steps=100,
-    seed=SEED,
-    report_to="none",
-)
-
-xlmr_trainer = Trainer(
-    model=xlmr_model,
-    args=xlmr_args,
-    train_dataset=xlmr_ds_train,
-    eval_dataset=xlmr_ds_val,
-)
-
-print("Training XLM-R...")
-xlmr_trainer.train()
-xlmr_trainer.save_model(str(XLMR_DIR))
-xlmr_tokenizer.save_pretrained(str(XLMR_DIR))
-print(f"Saved: {XLMR_DIR}")
-
-# Plot XLM-R training loss from Trainer logs
-xlmr_log = pd.DataFrame(xlmr_trainer.state.log_history)
-fig_xlmr = make_subplots(rows=1, cols=2, subplot_titles=("Training Loss", "Eval Loss"))
-if "loss" in xlmr_log.columns:
-    train_log = xlmr_log.dropna(subset=["loss"])
-    fig_xlmr.add_trace(
-        go.Scatter(x=train_log["step"], y=train_log["loss"], mode="lines",
-                   name="Train Loss", line=dict(color="steelblue")),
-        row=1, col=1,
+xlmr_trained = XLMR_DIR.exists() and (XLMR_DIR / "config.json").exists()
+if xlmr_trained:
+    print(f"  Loading saved XLM-R from {XLMR_DIR}")
+    xlmr_model = AutoModelForSequenceClassification.from_pretrained(
+        str(XLMR_DIR), num_labels=1, problem_type="regression"
     )
-if "eval_loss" in xlmr_log.columns:
-    eval_log = xlmr_log.dropna(subset=["eval_loss"])
-    fig_xlmr.add_trace(
-        go.Scatter(x=eval_log["step"], y=eval_log["eval_loss"], mode="lines+markers",
-                   name="Eval Loss", line=dict(color="tomato")),
-        row=1, col=2,
+else:
+    print("Loading XLM-R model (num_labels=1 -> regression)...")
+    xlmr_model = AutoModelForSequenceClassification.from_pretrained(
+        XLMR_NAME, num_labels=1, problem_type="regression"
     )
-fig_xlmr.update_xaxes(title_text="Step", row=1, col=1)
-fig_xlmr.update_xaxes(title_text="Step", row=1, col=2)
-fig_xlmr.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=1)
-fig_xlmr.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=2)
-fig_xlmr.update_layout(title="Model 3: XLM-R Training Curves", width=900, height=400, template="plotly_white")
-fig_xlmr.show()
+
+    xlmr_args = TrainingArguments(
+        output_dir=str(XLMR_DIR),
+        num_train_epochs=3,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=32,
+        learning_rate=2e-5,
+        weight_decay=0.01,
+        fp16=torch.cuda.is_available(),
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        logging_steps=100,
+        seed=SEED,
+        report_to="none",
+    )
+
+    xlmr_trainer = Trainer(
+        model=xlmr_model,
+        args=xlmr_args,
+        train_dataset=xlmr_ds_train,
+        eval_dataset=xlmr_ds_val,
+    )
+
+    print("Training XLM-R...")
+    xlmr_trainer.train()
+    xlmr_trainer.save_model(str(XLMR_DIR))
+    xlmr_tokenizer.save_pretrained(str(XLMR_DIR))
+    print(f"Saved: {XLMR_DIR}")
+
+    # Plot XLM-R training loss from Trainer logs
+    xlmr_log = pd.DataFrame(xlmr_trainer.state.log_history)
+    fig_xlmr = make_subplots(rows=1, cols=2, subplot_titles=("Training Loss", "Eval Loss"))
+    if "loss" in xlmr_log.columns:
+        train_log = xlmr_log.dropna(subset=["loss"])
+        fig_xlmr.add_trace(
+            go.Scatter(x=train_log["step"], y=train_log["loss"], mode="lines",
+                       name="Train Loss", line=dict(color="steelblue")),
+            row=1, col=1,
+        )
+    if "eval_loss" in xlmr_log.columns:
+        eval_log = xlmr_log.dropna(subset=["eval_loss"])
+        fig_xlmr.add_trace(
+            go.Scatter(x=eval_log["step"], y=eval_log["eval_loss"], mode="lines+markers",
+                       name="Eval Loss", line=dict(color="tomato")),
+            row=1, col=2,
+        )
+    fig_xlmr.update_xaxes(title_text="Step", row=1, col=1)
+    fig_xlmr.update_xaxes(title_text="Step", row=1, col=2)
+    fig_xlmr.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=1)
+    fig_xlmr.update_yaxes(title_text="MSE Loss (log-space)", row=1, col=2)
+    fig_xlmr.update_layout(title="Model 3: XLM-R Training Curves", width=900, height=400, template="plotly_white")
+    fig_xlmr.show()
+    del xlmr_trainer
 
 # Evaluate
 print("Evaluating XLM-R on test set...")
@@ -802,7 +902,7 @@ pred_3 = np.expm1(np.array(pred_3_log))
 pred_3 = np.clip(pred_3, 0, None)
 evaluate_batch(test_prices, pred_3, "Model 3: XLM-R fine-tune")
 
-del xlmr_model, xlmr_trainer
+del xlmr_model
 torch.cuda.empty_cache()
 
 
