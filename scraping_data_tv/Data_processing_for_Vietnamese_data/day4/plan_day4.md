@@ -1,11 +1,11 @@
 # Day 4: Deep Learning + Frontier LLM — Vietnamese Price Prediction
 
 **Ngay:** 2026-04-15 (cap nhat: 2026-04-16)
-**Trang thai:** FIX LOSS (L1→MSE). Can xoa weights/ cu va chay lai tat ca
+**Trang thai:** DA CHAY XONG — KET QUA THAT VONG. Khong model nao vuot Day 3 baseline (RMSLE=0.5164). Best DL: Model 2b AITeamVN+MLP RMSLE=0.4986. Can research huong moi.
 **Branch:** `feature/data-preprocessing-vi`
 **Dataset:** `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND
 **Baseline (Day 3):** Blended RMSLE=0.5164, MAE=110K, R2=47.1% (3,872 test items)
-**Target Day 4:** RMSLE <= 0.40
+**Target Day 4:** RMSLE <= 0.40 (CHUA DAT)
 
 ---
 
@@ -733,23 +733,98 @@ Dung `pricer_vi/evaluator.py` (da co) cho tat ca models. 4 metrics:
 
 ---
 
-## 11. Tieu chi hoan thanh
+## 11. KET QUA THUC TE (Day 4 v4 — 2026-04-16)
 
-- [x] **Cache Phase 1:** tokenized .pkl + dangvantuan .npy + AITeamVN .npy (giu lai, khong can xoa)
-- [ ] **Model 0 (DNN):** CAN CHAY LAI — ket qua cu voi L1Loss khong hop le. Xoa weights/ roi train lai voi MSELoss
-- [ ] **Model 1 (PhoBERT):** Fine-tune 3-5 epochs, evaluate full test
-- [ ] **Model 2a/2b (Embed+MLP):** dangvantuan + AITeamVN, evaluate full test
-- [ ] **Model 3 (XLM-R):** Fine-tune 3-5 epochs, evaluate full test
-- [ ] **Model 4a/4b (Embed+LGB):** dangvantuan + AITeamVN, evaluate full test
-- [ ] **Model 5a/5b (Embed+DNN):** dangvantuan + AITeamVN, evaluate full test
-- [ ] **Frontier LLM:** 3 models (gpt-4o-mini, gpt-5-nano, gpt-5-mini), 200 items moi model
-- [ ] **Tong hop:** Bang so sanh ~12 DL experiments + 3 LLM + Day 3 baseline
-- [x] **Model weights:** Luu .pth / .pkl / model folder cho moi model (weights/)
-- [x] **Code:** day4_dl_models.py/.ipynb + day4_frontier_llm.py/.ipynb
+### Bang ket qua toan bo (sap xep theo RMSLE)
+
+| # | Model | RMSLE | MAE (VND) | MAPE | R2 | Ghi chu |
+|---|-------|-------|-----------|------|----|---------|
+| 2b | AITeamVN+MLP | **0.4986** | 99,786 | 39.0% | 55.3% | **Best DL** — AITeamVN 1024d tot hon dangvantuan 768d |
+| 0a | DNN+HashingVec (h=2048) | 0.5066 | 102,454 | 43.7% | 53.3% | HashingVec bat ngo tot hon TF-IDF |
+| 5b | AITeamVN+DNN ResBlock | 0.5038 | 102,280 | 40.0% | 53.9% | AITeamVN tot hon dangvantuan |
+| — | **Day 3 Baseline (Blended)** | **0.5164** | **109,725** | **44.0%** | **47.1%** | **BASELINE** |
+| 3 | XLM-R fine-tune | 0.5170 | 111,584 | 51.0% | 53.1% | Ngang Day 3, MAPE cao |
+| 0c | DNN+TF-IDF (h=4096) | 0.5212 | 105,011 | 44.1% | 50.6% | 309M params, khong cai thien |
+| 2a | dangvantuan+MLP | 0.5256 | 107,960 | 44.5% | 49.4% | Frozen embed = TF-IDF level |
+| 1 | PhoBERT-v2 fine-tune | 0.5268 | 115,287 | 47.0% | 45.5% | **THAT VONG** — ky vong 0.38-0.44 |
+| 5a | dangvantuan+DNN ResBlock | 0.5414 | 112,400 | 46.8% | 46.9% | Deep network khong giup |
+| 0b | DNN+TF-IDF (h=2048) | 0.5458 | 117,722 | 41.6% | 35.1% | Overfitting nang |
+| 4b | AITeamVN+LightGBM | 0.5612 | 121,151 | 49.3% | 37.6% | LGB kem tren dense embedding |
+| 4a | dangvantuan+LightGBM | 0.5685 | 121,652 | 49.2% | 36.1% | LGB kem nhat |
+
+**Best DL: Model 2b (AITeamVN+MLP) RMSLE=0.4986** — cai thien 3.4% so voi Day 3 baseline.
+**Target 0.40: CHUA DAT.** Khoang cach con ~20%.
+
+### Phan tich chi tiet
+
+**1. PhoBERT (Model 1) THAT VONG — RMSLE=0.5268 (ky vong 0.38-0.44):**
+- Chi train 3 epochs voi HF Trainer default — co the chua du
+- Tuy nhien, ket qua kem ca frozen embedding + MLP (0.4986)
+- Nguyen nhan co the: HF Trainer loss la MSE tren log1p(price) — KHONG normalize (mean, std) nhu train_torch_model. Model phai hoc ca scale cua target
+- PhoBERT tokenizer max_length=256 co the cat mat thong tin quan trong (Thong so ky thuat)
+- 3 epochs co the qua it cho regression task (classification thuong 3 du, regression thuong can 5-10)
+
+**2. XLM-R (Model 3) NGANG BASELINE — RMSLE=0.5170:**
+- Tuong tu PhoBERT — chi 3 epochs, khong normalize target
+- MAPE=51% cao nhat — nhieu du doan sai tuong doi lon
+- 278M params nhung multilingual, khong chuyen cho tieng Viet
+
+**3. AITeamVN tot hon dangvantuan o MOI head:**
+- MLP: 0.4986 vs 0.5256 (AITeamVN thang)
+- DNN: 0.5038 vs 0.5414 (AITeamVN thang)
+- LGB: 0.5612 vs 0.5685 (AITeamVN thang)
+- AITeamVN (1024d, BGE-M3) > dangvantuan (768d, PhoBERT-based) cho price prediction
+
+**4. LightGBM kem tren dense embeddings:**
+- Embedding+LGB (0.56-0.57) kem hon Embedding+MLP (0.50-0.53) va Embedding+DNN (0.50-0.54)
+- Day 3 LGB+TF-IDF (0.5164) tot hon LGB+embedding (0.56)
+- LGB voi default params khong exploit duoc 768/1024 dense features tot — can Optuna tune, hoac LGB khong phu hop voi dense embeddings
+
+**5. DNN bag-of-words (Model 0a) bat ngo tot:**
+- HashingVec (0.5066) tot hon TF-IDF (0.5458) — nguoc lai Day 3
+- 77M params DNN overfit manh tren TF-IDF (train MSE 0.07 vs val 0.50)
+- HashingVec binary features don gian hon, DNN generalize tot hon
+
+**6. Overfitting la van de chinh:**
+- Model 0b: train MSE 0.07 vs val 0.50 (7x gap)
+- Model 0c: train MSE 0.06 vs val 0.46 (7.5x gap)
+- Model 5b: train MSE 0.18 vs val 0.43 (2.4x gap)
+- MLP nho (Model 2b) it overfitting hon → ket qua tot hon
+
+### Nguyen nhan khong dat target
+
+1. **Du lieu la bottleneck, khong phai model:** 85K items, 8 categories, text summary ngắn — du lieu khong du phong phu de model DL khai thac
+2. **Frozen embeddings mat thong tin gia:** Embeddings toi uu cho semantic similarity, khong phai price. "Samsung Galaxy S24" vs "op lung Samsung" — ngu nghia gan, gia cach 20 lan
+3. **PhoBERT/XLM-R chua tune du:** 3 epochs qua it, target khong normalize, khong warmup, khong early stopping tren custom metric
+4. **LightGBM khong phu hop voi dense embeddings:** Can feature engineering hoac Optuna
+5. **Model qua lon (DNN 77-309M) cho 85K data:** Overfitting nghiem trong
+
+### Luu y ky thuat (tu qua trinh chay)
+
+- **LightGBM eval keys:** `record_evaluation` dung key `"training"` va `"valid_1"` (KHONG phai `"valid_0"`). Metric key la `"l2"` (KHONG phai `"mse"`)
+- **accelerate package:** Can `uv add accelerate` truoc khi chay HF Trainer (notebook khong bao loi)
+- **PhoBERT warning:** `Some weights of RobertaForSequenceClassification were not initialized` — binh thuong, classifier head moi tao
+- **LightGBM feature names warning:** `X does not have valid feature names` — do predict tren numpy array khong co column names, khong anh huong ket qua
 
 ---
 
-## 12. Quyet dinh da dua ra
+## 12. Tieu chi hoan thanh
+
+- [x] **Cache Phase 1:** tokenized .pkl + dangvantuan .npy + AITeamVN .npy
+- [x] **Model 0 (DNN):** 3 variants da chay (MSELoss). Best: 0a RMSLE=0.5066
+- [x] **Model 1 (PhoBERT):** 3 epochs. RMSLE=0.5268 (THAT VONG)
+- [x] **Model 2a/2b (Embed+MLP):** Best: 2b RMSLE=0.4986 (best DL overall)
+- [x] **Model 3 (XLM-R):** 3 epochs. RMSLE=0.5170 (ngang Day 3)
+- [x] **Model 4a/4b (Embed+LGB):** Best: 4b RMSLE=0.5612 (kem)
+- [x] **Model 5a/5b (Embed+DNN):** Best: 5b RMSLE=0.5038
+- [ ] **Frontier LLM:** Chua chay (3 models x 200 items)
+- [x] **Tong hop:** Bang so sanh da co. Best DL = 2b (0.4986), cai thien 3.4% so Day 3
+- [x] **Model weights:** Da luu tat ca
+- [x] **Code:** day4_dl_models_v4.ipynb da chay hoan tat
+
+---
+
+## 13. Quyet dinh da dua ra
 
 - **Chay code:** Tao ca .py va .ipynb, chi CHAY .ipynb tren may thue (tranh x2 chi phi). .py la reference
 - **Caching:** Tat ca tokenized/vectorized/embedding luu .pkl/.npy trong folder day4/. Load lai khi re-run
@@ -766,20 +841,207 @@ Dung `pricer_vi/evaluator.py` (da co) cho tat ca models. 4 metrics:
 
 ---
 
-*Tao: 2026-04-15. Cap nhat: 2026-04-15. Trang thai: CHUA BAT DAU. Plan da duyet, san sang code.*
+## 14. Root Cause Analysis — Tai sao ket qua kem
 
-# Vấn đề về code day 4: cần kiểm tra và xác thực
+### 14.1. PhoBERT/XLM-R that bai vi TARGET KHONG NORMALIZE
 
-## Kiểm tra lại loss trong deep_neural_network.py, trong file .py dùng: loss_fn = nn.L1Loss() nhưng chúng ta đang sử dụng Root Mean Squared Logarithmic Error (RMSLE).  ( do gemini nhận xét, hãy kiểm tra để xác thực)
+Day la nguyen nhan chinh. So sanh 2 pipeline training:
 
-## Kiểm tra lại code Device Mismatch (CPU vs GPU) trong deep_neural_network.py và các file liên quan ( do gemini nhận xét, hãy kiểm tra để xác thực)
+| | `train_torch_model` (Model 0/2/5) | HF Trainer (PhoBERT/XLM-R) |
+|---|---|---|
+| Target | `log1p(price)` → **normalize(mean=12.1, std=0.83)** → MSELoss | `log1p(price)` → MSELoss (RAW, khong normalize) |
+| Target range | **~-2 to +2** (mean=0, std=1) | **~8.5 to 13.8** |
+| Classifier head init | Random weights → output ~0 → **gan target** | Random weights → output ~0 → **xa target 12 don vi** |
+| Hau qua | Hoc ngu nghia tu epoch 1 | **Ton 1-2 epochs chi de shift output len ~12** |
+| Epochs hieu qua | 5/5 epochs deu hoc ngu nghia | Chi ~1/3 epochs hoc ngu nghia (sau khi shift xong) |
 
-## 3. Cảnh báo rò rỉ bộ nhớ nhẹ (Memory Inefficiency)
-Trong file day4_dl_models.py (Dòng 193), hàm make_embed_tensors:
+**Minh chung:** PhoBERT 3 epochs (0.5268) thua MLP 30 epochs (0.4986). Nhung MLP chi co 562K params, PhoBERT co 135M. Van de khong phai model ma la training pipeline.
 
-Python
-cat_dense = cat_dict[split].toarray().astype(np.float32)
-X = np.hstack([emb_dict[split], cat_dense])
-Hàm np.hstack sẽ tạo ra một bản copy mới của ma trận nối trên RAM. Embeddings của AITeamVN (85K x 1024) vốn dĩ đã nặng. Việc hstack và tạo bản copy liên tục có thể đẩy RAM CPU lên sát mức giới hạn 28GB của máy thuê cấu hình A.
+### 14.2. So sanh English vs Vietnamese
 
-Điều này không gây crash nếu RAM trống nhiều, nhưng nó làm pipeline chậm lại ở pha chuẩn bị dữ liệu. Pytorch hỗ trợ torch.cat trên tensor, nhanh và tối ưu bộ nhớ hơn Numpy. Tuy nhiên, vì dữ liệu chỉ ~85K dòng, bạn có thể giữ nguyên để code đơn giản, tôi chỉ báo trước để bạn không bất ngờ nếu thấy RAM CPU bị spike (tăng vọt) trong vài giây. ( do gemini nhận xét, hãy kiểm tra để xác thực)
+| | English (MAE $46.49) | Vietnamese (RMSLE 0.4986) |
+|---|---|---|
+| Data | **800K** train, 10K test | 85K train, 3.9K test (**10x it**) |
+| DNN | 289M params, hidden=4096 | 77M params, hidden=2048 |
+| Loss | L1Loss (normalize log-space) | MSELoss (normalize log-space) |
+| Best model | DNN ResidualBlock | AITeamVN+MLP (frozen embed) |
+| Transformer fine-tune | Khong test | PhoBERT/XLM-R (**khong normalize target**) |
+| Ket qua | DNN thang Frontier LLM | DL chi hon ML 3.4% |
+
+English thanh cong nho **800K data** (10x). Voi chi 85K, DNN lon (77-309M) overfitting nang. MLP nho (562K) + frozen embedding tot hon.
+
+### 14.3. LightGBM kem tren dense embeddings
+
+- Day 3: TF-IDF (10K sparse) + LGB = RMSLE 0.52 (tuned)
+- Day 4: Embedding (768/1024 dense) + LGB = RMSLE 0.56-0.57 (default params)
+- **Nguyen nhan:** LGB default `num_leaves=31` qua nho cho 768-1024 features. Can Optuna tune. Hoac: LGB split tren dense features khong hieu qua bang split tren sparse (TF-IDF co interpretable features, embedding khong co).
+
+---
+
+## 15. Day 4 v5 — 3 huong cai thien (Research-backed)
+
+**Trang thai:** PLAN — chua thuc hien
+**Target:** RMSLE <= 0.40 (hien tai: 0.4986)
+**Nguon research:** BERT regression papers, e-commerce price prediction 2024-2025, so sanh English pipeline
+
+### Huong 1: Fix PhoBERT fine-tune (UU TIEN CAO — ky vong RMSLE 0.44-0.48)
+
+**Van de:** PhoBERT v4 train tren log1p(price) RAW (~8.5-13.8) → classifier head phai hoc scale truoc, roi moi hoc ngu nghia. 3 epochs qua it.
+
+**Fix:**
+
+| Thay doi | Cu (v4) | Moi (v5) | Ly do |
+|----------|---------|----------|-------|
+| **Target** | `log1p(price)` raw | `(log1p(price) - mean) / std` | Normalize ve ~0, +-2. Head init ~0 → match target |
+| **Epochs** | 3 | 5-10 + early stopping (patience=2) | Regression can nhieu epochs hon classification |
+| **LR schedule** | Linear decay (HF default) | Warmup 10% + cosine decay | Tranh hoc qua nhanh o dau |
+| **Gradient clipping** | Khong | `max_grad_norm=1.0` | On dinh training |
+| **Batch size** | 16 | 16 (giu nguyen) | VRAM du |
+| **Eval metric** | eval_loss (MSE) | Custom RMSLE metric | Monitor dung metric target |
+
+**Nang cao (neu co thoi gian):**
+
+| Ky thuat | Mo ta | Ky vong |
+|----------|-------|---------|
+| **Gradual Unfreezing** | Epoch 1-2: chi train head. Epoch 3-5: unfreeze 2 top layers. Epoch 6+: full | Tranh catastrophic forgetting |
+| **Layer-wise LR Decay (LLRD)** | Top layer lr=2e-5, moi layer duoi nhan 0.9x | Giu pre-trained features o layers thap |
+| **Max length** | Tang 256 → 384 | Giu nhieu thong so ky thuat hon |
+
+**Pipeline cu the:**
+```python
+# 1. Normalize target (nhu train_torch_model)
+y_log = torch.log1p(prices)
+y_mean, y_std = y_log.mean(), y_log.std()
+y_norm = (y_log - y_mean) / y_std  # range ~-2 to +2
+
+# 2. Train PhoBERT voi normalized target
+# HF Trainer, MSELoss, 5-10 epochs
+
+# 3. Inference: inverse transform
+pred_log_norm = model(input).logits  # output ~-2 to +2
+pred_price = torch.expm1(pred_log_norm * y_std + y_mean)
+```
+
+**Thoi gian:** ~1-2h GPU (5-10 epochs x 85K items)
+**Ky vong RMSLE:** 0.44-0.48 (cai thien 10-15% tu 0.5268)
+
+---
+
+### Huong 2: PhoBERT [CLS] embedding → LightGBM stacking (UU TIEN CAO — ky vong RMSLE 0.45-0.49)
+
+**Y tuong:** Research 2024-2025 cho thay: **frozen BERT embedding + GBDT thường tot hon fine-tune BERT** khi data < 100K. Ly do: GBDT xu ly tabular features tot hon MLP, va frozen embedding khong bi overfitting.
+
+**Khac voi Day 4 v4 (Model 4a/4b):** v4 dung dangvantuan/AITeamVN (general-purpose embedding). Huong nay dung **PhoBERT [CLS] token** — embedding tu contextual model tren tieng Viet, 768d.
+
+**Pipeline:**
+
+```
+Step 1: Load PhoBERT-base-v2 (hoac PhoBERT da fine-tune tu Huong 1)
+Step 2: Extract [CLS] embedding cho train/val/test (85K x 768)
+        → Cache .npy (tuong tu dangvantuan)
+Step 3: (Optional) PCA 768d → 256d (giam noise, tranh overfitting LGB)
+Step 4: Concat features: [CLS]_768d + category_8d = 776 features
+Step 5: LightGBM Optuna tune (target = log1p(price))
+Step 6: Evaluate
+```
+
+**Thoi gian:** ~30 phut GPU (extract embed) + ~10 phut CPU (Optuna LGB)
+**Ky vong RMSLE:** 0.45-0.49
+
+**Bien the:** Neu PhoBERT da fine-tune (Huong 1), extract [CLS] tu fine-tuned model → embeddings da adapt cho price task → ky vong tot hon general-purpose.
+
+---
+
+### Huong 3: Blending / Stacking best models (ON DINH — ky vong RMSLE 0.47-0.49)
+
+**Y tuong:** Ket hop suc manh cua nhieu models. Moi model co strengths khac nhau:
+- **AITeamVN+MLP (0.4986):** Tot tren semantic understanding
+- **DNN+HashingVec (0.5066):** Tot tren keyword matching
+- **Day 3 LGB+TF-IDF (0.5164):** Tot tren n-gram patterns
+- **PhoBERT fine-tune (sau Huong 1):** Tot tren contextual understanding
+
+**2 phuong phap:**
+
+**A. Simple Blending (weighted average):**
+```python
+# Tim weight toi uu tren validation set
+pred_final = w1 * pred_2b + w2 * pred_0a + w3 * pred_day3 + w4 * pred_phobert
+# w1 + w2 + w3 + w4 = 1
+# Optimize bang scipy.minimize tren val RMSLE
+```
+
+**B. Stacking (meta-learner):**
+```python
+# Level 1: Out-of-fold predictions tu moi base model
+# Level 2: Ridge/LightGBM train tren stacked predictions
+meta_features = [pred_2b_oof, pred_0a_oof, pred_day3_oof, pred_phobert_oof]
+meta_model = Ridge().fit(meta_features_train, y_train_log)
+```
+
+**Thoi gian:** ~30 phut CPU (chi can predictions da co)
+**Ky vong RMSLE:** 0.47-0.49 (chac chan cai thien vi diversified ensemble)
+
+---
+
+### Thu tu thuc hien
+
+| Phase | Huong | Can GPU? | Thoi gian | Dependencies |
+|-------|-------|----------|-----------|-------------|
+| v5-A | **Huong 1:** Fix PhoBERT fine-tune | Co (1-2h) | 1-2h | Khong |
+| v5-B | **Huong 2:** PhoBERT [CLS] → LGB | Co (30 phut) | 1h | Sau Huong 1 (dung fine-tuned PhoBERT) |
+| v5-C | **Huong 3:** Blending best models | Khong (CPU) | 30 phut | Sau Huong 1+2 (co predictions) |
+
+**Tong thoi gian may thue:** ~3-4h (bao gom ca train + extract + tune)
+
+### Bang ky vong v5
+
+| Model | Ky vong RMSLE | So voi Day 3 (0.5164) |
+|-------|---------------|----------------------|
+| PhoBERT v5 (fixed) | 0.44-0.48 | +7-15% |
+| PhoBERT [CLS] + LGB | 0.45-0.49 | +5-13% |
+| Blended ensemble | 0.47-0.49 | +5-9% |
+| **Best possible (combine all)** | **0.42-0.46** | **+11-19%** |
+
+---
+
+## 16. Tieu chi hoan thanh (cap nhat)
+
+### Day 4 v4 (DA XONG)
+- [x] Cache Phase 1: tokenized + embeddings
+- [x] Model 0 (DNN): 3 variants. Best: 0a RMSLE=0.5066
+- [x] Model 1 (PhoBERT): 3 epochs. RMSLE=0.5268 (THAT VONG — khong normalize target)
+- [x] Model 2a/2b (Embed+MLP): Best: 2b RMSLE=0.4986 (best DL overall)
+- [x] Model 3 (XLM-R): 3 epochs. RMSLE=0.5170
+- [x] Model 4a/4b (Embed+LGB): Best: 4b RMSLE=0.5612 (LGB default, khong tune)
+- [x] Model 5a/5b (Embed+DNN): Best: 5b RMSLE=0.5038
+- [x] Tong hop v4: Best = 2b (0.4986), target 0.40 chua dat
+
+### Day 4 v5 (CAN LAM)
+- [ ] **Huong 1:** PhoBERT fine-tune voi normalized target, 5-10 epochs, early stopping
+- [ ] **Huong 2:** PhoBERT [CLS] embedding → LightGBM Optuna
+- [ ] **Huong 3:** Blending best models (weighted/stacking)
+- [ ] **Frontier LLM:** 3 models x 200 items (optional, tham khao)
+- [ ] **Tong hop v5:** Bang so sanh toan bo + ket luan
+
+---
+
+## 17. Quyet dinh da dua ra
+
+### v4 (da chay)
+- Chi chay .ipynb tren may thue (tranh x2 chi phi). .py la reference
+- Caching: tokenized/vectorized/embedding luu .pkl/.npy
+- DNN hidden_size: 2048 truoc, 4096 sau → 4096 overfitting, 2048 tot hon
+- HashingVec bat ngo tot hon TF-IDF cho DNN (nguoc lai Day 3)
+- AITeamVN (1024d) > dangvantuan (768d) o moi head
+- LightGBM kem tren dense embeddings voi default params
+- PhoBERT/XLM-R chi 3 epochs + khong normalize target → ket qua kem
+
+### v5 (moi — tu research)
+- **PhoBERT target phai normalize** (mean, std) nhu train_torch_model — day la fix quan trong nhat
+- **Gradual unfreezing** + LLRD cho PhoBERT (tranh catastrophic forgetting)
+- **PhoBERT [CLS] → LGB** thuong tot hon fine-tune khi data < 100K (research 2024-2025)
+- **Blending/stacking** chac chan cai thien vi diversified ensemble
+
+---
+
+*Tao: 2026-04-15. Cap nhat: 2026-04-16. Trang thai: v4 DA CHAY (best 0.4986). v5 PLAN — 3 huong cai thien (fix PhoBERT, [CLS]+LGB, blending). Target 0.40.*

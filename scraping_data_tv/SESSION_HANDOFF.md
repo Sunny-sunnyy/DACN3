@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-15)
+## Trang thai hien tai (2026-04-16)
 
-**Trang thai:** Day 0-3 HOAN TAT. Day 4 FIX LOSS (L1→MSE). Buoc tiep: **Xoa weights/ cu, chay lai TAT CA tren may thue GPU**.
+**Trang thai:** Day 4 DA CHAY XONG — KET QUA THAT VONG. Best DL: AITeamVN+MLP RMSLE=0.4986 (cai thien 3.4%). Target 0.40 CHUA DAT. Can research huong moi.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -33,30 +33,31 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Model classes: `pricer_vi/deep_neural_network.py`
 
 ### Dang lam / Buoc tiep:
-- [ ] **Day 4 Phase 2:** Model 0 DNN bag-of-words (3 experiments) — CAN CHAY LAI (fix L1→MSE)
-- [ ] **Day 4 Phase 3:** Model 2/4/5 embedding-based (6 experiments)
-- [ ] **Day 4 Phase 4:** Model 1 PhoBERT fine-tune
-- [ ] **Day 4 Phase 5:** Model 3 XLM-R fine-tune
-- [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items)
-- [ ] **Day 4 Phase 7:** Tong hop + phan tich
+- [x] **Day 4 Phase 2:** Model 0 DNN bag-of-words (3 experiments) — Best: 0a RMSLE=0.5066
+- [x] **Day 4 Phase 3:** Model 2/4/5 embedding-based (6 experiments) — Best: 2b RMSLE=0.4986
+- [x] **Day 4 Phase 4:** Model 1 PhoBERT fine-tune — RMSLE=0.5268 (THAT VONG)
+- [x] **Day 4 Phase 5:** Model 3 XLM-R fine-tune — RMSLE=0.5170 (ngang Day 3)
+- [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items) — chua chay
+- [x] **Day 4 Phase 7:** Tong hop — Best DL=0.4986, cai thien 3.4%
+- [ ] **Day 4 v5:** Research + cai thien (blending, PhoBERT tune lai, feature engineering)
 
-### Day 4 — 12 DL Experiments
+### Day 4 — 12 DL Experiments (DA CHAY XONG)
 
 | # | Model | Ky vong RMSLE | Thuc te RMSLE | Ghi chu |
 |---|-------|---------------|---------------|---------|
-| 0a | DNN + HashingVec (h=2048) | 0.48-0.52 | ~~0.5319~~ | L1Loss, can chay lai voi MSELoss |
-| 0b | DNN + TF-IDF (h=2048) | 0.48-0.52 | ~~0.5287~~ | L1Loss, can chay lai voi MSELoss |
-| 0c | DNN + TF-IDF (h=4096) | 0.46-0.50 | ~~0.5342~~ | L1Loss, can chay lai voi MSELoss |
-| **1** | **PhoBERT-v2 fine-tune** | **0.38-0.44** | — | |
-| 2a | dangvantuan embed + MLP | 0.42-0.48 | — | |
-| 2b | AITeamVN embed + MLP | 0.42-0.48 | — | |
-| 3 | XLM-R fine-tune | 0.40-0.46 | — | |
-| 4a | dangvantuan embed + LightGBM | 0.40-0.46 | — | |
-| 4b | AITeamVN embed + LightGBM | 0.40-0.46 | — | |
-| 5a | dangvantuan embed + DNN ResBlock | 0.42-0.48 | — | |
-| 5b | AITeamVN embed + DNN ResBlock | 0.42-0.48 | — | |
+| 0a | DNN + HashingVec (h=2048) | 0.48-0.52 | 0.5066 | HashingVec bat ngo tot hon TF-IDF |
+| 0b | DNN + TF-IDF (h=2048) | 0.48-0.52 | 0.5458 | Overfitting nang (train 0.07 vs val 0.50) |
+| 0c | DNN + TF-IDF (h=4096) | 0.46-0.50 | 0.5212 | 309M params khong giup |
+| **1** | **PhoBERT-v2 fine-tune** | **0.38-0.44** | **0.5268** | **THAT VONG** — 3 epochs, khong normalize target |
+| 2a | dangvantuan embed + MLP | 0.42-0.48 | 0.5256 | Frozen embed = TF-IDF level |
+| **2b** | **AITeamVN embed + MLP** | **0.42-0.48** | **0.4986** | **BEST DL** — AITeamVN 1024d > dangvantuan 768d |
+| 3 | XLM-R fine-tune | 0.40-0.46 | 0.5170 | Ngang Day 3, MAPE=51% cao |
+| 4a | dangvantuan embed + LightGBM | 0.40-0.46 | 0.5685 | LGB kem tren dense embedding |
+| 4b | AITeamVN embed + LightGBM | 0.40-0.46 | 0.5612 | LGB kem tren dense embedding |
+| 5a | dangvantuan embed + DNN ResBlock | 0.42-0.48 | 0.5414 | Deep network khong giup |
+| 5b | AITeamVN embed + DNN ResBlock | 0.42-0.48 | 0.5038 | AITeamVN tot hon dangvantuan |
 
-**Frontier LLM (200 items):** gpt-4o-mini, gpt-5-nano, gpt-5-mini
+**Frontier LLM (200 items):** gpt-4o-mini, gpt-5-nano, gpt-5-mini — CHUA CHAY
 
 ### Quyet dinh da dua ra:
 - Fine-tune: Qwen 3.5 4B (tot hon cho tieng Viet)
@@ -80,7 +81,11 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 4:** Frontier LLM: prompt tieng Anh, 200 items, 3 model OpenAI
 - **Day 4:** Chi chay .ipynb (khong .py) de tiet kiem chi phi may thue
 - **Day 4:** Cache tat ca tokenized/embedding vao day4/*.pkl/*.npy
-- **Day 4:** Loss function fix: L1Loss (MAE) → MSELoss (truc tiep optimize RMSLE). CAN XOA WEIGHTS CU VA TRAIN LAI
+- **Day 4:** Loss function fix: L1Loss (MAE) → MSELoss (truc tiep optimize RMSLE). DA CHAY LAI THANH CONG
+- **Day 4:** AITeamVN embedding (1024d, BGE-M3) > dangvantuan (768d, PhoBERT) o moi head
+- **Day 4:** PhoBERT/XLM-R chi 3 epochs + khong normalize target → ket qua kem. Can tune lai
+- **Day 4:** LightGBM kem tren dense embeddings (0.56-0.57) — can Optuna hoac khong phu hop
+- **Day 4:** LGB record_evaluation keys: "training" (khong phai "valid_0"), metric "l2" (khong phai "mse")
 
 ### Ket qua du lieu:
 - **Day 1 (v4):** 158K raw → 147K dedup → 120K sample (110K/5K/5K)
@@ -91,9 +96,11 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 3 v3 (DONE):** Best: Blended RMSLE=0.5164, MAE=110K, MAPE=44.0%, R2=47.1% (3,872 items)
   - Filter: <= 1M VND → 85K train / 3.9K val / 3.9K test
   - Log-transform + Arch C (word+char_wb) + Category + Optuna + Blending
-- **Day 4 Phase 2 (CAN TRAIN LAI):** Model 0 DNN bag-of-words — ket qua cu voi L1Loss (sai), can chay lai voi MSELoss
-  - Ket qua cu (L1Loss): 0b RMSLE=0.5287, MAE=105K. Can xoa weights/ va chay lai
-  - Fix: L1Loss → MSELoss truc tiep optimize RMSLE
+- **Day 4 v4 DA CHAY (MSELoss):** 11 DL experiments. Best: AITeamVN+MLP RMSLE=0.4986
+  - PhoBERT RMSLE=0.5268 (THAT VONG), XLM-R 0.5170 (ngang Day 3)
+  - AITeamVN embedding tot hon dangvantuan o moi head
+  - LightGBM kem tren dense embeddings (0.56-0.57)
+  - Target 0.40 CHUA DAT. Can research huong moi
 
 ### Luu y ky thuat:
 - Tiki API cap 2000 SP/category; dung Adaptive Price-Range Slicing de vuot
