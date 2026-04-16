@@ -7,7 +7,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Trang thai hien tai (2026-04-16)
 
-**Trang thai:** Day 4 DA CHAY XONG — KET QUA THAT VONG. Best DL: AITeamVN+MLP RMSLE=0.4986 (cai thien 3.4%). Target 0.40 CHUA DAT. Can research huong moi.
+**Trang thai:** Day 4 v4 DA CHAY (best 0.4986). v5 PLAN — 3 huong cai thien (fix PhoBERT normalize, PhoBERT embed+LGB, blending). Target 0.40 CHUA DAT.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -39,7 +39,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Day 4 Phase 5:** Model 3 XLM-R fine-tune — RMSLE=0.5170 (ngang Day 3)
 - [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items) — chua chay
 - [x] **Day 4 Phase 7:** Tong hop — Best DL=0.4986, cai thien 3.4%
-- [ ] **Day 4 v5:** Research + cai thien (blending, PhoBERT tune lai, feature engineering)
+- [ ] **Day 4 v5:** 3 huong cai thien (fix PhoBERT normalize+mean pooling, PhoBERT embed→LGB+PCA, blending)
 
 ### Day 4 — 12 DL Experiments (DA CHAY XONG)
 
@@ -128,46 +128,44 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Day 4 — Chay tren may thue (HIEN TAI)
+### Prompt A: Day 4 v5 — Tao code cai thien (HIEN TAI)
 
 ```
 Doc cac file sau de nap ngu canh:
 0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan Day 4
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan Day 4 (da trim, 290 dong)
 2. "scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/" — tat ca file .py
-3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models.py" — code DL models
+3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models.py" — code DL v4 (reference)
 4. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_frontier_llm.py" — code Frontier LLM
 
 Trang thai:
-- Day 4 CODE DA TAO, chua chay tren may thue
-- 12 DL experiments + 3 Frontier LLM
-- Target: RMSLE <= 0.40 (Day 3 baseline: 0.5164)
+- Day 4 v4 DA CHAY: 12 DL experiments. Best: AITeamVN+MLP RMSLE=0.4986 (Day 3: 0.5164)
+- Target 0.40 CHUA DAT. Root cause: PhoBERT target khong normalize (xem plan Section 2)
+- Research xong: mean pooling > CLS, LoRA, PCA+LGB, gradual unfreezing (xem plan Section 3)
 
-Buoc tiep:
-- Toi da chay day4_dl_models.ipynb tren may thue. Day la ket qua:
-[DAN KET QUA OUTPUT VAO DAY]
+Buoc tiep: Tao file day4_dl_models_v5.ipynb voi 3 huong cai thien (xem plan Section 4):
+1. Fix PhoBERT fine-tune (normalize target + mean pooling + early stopping) — ky vong 0.42-0.46
+2. PhoBERT embedding → LGB + PCA + Optuna — ky vong 0.44-0.48
+3. Blending best models — ky vong 0.43-0.47
 
-Hay phan tich ket qua va de xuat buoc tiep theo.
-Luon dung uv de chay code.
+Luu y:
+- File .ipynb chay tren may thue (RTX 4060 Ti 16GB VRAM)
+- Reuse cache tu v4: tokenized .pkl, embeddings .npy, model weights .pth
+- Luon dung uv de chay code
 ```
 
-### Prompt B: Day 4 — Phan tich ket qua (SAU KHI CHAY)
+### Prompt B: Day 4 — Phan tich ket qua v5 (SAU KHI CHAY)
 
 ```
 Doc cac file sau de nap ngu canh:
 0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
 1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan Day 4
-2. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_results.json" — ket qua DL
-3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_frontier_llm_results.json" — ket qua LLM
 
 Trang thai:
-- Day 4 DA CHAY XONG. Ket qua luu trong day4_results.json
-- [TOM TAT KET QUA: best model, RMSLE, so sanh voi Day 3]
+- Day 4 v5 DA CHAY XONG tren may thue. Day la ket qua:
+[DAN KET QUA OUTPUT VAO DAY]
 
-Hay phan tich ket qua va de xuat:
-1. Model nao tot nhat, tai sao?
-2. Can dieu chinh gi (hyperparameter, architecture)?
-3. Huong di tiep cho Day 5 (Fine-tune LLM)
+Hay phan tich ket qua va de xuat buoc tiep theo.
 ```
 
 ### Khi nao can doc them:
@@ -215,4 +213,4 @@ uv sync && uv add transformers accelerate sentence-transformers pyvi litellm lig
 ---
 
 
-*Cap nhat: 2026-04-16 — Day 0-3 HOAN TAT. Day 4 FIX LOSS: L1Loss→MSELoss (truc tiep optimize RMSLE). Ket qua Phase 2 cu khong con hop le. Buoc tiep: xoa weights/ cu, chay lai TAT CA experiments tren may thue.*
+*Cap nhat: 2026-04-16 — Day 0-3 HOAN TAT. Day 4 v4 DA CHAY (best 0.4986). v5 PLAN — 3 huong cai thien. Target 0.40.*
