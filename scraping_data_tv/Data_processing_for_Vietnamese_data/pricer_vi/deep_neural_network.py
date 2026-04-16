@@ -4,6 +4,7 @@ Includes:
 - ResidualBlock: Skip-connection block for deep networks
 - DeepNeuralNetwork: Stacked ResidualBlocks for bag-of-words/embedding input
 - MLP: Simple feedforward network for pre-computed embeddings
+- plot_training_history: Plotly chart for train/val loss curves
 """
 
 import numpy as np
@@ -11,6 +12,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 class ResidualBlock(nn.Module):
@@ -142,3 +145,38 @@ def predict_batch(model, X, y_mean, y_std, device):
         prices = torch.exp(out * y_std + y_mean) - 1
         prices = prices.clamp(min=0).cpu().numpy().flatten()
     return prices
+
+
+def plot_training_history(history, title="Training History"):
+    """Plot train/val loss and val MAE curves using Plotly."""
+    epochs = list(range(1, len(history["train_loss"]) + 1))
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Loss (L1 on normalized log-space)", "Val MAE (VND)"),
+    )
+
+    fig.add_trace(
+        go.Scatter(x=epochs, y=history["train_loss"], mode="lines+markers",
+                   name="Train Loss", line=dict(color="steelblue")),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=epochs, y=history["val_loss"], mode="lines+markers",
+                   name="Val Loss", line=dict(color="tomato")),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=epochs, y=history["val_mae"], mode="lines+markers",
+                   name="Val MAE", line=dict(color="mediumseagreen")),
+        row=1, col=2,
+    )
+
+    fig.update_xaxes(title_text="Epoch", row=1, col=1)
+    fig.update_xaxes(title_text="Epoch", row=1, col=2)
+    fig.update_yaxes(title_text="L1 Loss", row=1, col=1)
+    fig.update_yaxes(title_text="MAE (VND)", row=1, col=2)
+
+    fig.update_layout(title=title, width=900, height=400, template="plotly_white")
+    fig.show()
+    return fig

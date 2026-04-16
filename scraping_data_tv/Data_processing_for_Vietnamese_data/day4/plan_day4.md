@@ -767,3 +767,19 @@ Dung `pricer_vi/evaluator.py` (da co) cho tat ca models. 4 metrics:
 ---
 
 *Tao: 2026-04-15. Cap nhat: 2026-04-15. Trang thai: CHUA BAT DAU. Plan da duyet, san sang code.*
+
+# Vấn đề về code day 4: cần kiểm tra và xác thực
+
+## Kiểm tra lại loss trong deep_neural_network.py, trong file .py dùng: loss_fn = nn.L1Loss() nhưng chúng ta đang sử dụng Root Mean Squared Logarithmic Error (RMSLE).  ( do gemini nhận xét, hãy kiểm tra để xác thực)
+
+## Kiểm tra lại code Device Mismatch (CPU vs GPU) trong deep_neural_network.py và các file liên quan ( do gemini nhận xét, hãy kiểm tra để xác thực)
+
+## 3. Cảnh báo rò rỉ bộ nhớ nhẹ (Memory Inefficiency)
+Trong file day4_dl_models.py (Dòng 193), hàm make_embed_tensors:
+
+Python
+cat_dense = cat_dict[split].toarray().astype(np.float32)
+X = np.hstack([emb_dict[split], cat_dense])
+Hàm np.hstack sẽ tạo ra một bản copy mới của ma trận nối trên RAM. Embeddings của AITeamVN (85K x 1024) vốn dĩ đã nặng. Việc hstack và tạo bản copy liên tục có thể đẩy RAM CPU lên sát mức giới hạn 28GB của máy thuê cấu hình A.
+
+Điều này không gây crash nếu RAM trống nhiều, nhưng nó làm pipeline chậm lại ở pha chuẩn bị dữ liệu. Pytorch hỗ trợ torch.cat trên tensor, nhanh và tối ưu bộ nhớ hơn Numpy. Tuy nhiên, vì dữ liệu chỉ ~85K dòng, bạn có thể giữ nguyên để code đơn giản, tôi chỉ báo trước để bạn không bất ngờ nếu thấy RAM CPU bị spike (tăng vọt) trong vài giây. ( do gemini nhận xét, hãy kiểm tra để xác thực)
