@@ -38,6 +38,7 @@ from pricer_vi.items import Item
 from pricer_vi.deep_neural_network import (
     DeepNeuralNetwork, MLP, train_torch_model, predict_batch, plot_training_history,
 )
+from pricer_vi.evaluator import plot_predictions
 
 # %% Config
 DATASET = "SeanSunny/items_tv_v6"
@@ -96,13 +97,8 @@ def mape(y_true, y_pred):
 
 
 def evaluate_batch(y_true, y_pred, name="Model"):
-    """Evaluate predictions, print metrics, store in ALL_RESULTS."""
-    r = {
-        "rmsle": rmsle(y_true, y_pred),
-        "mae": mean_absolute_error(y_true, y_pred),
-        "mape": mape(y_true, y_pred),
-        "r2": r2_score(y_true, y_pred) * 100,
-    }
+    """Evaluate predictions, print metrics, plot scatter + error trend, store in ALL_RESULTS."""
+    r = plot_predictions(y_true, y_pred, title=name, names=test_names)
     print(f"\n{'='*60}")
     print(f"{name} ({len(y_true)} items)")
     print(f"  RMSLE:  {r['rmsle']:.4f}")
@@ -142,6 +138,8 @@ test_prices = np.array([it.price for it in test_items], dtype=np.float32)
 train_categories = [it.category for it in train_items]
 val_categories = [it.category for it in val_items]
 test_categories = [it.category for it in test_items]
+
+test_names = [it.title[:40] + "..." if len(it.title) > 40 else it.title for it in test_items]
 
 # %% Phase 1b: Category one-hot encoding
 print("\n--- Phase 1b: Category one-hot ---")

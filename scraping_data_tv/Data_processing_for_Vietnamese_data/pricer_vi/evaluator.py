@@ -273,3 +273,113 @@ class Tester:
 def evaluate(function, data, size=DEFAULT_SIZE, workers=WORKERS):
     """Evaluate a predictor function on data. Returns metrics dict."""
     return Tester(function, data, size=size, workers=workers).run()
+
+
+def plot_predictions(y_true, y_pred, title="Model", names=None):
+    """Plot scatter (predicted vs actual) + error trend from pre-computed arrays.
+
+    Args:
+        y_true: array of actual prices (VND)
+        y_pred: array of predicted prices (VND)
+        title: model name for chart titles
+        names: optional list of product names for hover text
+    Returns:
+        dict with rmsle, mae, mape, r2
+    """
+    y_true = np.array(y_true, dtype=float)
+    y_pred = np.clip(np.array(y_pred, dtype=float), 0, None)
+    n = len(y_true)
+
+    errors = np.abs(y_true - y_pred)
+    pct_errors = np.where(y_true > 0, errors / y_true, 1.0)
+    colors = np.where(pct_errors < 0.2, "green", np.where(pct_errors < 0.4, "orange", "red"))
+
+    rmsle_val = rmsle(y_true, y_pred)
+    mae_val = float(mean_absolute_error(y_true, y_pred))
+    mape_val = mape(y_true, y_pred)
+    r2_val = r2_score(y_true, y_pred) * 100
+
+    subtitle = (
+        f"<b>RMSLE:</b> {rmsle_val:.4f}  "
+        f"<b>MAE:</b> {mae_val:,.0f} VND  "
+        f"<b>MAPE:</b> {mape_val:.1f}%  "
+        f"<b>R2:</b> {r2_val:.1f}%"
+    )
+
+    # --- Scatter plot ---
+    if names is None:
+        names = [f"Item {i}" for i in range(n)]
+    hover = [
+        f"{nm}\nDu doan: {g:,.0f} VND\nThuc te: {t:,.0f} VND"
+        for nm, g, t in zip(names, y_pred, y_true)
+    ]
+
+    max_val = float(max(y_true.max(), y_pred.max()))
+
+    df_scatter = pd.DataFrame({
+        "truth": y_true, "guess": y_pred, "color": colors, "hover": hover,
+    })
+
+    fig1 = go.Figure()
+    for c, color_val in [("green", "green"), ("orange", "orange"), ("red", "red")]:
+        mask = df_scatter["color"] == c
+        if mask.sum() == 0:
+            continue
+        sub = df_scatter[mask]
+        fig1.add_trace(go.Scatter(
+            x=sub["guess"], y=sub["truth"], mode="markers",
+            marker=dict(size=5, color=color_val, opacity=0.6),
+            name=c, customdata=sub[["hover"]].to_numpy(),
+            hovertemplate="%{customdata[0]}<extra></extra>",
+        ))
+    fig1.add_trace(go.Scatter(
+        x=[0, max_val], y=[0, max_val], mode="lines",
+        line=dict(width=2, dash="dash", color="deepskyblue"),
+        name="y=x", hoverinfo="skip", showlegend=False,
+    ))
+
+    step = _tick_step(max_val)
+    tick_vals = list(range(0, int(max_val) + step, step))
+    tick_text = [f"{v // 1000:,}k" if v > 0 else "0" for v in tick_vals]
+    fig1.update_xaxes(title="Gia du doan (VND)", range=[0, max_val], tickvals=tick_vals, ticktext=tick_text)
+    fig1.update_yaxes(title="Gia thuc te (VND)", range=[0, max_val], tickvals=tick_vals, ticktext=tick_text)
+    fig1.update_layout(
+        title=f"{title} ({n} items)<br>{subtitle}",
+        width=800, height=700, showlegend=False, template="plotly_white",
+    )
+    fig1.show()
+
+    # --- Error trend chart ---
+    running_sums = np.cumsum(errors)
+    x = np.arange(1, n + 1)
+    running_means = running_sums / x
+    running_sq = np.cumsum(errors ** 2)
+    running_stds = np.sqrt(np.maximum(running_sq / x - running_means ** 2, 0))
+    ci = np.where(x > 1, 1.96 * running_stds / np.sqrt(x), 0)
+
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(
+        x=np.concatenate([x, x[::-1]]),
+        y=np.concatenate([running_means + ci, (running_means - ci)[::-1]]),
+        fill="toself", fillcolor="rgba(128,128,128,0.2)",
+        line=dict(color="rgba(255,255,255,0)"), hoverinfo="skip", showlegend=False,
+    ))
+    fig2.add_trace(go.Scatter(
+        x=x, y=running_means, mode="lines",
+        line=dict(width=3, color="firebrick"), name="Cumulative Avg Error",
+    ))
+
+    y_max = float((running_means + ci).max()) if n > 0 else 1
+    step_e = _tick_step(y_max)
+    tv = list(range(0, int(y_max) + step_e, step_e))
+    tt = [f"{v // 1000:,}k" if v > 0 else "0" for v in tv]
+
+    fig2.update_layout(
+        title=f"{title} Error Trend: {running_means[-1]:,.0f} +/- {ci[-1]:,.0f} VND",
+        xaxis_title="Datapoints", yaxis_title="Avg Absolute Error (VND)",
+        width=900, height=360, template="plotly_white", showlegend=False,
+    )
+    fig2.update_yaxes(tickvals=tv, ticktext=tt)
+    fig2.show()
+
+    return {"rmsle": rmsle_val, "mae": mae_val, "mape": mape_val, "r2": r2_val}
