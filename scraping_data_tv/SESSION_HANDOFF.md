@@ -7,7 +7,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Trang thai hien tai (2026-04-15)
 
-**Trang thai:** Day 0-3 HOAN TAT. Day 4 CODE DA TAO, chua chay. Buoc tiep: **Chay day4_dl_models.ipynb tren may thue GPU**.
+**Trang thai:** Day 0-3 HOAN TAT. Day 4 DANG CHAY. Phase 2 (Model 0 DNN) XONG. Buoc tiep: **Chay tiep Phase 3-5 tren may thue GPU**.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -33,25 +33,28 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Model classes: `pricer_vi/deep_neural_network.py`
 
 ### Dang lam / Buoc tiep:
-- [ ] **Day 4:** Chay day4_dl_models.ipynb tren may thue GPU
-- [ ] **Day 4:** Chay day4_frontier_llm.ipynb (may local hoac may thue)
-- [ ] **Day 4:** Phan tich ket qua, dieu chinh neu can
+- [x] **Day 4 Phase 2:** Model 0 DNN bag-of-words (3 experiments) — XONG
+- [ ] **Day 4 Phase 3:** Model 2/4/5 embedding-based (6 experiments) — DANG CHAY
+- [ ] **Day 4 Phase 4:** Model 1 PhoBERT fine-tune
+- [ ] **Day 4 Phase 5:** Model 3 XLM-R fine-tune
+- [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items)
+- [ ] **Day 4 Phase 7:** Tong hop + phan tich
 
-### Day 4 — 12 DL Experiments (chua chay)
+### Day 4 — 12 DL Experiments
 
-| # | Model | Ky vong RMSLE |
-|---|-------|---------------|
-| 0a | DNN + HashingVec (h=2048) | 0.48-0.52 |
-| 0b | DNN + TF-IDF (h=2048) | 0.48-0.52 |
-| 0c | DNN + TF-IDF (h=4096) | 0.46-0.50 |
-| **1** | **PhoBERT-v2 fine-tune** | **0.38-0.44** |
-| 2a | dangvantuan embed + MLP | 0.42-0.48 |
-| 2b | AITeamVN embed + MLP | 0.42-0.48 |
-| 3 | XLM-R fine-tune | 0.40-0.46 |
-| 4a | dangvantuan embed + LightGBM | 0.40-0.46 |
-| 4b | AITeamVN embed + LightGBM | 0.40-0.46 |
-| 5a | dangvantuan embed + DNN ResBlock | 0.42-0.48 |
-| 5b | AITeamVN embed + DNN ResBlock | 0.42-0.48 |
+| # | Model | Ky vong RMSLE | Thuc te RMSLE | Ghi chu |
+|---|-------|---------------|---------------|---------|
+| 0a | DNN + HashingVec (h=2048) | 0.48-0.52 | **0.5319** | 77M params, MAPE=50.7% |
+| **0b** | **DNN + TF-IDF (h=2048)** | 0.48-0.52 | **0.5287** | **Best Model 0**, MAPE=42.9% |
+| 0c | DNN + TF-IDF (h=4096) | 0.46-0.50 | **0.5342** | 310M params, overfitting |
+| **1** | **PhoBERT-v2 fine-tune** | **0.38-0.44** | — | |
+| 2a | dangvantuan embed + MLP | 0.42-0.48 | — | |
+| 2b | AITeamVN embed + MLP | 0.42-0.48 | — | |
+| 3 | XLM-R fine-tune | 0.40-0.46 | — | |
+| 4a | dangvantuan embed + LightGBM | 0.40-0.46 | — | |
+| 4b | AITeamVN embed + LightGBM | 0.40-0.46 | — | |
+| 5a | dangvantuan embed + DNN ResBlock | 0.42-0.48 | — | |
+| 5b | AITeamVN embed + DNN ResBlock | 0.42-0.48 | — | |
 
 **Frontier LLM (200 items):** gpt-4o-mini, gpt-5-nano, gpt-5-mini
 
@@ -71,7 +74,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 3 v2:** Best model: LightGBM RMSLE=0.5799 (cai thien 29% so voi Median baseline)
 - **Day 3 v3:** Log-transform bat buoc cho RMSLE. Arch C can tuning moi tot. Blended RMSLE=0.5164
 - **Day 3 v3:** RMSLE ~0.52 la gioi han cua TF-IDF approach. Can dense embeddings cho < 0.45
-- **Day 4:** DNN hidden=2048 truoc, 4096 sau. Chay ca HashingVec va TF-IDF so sanh
+- **Day 4:** DNN hidden=2048 truoc, 4096 sau. TF-IDF tot hon HashingVec. h=4096 overfitting
+- **Day 4:** May thue: RTX 4060 Ti 16GB VRAM, CUDA 13.1, PyTorch nightly cu130
 - **Day 4:** Embedding: dangvantuan/vietnamese-embedding (768d) + AITeamVN/Vietnamese_Embedding (1024d)
 - **Day 4:** Frontier LLM: prompt tieng Anh, 200 items, 3 model OpenAI
 - **Day 4:** Chi chay .ipynb (khong .py) de tiet kiem chi phi may thue
@@ -86,7 +90,10 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 3 v3 (DONE):** Best: Blended RMSLE=0.5164, MAE=110K, MAPE=44.0%, R2=47.1% (3,872 items)
   - Filter: <= 1M VND → 85K train / 3.9K val / 3.9K test
   - Log-transform + Arch C (word+char_wb) + Category + Optuna + Blending
-- **Day 4:** Chua co ket qua (chua chay)
+- **Day 4 Phase 2 (DONE):** Model 0 DNN bag-of-words — best: 0b RMSLE=0.5287, MAE=105K, MAPE=42.9%, R2=48.6%
+  - Khong vuot Day 3 baseline (0.5164). DNN bag-of-words bi gioi han boi sparse input
+  - h=4096 (0c) kem hon h=2048 (0b) — overfitting 310M params tren 85K data
+  - TF-IDF > HashingVec (0b > 0a), nhat quan voi Day 3
 
 ### Luu y ky thuat:
 - Tiki API cap 2000 SP/category; dung Adaptive Price-Range Slicing de vuot
@@ -198,4 +205,4 @@ uv sync && uv add transformers accelerate sentence-transformers pyvi litellm lig
 ---
 
 
-*Cap nhat: 2026-04-15 — Day 0-3 HOAN TAT. Day 4 code da tao (12 DL + 3 LLM). Chua chay. Plan: day4/plan_day4.md. Buoc tiep: chay ipynb tren may thue GPU.*
+*Cap nhat: 2026-04-16 — Day 0-3 HOAN TAT. Day 4 DANG CHAY. Phase 2 (Model 0 DNN) XONG: best 0b RMSLE=0.5287 (khong vuot Day 3). Buoc tiep: Phase 3-5 embedding + Transformer.*

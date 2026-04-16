@@ -1,7 +1,7 @@
 # Day 4: Deep Learning + Frontier LLM — Vietnamese Price Prediction
 
-**Ngay:** 2026-04-15
-**Trang thai:** CHUA BAT DAU
+**Ngay:** 2026-04-15 (cap nhat: 2026-04-16)
+**Trang thai:** DANG CHAY — Phase 2 (Model 0) XONG, Phase 3-5 dang chay
 **Branch:** `feature/data-preprocessing-vi`
 **Dataset:** `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND
 **Baseline (Day 3):** Blended RMSLE=0.5164, MAE=110K, R2=47.1% (3,872 test items)
@@ -735,8 +735,9 @@ Dung `pricer_vi/evaluator.py` (da co) cho tat ca models. 4 metrics:
 
 ## 11. Tieu chi hoan thanh
 
-- [ ] **Cache Phase 1:** tokenized .pkl + dangvantuan .npy + AITeamVN .npy
-- [ ] **Model 0 (DNN):** 3-4 experiments (V1/V2 x 2048, best x 4096), evaluate full test
+- [x] **Cache Phase 1:** tokenized .pkl + dangvantuan .npy + AITeamVN .npy
+- [x] **Model 0 (DNN):** 3 experiments DONE. Best: 0b RMSLE=0.5287 (khong vuot Day 3 0.5164)
+  - 0a HV h=2048: RMSLE=0.5319 | 0b TFIDF h=2048: **0.5287** | 0c TFIDF h=4096: 0.5342 (overfitting)
 - [ ] **Model 1 (PhoBERT):** Fine-tune 3-5 epochs, evaluate full test
 - [ ] **Model 2a/2b (Embed+MLP):** dangvantuan + AITeamVN, evaluate full test
 - [ ] **Model 3 (XLM-R):** Fine-tune 3-5 epochs, evaluate full test
@@ -744,8 +745,8 @@ Dung `pricer_vi/evaluator.py` (da co) cho tat ca models. 4 metrics:
 - [ ] **Model 5a/5b (Embed+DNN):** dangvantuan + AITeamVN, evaluate full test
 - [ ] **Frontier LLM:** 3 models (gpt-4o-mini, gpt-5-nano, gpt-5-mini), 200 items moi model
 - [ ] **Tong hop:** Bang so sanh ~12 DL experiments + 3 LLM + Day 3 baseline
-- [ ] **Model weights:** Luu .pth / model folder cho best DL model
-- [ ] **Code:** day4_dl_models.py/.ipynb + day4_frontier_llm.py/.ipynb
+- [x] **Model weights:** Luu .pth / .pkl / model folder cho moi model (weights/)
+- [x] **Code:** day4_dl_models.py/.ipynb + day4_frontier_llm.py/.ipynb
 
 ---
 
