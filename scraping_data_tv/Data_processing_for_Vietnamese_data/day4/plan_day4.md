@@ -1,13 +1,14 @@
 # Day 4: Deep Learning + Frontier LLM — Vietnamese Price Prediction
 
-**Ngay:** 2026-04-15 (cap nhat: 2026-04-16)
-**Trang thai:** v4 DA CHAY XONG — v5 PLAN (research-backed improvements)
+**Ngay:** 2026-04-15 (cap nhat: 2026-04-17)
+**Trang thai:** v5-old DA CHAY (best 0.4191) — v5-new DANG CHUAN BI (optimize head + LoRA + batch)
 **Branch:** `feature/data-preprocessing-vi`
 **Dataset:** `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND
 **Data:** 85,727 train / 3,926 val / 3,872 test | 8 categories | Price: 4.9K-1M VND
 **Baseline (Day 3):** Blended TF-IDF+LGB RMSLE=0.5164, MAE=110K, R2=47.1%
 **Best Day 4 v4:** AITeamVN+MLP RMSLE=0.4986 (cai thien 3.4%)
-**Target:** RMSLE <= 0.40 (CHUA DAT — khoang cach ~20%)
+**Best Day 4 v5-old:** Blended ensemble RMSLE=0.4191 (cai thien 18.8% vs Day 3)
+**Target:** RMSLE <= 0.40 (GAP 0.0191 — gan dat)
 
 ---
 
@@ -278,13 +279,150 @@ pricer_vi/
 - [x] Root cause: PhoBERT target khong normalize
 - [x] Model weights saved
 
-### v5 (CAN LAM)
-- [ ] Huong 1: PhoBERT fine-tune (normalize target + mean pooling + early stopping)
-- [ ] Huong 2: PhoBERT embed → LGB + Optuna + PCA
-- [ ] Huong 3: Blending best models
+### v5-old (DA CHAY — 2026-04-17)
+- [x] v5-A1: PhoBERT full fine-tune — **RMSLE=0.4413** (10ep, 93 phut)
+- [x] v5-A2: PhoBERT + LoRA r=8 — RMSLE=0.5729 (THAT BAI, r qua nho)
+- [x] v5-B: PhoBERT embed + PCA + LGB — **RMSLE=0.4357** (Optuna 50 trials)
+- [x] v5-C: Blending — **RMSLE=0.4191** (gap 0.0191 den target)
 - [ ] Frontier LLM: 3 models x 200 items (optional)
-- [ ] Tong hop v5: bang so sanh + ket luan
+
+### v5-new (CHUAN BI — 2026-04-18)
+- [ ] v5-A1: PhoBERT full (LayerNorm+GELU head, batch=96)
+- [ ] v5-A2: PhoBERT + LoRA r=16, alpha=32, q+k+v
+- [ ] v5-B: PCA + LGB (dung best PhoBERT tu v5-new)
+- [ ] v5-C: Blending — ky vong 0.40-0.42
+- [ ] Tong hop: so sanh v5-old vs v5-new
 
 ---
 
-*Tao: 2026-04-15. Cap nhat: 2026-04-16. v4 DA CHAY (best 0.4986). v5 PLAN — target 0.40.*
+## 8. KET QUA v5-old (2026-04-17) — batch_size=64, LoRA r=8, ReLU head
+
+**Config:** PhoBERT-base-v2 | batch_size=64 | num_workers=0 | ReLU head (khong LayerNorm) | LoRA r=8, alpha=16, targets=[query, value]
+
+**May thue:** RTX 5060 Ti 16GB VRAM | i5-13400F 12C | 28GB RAM | Thoi gian: ~3.5h
+
+### 8.1. Ket qua chi tiet
+
+| # | Model | RMSLE | MAE (VND) | MAPE | R2 | Thoi gian | Ghi chu |
+|---|-------|-------|-----------|------|----|-----------|---------|
+| **v5-C** | **Blended ensemble** | **0.4191** | **84,550** | **33.6%** | **67.2%** | 15 phut | **BEST v5** |
+| v5-B | PhoBERT embed+PCA+LGB | 0.4357 | 88,669 | 34.8% | 63.8% | ~30 phut | Optuna 50 trials |
+| v5-A1 | PhoBERT full fine-tune | 0.4413 | 88,206 | 34.7% | 64.5% | ~93 phut (10ep) | Khong early stop |
+| — | v4 AITeamVN+MLP | 0.4986 | 99,786 | 39.0% | 55.3% | — | Baseline v4 |
+| — | Day 3 Blended (TF-IDF) | 0.5164 | 109,725 | 44.0% | 47.1% | — | Baseline Day 3 |
+| v5-A2 | PhoBERT + LoRA (r=8) | 0.5729 | 124,188 | 50.9% | 36.0% | ~79 phut (10ep) | **THAT BAI** |
+
+### 8.2. v5-A1: PhoBERT Full Fine-tune — Training Log
+
+```
+Epoch  1/10 (559s) | Train: 0.6636 | Val: 0.5168 | RMSLE: 0.5561 | MAE: 116,241
+Epoch  2/10 (560s) | Train: 0.4479 | Val: 0.4220 | RMSLE: 0.5026 | MAE: 102,332
+Epoch  3/10 (555s) | Train: 0.3413 | Val: 0.3801 | RMSLE: 0.4770 | MAE:  96,496
+Epoch  4/10 (557s) | Train: 0.2694 | Val: 0.3686 | RMSLE: 0.4697 | MAE:  92,963
+Epoch  5/10 (557s) | Train: 0.2157 | Val: 0.3565 | RMSLE: 0.4619 | MAE:  91,037
+Epoch  6/10 (555s) | Train: 0.1752 | Val: 0.3482 | RMSLE: 0.4565 | MAE:  90,055
+Epoch  7/10 (557s) | Train: 0.1445 | Val: 0.3495 | RMSLE: 0.4574 | MAE:  89,265
+Epoch  8/10 (567s) | Train: 0.1245 | Val: 0.3468 | RMSLE: 0.4556 | MAE:  88,565
+Epoch  9/10 (555s) | Train: 0.1113 | Val: 0.3472 | RMSLE: 0.4559 | MAE:  88,320
+Epoch 10/10 (555s) | Train: 0.1074 | Val: 0.3464 | RMSLE: 0.4554 | MAE:  88,221
+Restored best: Val RMSLE=0.4554
+```
+
+**Nhan xet A1:**
+- Converge tot, RMSLE giam deu tu 0.5561 -> 0.4554 (val)
+- Train loss giam manh (0.66 -> 0.11) nhung val loss giam cham (0.52 -> 0.35) — dau hieu overfitting nhe
+- Khong early stop (best epoch 10, patience=3 khong trigger) — model van dang hoc
+- Test RMSLE=0.4413 tot hon val 0.4554 — test set "de" hon val
+- **Fix normalize target thanh cong:** v4 PhoBERT 0.5268 -> v5 0.4413 = cai thien 16.2%
+
+### 8.3. v5-A2: PhoBERT + LoRA (r=8) — Training Log
+
+```
+Epoch  1/10 (473s) | Train: 0.8786 | Val: 0.7206 | RMSLE: 0.6568 | MAE: 143,139
+Epoch  2/10 (472s) | Train: 0.6703 | Val: 0.6476 | RMSLE: 0.6226 | MAE: 134,691
+Epoch  3/10 (473s) | Train: 0.6303 | Val: 0.6236 | RMSLE: 0.6109 | MAE: 131,836
+Epoch  4/10 (473s) | Train: 0.6074 | Val: 0.6090 | RMSLE: 0.6037 | MAE: 129,255
+Epoch  5/10 (473s) | Train: 0.5936 | Val: 0.6061 | RMSLE: 0.6023 | MAE: 128,486
+Epoch  6/10 (473s) | Train: 0.5821 | Val: 0.5905 | RMSLE: 0.5945 | MAE: 126,770
+Epoch  7/10 (472s) | Train: 0.5752 | Val: 0.5858 | RMSLE: 0.5921 | MAE: 126,226
+Epoch  8/10 (473s) | Train: 0.5711 | Val: 0.5857 | RMSLE: 0.5921 | MAE: 125,966
+Epoch  9/10 (472s) | Train: 0.5683 | Val: 0.5834 | RMSLE: 0.5909 | MAE: 125,746
+Epoch 10/10 (473s) | Train: 0.5676 | Val: 0.5836 | RMSLE: 0.5910 | MAE: 125,721
+Restored best: Val RMSLE=0.5909
+```
+
+**Nhan xet A2:**
+- **THAT BAI NANG — kem hon ca v4 PhoBERT (0.5268)**
+- Train loss giam rat cham (0.88 -> 0.57 sau 10 epochs), model chua converge
+- Val RMSLE chi dat 0.5909 — kem hon Day 3 baseline (0.5164)
+- **Root cause:** r=8, targets=[query, value] qua nho — chi ~295K LoRA params, khong du capacity
+- Toc do nhanh hon A1 (473s vs 559s/epoch) nhung vo nghia khi ket qua kem
+
+### 8.4. v5-B: PhoBERT Embedding + PCA + LGB
+
+- PCA 768d -> 256d: **variance retained = 92.50%**
+- Optuna 50 trials (471s): best val RMSLE=0.4495
+- Best params: `num_leaves=204, min_child_samples=43, feature_fraction=0.63, learning_rate=0.027`
+- Test RMSLE=0.4357 — **tot hon A1 (0.4413)** du chi dung frozen embedding
+
+**Nhan xet B:**
+- PhoBERT fine-tuned embedding + PCA + tuned LGB > PhoBERT fine-tune truc tiep
+- Chung to: embedding quality cua fine-tuned PhoBERT rat tot, chi can head phu hop (LGB > linear head)
+- PCA 256d giu 92.5% variance — giam noise hieu qua
+
+### 8.5. v5-C: Blending — Weights + Phan tich
+
+**Blend weights (val RMSLE=0.4303):**
+
+| Model | Weight | Ghi chu |
+|-------|--------|---------|
+| v5-A1 (PhoBERT full) | **0.578** | Dominant — contextual understanding |
+| v4-2b (AITeamVN+MLP) | **0.279** | Complementary — different embedding space |
+| v4-0a (DNN+HashingVec) | 0.111 | Keyword matching |
+| Day3-LGB | 0.032 | Minimal contribution |
+| v5-A2 (LoRA) | 0.000 | Loai bo hoan toan |
+| v5-B (PCA+LGB) | 0.000 | Loai bo (trung voi A1 embedding) |
+
+**Nhan xet C:**
+- Blend RMSLE=0.4191 — **tot hon moi model don le**
+- v5-A1 chiem 57.8% — PhoBERT fine-tuned la backbone chinh
+- v4-2b (AITeamVN) chiem 27.9% — bo sung goc nhin khac (different embedding model)
+- v5-B bi loai du RMSLE tot (0.4357) — correlation cao voi A1 (cung PhoBERT embedding)
+- v5-A2 bi loai hoan toan — confirm LoRA r=8 that bai
+
+### 8.6. So sanh tien do
+
+| Version | Best RMSLE | vs Day 3 | vs Target (0.40) |
+|---------|-----------|----------|-----------------|
+| Day 3 v3 | 0.5164 | baseline | gap 0.1164 |
+| Day 4 v4 | 0.4986 | +3.4% | gap 0.0986 |
+| **Day 4 v5-old** | **0.4191** | **+18.8%** | **gap 0.0191** |
+
+### 8.7. Nhan xet tong hop v5-old
+
+1. **Fix normalize target la breakthrough lon nhat:** PhoBERT 0.5268 -> 0.4413 (cai thien 16.2%)
+2. **LoRA r=8 qua nho:** 0.5729 — kem hon ca v4. Can tang rank va them key module
+3. **PCA+LGB la strong alternative:** 0.4357, tot hon fine-tune head, re hon (30 phut vs 93 phut)
+4. **Blending hieu qua:** 0.4191 — PhoBERT (58%) + AITeamVN (28%) bo sung tot
+5. **Gap den target chi con 0.0191** — can optimize them de vuot 0.40
+
+### 8.8. v5-new: Thay doi cho lan chay tiep (2026-04-18)
+
+| Thay doi | v5-old | v5-new | Ly do |
+|----------|--------|--------|-------|
+| **Head** | ReLU, khong LayerNorm | LayerNorm(768) + GELU + Xavier init | Stabilize mean-pool output |
+| **Dropout** | 0.1 ca 2 | 0.2 full / 0.1 LoRA | Regularize full fine-tune |
+| **LoRA rank** | r=8 | r=16 | Qua nho, chua converge |
+| **LoRA alpha** | 16 | 32 | Giu scaling=2 |
+| **LoRA targets** | query, value | query, key, value | Tang capacity |
+| **batch_size** | 64 | 96 | VRAM chi dung 8.9/16 GB |
+| **num_workers** | 0 | 4 | CPU chi dung 10% |
+
+**Ky vong v5-new:**
+- A1 (full): 0.42-0.44 (tuong duong hoac tot hon v5-old nho head tot hon)
+- A2 (LoRA): 0.46-0.50 (cai thien manh tu 0.5729 nho r=16 + key)
+- Blended: **0.40-0.42** (LoRA dong gop thuc su vao blend)
+
+---
+
+*Tao: 2026-04-15. Cap nhat: 2026-04-17. v5-old DA CHAY (best 0.4191, gap 0.0191). v5-new CHUAN BI.*

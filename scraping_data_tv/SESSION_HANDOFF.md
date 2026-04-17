@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-16)
+## Trang thai hien tai (2026-04-17)
 
-**Trang thai:** Day 4 v4 DA CHAY (best 0.4986). v5 PLAN — 3 huong cai thien (fix PhoBERT normalize, PhoBERT embed+LGB, blending). Target 0.40 CHUA DAT.
+**Trang thai:** Day 4 v5-old DA CHAY (best 0.4191, gap 0.0191). v5-new CHUAN BI (optimize head+LoRA+batch). Target 0.40 GAN DAT.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -39,7 +39,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Day 4 Phase 5:** Model 3 XLM-R fine-tune — RMSLE=0.5170 (ngang Day 3)
 - [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items) — chua chay
 - [x] **Day 4 Phase 7:** Tong hop — Best DL=0.4986, cai thien 3.4%
-- [ ] **Day 4 v5:** 3 huong cai thien (fix PhoBERT normalize+mean pooling, PhoBERT embed→LGB+PCA, blending)
+- [x] **Day 4 v5-old DA CHAY:** A1=0.4413, A2=0.5729(fail), B=0.4357, **Blended=0.4191** (gap 0.0191)
+- [ ] **Day 4 v5-new:** Optimize head (LayerNorm+GELU) + LoRA r=16 + batch=96 — ky vong 0.40-0.42
 
 ### Day 4 — 12 DL Experiments (DA CHAY XONG)
 
@@ -100,7 +101,12 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - PhoBERT RMSLE=0.5268 (THAT VONG), XLM-R 0.5170 (ngang Day 3)
   - AITeamVN embedding tot hon dangvantuan o moi head
   - LightGBM kem tren dense embeddings (0.56-0.57)
-  - Target 0.40 CHUA DAT. Can research huong moi
+- **Day 4 v5-old DA CHAY:** Best: **Blended RMSLE=0.4191**, MAE=84.5K, MAPE=33.6%, R2=67.2%
+  - A1 PhoBERT full=0.4413 (fix normalize thanh cong, +16.2% vs v4)
+  - A2 LoRA r=8=0.5729 (THAT BAI, r qua nho)
+  - B PCA+LGB=0.4357 (tot hon A1, re hon)
+  - C Blended=0.4191 (A1 58% + v4-2b 28% + v4-0a 11%)
+  - **Gap den target 0.40 chi con 0.0191**
 
 ### Luu y ky thuat:
 - Tiki API cap 2000 SP/category; dung Adaptive Price-Range Slicing de vuot
@@ -114,6 +120,11 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 4:** Loss fix: L1Loss → MSELoss trong train_torch_model (RMSLE = sqrt(MSE) trong log-space)
 - **Day 4:** LightGBM eval_metric doi tu "l1" sang "mse" de monitor dung (objective mac dinh da la L2)
 - **Day 4:** predict_batch: y_mean/y_std can .to(device) khi load tu checkpoint
+- **Day 4 v5:** LoRA r=8+[query,value] THAT BAI (0.5729). Can r>=16+[query,key,value]
+- **Day 4 v5:** Mean pooling output can LayerNorm truoc khi vao head (stabilize scale)
+- **Day 4 v5:** PhoBERT full fine-tune 10ep khong early stop — model van dang hoc, co the tang epochs
+- **Day 4 v5:** PCA 768d->256d giu 92.5% variance. LGB tren PCA tot hon MLP head
+- **Day 4 v5:** Blend loai bo v5-B vi correlation cao voi A1 (cung PhoBERT embedding)
 
 ### Moi truong chay:
 - **May thue (ML/DL):** RTX 4060 Ti 16GB VRAM | i5-13400F 12C | 28GB RAM | CUDA 4352 (toi thieu)
@@ -213,4 +224,4 @@ uv sync && uv add transformers accelerate sentence-transformers pyvi litellm lig
 ---
 
 
-*Cap nhat: 2026-04-16 — Day 0-3 HOAN TAT. Day 4 v4 DA CHAY (best 0.4986). v5 PLAN — 3 huong cai thien. Target 0.40.*
+*Cap nhat: 2026-04-17 — Day 0-3 HOAN TAT. Day 4 v5-old DA CHAY (best 0.4191, gap 0.0191). v5-new CHUAN BI (optimize head+LoRA+batch). Target 0.40.*
