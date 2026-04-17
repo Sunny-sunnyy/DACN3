@@ -3,7 +3,7 @@
 #
 # **3 huong cai thien (research-backed):**
 # - **v5-A1:** PhoBERT full fine-tune (normalize target + mean pooling + early stopping)
-# - **v5-A2:** PhoBERT + LoRA (r=8, alpha=16) — compare with A1
+# - **v5-A2:** PhoBERT + LoRA (r=16, alpha=32, query+key+value) — compare with A1
 # - **v5-B:** Best PhoBERT embedding -> PCA(256) -> LightGBM + Optuna
 # - **v5-C:** Blending best models (v4 + v5 + Day 3)
 #
@@ -296,7 +296,7 @@ def mean_pooling(model_output, attention_mask):
 
 
 class PhoBERTRegressor(nn.Module):
-    """PhoBERT + mean pooling + 2-layer regression head."""
+    """PhoBERT + mean pooling + LayerNorm + GELU regression head."""
 
     def __init__(self, model_name=PHOBERT_NAME, use_lora=False):
         super().__init__()
@@ -305,16 +305,31 @@ class PhoBERTRegressor(nn.Module):
         if use_lora:
             from peft import LoraConfig, get_peft_model
             lora_config = LoraConfig(
-                r=8, lora_alpha=16,
-                target_modules=["query", "value"],
+                r=16, lora_alpha=32,
+                target_modules=["query", "key", "value"],
                 lora_dropout=0.1,
             )
             self.bert = get_peft_model(self.bert, lora_config)
             self.bert.print_trainable_parameters()
+        dropout = 0.1 if use_lora else 0.2
         self.regressor = nn.Sequential(
-            nn.Linear(768, 256), nn.ReLU(), nn.Dropout(0.1),
+            nn.LayerNorm(768),
+            nn.Linear(768, 256),
+            nn.GELU(),
+            nn.Dropout(dropout),
             nn.Linear(256, 1),
         )
+        self._init_head()
+
+    def _init_head(self):
+        """Xavier init for GELU layers, small init for output."""
+        for m in self.regressor:
+            if isinstance(m, nn.Linear):
+                if m.out_features == 1:
+                    nn.init.normal_(m.weight, std=0.01)
+                else:
+                    nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
 
     def forward(self, input_ids, attention_mask):
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
@@ -360,7 +375,7 @@ def train_phobert(model, train_enc, val_enc, train_prices_np, val_prices_np, dev
 
     train_loader = DataLoader(
         PhoBERTDataset(train_enc, y_train_norm),
-        batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True,
+        batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True,
     )
 
     model.to(device)
@@ -524,7 +539,7 @@ else:
     model_a1, y_mean_a1, y_std_a1, hist_a1 = train_phobert(
         model_a1, phobert_enc_train, phobert_enc_val,
         train_prices, val_prices, DEVICE,
-        epochs=10, batch_size=32, lr=2e-5, patience=3,
+        epochs=10, batch_size=96, lr=2e-5, patience=3,
     )
     torch.save({
         "state_dict": model_a1.state_dict(),
@@ -553,7 +568,7 @@ torch.cuda.empty_cache()
 
 # %% [markdown]
 # ### v5-A2: PhoBERT + LoRA (r=8, alpha=16)
-# - ~0.7M trainable params (LoRA adapters + regressor head)
+# - ~1.1M trainable params (LoRA adapters on query+key+value + regressor head)
 # - Same training setup as A1
 
 # %% v5-A2: Train
@@ -577,7 +592,7 @@ else:
     model_a2, y_mean_a2, y_std_a2, hist_a2 = train_phobert(
         model_a2, phobert_enc_train, phobert_enc_val,
         train_prices, val_prices, DEVICE,
-        epochs=10, batch_size=32, lr=2e-5, patience=3,
+        epochs=10, batch_size=96, lr=2e-5, patience=3,
     )
     torch.save({
         "state_dict": model_a2.state_dict(),
