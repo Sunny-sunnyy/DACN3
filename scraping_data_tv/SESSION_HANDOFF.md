@@ -7,7 +7,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Trang thai hien tai (2026-04-17)
 
-**Trang thai:** Day 4 v5-old DA CHAY (best 0.4191, gap 0.0191). v5-new CHUAN BI (optimize head+LoRA+batch). Target 0.40 GAN DAT.
+**Trang thai:** Day 4 v5-old DA CHAY (best 0.4191, gap 0.0191). v6 DA TAO (drop LoRA, 20ep, patience=5). Target 0.40 GAN DAT.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -40,7 +40,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [ ] **Day 4 Phase 6:** Frontier LLM (3 models, 200 items) — chua chay
 - [x] **Day 4 Phase 7:** Tong hop — Best DL=0.4986, cai thien 3.4%
 - [x] **Day 4 v5-old DA CHAY:** A1=0.4413, A2=0.5729(fail), B=0.4357, **Blended=0.4191** (gap 0.0191)
-- [ ] **Day 4 v5-new:** Optimize head (LayerNorm+GELU) + LoRA r=16 + batch=96 — ky vong 0.40-0.42
+- [ ] **Day 4 v6:** Drop LoRA, 20 epochs, patience=5, LayerNorm+GELU head, Frontier LLM — ky vong 0.39-0.41
 
 ### Day 4 — 12 DL Experiments (DA CHAY XONG)
 
@@ -125,6 +125,11 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 4 v5:** PhoBERT full fine-tune 10ep khong early stop — model van dang hoc, co the tang epochs
 - **Day 4 v5:** PCA 768d->256d giu 92.5% variance. LGB tren PCA tot hon MLP head
 - **Day 4 v5:** Blend loai bo v5-B vi correlation cao voi A1 (cung PhoBERT embedding)
+- **Day 4 v6:** Drop LoRA hoan toan (that bai, khong hieu qua). Chi giu full fine-tune
+- **Day 4 v6:** Tang epochs 10->20 (cosine LR hit 0 at ep10), patience 3->5
+- **Day 4 v6:** LayerNorm(768)+GELU+Xavier init+dropout=0.2 cho head
+- **Day 4 v6:** Frontier LLM: 3 models (gpt-4o-mini, gpt-5-nano, gpt-5-mini), 200 items, litellm
+- **Day 4 v6:** Reuse v5 caches (arch_c_vectorizer, lgb_day3_retrain) neu ton tai
 
 ### Moi truong chay:
 - **May thue (ML/DL):** RTX 4060 Ti 16GB VRAM | i5-13400F 12C | 28GB RAM | CUDA 4352 (toi thieu)
@@ -139,22 +144,23 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Day 4 v5 — Tao code cai thien (HIEN TAI)
+### Prompt A: Day 4 v6 — Chay notebook v6 tren may thue (HIEN TAI)
 
 ```
 Doc cac file sau de nap ngu canh:
 0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan Day 4 (da trim, 290 dong)
-2. "scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/" — tat ca file .py
-3. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models.py" — code DL v4 (reference)
-4. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_frontier_llm.py" — code Frontier LLM
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan Day 4 (Section 8.8 = v6 changes)
+2. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models_v6.py" — code v6 (chay file nay)
 
 Trang thai:
-- Day 4 v4 DA CHAY: 12 DL experiments. Best: AITeamVN+MLP RMSLE=0.4986 (Day 3: 0.5164)
-- Target 0.40 CHUA DAT. Root cause: PhoBERT target khong normalize (xem plan Section 2)
-- Research xong: mean pooling > CLS, LoRA, PCA+LGB, gradual unfreezing (xem plan Section 3)
+- v5-old DA CHAY: Best blended RMSLE=0.4191 (gap 0.0191 den target 0.40)
+- v6 DA TAO: drop LoRA, 20 epochs, patience=5, LayerNorm+GELU head, batch=96, Frontier LLM 200 items
+- File: day4_dl_models_v6.ipynb (31 cells, san sang chay tren may thue)
+- Weights luu vao weights_v6/, reuse v5 caches neu co
 
-Buoc tiep: Tao file day4_dl_models_v5.ipynb voi 3 huong cai thien (xem plan Section 4):
+Buoc tiep: Chay v6 notebook tren may thue. Kiem tra ket qua. Cap nhat .md files voi ket qua thuc te.
+Neu RMSLE < 0.40: dat target. Neu khong: phan tich va de xuat v7.
+```
 1. Fix PhoBERT fine-tune (normalize target + mean pooling + early stopping) — ky vong 0.42-0.46
 2. PhoBERT embedding → LGB + PCA + Optuna — ky vong 0.44-0.48
 3. Blending best models — ky vong 0.43-0.47

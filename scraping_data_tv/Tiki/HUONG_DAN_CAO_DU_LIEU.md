@@ -44,8 +44,8 @@ uv --version
 ```cmd
 git clone https://github.com/Sunny-sunnyy/DACN3.git
 #git checkout feature/tiki-scraper
+cd DACN3
 git checkout feature/data-preprocessing-vi
-cd DACN3/tech2ai
 uv sync
 ```
 

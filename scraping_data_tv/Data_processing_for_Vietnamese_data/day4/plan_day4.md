@@ -1,7 +1,7 @@
 # Day 4: Deep Learning + Frontier LLM — Vietnamese Price Prediction
 
-**Ngay:** 2026-04-15 (cap nhat: 2026-04-17)
-**Trang thai:** v5-old DA CHAY (best 0.4191) — v5-new DANG CHUAN BI (optimize head + LoRA + batch)
+**Ngay:** 2026-04-15 (cap nhat: 2026-04-18)
+**Trang thai:** v5-old DA CHAY (best 0.4191) — v6 DA TAO (drop LoRA, 20ep, patience=5)
 **Branch:** `feature/data-preprocessing-vi`
 **Dataset:** `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND
 **Data:** 85,727 train / 3,926 val / 3,872 test | 8 categories | Price: 4.9K-1M VND
@@ -258,11 +258,14 @@ pred_final = w1*pred_2b + w2*pred_0a + w3*pred_day3 + w4*pred_phobert
 day4/
     plan_day4.md                    # File nay
     day4_dl_models_v4.ipynb         # DA CHAY — 12 experiments, ket qua o Section 1
-    day4_dl_models_v5.ipynb         # TAO MOI — v5 improvements
-    day4_dl_models.py               # Reference .py (khong chay)
-    day4_frontier_llm.py            # Frontier LLM (chua chay)
+    day4_dl_models_v5.ipynb         # DA CHAY — v5-old ket qua o Section 8
+    day4_dl_models_v6.ipynb         # TAO MOI — v6 (drop LoRA, 20ep, Frontier LLM)
+    day4_dl_models_v6.py            # Reference .py cho v6
+    day4_dl_models.py               # Reference .py v4 (khong chay)
+    day4_frontier_llm.py            # Frontier LLM standalone (da tich hop vao v6)
+    weights_v5/                     # v5-old weights (reuse caches)
+    weights_v6/                     # v6 weights (tao moi khi chay)
     *.pkl, *.npy                    # Cache tokenized + embeddings
-    *.pth                           # Model weights
 
 pricer_vi/
     deep_neural_network.py          # DNN + MLP + train_torch_model (REFERENCE cho normalize target)
@@ -286,12 +289,12 @@ pricer_vi/
 - [x] v5-C: Blending — **RMSLE=0.4191** (gap 0.0191 den target)
 - [ ] Frontier LLM: 3 models x 200 items (optional)
 
-### v5-new (CHUAN BI — 2026-04-18)
-- [ ] v5-A1: PhoBERT full (LayerNorm+GELU head, batch=96)
-- [ ] v5-A2: PhoBERT + LoRA r=16, alpha=32, q+k+v
-- [ ] v5-B: PCA + LGB (dung best PhoBERT tu v5-new)
-- [ ] v5-C: Blending — ky vong 0.40-0.42
-- [ ] Tong hop: so sanh v5-old vs v5-new
+### v6 (DA TAO — 2026-04-18)
+- [ ] Phase 2: PhoBERT full fine-tune (20 epochs, patience=5, LayerNorm+GELU head, batch=96)
+- [ ] Phase 3: PhoBERT embed -> PCA(256) -> LGB + Optuna
+- [ ] Phase 4: Frontier LLM (gpt-4o-mini, gpt-5-nano, gpt-5-mini, 200 items)
+- [ ] Phase 5: Blending (v6 + v4 + Day3) — ky vong 0.39-0.41
+- [ ] Phase 6: Tong hop + charts
 
 ---
 
@@ -406,23 +409,29 @@ Restored best: Val RMSLE=0.5909
 4. **Blending hieu qua:** 0.4191 — PhoBERT (58%) + AITeamVN (28%) bo sung tot
 5. **Gap den target chi con 0.0191** — can optimize them de vuot 0.40
 
-### 8.8. v5-new: Thay doi cho lan chay tiep (2026-04-18)
+### 8.8. v6: Thay doi tu v5-old (2026-04-18)
 
-| Thay doi | v5-old | v5-new | Ly do |
-|----------|--------|--------|-------|
+| Thay doi | v5-old | v6 | Ly do |
+|----------|--------|-----|-------|
+| **LoRA** | r=8, alpha=16, [q,v] | **BO** | That bai 0.5729, khong hieu qua |
 | **Head** | ReLU, khong LayerNorm | LayerNorm(768) + GELU + Xavier init | Stabilize mean-pool output |
-| **Dropout** | 0.1 ca 2 | 0.2 full / 0.1 LoRA | Regularize full fine-tune |
-| **LoRA rank** | r=8 | r=16 | Qua nho, chua converge |
-| **LoRA alpha** | 16 | 32 | Giu scaling=2 |
-| **LoRA targets** | query, value | query, key, value | Tang capacity |
+| **Dropout** | 0.1 | 0.2 | Regularize full fine-tune |
+| **Epochs** | 10 | **20** | Cosine LR hit 0 at ep10, model van hoc |
+| **Patience** | 3 | **5** | Cho model vuot qua plateaus |
 | **batch_size** | 64 | 96 | VRAM chi dung 8.9/16 GB |
 | **num_workers** | 0 | 4 | CPU chi dung 10% |
+| **Frontier LLM** | Khong | 200 items x 3 models | Benchmark zero-shot |
+| **Weights dir** | weights_v5 | **weights_v6** | Tach biet ket qua |
 
-**Ky vong v5-new:**
-- A1 (full): 0.42-0.44 (tuong duong hoac tot hon v5-old nho head tot hon)
-- A2 (LoRA): 0.46-0.50 (cai thien manh tu 0.5729 nho r=16 + key)
-- Blended: **0.40-0.42** (LoRA dong gop thuc su vao blend)
+**Ky vong v6:**
+- PhoBERT full (20ep): 0.40-0.44 (tot hon v5-old 0.4413 nho head + epochs)
+- PCA+LGB: 0.42-0.44 (dung v6 embedding moi)
+- Blended: **0.39-0.41** (vuot target 0.40)
+
+**Files:**
+- `day4_dl_models_v6.py` — .py reference
+- `day4_dl_models_v6.ipynb` — chay tren may thue
 
 ---
 
-*Tao: 2026-04-15. Cap nhat: 2026-04-17. v5-old DA CHAY (best 0.4191, gap 0.0191). v5-new CHUAN BI.*
+*Tao: 2026-04-15. Cap nhat: 2026-04-18. v5-old DA CHAY (best 0.4191, gap 0.0191). v6 DA TAO (drop LoRA, 20ep).*
