@@ -5,7 +5,7 @@
 # - LoRA REMOVED (failed in v5: 0.5729, insufficient capacity)
 # - Epochs: 10 -> 20 (v5 cosine LR hit 0.00 at epoch 10, model still improving)
 # - Early stopping patience: 3 -> 5
-# - Keep: LayerNorm+GELU head, batch=96, num_workers=4, dropout=0.2
+# - Keep: LayerNorm+GELU head, batch=96, num_workers=0 (Windows-safe), dropout=0.2
 #
 # **Pipeline:**
 # - Phase 1: Load data + reuse v4/v5 caches
@@ -371,7 +371,7 @@ def train_phobert(model, train_enc, val_enc, train_prices_np, val_prices_np, dev
 
     train_loader = DataLoader(
         PhoBERTDataset(train_enc, y_train_norm),
-        batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True,
+        batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True,
     )
 
     model.to(device)
