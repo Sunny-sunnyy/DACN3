@@ -275,7 +275,7 @@ def evaluate(function, data, size=DEFAULT_SIZE, workers=WORKERS):
     return Tester(function, data, size=size, workers=workers).run()
 
 
-def plot_predictions(y_true, y_pred, title="Model", names=None):
+def plot_predictions(y_true, y_pred, title="Model", names=None, plot_size=200):
     """Plot scatter (predicted vs actual) + error trend from pre-computed arrays.
 
     Args:
@@ -283,6 +283,7 @@ def plot_predictions(y_true, y_pred, title="Model", names=None):
         y_pred: array of predicted prices (VND)
         title: model name for chart titles
         names: optional list of product names for hover text
+        plot_size: number of points to display in charts (metrics computed on full set)
     Returns:
         dict with rmsle, mae, mape, r2
     """
@@ -294,6 +295,7 @@ def plot_predictions(y_true, y_pred, title="Model", names=None):
     pct_errors = np.where(y_true > 0, errors / y_true, 1.0)
     colors = np.where(pct_errors < 0.2, "green", np.where(pct_errors < 0.4, "orange", "red"))
 
+    # Metrics on full dataset
     rmsle_val = rmsle(y_true, y_pred)
     mae_val = float(mean_absolute_error(y_true, y_pred))
     mape_val = mape(y_true, y_pred)
@@ -306,18 +308,34 @@ def plot_predictions(y_true, y_pred, title="Model", names=None):
         f"<b>R2:</b> {r2_val:.1f}%"
     )
 
+    # Sample for chart display only (metrics already computed above)
+    if plot_size is not None and plot_size < n:
+        rng = np.random.default_rng(SEED)
+        idx = rng.choice(n, plot_size, replace=False)
+        y_true_plot = y_true[idx]
+        y_pred_plot = y_pred[idx]
+        errors_plot = errors[idx]
+        colors_plot = colors[idx]
+        names_plot = [names[i] for i in idx] if names is not None else None
+        n_plot = plot_size
+    else:
+        y_true_plot, y_pred_plot = y_true, y_pred
+        errors_plot, colors_plot = errors, colors
+        names_plot = names
+        n_plot = n
+
     # --- Scatter plot ---
-    if names is None:
-        names = [f"Item {i}" for i in range(n)]
+    if names_plot is None:
+        names_plot = [f"Item {i}" for i in range(n_plot)]
     hover = [
         f"{nm}\nDu doan: {g:,.0f} VND\nThuc te: {t:,.0f} VND"
-        for nm, g, t in zip(names, y_pred, y_true)
+        for nm, g, t in zip(names_plot, y_pred_plot, y_true_plot)
     ]
 
     max_val = float(max(y_true.max(), y_pred.max()))
 
     df_scatter = pd.DataFrame({
-        "truth": y_true, "guess": y_pred, "color": colors, "hover": hover,
+        "truth": y_true_plot, "guess": y_pred_plot, "color": colors_plot, "hover": hover,
     })
 
     fig1 = go.Figure()
@@ -344,16 +362,16 @@ def plot_predictions(y_true, y_pred, title="Model", names=None):
     fig1.update_xaxes(title="Gia du doan (VND)", range=[0, max_val], tickvals=tick_vals, ticktext=tick_text)
     fig1.update_yaxes(title="Gia thuc te (VND)", range=[0, max_val], tickvals=tick_vals, ticktext=tick_text)
     fig1.update_layout(
-        title=f"{title} ({n} items)<br>{subtitle}",
+        title=f"{title} ({n} items, chart: {n_plot})<br>{subtitle}",
         width=800, height=700, showlegend=False, template="plotly_white",
     )
     fig1.show()
 
-    # --- Error trend chart ---
-    running_sums = np.cumsum(errors)
-    x = np.arange(1, n + 1)
+    # --- Error trend chart (sampled set for visual clarity) ---
+    running_sums = np.cumsum(errors_plot)
+    x = np.arange(1, n_plot + 1)
     running_means = running_sums / x
-    running_sq = np.cumsum(errors ** 2)
+    running_sq = np.cumsum(errors_plot ** 2)
     running_stds = np.sqrt(np.maximum(running_sq / x - running_means ** 2, 0))
     ci = np.where(x > 1, 1.96 * running_stds / np.sqrt(x), 0)
 
@@ -369,7 +387,7 @@ def plot_predictions(y_true, y_pred, title="Model", names=None):
         line=dict(width=3, color="firebrick"), name="Cumulative Avg Error",
     ))
 
-    y_max = float((running_means + ci).max()) if n > 0 else 1
+    y_max = float((running_means + ci).max()) if n_plot > 0 else 1
     step_e = _tick_step(y_max)
     tv = list(range(0, int(y_max) + step_e, step_e))
     tt = [f"{v // 1000:,}k" if v > 0 else "0" for v in tv]
