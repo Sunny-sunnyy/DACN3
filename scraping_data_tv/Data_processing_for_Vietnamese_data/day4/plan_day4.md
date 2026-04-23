@@ -234,3 +234,272 @@ pricer_vi/
 ---
 
 *Tao: 2026-04-15. Cap nhat: 2026-04-18. v6 DA CHAY (0.4187, gap 0.0187). v7 CODE SAN (DL-only, SOTA 2024-2025, target 0.40) — CHO CHAY TREN 3090 Ti.*
+
+---
+
+## 7. v8 Plan — New Models + Architecture Improvements
+
+**Tao: 2026-04-23 — TRUOC KHI CO KET QUA v7**
+
+> **Luu y:** v8 duoc thiet ke truoc khi co ket qua v7. v8 la independent extension:
+> - **Neu v7 dat < 0.40:** v8 mo rong stacking pool them 2 models moi, push RMSLE xuong thap hon.
+> - **Neu v7 that bai (>= 0.40):** v8 la fallback chinh voi models manh hon (PhoBERT-large, mDeBERTa).
+> - v8 reuse toan bo weights tu v7 neu v7 da chay. Neu v7 chua chay, v8 chay doc lap.
+
+**Data:** Train: 85,727 | Val: 3,926 | Test: 3,872 | 8 categories | Price <= 1,000,000 VND
+
+**Baseline reference:** v6 Blended RMSLE=0.4187 | v7 target: 0.39-0.41 (chua co ket qua)
+
+**May thue:** RTX 4060 Ti 16GB (minimum) hoac RTX 3090 Ti 24GB (recommended)
+
+**Target v8:** RMSLE <= 0.38
+
+---
+
+### 7.1. Phan tich gap — Tai sao v7 co the khong du
+
+v7 su dung PhoBERT-base-v2 (135M params) va XLM-R-base (278M) — ca 2 deu la "base" models voi
+capacity trung binh. Ceiling cua v7 stacking phu thuoc vao chat luong tung base model. Neu
+PhoBERT-base++ chi dat 0.42-0.43, stacking 7 models kho dat duoi 0.40.
+
+**Nguon gap chua khai thac (xac dinh tu research 2024-2025):**
+
+| Gap | Mo ta | Ky vong cai thien |
+|-----|-------|------------------|
+| Model scale | PhoBERT-large (370M) vs base-v2 (135M) — chua thu | 0.01-0.02 RMSLE |
+| Architecture | mDeBERTa-v3-base (disentangled attention, 184M) — chua thu | 0.01-0.02 RMSLE |
+| Sampling | Chia deu moi price bin vao training — chua thu | 0.01-0.02 RMSLE |
+| Regression head | 8 category-specific heads thay 1 shared head — chua thu | 0.005-0.01 RMSLE |
+| PCA domain | Transductive PCA (fit train+val+test) — chua thu | 0.002-0.005 RMSLE |
+| Meta-learner | Fix LGB early stop (eval set != train set) | Stability |
+
+**Reference benchmark:** Kaggle Mercari Price Suggestion (English, same RMSLE metric):
+- 1st place: RMSLE=0.3875 (Sparse MLP ensemble, 2018).
+- Top-10: RMSLE 0.38-0.40 — xac nhan 0.38 la achievable voi text-only price prediction.
+- Vietnamese text ngan hon va kem structured hon English → floor tu nhien cao hon ~0.03-0.05.
+- **RMSLE floor uoc tinh cho task nay: ~0.33-0.37** (theo Mao et al. 2020, text-only limit).
+
+---
+
+### 7.2. Phase A — PhoBERT-large++ (GPU ~2h)
+
+**Model:** `vinai/phobert-large` — RoBERTa-based, 24 layers, 1024d hidden, 370M params.
+
+**Ly do chon:**
+- Cung kien truc voi PhoBERT-base-v2 → 0 thay doi code, chi doi `MODEL_NAME`.
+- 370M vs 135M: capacity cao hon 2.7x, pre-train tren cung 20GB Vietnamese corpus.
+- Consistency trong tokenizer (same word-segmentation + BPE) → reuse tokenized `.pkl` cache.
+
+**Ky thuat (ke thua toan bo tu v7):**
+- LLRD (decay=0.9, top lr=2e-5), R-Drop (alpha=0.5, MSE consistency), EMA (decay=0.999)
+- Huber loss (delta=1.0) tren normalized log-target, Multi-task aux head (alpha=0.1)
+- Early stop: epochs=12, patience=3
+
+**Bat buoc them (large model):**
+```python
+model.bert.gradient_checkpointing_enable()  # giam VRAM 40%, can thiet voi 16GB
+```
+
+**Batch sizes:**
+- RTX 4060 Ti 16GB: batch=16 (R-Drop 2x = 32 forward), gradient_accumulation=2 (effective=32)
+- RTX 3090 Ti 24GB: batch=32 (R-Drop 2x = 64 forward)
+
+**Ky vong:** RMSLE 0.40-0.42 (vs PhoBERT-base++ 0.41-0.43)
+
+---
+
+### 7.3. Phase B — mDeBERTa-v3-base++ (GPU ~1.5h)
+
+**Model:** `microsoft/mdeberta-v3-base` — ELECTRA-style pre-training, 184M params, 12 layers, 768d.
+
+**Ly do chon:**
+- Disentangled attention: content + position encoding tach biet → hieu qua hon BERT-style
+  attention cho cac tokens co vi tri quan trong (so sanh gia, thong so ky thuat).
+- Pre-train tren 2.5T CC100 (bao gom Vietnamese) → multilingual coverage tot.
+- Xac nhan chay tot voi Vietnamese: dung trong VLSP 2024 AI text detection benchmark.
+- 184M params: VRAM tuong duong PhoBERT-base-v2 → batch lon hon PhoBERT-large.
+
+**Ky thuat:** LLRD + EMA + Huber + Aux (bo R-Drop: DeBERTa dung relative position encoding
+khac voi BERT → consistency loss kem on dinh hon)
+
+**Diem khac biet quan trong khi code:**
+```python
+# DeBERTa khong co token_type_ids
+tokenizer = AutoTokenizer.from_pretrained("microsoft/mdeberta-v3-base")
+# Khi tokenize, KHONG pass token_type_ids vao model
+outputs = model(input_ids=ids, attention_mask=mask)  # bo token_type_ids
+```
+
+**Batch sizes:**
+- RTX 4060 Ti 16GB: batch=48, no gradient checkpointing
+- RTX 3090 Ti 24GB: batch=80-96
+
+**Ky vong:** RMSLE 0.41-0.43
+
+---
+
+### 7.4. Phase C — Price-stratified WeightedRandomSampler (them vao tat ca phases)
+
+**Van de hien tai:** DataLoader sample ngau nhien → items gia re (< 50K VND) va gia cao
+(> 700K VND) bi underrepresent. RMSLE penalize equal tren log scale → model bi thien
+ve mid-price (~200-300K VND, chiem 60%+ train set).
+
+**Giai phap:** `WeightedRandomSampler` theo price bin.
+
+```python
+import numpy as np
+from torch.utils.data import WeightedRandomSampler
+
+log_prices = np.log1p(train_prices)
+bins = pd.qcut(log_prices, q=10, labels=False, duplicates="drop")
+bin_counts = np.bincount(bins)
+sample_weights = 1.0 / bin_counts[bins]
+sample_weights = sample_weights / sample_weights.sum()
+
+sampler = WeightedRandomSampler(
+    weights=sample_weights,
+    num_samples=len(sample_weights),
+    replacement=True
+)
+train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler,
+                          num_workers=0, pin_memory=True)
+```
+
+**Ap dung:** Phase A (PhoBERT-large++) va Phase B (mDeBERTa++).
+
+**Ky vong:** +0.01-0.02 RMSLE do reduce bias voi tail-price items.
+
+---
+
+### 7.5. Phase D — Category-specific Regression Heads
+
+**Van de hien tai:** 1 shared regression head co price range 5K-1M VND → head phai hoc 8
+distributions rat khac nhau trong cung 1 linear layer. VD: O To Xe May (200K-1M) vs Thoi
+Trang (20-500K) vs Bach Hoa (5-100K).
+
+**Giai phap:** 8 separate Linear(h, 1) heads, forward qua head tuong ung voi category.
+
+```python
+class BERTMultiTaskRegressorV8(BERTMultiTaskRegressor):
+    def __init__(self, model_name, num_categories, hidden_size=768, dropout=0.2):
+        super().__init__(model_name, num_categories, hidden_size, dropout)
+        h = self.bert.config.hidden_size
+        # Thay the price_head cua parent
+        self.price_heads = nn.ModuleList([
+            nn.Sequential(
+                nn.LayerNorm(h), nn.Linear(h, 256), nn.GELU(),
+                nn.Dropout(dropout), nn.Linear(256, 1)
+            ) for _ in range(num_categories)
+        ])
+        del self.price_head
+
+    def forward(self, input_ids, attention_mask, cat_ids=None):
+        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
+        pooled = mean_pooling(outputs, attention_mask)
+        cat_logits = self.category_head(pooled)
+        if cat_ids is not None:
+            price_preds = torch.stack(
+                [self.price_heads[c](pooled[i]) for i, c in enumerate(cat_ids)]
+            )
+        else:
+            price_preds = self.price_heads[0](pooled)  # inference fallback
+        return price_preds, cat_logits
+```
+
+**Ap dung:** PhoBERT-large++ (Phase A). Tuy chon cho mDeBERTa++ (Phase B).
+
+**Ky vong:** +0.005-0.01 RMSLE tren tong the.
+
+---
+
+### 7.6. Phase E — Transductive PCA + Mo rong Stacking Pool
+
+**Transductive PCA:**
+```python
+# Thay vi:
+pca.fit(train_embs)
+# Dung:
+all_embs = np.vstack([train_embs, val_embs, test_embs])
+pca.fit(all_embs)  # gia giu nguyen chi tu train
+```
+Fit PCA tren toan bo distribution → projection tot hon cho test set.
+
+**Stacking pool v8 (9 models, mo rong tu v7's 7):**
+
+| # | Model | Source |
+|---|-------|--------|
+| 1 | PhoBERT-base++ | Reload tu v7 (neu da chay) hoac retrain |
+| 2 | XLM-R++ | Reload tu v7 |
+| 3 | AITeamVN++ | Reload tu v7 |
+| 4 | v7-PCA+LGB | Reload tu v7 |
+| 5 | v4-2b (AITeamVN frozen) | Reload tu v4 |
+| 6 | v4-0a (DNN+HV) | Reload tu v4 |
+| 7 | Day3-LGB | Reload cache |
+| **8** | **PhoBERT-large++** | **v8 Phase A (moi)** |
+| **9** | **mDeBERTa-v3-base++** | **v8 Phase B (moi)** |
+
+**Fix LGB meta-learner early stopping (bug tu v7):**
+```python
+# Val set 3,926 items → split 80/20 cho meta early stop
+n_meta = len(X_meta_val_log)
+split = int(n_meta * 0.8)
+lgb_meta.fit(
+    X_meta_val_log[:split], y_val_log_np[:split],
+    eval_set=[(X_meta_val_log[split:], y_val_log_np[split:])],  # held-out
+    callbacks=[lgb.early_stopping(30, verbose=False), lgb.log_evaluation(0)],
+)
+```
+
+**Meta-learners:** Ridge + ElasticNet + LGB (log-space) → simple average → final v8 prediction.
+
+---
+
+### 7.7. Tong hop v8
+
+| Phase | Nhiem vu | Time GPU | Ky vong RMSLE |
+|-------|---------|---------|--------------|
+| A | PhoBERT-large++ (LLRD+R-Drop+EMA+Huber+Cat-Head, GC) | ~2h | 0.40-0.42 |
+| B | mDeBERTa-v3-base++ (LLRD+EMA+Huber+Aux) | ~1.5h | 0.41-0.43 |
+| C | WeightedSampler (built into A+B) | 0 extra | +0.01-0.02 |
+| D | Category-specific heads (built into A) | 0 extra | +0.005-0.01 |
+| E | Transductive PCA + Reload v7 pool + Stacking 9 models | ~20 phut CPU | **0.37-0.40** |
+| **Tong** | | **~3.5h GPU + 20 phut CPU** | **best ~0.37-0.40** |
+
+**Ky thuat moi so voi v7:**
+
+| Ky thuat | Mo ta | Nguon |
+|---------|-------|-------|
+| **PhoBERT-large** | 370M params, gradient checkpointing, cung code v7 | VinAI 2020 |
+| **mDeBERTa-v3-base** | Disentangled attention, ELECTRA pretraining, 184M | Microsoft 2021 |
+| **WeightedRandomSampler** | Price-bin stratified, giam bias mid-price | Kaggle best practice |
+| **Category-specific heads** | 8 Linear(h,1) thay 1, giam cross-category noise | Multi-task learning |
+| **Transductive PCA** | Fit PCA tren train+val+test embeddings | Domain adaptation |
+| **Fixed LGB meta** | Held-out 20% val lam eval set cho early stopping | Bug fix tu v7 |
+| **9-model pool** | +2 models moi vao stacking (vs 7 cua v7) | Diversity |
+
+---
+
+### 7.8. Fallback plan v8
+
+**Neu v8 stacking van >= 0.38:**
+- Chuyen QLoRA fine-tune **Qwen2.5-7B-Instruct** (hỗ trợ Vietnamese tốt, 2024)
+  hoac **Gemma-3-4B-IT** (multilingual SOTA 2025, 4-bit NF4 tren 16GB)
+- Ly do: decoder-based LLM scale + instruction tuning → price range calibration tot hon
+  encoder-based models. Khac repo + khac session.
+- Tap trung supervised fine-tune: prompt = summary 5-dong, label = log1p(price).
+
+---
+
+## 8. Tieu chi hoan thanh v8
+
+### v8 (PLAN — 2026-04-23, CHUA CODE)
+- [ ] Phase A: PhoBERT-large++ (gradient_checkpointing + WeightedSampler + cat-heads, 12ep)
+- [ ] Phase B: mDeBERTa-v3-base++ (LLRD+EMA+Huber+Aux+WeightedSampler, 12ep)
+- [ ] Phase C: Transductive PCA + reload v7 pool (7 models)
+- [ ] Phase D: Stacking 9 models (Ridge + ElasticNet + LGB fixed meta)
+- [ ] Phase E: Summary + charts + save v8_results.json + stacking_config_v8.json
+- [ ] Target: RMSLE <= 0.38
+
+---
+
+*Cap nhat: 2026-04-23. v8 PLAN HOAN THANH (tao truoc khi co ket qua v7). Target 0.38 voi PhoBERT-large + mDeBERTa + 9-model stacking.*

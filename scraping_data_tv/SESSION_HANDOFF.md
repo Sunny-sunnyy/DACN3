@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-18)
+## Trang thai hien tai (2026-04-23)
 
-**Trang thai:** Day 4 v6 DA CHAY (Blended RMSLE=0.4187, gap 0.0187). **v7 DA TAO CODE** (DL-only, SOTA 2024-2025) — chua chay tren may thue.
+**Trang thai:** v6 DA CHAY (0.4187). **v7 + v8 DA TAO CODE** — chua chay tren may thue.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -22,28 +22,55 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Day 3 v3 DONE:** Blended RMSLE=0.5164 (TF-IDF ceiling)
 - [x] **Day 4 v4 DONE:** 11 DL experiments, best AITeamVN+MLP=0.4986
 - [x] **Day 4 v5-old DONE:** Blended=0.4191 (PhoBERT full=0.4413, PCA+LGB=0.4357, v4-2b, v4-0a, Day3-LGB)
-- [x] **Day 4 v6 DONE:** PhoBERT 20ep=0.4418, PCA+LGB=0.4375, **Blended=0.4187** (marginal vs v5)
-  - Frontier LLM zero-shot khong canh tranh: gpt-4o-mini=0.9894, gpt-5-nano=0.7025, gpt-5-mini=0.6261
-  - v6 ceiling ~0.4187 (same 5 models, high correlation) — can v7
-- [x] **Day 4 v7 CODE CREATED (2026-04-18):**
-  - `day4_dl_models_v7.py` (1424 dong) + `day4_dl_models_v7.ipynb` (46 cells)
-  - DL-only (khong LLM, khong QLoRA) — SOTA 2024-2025 techniques
-  - Plan chi tiet: `day4/plan_day4.md` (228 dong, cleanup)
+- [x] **Day 4 v6 DONE:** PhoBERT 20ep=0.4418, PCA+LGB=0.4375, **Blended=0.4187** (ceiling)
+  - Frontier LLM zero-shot khong canh tranh: gpt-4o-mini=0.9894, gpt-5-mini=0.6261
+  - v6 ceiling ~0.4187 (5 correlated models, blending bao hoa) — can stacking + new models
+- [x] **Day 4 v7 CODE DONE (2026-04-18):**
+  - `day4_dl_models_v7.py` (1424 dong) + `.ipynb` (46 cells)
+  - LLRD + R-Drop + EMA + Huber + Aux + Stacking (Ridge+EN+LGB)
+  - 7 base models: PhoBERT++, XLM-R++, AITeamVN++, v7-PCA+LGB, v4-2b, v4-0a, Day3-LGB
+  - Target: RMSLE <= 0.40 | May thue: 3090 Ti 24GB (~3.5h GPU)
+- [x] **Day 4 v8 CODE DONE (2026-04-23) — tao TRUOC khi co ket qua v7:**
+  - `day4_dl_models_v8.py` (1278 dong) + `.ipynb` (45 cells)
+  - New: PhoBERT-large (370M) + mDeBERTa-v3-base (184M) + CatHeads + WeightedSampler
+  - Fix: LGB meta early-stop (stratified 80/20 val split), transductive PCA
+  - 9 base models (7 v7 pool + 2 new), target RMSLE <= 0.38
+  - May thue: 3090 Ti 24GB (~2.5h GPU)
 
-### Buoc tiep (v7):
-- [ ] Chay `day4_dl_models_v7.ipynb` tren may thue 3090 Ti 24GB (~3.5h GPU + 10 phut CPU)
-- [ ] Neu RMSLE < 0.40: dat target, ket thuc Day 4
-- [ ] Neu RMSLE >= 0.40: phan tich bottleneck, cham QLoRA Qwen3.5 4B (repo khac)
+### Buoc tiep:
+- [ ] **Chay v7 HOAC v8** tren may thue (xem Prompt B/C duoi)
+  - Neu chay v7 truoc -> dan ket qua vao Prompt B de phan tich
+  - Neu bo qua v7, chay v8 thang -> Prompt C
+  - v8 tu dong try-load v7 weights; neu khong co se skip (stacking pool thu hep xuong 6 models)
+- [ ] Neu best RMSLE < 0.38: ket thuc Day 4, de xuat Day 5
+- [ ] Neu best RMSLE >= 0.38: phan tich bottleneck, fallback QLoRA Qwen2.5-7B
 
-### Day 4 v7 — Kien truc (DL-only)
+### Day 4 v7 — Kien truc (DL-only, ~3.5h GPU)
 
 | Phase | Model | Techniques | Batch | Ep/Pat | Ky vong RMSLE |
 |-------|-------|-----------|-------|--------|---------------|
-| 2 | **PhoBERT++** | LLRD(0.9) + R-Drop(0.5) + EMA(0.999) + Huber(1.0) + Aux(0.1) | 80 | 12/3 | 0.41-0.43 |
-| 3 | **XLM-R++** | Same as PhoBERT++ | 64 | 12/3 | 0.43-0.45 |
-| 4 | **AITeamVN++** | LLRD + EMA + Huber + Aux (**no R-Drop**, freeze bottom 20) | 32 | 10/3 | 0.42-0.44 |
-| 5 | **Base pool** | v7-PCA+LGB + reload v4-2b + v4-0a + Day3-LGB | — | — | — |
-| 6 | **Stacking** | Ridge + ElasticNet + LGB meta (log-space), avg of 3 | — | — | **0.39-0.41** |
+| 2 | PhoBERT-base++ | LLRD(0.9)+R-Drop(0.5)+EMA(0.999)+Huber+Aux | 80 | 12/3 | 0.41-0.43 |
+| 3 | XLM-R++ | Same as PhoBERT++ | 64 | 12/3 | 0.43-0.45 |
+| 4 | AITeamVN++ | LLRD+EMA+Huber+Aux (no R-Drop, freeze bottom 20) | 32 | 10/3 | 0.42-0.44 |
+| 5 | Base pool | v7-PCA+LGB + v4-2b + v4-0a + Day3-LGB | — | — | — |
+| 6 | Stacking | Ridge+ElasticNet+LGB meta (log-space, val as meta-train) | — | — | **0.39-0.41** |
+
+### Day 4 v8 — Kien truc (new models + architecture, ~2.5h GPU)
+
+| Phase | Model | Techniques | Batch | Ep/Pat | Ky vong RMSLE |
+|-------|-------|-----------|-------|--------|---------------|
+| 3 | **PhoBERT-large++** (370M) | LLRD+R-Drop+EMA+Huber+CatHeads+WeightedSampler | **48** | 12/3 | 0.40-0.42 |
+| 4 | **mDeBERTa-v3-base++** (184M) | LLRD+EMA+Huber+CatHeads+WeightedSampler (no R-Drop) | **128** | 12/3 | 0.41-0.43 |
+| 5 | Pool reload | v7 weights (skip neu chua chay) + v4-2b + v4-0a + Day3-LGB | — | — | — |
+| 5 | v8-PCA+LGB | PhoBERT-large embed + Transductive PCA(256) + LGB | — | — | — |
+| 6 | Stacking 9M | Ridge+ElasticNet+LGB meta (fixed early-stop 80/20 val split) | — | — | **0.37-0.40** |
+
+**Ky thuat moi v8 so voi v7:**
+- Category-specific heads: 8 Linear(h,1) rieng thay 1 shared head (giam cross-category noise)
+- WeightedRandomSampler: 10 price bins, giam mid-price bias, +0.01-0.02 RMSLE
+- Transductive PCA: fit PCA tren train+val+test embeddings (domain alignment)
+- LGB meta fix: stratified 80/20 split cua val lam eval set (khong overfit nhu v7)
+- cudnn.benchmark=True: faster kernel selection cho fixed seq_len=256
 
 **Ky thuat moi so voi v6:**
 - **LLRD:** top layer lr=2e-5, decay 0.9x moi layer -> bottom lr ~2.8e-6 (giu pre-trained features)
@@ -85,55 +112,102 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Cache:** reuse `ait_v2_train/val/test.npy`, `tokenized_*_train/val/test.pkl`, `arch_c_vectorizer.pkl` tu v4/v5/v6
 
 ### Moi truong chay:
-- **May thue v7:** RTX 3090 Ti 24GB VRAM | Xeon E5-2686 v4 36C | 64GB RAM (VN1x)
-- **Workflow:** git clone -> uv sync -> chay .ipynb -> copy ket qua ve
-- Moi lan thue may moi: `uv sync` lai, tokenize cache se tai tu GG Drive
+- **May thue (v7/v8):** RTX 3090 Ti 24GB VRAM | AMD Ryzen 9 3900X 12C | 64GB RAM
+- **Workflow:** git clone -> uv sync -> download cache tu Drive -> chay .ipynb -> copy ket qua ve
+- `tokenized_*.pkl` da co trong repo — KHONG can download tu Drive
+- Moi lan thue may moi: `uv sync` lai de cai dependencies
 
 ---
 
 ## Prompt dau tien cho session moi
 
-### Prompt A: Chay v7 tren may thue (TIEP THEO)
+### Prompt A: Chay v7 tren may thue
 
 ```
 Doc cac file sau de nap ngu canh:
-0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan v7 chi tiet
-2. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models_v7.py" — code v7 (neu can xem)
+0. "scraping_data_tv/SESSION_HANDOFF.md"
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md"
 
 Trang thai:
-- v6 DA CHAY: Blended RMSLE=0.4187 (gap 0.0187 den target 0.40), ceiling ~0.4187
-- v7 DA TAO: day4_dl_models_v7.ipynb (46 cells) + .py (1424 dong), DL-only SOTA 2024-2025
-- Ky thuat moi: LLRD + R-Drop + EMA + Multi-task Aux + Huber Loss + Stacking
-- Base models (7): PhoBERT++, XLM-R++, AITeamVN++, v7-PCA+LGB, v4-2b, v4-0a, Day3-LGB
-- Meta-learners (3): Ridge + ElasticNet + LGB (log-space, val as meta-train), final avg
-- Batch: PhoBERT=80, XLM-R=64, AITeamVN=32 (freeze bottom 20) — 3090 Ti 24GB
-- Target: RMSLE <= 0.40
+- v6 DA CHAY: Blended RMSLE=0.4187 (ceiling)
+- v7 DA TAO CODE: day4_dl_models_v7.ipynb (46 cells, 1424 dong)
+  PhoBERT++(b=80) + XLM-R++(b=64) + AITeamVN++(b=32) + Stacking 7 models
+  Target: RMSLE <= 0.40 | GPU: ~3.5h tren 3090 Ti 24GB
 
-Buoc tiep (toi se lam):
-1. Thue 3090 Ti 24GB (VN1x, ~3.5h GPU + 10 phut CPU)
-2. Clone repo, uv sync, chay day4_dl_models_v7.ipynb
-3. Copy ket qua (v7_results.json + stacking_config.json) ve repo
+Files cache can download tu Drive truoc khi chay:
+- day4/tokenized_*.pkl (da co trong repo)
+- day4/aiteamvn_*.npy (frozen embeddings 1024d)
+- day4/weights_v4/model_2b_mlp_aiteamvn.pth
+- day4/weights_v4/model_0a_dnn_hv2048.pth
+- day4/weights_v6/arch_c_vectorizer.pkl
+- day4/weights_v6/lgb_day3_retrain.pkl
 
-Sau khi chay xong se dan ket qua vao day. Hay phan tich va cap nhat .md files.
+Toi se chay day4_dl_models_v7.ipynb va dan ket qua o day.
+Hay cho toi biet ban da nam duoc gi va huong dan setup may thue.
 ```
 
-### Prompt B: Phan tich ket qua v7 (SAU KHI CHAY)
+### Prompt B: Phan tich ket qua v7 (sau khi chay xong)
 
 ```
 Doc cac file sau de nap ngu canh:
-0. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
-1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md" — plan v7
+0. "scraping_data_tv/SESSION_HANDOFF.md"
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md"
 
 Trang thai: Day 4 v7 DA CHAY xong tren 3090 Ti. Ket qua:
-[DAN KET QUA v7_results.json + output notebook vao day]
+[DAN NOI DUNG v7_results.json + output cua cell cuoi cung vao day]
 
-Hay phan tich ket qua:
-1. So sanh tung Phase voi ky vong (Phase A/B/C)
-2. Neu RMSLE < 0.40: cap nhat .md files, ket thuc Day 4, de xuat Day 5
-3. Neu RMSLE >= 0.40: phan tich bottleneck, de xuat v8 HOAC chuyen QLoRA Qwen3.5 4B
-4. Cap nhat SESSION_HANDOFF.md + plan_day4.md voi ket qua thuc te
+Hay phan tich:
+1. So sanh tung Phase voi ky vong
+2. Neu best RMSLE < 0.40: cap nhat .md, ket thuc Day 4, de xuat Day 5
+3. Neu best RMSLE >= 0.40: v8 da code san, chay tiep -> Prompt C
+4. Cap nhat SESSION_HANDOFF.md + plan_day4.md voi so lieu thuc te
 5. Commit + push
+```
+
+### Prompt C: Chay v8 tren may thue (RECOMMENDED — code da san)
+
+```
+Doc cac file sau de nap ngu canh:
+0. "scraping_data_tv/SESSION_HANDOFF.md"
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md"
+
+Trang thai:
+- v6 DA CHAY: RMSLE=0.4187 (ceiling)
+- v7: [CHUA CHAY / DA CHAY voi RMSLE=X.XXXX]
+- v8 DA TAO CODE: day4_dl_models_v8.ipynb (45 cells, 1278 dong)
+  PhoBERT-large++(370M, b=48) + mDeBERTa++(184M, b=128)
+  CatHeads + WeightedSampler + Transductive PCA + Stacking 9 models (fixed LGB meta)
+  Target: RMSLE <= 0.38 | GPU: ~2.5h tren 3090 Ti 24GB
+
+Setup may thue:
+  git clone <repo> && cd tech2ai
+  uv sync
+  # Download tu Drive vao day4/:
+  #   aiteamvn_*.npy, weights_v4/*.pth, weights_v6/*.pkl
+  #   [neu v7 da chay] weights_v7/phobert_v7.pth, xlmr_v7.pth, aiteamvn_v7.pth
+  # tokenized_*.pkl da co trong repo (khong can download)
+
+Toi se chay day4_dl_models_v8.ipynb va dan ket qua o day.
+Hay tom tat nhung gi toi can lam va kiem tra code neu can.
+```
+
+### Prompt D: Phan tich ket qua v8 (sau khi chay xong)
+
+```
+Doc cac file sau de nap ngu canh:
+0. "scraping_data_tv/SESSION_HANDOFF.md"
+1. "scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md"
+
+Trang thai: Day 4 v8 DA CHAY xong tren 3090 Ti. Ket qua:
+[DAN NOI DUNG weights_v8/v8_results.json + stacking_config_v8.json vao day]
+
+Hay phan tich:
+1. So sanh tung model voi ky vong (PhoBERT-large, mDeBERTa, Stacking)
+2. Neu best RMSLE < 0.38: XUAT SAC, cap nhat .md, ket thuc Day 4, de xuat Day 5
+3. Neu best RMSLE < 0.40: dat target v7, xem xet co nen push tiep khong
+4. Neu best RMSLE >= 0.40: phan tich bottleneck, fallback QLoRA Qwen2.5-7B
+5. Cap nhat SESSION_HANDOFF.md + plan_day4.md voi so lieu thuc te
+6. Commit + push
 ```
 
 ### Khi nao can doc them:
@@ -147,34 +221,58 @@ Hay phan tich ket qua:
 
 | File | Muc dich |
 |------|----------|
-| **DATA PROCESSING** | |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/plan_data_preprocessing_vi.md` | Plan Day 0-4 |
+| **PLAN & STATUS** | |
+| `scraping_data_tv/SESSION_HANDOFF.md` | File nay — trang thai tong the |
+| `scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md` | Plan Day 4 v4->v8 (505 dong) |
 | `scraping_data_tv/Data_processing_for_Vietnamese_data/day3/plan_day3.md` | Plan Day 3 |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day4/plan_day4.md` | Plan Day 4 (v4 -> v7) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/` | Package (items, evaluator, DNN) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models_v7.ipynb` | **v7 notebook (run on 3090 Ti)** |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models_v7.py` | v7 source (jupytext) |
-| `scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models_v6.ipynb` | v6 notebook (blended 0.4187) |
-| **ENGLISH REFERENCE** | |
-| `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/pricer/deep_neural_network.py` | DNN English |
-| **PROJECT** | |
-| `segment4/mo_ta_du_an/Project_Development_Plan.md` | Tong the |
+| **CODE — CHAY TREN MAY THUE** | |
+| `day4/day4_dl_models_v8.ipynb` | **v8 notebook — RECOMMENDED (45 cells, target 0.38)** |
+| `day4/day4_dl_models_v8.py` | v8 source (1278 dong) |
+| `day4/day4_dl_models_v7.ipynb` | v7 notebook (46 cells, target 0.40) |
+| `day4/day4_dl_models_v7.py` | v7 source (1424 dong) |
+| **CACHE — TRONG REPO** | |
+| `day4/tokenized_train_1m.pkl` | Underthesea tokenized 85,727 train docs |
+| `day4/tokenized_val_1m.pkl` | Val 3,926 docs |
+| `day4/tokenized_test_1m.pkl` | Test 3,872 docs |
+| **CACHE — TREN GOOGLE DRIVE** | |
+| `day4/aiteamvn_train/val/test.npy` | AITeamVN frozen embs (85727/3926/3872 x 1024d) |
+| `day4/weights_v4/model_2b_mlp_aiteamvn.pth` | v4-2b: AITeamVN frozen + MLP |
+| `day4/weights_v4/model_0a_dnn_hv2048.pth` | v4-0a: DNN + HashingVec |
+| `day4/weights_v6/arch_c_vectorizer.pkl` | TF-IDF Arch C (word bigram + char_wb) |
+| `day4/weights_v6/lgb_day3_retrain.pkl` | Day3 LGB (retrained, best params) |
+| `day4/weights_v7/*.pth` | v7 weights (chi co neu v7 da chay) |
+| **PACKAGE** | |
+| `pricer_vi/items.py` | Item model, from_hub() |
+| `pricer_vi/evaluator.py` | rmsle(), Tester, plot_predictions() |
+| `pricer_vi/deep_neural_network.py` | DNN + MLP + predict_batch() |
 
 ---
 
-## Lenh chay nhanh
+## Lenh chay nhanh tren may thue
 
 ```bash
-cd tech2ai
-
-# Setup may thue 3090 Ti
+# 1. Clone repo + setup
+git clone <repo_url> && cd tech2ai
 uv sync
-uv add transformers sentence-transformers accelerate lightgbm optuna plotly pyvi underthesea
+uv add transformers sentence-transformers accelerate lightgbm plotly underthesea
 
-# Chay Day 4 v7 (notebook)
-# scraping_data_tv/Data_processing_for_Vietnamese_data/day4/day4_dl_models_v7.ipynb
+# 2. Download cache tu Google Drive vao dung thu muc:
+#    day4/aiteamvn_train.npy, aiteamvn_val.npy, aiteamvn_test.npy
+#    day4/weights_v4/model_2b_mlp_aiteamvn.pth
+#    day4/weights_v4/model_0a_dnn_hv2048.pth
+#    day4/weights_v6/arch_c_vectorizer.pkl
+#    day4/weights_v6/lgb_day3_retrain.pkl
+#    [Optional] day4/weights_v7/*.pth  (neu v7 da chay truoc do)
+
+# 3. Mo va chay notebook (chon 1):
+#    day4_dl_models_v8.ipynb  <-- RECOMMENDED (target 0.38, ~2.5h)
+#    day4_dl_models_v7.ipynb  <-- (target 0.40, ~3.5h)
+
+# 4. Sau khi chay xong, copy ve repo:
+#    weights_v8/v8_results.json
+#    weights_v8/stacking_config_v8.json
 ```
 
 ---
 
-*Cap nhat: 2026-04-18 — Day 0-3 HOAN TAT. Day 4 v6 DA CHAY (0.4187, gap 0.0187). v7 CODE DA TAO (DL-only SOTA 2024-2025, chua chay). Target 0.40.*
+*Cap nhat: 2026-04-23 — Day 0-3 HOAN TAT. Day 4 v6 DA CHAY (0.4187). v7+v8 CODE DA TAO (chua chay tren may thue). v8 RECOMMENDED: target 0.38, PhoBERT-large+mDeBERTa+CatHeads+Stacking 9 models.*

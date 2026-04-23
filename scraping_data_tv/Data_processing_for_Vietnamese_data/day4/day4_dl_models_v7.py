@@ -740,7 +740,7 @@ phobert_emb_test = extract_embeddings_bert(ema_phobert, phobert_enc_test, PHOBER
 
 # Free GPU
 ema_phobert.cpu()
-del model_phobert
+del model_phobert, ema_phobert
 torch.cuda.empty_cache()
 gc.collect()
 
@@ -795,7 +795,7 @@ if hist_xr:
 
 # Free GPU
 ema_xlmr.cpu()
-del model_xlmr
+del model_xlmr, ema_xlmr
 torch.cuda.empty_cache()
 gc.collect()
 
@@ -1050,7 +1050,7 @@ if hist_at:
 
 # Free GPU
 ema_at.cpu()
-del model_at
+del model_at, ema_at
 torch.cuda.empty_cache()
 gc.collect()
 
