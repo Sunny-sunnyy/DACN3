@@ -7,7 +7,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Trang thai hien tai (2026-04-23)
 
-**Trang thai:** v6 DA CHAY (0.4187). **v7 + v8 DA TAO CODE** — chua chay tren may thue.
+**Trang thai:** v7 DA CHAY (0.4059, gap 0.0059). **v8 DA TAO CODE** — chua chay tren may thue.
 **Branch:** `feature/data-preprocessing-vi`
 
 ### Da hoan thanh:
@@ -25,11 +25,12 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Day 4 v6 DONE:** PhoBERT 20ep=0.4418, PCA+LGB=0.4375, **Blended=0.4187** (ceiling)
   - Frontier LLM zero-shot khong canh tranh: gpt-4o-mini=0.9894, gpt-5-mini=0.6261
   - v6 ceiling ~0.4187 (5 correlated models, blending bao hoa) — can stacking + new models
-- [x] **Day 4 v7 CODE DONE (2026-04-18):**
+- [x] **Day 4 v7 DONE (2026-04-23) — RMSLE=0.4059 (gap 0.0059 vs target 0.40):**
   - `day4_dl_models_v7.py` (1424 dong) + `.ipynb` (46 cells)
   - LLRD + R-Drop + EMA + Huber + Aux + Stacking (Ridge+EN+LGB)
-  - 7 base models: PhoBERT++, XLM-R++, AITeamVN++, v7-PCA+LGB, v4-2b, v4-0a, Day3-LGB
-  - Target: RMSLE <= 0.40 | May thue: 3090 Ti 24GB (~3.5h GPU)
+  - 7 base models: PhoBERT++(0.4322), XLM-R++(0.4309), AITeamVN++(0.4350), v7-PCA+LGB(0.4333), v4-2b, v4-0a, Day3-LGB
+  - Best: Stacked RMSLE=0.4059, MAE=81,776 VND, MAPE=31.3%, R2=68.3%
+  - Stacking cai thien +3.1% vs v6 Blended (0.4187). Chua vuot target 0.40 (gap 0.0059)
 - [x] **Day 4 v8 CODE DONE (2026-04-23) — tao TRUOC khi co ket qua v7:**
   - `day4_dl_models_v8.py` (1278 dong) + `.ipynb` (45 cells)
   - New: PhoBERT-large (370M) + mDeBERTa-v3-base (184M) + CatHeads + WeightedSampler
@@ -38,10 +39,11 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - May thue: 3090 Ti 24GB (~2.5h GPU)
 
 ### Buoc tiep:
-- [ ] **Chay v7 HOAC v8** tren may thue (xem Prompt B/C duoi)
-  - Neu chay v7 truoc -> dan ket qua vao Prompt B de phan tich
-  - Neu bo qua v7, chay v8 thang -> Prompt C
-  - v8 tu dong try-load v7 weights; neu khong co se skip (stacking pool thu hep xuong 6 models)
+- [x] **v7 DA CHAY: RMSLE=0.4059** (gap 0.0059, chua vuot target 0.40)
+- [ ] **Chay v8 tren may thue** (xem Prompt C)
+  - v8 tu dong try-load v7 weights (da co trong weights_v7/)
+  - Stacking pool se co day du 9 models (7 v7 + PhoBERT-large + mDeBERTa)
+  - Target: RMSLE <= 0.38 | GPU: ~3.5h tren 3090 Ti 24GB
 - [ ] Neu best RMSLE < 0.38: ket thuc Day 4, de xuat Day 5
 - [ ] Neu best RMSLE >= 0.38: phan tich bottleneck, fallback QLoRA Qwen2.5-7B
 
@@ -98,7 +100,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - **Day 4 v4:** Best AITeamVN+MLP RMSLE=0.4986
 - **Day 4 v5-old:** Blended RMSLE=0.4191
 - **Day 4 v6:** Blended RMSLE=0.4187, MAE=82,766 VND (ceiling reached)
-- **Day 4 v7:** CHUA CHAY — target 0.39-0.41 qua stacking
+- **Day 4 v7:** Stacked RMSLE=0.4059, MAE=81,776 VND, MAPE=31.3%, R2=68.3% (gap 0.0059 vs 0.40)
 
 ### Luu y ky thuat (v7):
 - **LLRD implementation:** param groups theo layer index, `build_llrd_param_groups(model, base_lr, decay)`
@@ -275,4 +277,4 @@ uv add transformers sentence-transformers accelerate lightgbm plotly underthesea
 
 ---
 
-*Cap nhat: 2026-04-23 — Day 0-3 HOAN TAT. Day 4 v6 DA CHAY (0.4187). v7+v8 CODE DA TAO (chua chay tren may thue). v8 RECOMMENDED: target 0.38, PhoBERT-large+mDeBERTa+CatHeads+Stacking 9 models.*
+*Cap nhat: 2026-04-23 — Day 0-3 HOAN TAT. Day 4 v6 DA CHAY (0.4187). v7 DA CHAY (0.4059, gap 0.0059). v8 CODE DA TAO — RECOMMENDED: target 0.38, PhoBERT-large+mDeBERTa+CatHeads+Stacking 9 models, try-load v7 weights.*

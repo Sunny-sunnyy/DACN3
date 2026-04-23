@@ -1,6 +1,6 @@
 # Day 4: Deep Learning — Vietnamese Price Prediction
 
-**Cap nhat:** 2026-04-18
+**Cap nhat:** 2026-04-23
 **Branch:** `feature/data-preprocessing-vi`
 **Dataset:** `SeanSunny/items_tv_v6` filtered <= 1,000,000 VND
 **Data:** 85,727 train / 3,926 val / 3,872 test | 8 categories | Price: 4.9K-1M VND
@@ -15,7 +15,8 @@
 | Day 3 (baseline) | Blended TF-IDF+LGB | 0.5164 | 109,725 | 0.1164 |
 | Day 4 v4 | AITeamVN+MLP (frozen) | 0.4986 | 99,786 | 0.0986 |
 | Day 4 v5-old | Blended (PhoBERT+v4-2b+v4-0a+Day3) | 0.4191 | 84,550 | 0.0191 |
-| **Day 4 v6** | **Blended (v6-PhoBERT+v6-PCA+LGB+v4+Day3)** | **0.4187** | **82,766** | **0.0187** |
+| Day 4 v6 | Blended (v6-PhoBERT+v6-PCA+LGB+v4+Day3) | 0.4187 | 82,766 | 0.0187 |
+| **Day 4 v7** | **Stacked (Ridge+EN+LGB, 7 base models)** | **0.4059** | **81,776** | **0.0059** |
 
 **v6 chi tiet:**
 - v6-PhoBERT full fine-tune (20ep): 0.4418 (val best = 0.4462 @ ep18)
@@ -221,19 +222,19 @@ pricer_vi/
 - [x] Frontier LLM zero-shot 3 models -> 0.63-0.99 (khong competitive)
 - [x] Blended 5 models -> 0.4187
 
-### v7 (DA TAO CODE — 2026-04-18, CHUA CHAY)
+### v7 (DONE — 2026-04-23, RMSLE=0.4059)
 - [x] Code `.py` + `.ipynb` (46 cells, 1424 dong) — san sang chay tren may thue
-- [ ] Phase 2: PhoBERT++ 1 seed (LLRD+R-Drop+EMA+Huber+Aux, 12ep patience=3, batch=80)
-- [ ] Phase 3: XLM-R++ (same techniques, 12ep, batch=64)
-- [ ] Phase 4: AITeamVN++ top 4 layers (no R-Drop, 10ep, batch=32)
-- [ ] Phase 5: Reload v4-2b/0a + Day3-LGB, tinh PhoBERT++ embed -> PCA(256) -> LGB
-- [ ] Phase 6: Stacking Ridge + ElasticNet + LGB meta-learners (val as meta-train)
-- [ ] Phase 7: Summary + charts + save results
-- [ ] Target: RMSLE <= 0.40
+- [x] Phase 2: PhoBERT++ -> RMSLE=0.4322 (ky vong 0.41-0.43, dung range)
+- [x] Phase 3: XLM-R++ -> RMSLE=0.4309 (ky vong 0.43-0.45, **tot hon ky vong**)
+- [x] Phase 4: AITeamVN++ top 4 layers -> RMSLE=0.4350 (ky vong 0.42-0.44, cuoi range)
+- [x] Phase 5: v7-PCA+LGB -> RMSLE=0.4333 | Reload v4-2b, v4-0a, Day3-LGB
+- [x] Phase 6: Stacking -> RMSLE=0.4059, MAE=81,776 VND, MAPE=31.3%, R2=68.3%
+- [x] Phase 7: Summary + charts + save results -> weights_v7/v7_results.json
+- [~] Target RMSLE <= 0.40: **CHUA DAT** (gap 0.0059) -> tiep tuc voi v8
 
 ---
 
-*Tao: 2026-04-15. Cap nhat: 2026-04-18. v6 DA CHAY (0.4187, gap 0.0187). v7 CODE SAN (DL-only, SOTA 2024-2025, target 0.40) — CHO CHAY TREN 3090 Ti.*
+*Tao: 2026-04-15. Cap nhat: 2026-04-23. v6 DA CHAY (0.4187). v7 DA CHAY (0.4059, gap 0.0059). v8 CODE SAN — target 0.38, PhoBERT-large+mDeBERTa+CatHeads+Stacking 9 models.*
 
 ---
 
@@ -492,14 +493,15 @@ lgb_meta.fit(
 
 ## 8. Tieu chi hoan thanh v8
 
-### v8 (PLAN — 2026-04-23, CHUA CODE)
+### v8 (CODE SAN — 2026-04-23, CHUA CHAY tren may thue)
+- [x] Code `.py` (1278 dong) + `.ipynb` (45 cells) — san sang chay tren may thue
 - [ ] Phase A: PhoBERT-large++ (gradient_checkpointing + WeightedSampler + cat-heads, 12ep)
 - [ ] Phase B: mDeBERTa-v3-base++ (LLRD+EMA+Huber+Aux+WeightedSampler, 12ep)
-- [ ] Phase C: Transductive PCA + reload v7 pool (7 models)
+- [ ] Phase C: Transductive PCA + reload v7 pool (7 models tu weights_v7/)
 - [ ] Phase D: Stacking 9 models (Ridge + ElasticNet + LGB fixed meta)
 - [ ] Phase E: Summary + charts + save v8_results.json + stacking_config_v8.json
 - [ ] Target: RMSLE <= 0.38
 
 ---
 
-*Cap nhat: 2026-04-23. v8 PLAN HOAN THANH (tao truoc khi co ket qua v7). Target 0.38 voi PhoBERT-large + mDeBERTa + 9-model stacking.*
+*Cap nhat: 2026-04-23. v7 DA CHAY (0.4059). v8 CODE HOAN THANH (1278 dong, 45 cells). Target 0.38 voi PhoBERT-large + mDeBERTa + 9-model stacking. Try-load v7 weights tu weights_v7/.*
