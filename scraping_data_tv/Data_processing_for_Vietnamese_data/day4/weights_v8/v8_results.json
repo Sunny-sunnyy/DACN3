@@ -1,0 +1,50 @@
+{
+  "v8-PhoBERT-large++: 370M+LLRD+R-Drop+EMA+CatHead+Sampler": {
+    "rmsle": 0.42278142526422335,
+    "mae": 83733.59395176911,
+    "mape": 32.73932605370097,
+    "r2": 66.75468517061402
+  },
+  "v8-PCA+LGB: PhoBERT-large++ embed + transductive PCA + LGB": {
+    "rmsle": 0.4300917321847015,
+    "mae": 86155.79730410333,
+    "mape": 33.92755235579706,
+    "r2": 65.46608557642864
+  },
+  "v8: Stacked (Ridge+EN+LGB avg)": {
+    "rmsle": 0.40037216081287386,
+    "mae": 79853.41221045422,
+    "mape": 30.659881187472532,
+    "r2": 69.18874763003606
+  },
+  "v8: Weighted Blend": {
+    "rmsle": 0.4009653284146969,
+    "mae": 79672.55080459002,
+    "mape": 31.230498623085996,
+    "r2": 69.61097609659686
+  },
+  "Baseline: v6 Blended": {
+    "rmsle": 0.4187,
+    "mae": 82766,
+    "mape": 33.2,
+    "r2": 67.6
+  },
+  "Baseline: v5-old Blended": {
+    "rmsle": 0.4191,
+    "mae": 84550,
+    "mape": 33.6,
+    "r2": 67.2
+  },
+  "Baseline: v4 AITeamVN+MLP": {
+    "rmsle": 0.4986,
+    "mae": 99786,
+    "mape": 39.0,
+    "r2": 55.3
+  },
+  "Baseline: Day3 Blended": {
+    "rmsle": 0.5164,
+    "mae": 109725,
+    "mape": 44.0,
+    "r2": 47.1
+  }
+}
