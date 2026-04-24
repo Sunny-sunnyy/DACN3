@@ -47,4 +47,10 @@ dependencies = [
     "underthesea>=9.4.0",
     "undetected-chromedriver>=3.5.5",
     "xgboost>=3.1.1",
+    # Day 5 — QLoRA fine-tuning
+    "trl>=0.8.0",
+    "peft>=0.11.0",
+    "bitsandbytes>=0.43.0",
+    "accelerate>=0.30.0",
+    "huggingface-hub>=0.23.0",
 ]

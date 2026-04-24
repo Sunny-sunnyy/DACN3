@@ -1,11 +1,28 @@
 # Day 5 — QLoRA Fine-tune Qwen3.5-4B-Base cho bài toán ước giá tiếng Việt
 
-**Phiên bản:** 1.0
+**Phiên bản:** 1.1
 **Ngày tạo:** 2026-04-24
+**Cập nhật:** 2026-04-24 (session 2)
 **Branch:** `feature/day5-qlora-qwen`
 **Folder:** `tech2ai/fine_tune_qwen/`
 **Người thực hiện:** Sunny
 **Model code generation:** Claude Sonnet 4.6 (dựa trên file này)
+
+---
+
+## Trang thai thuc thi
+
+| Phase | Trang thai | Ghi chu |
+|-------|-----------|---------|
+| Infrastructure | **DONE** | utils/, notebooks 00+01, pyproject.toml deps |
+| Phase 0 — Profile tokens | **CHO USER CHAY** | `00_profile_tokens.ipynb` — khong can GPU |
+| Phase 0 — Prepare dataset | **CHO USER CHAY** | `01_prepare_dataset.ipynb` — can HF_TOKEN |
+| Phase 1 — Zero-shot v0 | PENDING | Can GPU, can confirm max_seq_length truoc |
+| Phase 2 — Smoke v1 | PENDING | — |
+| Phase 3 — Full v2 | PENDING | — |
+| Phase 4 — High-rank v3 | PENDING | — |
+| Phase 5 — Final v4 | PENDING | — |
+| Phase 6 — Full eval | PENDING | — |
 
 ---
 
@@ -45,7 +62,7 @@ Decoder LLM (Qwen3.5-4B-Base) với:
 ### 0.4. Ràng buộc
 
 - **GPU:** RTX 3090Ti hoặc 4090 **24GB VRAM** (1 card duy nhất)
-- **Budget thời gian:** 2 tuần (14 ngày)
+- **Budget thời gian:** 4 tuần (28 ngày)
 - **Độc lập với Day 4:** KHÔNG gộp Qwen vào v8 stacking pool. Day 5 đánh giá sức mạnh decoder LLM thuần.
 - **Open-source only:** Qwen3.5-4B Apache 2.0, Unsloth Apache 2.0.
 
@@ -739,5 +756,8 @@ Phase 6:                                                       ██
 Buffer: Nếu v2 đạt < 0.38 thì skip v3, dành buffer cho v4 experiments.
 
 ---
+
+
+## code và tài liệu tham khảo khi xử lý đối với dữ liệu tiếng anh ở: scraping_data_tv/Data_processing_for_English_data/fine_tune_LLM.txt và scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune
 
 *Tạo: 2026-04-24. Dựa trên English reference `Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb` + Day 4 v8 results + Qwen3.5 model card (Feb 2026). Người thực hiện tiếp theo: Claude Sonnet 4.6 tạo code theo từng Phase.*
