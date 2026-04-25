@@ -84,10 +84,10 @@ Decoder LLM (Qwen3.5-4B-Base) với:
 
 | Thành phần | Quyết định |
 |-----------|-----------|
-| Nguồn | `SeanSunny/items_tv_v6` (HuggingFace) — 85,727 train / 3,926 val / 3,872 test |
-| Phạm vi giá | 4,900 VND ≤ price ≤ 1,000,000 VND |
-| Categories | 8 categories |
-| Output dataset | `SeanSunny/items_prompts_tv_1` (push lên HF sau Phase 1) |
+| Nguồn | `SeanSunny/items_tv_v6` (HuggingFace) — 110K train / 5K val / 5K test (gốc) |
+| Phạm vi giá | price ≤ 1,000,000 VND (filter cả 3 splits) |
+| Output dataset | `SeanSunny/items_prompts_tv_3` (**DA PUSH** — train=85,727 / val=3,926 / test=3,872) |
+| Schema | `prompt` (từ cột `summary`), `completion` (round(price/1000)), `price_vnd_true` |
 
 ### 1.3. Prompt format (CHỐT)
 
@@ -231,8 +231,8 @@ def build_completion(price: float, for_test: bool) -> str:
 ### 2.3. Checklist Phase 0
 
 - [ ] `profile_results.json` có đủ p50/p95/p99 cho prompt/completion/full
-- [ ] Chốt được `max_seq_length` (recommend 384 hoặc 512)
-- [ ] Chốt được `max_new_tokens` (recommend 5)
+- [x] Chốt được `max_seq_length` = **192** (p95_full=149, profile_results_v3.json)
+- [x] Chốt được `max_new_tokens` = **4** (p99_completion=3, +1 buffer)
 - [ ] `SeanSunny/items_prompts_tv_1` pushed lên HF, 3 splits
 - [ ] `dataset_stats.md` có sample 5 prompt hoàn chỉnh
 - [ ] Confirm tokenizer không có issue encode/decode tiếng Việt (round-trip test)

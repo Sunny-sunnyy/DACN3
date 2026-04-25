@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-24)
+## Trang thai hien tai (2026-04-25)
 
-**Trang thai:** Day 5 Phase 0 INFRASTRUCTURE DONE. Cho user chay notebook tren may local/Colab.
+**Trang thai:** Day 5 Phase 0 DONE. San sang Phase 1 (can GPU).
 **Branch hien tai:** `feature/day5-qlora-qwen`
 
 ### Da hoan thanh:
@@ -22,20 +22,20 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Day 4 v7 DONE (2026-04-23):** Stacked (7 models) RMSLE=0.4059, gap 0.0059
 - [x] **Day 4 v8 DONE (2026-04-24):** Stacked (8 models) RMSLE=0.4004, gap 0.0004
 - [x] **Day 5 plan_day5.md** (`fine_tune_qwen/plan_day5.md`, 743 dong, 15 sections)
-- [x] **Day 5 infrastructure (2026-04-24):**
+- [x] **Day 5 Phase 0 DONE (2026-04-25):**
   - `pyproject.toml`: da them trl, peft, bitsandbytes, accelerate, huggingface-hub
-  - `fine_tune_qwen/utils/`: prompt_builder.py, evaluator.py, inference.py, hf_upload.py, __init__.py
-  - `fine_tune_qwen/weights/`, `fine_tune_qwen/results/` (folders da tao)
-  - `fine_tune_qwen/00_profile_tokens.ipynb`: READY — do token distribution, xuat profile_results.json
-  - `fine_tune_qwen/01_prepare_dataset.ipynb`: READY — build + push SeanSunny/items_prompts_tv_1
+  - `fine_tune_qwen/utils/`: prompt_builder.py (dung cot `summary`), evaluator.py, inference.py, hf_upload.py
+  - Dataset `SeanSunny/items_prompts_tv_3` da push HF:
+    - train: 85,727 | val: 3,926 | test: 3,872 (ca 3 splits filter price <= 1,000,000 VND)
+    - Schema: `prompt`, `completion` (round(price/1000)), `price_vnd_true`
+    - Prompt: `"San pham nay co gia bao nhieu ?\n{summary}\n\nGia la: "`
+  - Token profile chinh xac (`fine_tune_qwen/profile_results_v3.json`):
+    - Prompt p95 = 146 tokens | Full p95 = 149 tokens | Max = 218 tokens
+    - **max_seq_length = 192** | **max_new_tokens = 4**
+  - Scripts: push_dataset_v3.py, reprofile_v3.py, inspect_dataset.py
 
-### Buoc tiep (Day 5 — cho user chay Phase 0):
-- [ ] **USER CHAY** `00_profile_tokens.ipynb` (khong can GPU — local/Colab)
-  - Output can: `profile_results.json` — paste vao session moi
-- [ ] **USER CHAY** `01_prepare_dataset.ipynb` (khong can GPU — can HF_TOKEN write)
-  - Output can: `dataset_stats.md` — paste vao session moi
-- [ ] **CONFIRM** max_seq_length va max_new_tokens (Claude confirm sau khi co profile_results.json)
-- [ ] **Phase 1 (can GPU):** `02_baseline_v0.ipynb` — v0 zero-shot baseline
+### Buoc tiep (Day 5 — can GPU):
+- [ ] **Phase 1 (can GPU):** `02_baseline_v0.ipynb` — v0 zero-shot baseline (500 test samples)
 - [ ] **Phase 2 (can GPU):** `03_train_v1_smoke.ipynb` — v1 smoke 20K (r=32, 2ep)
 - [ ] **Phase 3 (can GPU):** `04_train_v2.ipynb` — v2 full (r=64, all 7 modules, 3ep)
 - [ ] **Phase 4 (can GPU):** `05_train_v3.ipynb` — v3 high-rank (r=128)
@@ -43,6 +43,7 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [ ] **Phase 6:** `07_eval_full.ipynb` + day5_summary.md
 
 **Cau hinh:** Qwen3.5-4B-Base + Unsloth + QLoRA 4-bit NF4 | GPU 24GB (thue) | 4 tuan
+**max_seq_length = 192 | max_new_tokens = 4 | dataset = items_prompts_tv_3**
 **Target:** RMSLE < 0.38 (phu: beat v8 0.4004 standalone)
 
 ---
@@ -70,42 +71,34 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt cho session moi
 
-### Prompt G: Day 5 — Confirm Phase 0 + Tao Phase 1 notebook (can GPU)
+### Prompt H: Day 5 — Phase 1 zero-shot baseline (can GPU)
 
 ```
 Doc cac file sau de nap ngu canh (DOC KY):
-1. "scraping_data_tv/SESSION_HANDOFF.md"
+1. "scraping_data_tv/SESSION_HANDOFF.md" (trang thai hien tai)
 2. "fine_tune_qwen/plan_day5.md" (FILE QUAN TRONG NHAT)
 
-Trang thai Day 5:
+Trang thai Day 5 — Phase 0 DA XONG HOAN TOAN:
 - Branch: feature/day5-qlora-qwen
-- Phase 0 infrastructure DA XONG:
-  - fine_tune_qwen/utils/ (prompt_builder, evaluator, inference, hf_upload)
-  - fine_tune_qwen/00_profile_tokens.ipynb — DA CHAY XONG
-  - fine_tune_qwen/01_prepare_dataset.ipynb — DA CHAY XONG
-  - SeanSunny/items_prompts_tv_1 DA PUSH LEN HF
+- Dataset: SeanSunny/items_prompts_tv_3 (train=85727, val=3926, test=3872, ca 3 filter <=1M)
+- Schema: prompt (tu cot summary), completion (round(price/1000)), price_vnd_true
+- max_seq_length = 192 | max_new_tokens = 4 (tu profile_results_v3.json)
 - Model: Qwen/Qwen3.5-4B-Base | Framework: Unsloth + TRL SFTTrainer | QLoRA 4-bit NF4
-- Prompt: "San pham nay co gia bao nhieu? ... Gia la: "
-- Completion train/val: round(price/1000) | Test: VND goc
 - GPU thue: RTX 3090Ti/4090 24GB
 
-Ket qua Phase 0 (user chay xong, cung cap duoi day):
-[DAN KET QUA profile_results.json VAO DAY]
-[DAN KET QUA dataset_stats.md VAO DAY]
-
 Yeu cau:
-1. Doc profile_results.json, confirm max_seq_length va max_new_tokens chinh thuc
-2. Tao notebook fine_tune_qwen/02_baseline_v0.ipynb (Phase 1 — can GPU):
-   - Load Qwen3.5-4B-Base voi Unsloth 4-bit
-   - Eval zero-shot tren 500 test samples
-   - Xuat v0_results.json voi RMSLE, MAE, MAPE, R2 + 20 sample predictions
-   - Huong dan install unsloth tren may thue (CUDA-specific command)
-3. Neu unsloth chua install duoc: fallback HF transformers + peft thuan
+1. Tao notebook fine_tune_qwen/02_baseline_v0.ipynb (Phase 1 — can GPU):
+   - Load Qwen3.5-4B-Base voi Unsloth 4-bit (max_seq_length=192)
+   - Eval zero-shot tren 500 random test samples (seed=42)
+   - pred_vnd = predict(prompt) * 1000 (completion la don vi nghin dong)
+   - Xuat fine_tune_qwen/results/v0_results.json: RMSLE, MAE, MAPE, R2 + 20 sample predictions
+   - Huong dan install unsloth tren may thue GPU (CUDA 12.x specific)
+2. Fallback neu unsloth loi: dung HF transformers + bitsandbytes (cham hon 2x nhung van OK)
 
 Luu y:
-- uv run cho moi lenh Python
-- Seed = 42 moi noi
+- uv run cho moi lenh Python, seed=42 moi noi
 - KHONG bat dau training (Phase 2+) cho den khi user confirm Phase 1 chay OK
+- Test RMSLE se rat xau (>1.0) vi chua fine-tune — day la expected
 ```
 
 ---

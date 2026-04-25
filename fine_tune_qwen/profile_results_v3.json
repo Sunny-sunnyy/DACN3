@@ -1,0 +1,32 @@
+{
+  "model": "Qwen/Qwen3.5-4B-Base",
+  "dataset": "SeanSunny/items_prompts_tv_3",
+  "sample_size": 1000,
+  "seed": 42,
+  "prompt_tokens": {
+    "p50": 112,
+    "p90": 134,
+    "p95": 146,
+    "p99": 165,
+    "max": 215,
+    "mean": 114.7
+  },
+  "completion_tokens": {
+    "p50": 3,
+    "p90": 3,
+    "p95": 3,
+    "p99": 3,
+    "max": 4,
+    "mean": 2.8
+  },
+  "full_tokens": {
+    "p50": 115,
+    "p90": 137,
+    "p95": 149,
+    "p99": 168,
+    "max": 218,
+    "mean": 117.6
+  },
+  "recommended_max_seq_length": 192,
+  "recommended_max_new_tokens": 4
+}
