@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-26)
+## Trang thai hien tai (2026-04-26 — session 5)
 
-**Trang thai:** Day 5 Phase 1 notebooks READY. Dang chay tren may thue (RTX 3090 Ti, CUDA 12.8, PyTorch 2.9).
+**Trang thai:** Day 5 Phase 2 DONE. Chuan bi Phase 3 (v2 full train). Dang chay probe 4mod/7mod de chon config.
 **Branch hien tai:** `feature/day5-qlora-qwen`
 
 ### Da hoan thanh:
@@ -21,10 +21,10 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Day 4 v6 DONE:** Blended RMSLE=0.4187 (ceiling — blending bao hoa)
 - [x] **Day 4 v7 DONE (2026-04-23):** Stacked (7 models) RMSLE=0.4059, gap 0.0059
 - [x] **Day 4 v8 DONE (2026-04-24):** Stacked (8 models) RMSLE=0.4004, gap 0.0004
-- [x] **Day 5 plan_day5.md** (`fine_tune_qwen/plan_day5.md`, 743 dong, 15 sections)
+- [x] **Day 5 plan_day5.md** (`fine_tune_qwen/plan_day5.md`, ~1100 dong, 15 sections + Section 4.5)
 - [x] **Day 5 Phase 0 DONE (2026-04-25):**
   - `pyproject.toml`: da them trl, peft, bitsandbytes, accelerate, huggingface-hub
-  - `fine_tune_qwen/utils/`: prompt_builder.py (dung cot `summary`), evaluator.py, inference.py, hf_upload.py
+  - `fine_tune_qwen/utils/`: prompt_builder.py, evaluator.py, inference.py, hf_upload.py
   - Dataset `SeanSunny/items_prompts_tv_3` da push HF:
     - train: 85,727 | val: 3,926 | test: 3,872 (ca 3 splits filter price <= 1,000,000 VND)
     - Schema: `prompt`, `completion` (round(price/1000)), `price_vnd_true`
@@ -32,36 +32,31 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - Token profile chinh xac (`fine_tune_qwen/profile_results_v3.json`):
     - Prompt p95 = 146 tokens | Full p95 = 149 tokens | Max = 218 tokens
     - **max_seq_length = 192** | **max_new_tokens = 4**
-  - Scripts: push_dataset_v3.py, reprofile_v3.py, inspect_dataset.py
-- [x] **Day 5 Phase 1 notebooks READY (2026-04-26):**
-  - `02_baseline_v1.ipynb` — HF transformers + BitsAndBytesConfig, `Qwen/Qwen3.5-4B-Base`, 200 samples. **Stable. CHOSEN.**
-  - `02_baseline_v2.ipynb` — Unsloth `FastLanguageModel`. **DEPRECATED (user da chot bo Unsloth).**
-  - Fix: transformers nang len 5.5.0 (`uv add "transformers>=5.2.0"`) — bat buoc cho Qwen3.5
-  - pyproject.toml: da them `transformers>=5.2.0` (unsloth khong con dung)
-- [x] **Day 5 Phase 2 design DONE (2026-04-26):**
-  - Xem `fine_tune_qwen/plan_day5.md` Section 4.5 (override Section 4.2 Unsloth).
-  - 8 quyet dinh chot: BnB-only, truncate summary token-level, DataCollatorForCompletionOnlyLM (token IDs),
-    eval B+ (CE loss in-train + generative RMSLE 500 val sau train + manual checkpoint eval per-epoch),
-    inference safety lai (regex float-first + clamp [5,1000], khong StoppingCriteria),
-    eval scope 500 val only, push HF v1 adapter, report_to="none".
-  - 8 refinements research: response_template token IDs (R1), verify Qwen3.5 module names runtime (R2),
-    log truncation rate (R3), prepare_model_for_kbit_training order (R4), verify EOS token (R5),
-    verify mask labels fail-loud (R6), truncation cat duoi reference-style + log p95/p99 (R7),
-    VRAM smoke 100 samples truoc khi train 20K (R8).
+- [x] **Day 5 Phase 1 DONE (2026-04-26):** `02_baseline_v1.ipynb` (BnB) chay thanh cong.
+  - RMSLE=4.4428 | MAE=296,807 VND | MAPE=105.9% | R2=-2.09 | 0.18s/item
+  - Saved: `fine_tune_qwen/results/v0_results.json`
+- [x] **Day 5 Phase 2 design DONE (2026-04-26):** plan_day5.md Section 4.5 — BnB-only, 8 decisions + 8 refinements.
+- [x] **Day 5 Phase 2 implement DONE (2026-04-26):** `03_train_v1_smoke.ipynb` chay thanh cong.
+  - Config: r=32, 4 attention modules, 20K data, 2 epochs, batch=16, grad_accum=4 (eff=64)
+  - Train time: 162.4 min | VRAM peak: 12.81 GB | Truncation rate: 0.1%
+  - RMSLE epoch 1: 0.6295 | RMSLE epoch 2: **0.6084** (primary)
+  - MAE: 116,769 VND | MAPE: 50.4% | R2: 0.398
+  - Zero preds: 0 | Clamp trigger: 0 — pipeline validated
+  - Saved: `fine_tune_qwen/results/v1_results.json`
+  - Log day du: `fine_tune_qwen/phase2_execution_log.md`
 
 ### Buoc tiep (Day 5 — can GPU):
-- [x] **Phase 1 DONE (2026-04-26):** `02_baseline_v1.ipynb` (BnB) chay thanh cong.
-  - RMSLE=4.4428 | MAE=296,807 VND | MAPE=105.9% | R2=-2.09 | 0.18s/item
-  - Zero preds: 0. Raw output kieu USD decimal ("1.00", "199.") — expected cho zero-shot Base.
-  - Saved: `fine_tune_qwen/results/v0_results.json`
-- [x] **Phase 2 design DONE (2026-04-26):** plan_day5.md Section 4.5 — BnB-only, 8 decisions + 5 refinements.
-- [ ] **Phase 2 implement (can GPU):** `03_train_v1_smoke.ipynb` — v1 smoke 20K (r=32, 2ep), follow Section 4.5
-- [ ] **Phase 3 (can GPU):** `04_train_v2.ipynb` — v2 full (r=64, all 7 modules, 3ep)
+- [x] **Phase 1 DONE** — v0 zero-shot RMSLE=4.4428
+- [x] **Phase 2 DONE** — v1 smoke RMSLE=0.6084 (beat v0 86%)
+- [ ] **Phase 3 (dang chuan bi):** Chay probe truoc khi full train
+  - `04a_probe_7mod.ipynb` — 10K, 1ep, r=64, 7 modules → do VRAM + time
+  - `04b_probe_4mod.ipynb` — 10K, 1ep, r=64, 4 modules → doi chieu
+  - `04_train_v2.ipynb` — full 85K, 3ep (da tao san, cho ket qua probe de chon config)
 - [ ] **Phase 4 (can GPU):** `05_train_v3.ipynb` — v3 high-rank (r=128)
 - [ ] **Phase 5 (can GPU):** `06_train_v4_final.ipynb` — v4 + NEFTune + packing
 - [ ] **Phase 6:** `07_eval_full.ipynb` + day5_summary.md
 
-**Cau hinh:** Qwen3.5-4B-Base + PEFT + bitsandbytes (QLoRA 4-bit NF4) | GPU 24GB (thue) | 4 tuan
+**Cau hinh:** Qwen3.5-4B-Base + PEFT + bitsandbytes (QLoRA 4-bit NF4) | RTX 3090 Ti 25.3GB | 4 tuan
 **Unsloth: DROPPED 2026-04-26** (loi VLProcessor + user chot bo)
 **max_seq_length = 192 | max_new_tokens = 4 | dataset = SeanSunny/items_prompts_tv_3**
 **Target:** RMSLE < 0.38 (phu: beat v8 0.4004 standalone)
@@ -160,6 +155,56 @@ Sau khi tao xong notebook (chua chay), in ra:
 - Cell list summary (number + title + group A-I)
 - Dry-run import check
 - Confirm voi user: "Notebook OK, chay full pipeline?"
+```
+
+---
+
+### Prompt J: Day 5 — Phase 3 v2 full train (dung cho Sonnet 4.6, sau khi co ket qua probe)
+
+```
+Doc cac file sau de nap ngu canh:
+1. "scraping_data_tv/SESSION_HANDOFF.md"
+2. "fine_tune_qwen/plan_day5.md" Section 5 (Phase 3 v2)
+3. "fine_tune_qwen/phase2_execution_log.md" (ket qua v1 + notes Opus)
+4. "fine_tune_qwen/04_train_v2.ipynb" (notebook da tao san)
+
+== TRANG THAI ==
+- Phase 2 v1 smoke DONE: RMSLE=0.6084 (20K/2ep/r=32/4mod) — v1_results.json
+- Phase 3 v2 notebooks da tao:
+  - fine_tune_qwen/04a_probe_7mod.ipynb (10K/1ep/r=64/7mod — uoc tinh VRAM+time)
+  - fine_tune_qwen/04b_probe_4mod.ipynb (10K/1ep/r=64/4mod — doi chieu)
+  - fine_tune_qwen/04_train_v2.ipynb    (full 85K/3ep — cho user confirm config)
+
+== BUG DA FIX (BAT BUOC AP DUNG) ==
+- `torch_dtype=torch.bfloat16` trong `AutoModelForCausalLM.from_pretrained()` — da co san trong 04_train_v2.ipynb.
+  Neu khong co dong nay: conv1d Qwen3.5 GatedDeltaNet o float32 → crash khi inference.
+- `DataCollatorForCompletionOnlyLM` bi xoa khoi TRL 0.24.0 → dung manual impl (da co trong 04_train_v2.ipynb).
+
+== CONFIG THUC TE (v1 actual, khac plan) ==
+- per_device_batch=16, gradient_accumulation=4 (plan: 8/8). Eff batch = 64 giu nguyen.
+- gradient_checkpointing=False trong v1 (plan: True). V2 da bat lai True trong 04_train_v2.ipynb.
+
+== YEU CAU ==
+1. Doc ket qua probe (user paste vao) de chon config 7mod hoac 4mod cho 04_train_v2.ipynb.
+   Decision guide (cuoi file 04b_probe_4mod.ipynb):
+   - VRAM 7mod < 23GB → dung 7mod (default trong 04_train_v2.ipynb)
+   - VRAM 7mod > 23GB → sua LORA_TARGET_MODULES = 4mod trong 04_train_v2.ipynb
+
+2. Neu user chua chay probe: phong van user de lay so lieu VRAM + time, roi quyet dinh.
+
+3. Chay 04_train_v2.ipynb (full 85K, 3ep). Config v2:
+   - r=64, alpha=128, 7mod (hoac 4mod tuy probe), gradient_checkpointing=True
+   - per_device_batch=16, grad_accum=4, eff batch=64
+   - EVAL_STEPS=200, SAVE_STRATEGY=epoch → 3 checkpoints
+
+4. Sau khi chay xong:
+   - Ghi log vao fine_tune_qwen/phase2_execution_log.md (muc Run #2)
+   - Ghi leaderboard v0/v1/v2 vs Day4 v8
+
+5. Cap nhat SESSION_HANDOFF.md voi v2 RMSLE thuc te.
+
+== TIEU CHUAN CODE ==
+- seed=42 moi noi, khong emoji, path tuong doi, os.environ cho token
 ```
 
 ---
