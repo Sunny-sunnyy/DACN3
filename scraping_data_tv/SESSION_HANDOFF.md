@@ -101,36 +101,65 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt cho session moi
 
-### Prompt I: Day 5 — Phase 2 implement (smoke training, sau khi co design)
+### Prompt I: Day 5 — Phase 2 implement (smoke training, dung cho Sonnet 4.6)
 
 ```
-Doc cac file sau de nap ngu canh (DOC KY):
-1. "scraping_data_tv/SESSION_HANDOFF.md" (trang thai hien tai)
-2. "fine_tune_qwen/plan_day5.md" Section 4.5 (DESIGN CUOI BnB-only)
+BAN LA SONNET 4.6 — chuyen code generation. Opus 4.7 da chot design qua interview voi user.
+Nhiem vu cua ban: code notebook theo design, log thuc thi, KHONG tu sua design.
 
-Trang thai Day 5:
-- Phase 1 v0 RMSLE=4.4428 (zero-shot, expected) — `fine_tune_qwen/results/v0_results.json`
-- Phase 2 design DONE (2026-04-26) — Section 4.5 plan_day5.md (8 decisions + 5 refinements)
+== QUY TAC 3-FILE WORKFLOW (BAT BUOC) ==
+- READ-ONLY: plan_day5.md, SESSION_HANDOFF.md
+- WRITE: 03_train_v1_smoke.ipynb, phase2_execution_log.md, weights/v1_adapter/, results/v1_results.json
+- Neu thay design co van de → flag vao phase2_execution_log.md muc "Can Opus xem xet", KHONG tu sua plan.
 
-Yeu cau Phase 2 — Implement smoke v1 (can GPU):
-1. Tao notebook fine_tune_qwen/03_train_v1_smoke.ipynb theo Section 4.5.4 code skeleton:
+== DOC NGU CANH (theo thu tu) ==
+1. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the
+2. "fine_tune_qwen/plan_day5.md" Section 4.5 (toan bo 4.5.1 → 4.5.8) — DESIGN CANONICAL
+3. "fine_tune_qwen/02_baseline_v1.ipynb" — reference style cho Phase 1 (BnB)
+4. "scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb" — English ref
+5. "fine_tune_qwen/utils/evaluator.py" — compute_metrics, plot_predictions
+6. "fine_tune_qwen/phase2_execution_log.md" — template log can dien sau khi chay
+
+== TRANG THAI ==
+- Phase 1 v0 DONE: RMSLE=4.4428 zero-shot (expected) — results/v0_results.json
+- Phase 2 design DONE 2026-04-26 (commit fccf94b): 8 decisions Q1-Q8 + 8 refinements R1-R8
+
+== YEU CAU ==
+1. Tao notebook fine_tune_qwen/03_train_v1_smoke.ipynb theo:
+   - Section 4.5.4 code skeleton (7 phan)
+   - Section 4.5.7 cell structure (~22 cell, 14 nhom)
+   - Section 4.5.6 refinements R1-R8 (BAT BUOC AP DUNG)
+   - Section 4.5.5 checklist 11 items
+   
+   Dac biet luu y:
    - PEFT + bitsandbytes 4-bit NF4 + Qwen/Qwen3.5-4B-Base (KHONG Unsloth)
-   - 20K train samples, LoRA r=32 attention-only, 2 epochs, bs=8 grad_accum=8 (eff 64)
-   - Truncate SUMMARY token-level (style English reference, KHONG cat ca prompt)
-   - DataCollatorForCompletionOnlyLM voi response_template = TOKEN IDS (R1)
-   - Verify Qwen3.5 module names runtime truoc khi LoRA (R2)
-   - Log truncation rate (R3); verify EOS token (R5)
-   - Eval B+: eval_strategy="steps" (CE loss, 500 val) trong train + generative RMSLE sau train
-   - Inference safety lai: regex float-first + clamp [5, 1000]
-   - Save adapter: fine_tune_qwen/weights/v1_adapter/
-   - Save results: fine_tune_qwen/results/v1_results.json
-   - Push HF: SeanSunny/qwen3.5-4b-vn-pricer-v1 (private)
+   - DataCollatorForCompletionOnlyLM voi response_template = TOKEN IDS (R1) + verify mask fail-loud (R6)
+   - Verify Qwen3.5 module names runtime (R2), fallback "all-linear" neu can
+   - Cat SUMMARY token-level tu duoi (R7), log p50/p95/p99 + truncation rate
+   - VRAM smoke 100 samples truoc khi train 20K (R8)
+   - Inference safety: regex r"[-+]?\d*\.\d+|\d+" + clamp [5, 1000] (Q5)
+   - Eval B+: eval_strategy="steps" CE loss + generative RMSLE 500 val sau train (Q4/Q6)
+   - Push HF: SeanSunny/qwen3.5-4b-vn-pricer-v1 private (Q7)
+
 2. KHONG chay training cho den khi user confirm notebook structure OK.
 
-Luu y:
-- uv run cho moi lenh Python, seed=42
-- Tham khao English reference: scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/
-- Checklist 11 items: Section 4.5.5 plan_day5.md
+3. Sau khi chay xong → ghi log day du vao phase2_execution_log.md theo template co san:
+   - Tao muc "## Run #1 — YYYY-MM-DD HH:MM"
+   - Dien tat ca cac muc A → I theo template
+   - Liet ke deviations va "Can Opus xem xet" neu co
+
+== TIEU CHUAN CODE ==
+- uv run cho moi lenh Python, seed=42 moi noi
+- Style match 02_baseline_v1.ipynb (markdown header, comment vi/en mix, print thay vi log)
+- Khong emoji
+- Path tuong doi qua Path(NOTEBOOK_DIR)
+- Khong hardcode API keys, dung os.environ + .env
+
+== DEN BU ==
+Sau khi tao xong notebook (chua chay), in ra:
+- Cell list summary (number + title + group A-I)
+- Dry-run import check
+- Confirm voi user: "Notebook OK, chay full pipeline?"
 ```
 
 ---

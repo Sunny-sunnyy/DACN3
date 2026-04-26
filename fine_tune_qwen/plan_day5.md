@@ -698,6 +698,33 @@ Nếu `eos_token_id is None` → set `tokenizer.eos_token = "<|endoftext|>"` th�
 
 **Lưu ý cho Sonnet:** dùng `# %% [markdown]` và `# %%` style cell separator nếu code .ipynb qua jupytext, hoặc tạo trực tiếp JSON .ipynb. Không hardcode path tuyệt đối — dùng `Path(__file__).parent` hoặc relative.
 
+#### 4.5.8. Quy tắc 3-file workflow Opus/Sonnet
+
+Để tránh model code-focus (Sonnet) vô tình rewrite design intent (Opus chốt với user qua interview), tách bạch ownership 3 file:
+
+| File | Vai trò | Opus | Sonnet |
+|------|--------|------|--------|
+| `fine_tune_qwen/plan_day5.md` | Design + decisions + refinements | **WRITE** | **READ-ONLY** |
+| `scraping_data_tv/SESSION_HANDOFF.md` | State giữa sessions | **WRITE** | **READ-ONLY** |
+| `fine_tune_qwen/phase2_execution_log.md` | Log thực thi notebook + kết quả thật + issues | READ | **WRITE** |
+
+**Sonnet chỉ ĐƯỢC sửa:**
+- `03_train_v1_smoke.ipynb`
+- `phase2_execution_log.md`
+- `weights/v1_adapter/*` (artifacts từ trainer)
+- `results/v1_results.json` (artifacts từ eval)
+
+**Sonnet KHÔNG sửa:**
+- `plan_day5.md` (kể cả thấy "có thể tốt hơn" — flag vào execution_log mục "Cần Opus xem xét")
+- `SESSION_HANDOFF.md`
+- `02_baseline_*.ipynb` (đã DONE)
+- `utils/*.py` (đã ổn định, nếu cần fix → flag Opus)
+
+**Workflow giữa 2 model:**
+1. **Opus** (design session) → viết `plan_day5.md` + `SESSION_HANDOFF.md`. Tạo `phase2_execution_log.md` template rỗng.
+2. **Sonnet** (code session) → đọc 3 file trên. Code notebook. Chạy. **Ghi vào `phase2_execution_log.md`** theo template trong file đó. Nếu gặp design issue (vd. OOM phải đổi bs) → flag vào mục "Cần Opus xem xét", **KHÔNG tự sửa plan**.
+3. **Opus** (review session sau) → đọc `phase2_execution_log.md` → update `plan_day5.md` + `SESSION_HANDOFF.md` với kết quả thật + design adjustments. Archive run cũ vào "Cleanup history" của execution log.
+
 #### 4.5.5. Checklist Phase 2 (override 4.4)
 
 - [ ] Load model BnB 4-bit + `prepare_model_for_kbit_training` → no OOM
