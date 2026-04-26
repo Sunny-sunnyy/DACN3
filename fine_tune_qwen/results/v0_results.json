@@ -1,0 +1,179 @@
+{
+  "version": "v0_zero_shot",
+  "model": "Qwen/Qwen3.5-4B-Base",
+  "dataset": "SeanSunny/items_prompts_tv_3",
+  "eval_samples": 200,
+  "seed": 42,
+  "max_new_tokens": 4,
+  "inference_sec": 35.4,
+  "sec_per_item": 0.18,
+  "zero_pred_count": 0,
+  "metrics": {
+    "rmsle": 4.442807479758806,
+    "mae": 296806.865,
+    "mape": 105.90551286855012,
+    "r2": -2.0931972138576067
+  },
+  "samples": [
+    {
+      "idx": 0,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Thùng nhựa tròn đa năng 37L/76L/120L  \nDanh mục: Thùng rác & túi xài  \nThương h",
+      "generated_raw": "1.00",
+      "pred_vnd": 1000,
+      "true_vnd": 869000,
+      "error_pct": 99.9
+    },
+    {
+      "idx": 1,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Ốp lưng chống sốc Xundd Armor Case cho iPhone 14/15 series  \nDanh mục: Phụ kiện",
+      "generated_raw": "199.",
+      "pred_vnd": 199000,
+      "true_vnd": 110000,
+      "error_pct": 80.9
+    },
+    {
+      "idx": 2,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Hộp Đựng Đồ Đa Năng Fudo Giken Petit Neu  \nDanh mục: Hộp Dựng & Lưu Trữ  \nThươn",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 225500,
+      "error_pct": 99.6
+    },
+    {
+      "idx": 3,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Bộ combo vệ sinh & khử mùi giày Sneaker Thecobbler  \nDanh mục: Dụng cụ làm đẹp ",
+      "generated_raw": "199.",
+      "pred_vnd": 199000,
+      "true_vnd": 229000,
+      "error_pct": 13.1
+    },
+    {
+      "idx": 4,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Kính lão viền cước tròng Meka chống xước  \nDanh mục: Phụ kiện thời trang  \nThươ",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 149000,
+      "error_pct": 99.3
+    },
+    {
+      "idx": 5,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Hộp Mực 26A CF226A Estar cho HP & Canon  \nDanh mục: Hộp Mực In Laser  \nThương h",
+      "generated_raw": "1.00",
+      "pred_vnd": 1000,
+      "true_vnd": 297000,
+      "error_pct": 99.7
+    },
+    {
+      "idx": 6,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: CHÂN VÁY 6 NÚT HANA  \nDanh mục: Quần áo nữ – Váy  \nThương hiệu: OEM  \nMô tả: Vá",
+      "generated_raw": "100.",
+      "pred_vnd": 100000,
+      "true_vnd": 138000,
+      "error_pct": 27.5
+    },
+    {
+      "idx": 7,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Ví Nam Da Bò V74  \nDanh mục: Ví nam cao cấp  \nThương hiệu: Túi xách nam  \nMô tả",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 594000,
+      "error_pct": 99.8
+    },
+    {
+      "idx": 8,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Nam Cầm Tay KT10 – Hình Ngựa May Mắn Phong Thủy  \nDanh mục: Túi xách và phụ kiệ",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 558000,
+      "error_pct": 99.8
+    },
+    {
+      "idx": 9,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Giày Lười Vải Nam Đế Cao Su Non A60 Lỗ Thoáng Khí Màu Đen  \nDanh mục: Giày nam ",
+      "generated_raw": "150.",
+      "pred_vnd": 150000,
+      "true_vnd": 99000,
+      "error_pct": 51.5
+    },
+    {
+      "idx": 10,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Giày lười nữ ấn tượng 2024  \nDanh mục: Giày dép nữ  \nThương hiệu: Giày nữ  \nMô ",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 51000,
+      "error_pct": 98.0
+    },
+    {
+      "idx": 11,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Wetlote Sổ Lò Xo Hoa A5 160Tr  \nDanh mục: Sổ, Ghi chú, Văn phòng  \nThương hiệu:",
+      "generated_raw": "100.",
+      "pred_vnd": 100000,
+      "true_vnd": 119000,
+      "error_pct": 16.0
+    },
+    {
+      "idx": 12,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Sạc Laptop HP Pavilion 65W (14‑al/14‑ab/14‑bf)  \nDanh mục: Phụ kiện Laptop  \nTh",
+      "generated_raw": "120.",
+      "pred_vnd": 120000,
+      "true_vnd": 229000,
+      "error_pct": 47.6
+    },
+    {
+      "idx": 13,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Tã Dán Siêu Thấm Caryn Gói Siêu Tiết Kiệm M40  \nDanh mục: Tã Dán Bỉm  \nThương h",
+      "generated_raw": "1.00",
+      "pred_vnd": 1000,
+      "true_vnd": 391000,
+      "error_pct": 99.7
+    },
+    {
+      "idx": 14,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Sơn ngoại thất bóng cao cấp OEXPO ZOCO ALPES FOR  \nDanh mục: Sơn ngoại thất  \nT",
+      "generated_raw": "1.00",
+      "pred_vnd": 1000,
+      "true_vnd": 230000,
+      "error_pct": 99.6
+    },
+    {
+      "idx": 15,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: USB KIOXIA U365 32GB/64GB 150 MB/s USB 3.2  \nDanh mục: Thiết bị lưu trữ di động",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 299000,
+      "error_pct": 99.7
+    },
+    {
+      "idx": 16,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Ốp lưng Oppo Reno 2Z/2F – 6Z/7Z/8Z – Phật Đủ  \nDanh mục: Phụ kiện điện thoại  \n",
+      "generated_raw": "100.",
+      "pred_vnd": 100000,
+      "true_vnd": 60000,
+      "error_pct": 66.7
+    },
+    {
+      "idx": 17,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Ốp Lưng Case Kai.N cho AirPods Pro 2  \nDanh mục: Phụ kiện điện thoại/ tai nghe ",
+      "generated_raw": "1.29",
+      "pred_vnd": 1000,
+      "true_vnd": 248999,
+      "error_pct": 99.6
+    },
+    {
+      "idx": 18,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Giường xếp ghế bố mẫu mới nhất BẢO AN - MM01  \nDanh mục: Nội thất phòng ngủ  \nT",
+      "generated_raw": "1.20",
+      "pred_vnd": 1000,
+      "true_vnd": 440000,
+      "error_pct": 99.8
+    },
+    {
+      "idx": 19,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Bộ 3 lọ mực HA1005 cho HP & Canon  \nDanh mục: Hàng nhập khẩu / Mực in  \nThương ",
+      "generated_raw": "1.00",
+      "pred_vnd": 1000,
+      "true_vnd": 105000,
+      "error_pct": 99.0
+    }
+  ]
+}

@@ -40,7 +40,10 @@ Cap nhat moi khi ket thuc 1 session lam viec.
   - pyproject.toml: da them `unsloth>=2026.4.8`, `transformers>=5.2.0`
 
 ### Buoc tiep (Day 5 — can GPU):
-- [ ] **Phase 1:** Chay `02_baseline_v2.ipynb` (Unsloth) truoc. Neu loi thi chay `02_baseline_v1.ipynb` (BnB). Lay v0_results.json.
+- [x] **Phase 1 DONE (2026-04-26):** `02_baseline_v1.ipynb` (BnB) chay thanh cong.
+  - RMSLE=4.4428 | MAE=296,807 VND | MAPE=105.9% | R2=-2.09 | 0.18s/item
+  - Zero preds: 0. Raw output kieu USD decimal ("1.00", "199.") — expected cho zero-shot Base.
+  - Saved: `fine_tune_qwen/results/v0_results.json`
 - [ ] **Phase 2 (can GPU):** `03_train_v1_smoke.ipynb` — v1 smoke 20K (r=32, 2ep)
 - [ ] **Phase 3 (can GPU):** `04_train_v2.ipynb` — v2 full (r=64, all 7 modules, 3ep)
 - [ ] **Phase 4 (can GPU):** `05_train_v3.ipynb` — v3 high-rank (r=128)
@@ -175,4 +178,4 @@ Luu y:
 
 ---
 
-*Cap nhat: 2026-04-26 (session 3) — Phase 1 notebooks san sang: 02_baseline_v1.ipynb (BnB, stable) va 02_baseline_v2.ipynb (Unsloth/Qwen3.5-4B-Base, thu nghiem). Phat hien Qwen3.5 co VL architecture. transformers nang len 5.5.0. Sau khi Phase 1 chay xong, dung Prompt I de tao Phase 2 notebook.*
+*Cap nhat: 2026-04-26 (session 3) — Phase 1 DONE. v0_results.json: RMSLE=4.4428 (zero-shot, expected xau). San sang Phase 2 smoke training. Dung Prompt I.*
