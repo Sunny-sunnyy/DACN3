@@ -1,12 +1,26 @@
 # Day 5 — QLoRA Fine-tune Qwen3.5-4B-Base cho bài toán ước giá tiếng Việt
 
-**Phiên bản:** 1.1
+**Phiên bản:** 1.2
 **Ngày tạo:** 2026-04-24
-**Cập nhật:** 2026-04-24 (session 2)
+**Cập nhật:** 2026-04-26 (session 4 — Phase 2 design final)
 **Branch:** `feature/day5-qlora-qwen`
 **Folder:** `tech2ai/fine_tune_qwen/`
 **Người thực hiện:** Sunny
 **Model code generation:** Claude Sonnet 4.6 (dựa trên file này)
+
+---
+
+## ⚠️ BANNER QUAN TRỌNG (đọc trước khi code Phase 2)
+
+**Phase 2 design final nằm ở Section 4.5** — đã override Section 4.2 (Unsloth template).
+
+- **Framework Phase 2:** PEFT + bitsandbytes thuần (KHÔNG dùng Unsloth — đã chốt 2026-04-26).
+- **Dataset name:** `SeanSunny/items_prompts_tv_3` (KHÔNG phải `_v1` như một số chỗ trong plan cũ — đó là typo).
+- **Truncation:** Cắt SUMMARY token-level từ đuôi (style English reference), KHÔNG dùng "Option B" pre-truncate cả prompt.
+- **Loss masking:** `DataCollatorForCompletionOnlyLM` với `response_template = TOKEN IDS` (không phải string).
+- Sections 1-3 còn nhắc Unsloth (lịch sử) — bỏ qua phần Unsloth, lấy phần lý thuyết khác.
+
+Khi code Phase 2: **đọc Section 4.5 trước, dùng Section 4.5.4 làm code skeleton, bám checklist 4.5.5, áp dụng refinements 4.5.6**.
 
 ---
 
@@ -15,10 +29,10 @@
 | Phase | Trang thai | Ghi chu |
 |-------|-----------|---------|
 | Infrastructure | **DONE** | utils/, notebooks 00+01, pyproject.toml deps |
-| Phase 0 — Profile tokens | **CHO USER CHAY** | `00_profile_tokens.ipynb` — khong can GPU |
-| Phase 0 — Prepare dataset | **CHO USER CHAY** | `01_prepare_dataset.ipynb` — can HF_TOKEN |
-| Phase 1 — Zero-shot v0 | PENDING | Can GPU, can confirm max_seq_length truoc |
-| Phase 2 — Smoke v1 | PENDING | — |
+| Phase 0 — Profile tokens | **DONE** | `00_profile_tokens.ipynb` — profile_results_v3.json |
+| Phase 0 — Prepare dataset | **DONE** | `SeanSunny/items_prompts_tv_3` pushed |
+| Phase 1 — Zero-shot v0 | **DONE (2026-04-26)** | RMSLE=4.4428, `02_baseline_v1.ipynb` (BnB) |
+| Phase 2 — Smoke v1 | **DESIGN DONE** | Section 4.5; cho user code `03_train_v1_smoke.ipynb` |
 | Phase 3 — Full v2 | PENDING | — |
 | Phase 4 — High-rank v3 | PENDING | — |
 | Phase 5 — Final v4 | PENDING | — |
@@ -352,81 +366,11 @@ def predict(prompt: str) -> int:
 | Gradient checkpointing | True (Unsloth "unsloth" mode) |
 | Packing | False (keep simple ở v1) |
 
-### 4.2. Code structure
+### 4.2. Code structure — DEPRECATED (2026-04-26)
 
-```python
-from unsloth import FastLanguageModel
-from trl import SFTTrainer, SFTConfig
-from datasets import load_dataset
-
-# 1. Load model
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name="Qwen/Qwen3.5-4B-Base",
-    max_seq_length=MAX_SEQ_LENGTH,
-    load_in_4bit=True,
-)
-
-# 2. Add LoRA
-model = FastLanguageModel.get_peft_model(
-    model,
-    r=32,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    lora_alpha=64,
-    lora_dropout=0.1,
-    bias="none",
-    use_gradient_checkpointing="unsloth",
-    random_state=42,
-)
-
-# 3. Load dataset
-ds = load_dataset("SeanSunny/items_prompts_tv_1")
-train_ds = ds["train"].shuffle(seed=42).select(range(20000))
-val_ds = ds["val"].shuffle(seed=42).select(range(500))
-
-# 4. Format function: Option B — pre-truncate prompt để đảm bảo completion không bị SFTTrainer cắt.
-# SFTTrainer dùng keep_start (cắt từ cuối) → completion bị mất nếu prompt quá dài.
-# Giải pháp: cắt prompt tại token level trước khi concat, giống English reference (CUTOFF=110).
-MAX_PROMPT_TOKENS = MAX_SEQ_LENGTH - MAX_NEW_TOKENS - 1  # 192 - 4 - 1 = 187
-
-def formatting_func(example):
-    prompt_ids = tokenizer.encode(example["prompt"], add_special_tokens=False)
-    if len(prompt_ids) > MAX_PROMPT_TOKENS:
-        prompt_ids = prompt_ids[:MAX_PROMPT_TOKENS]
-        prompt = tokenizer.decode(prompt_ids, skip_special_tokens=True)
-    else:
-        prompt = example["prompt"]
-    return prompt + example["completion"] + "\n" + tokenizer.eos_token
-
-# 5. Trainer
-trainer = SFTTrainer(
-    model=model,
-    tokenizer=tokenizer,
-    train_dataset=train_ds,
-    formatting_func=formatting_func,
-    args=SFTConfig(
-        output_dir="weights/v1_adapter",
-        per_device_train_batch_size=8,
-        gradient_accumulation_steps=8,
-        num_train_epochs=2,
-        learning_rate=2e-4,
-        lr_scheduler_type="cosine",
-        warmup_ratio=0.03,
-        weight_decay=0.001,
-        optim="paged_adamw_32bit",
-        bf16=True,
-        max_seq_length=MAX_SEQ_LENGTH,
-        packing=False,
-        save_strategy="epoch",
-        logging_steps=20,
-        report_to="none",
-        seed=42,
-    ),
-)
-
-trainer.train()
-model.save_pretrained("weights/v1_adapter")
-tokenizer.save_pretrained("weights/v1_adapter")
-```
+> Code template Unsloth dưới đây **KHÔNG còn dùng**. User đã chốt bỏ Unsloth (lỗi VLProcessor với Qwen3.5-4B-Base). Phase 2 dùng PEFT + bitsandbytes thuần.
+>
+> **Xem Section 4.5 cho design final.** Section 4.5.4 chứa code skeleton BnB-only đã thay thế.
 
 ### 4.3. Eval v1
 
@@ -443,6 +387,331 @@ Sau train xong:
 - [ ] v1 RMSLE < v0 RMSLE (chứng minh fine-tune có tác dụng)
 - [ ] Push adapter lên HF: `SeanSunny/qwen3.5-4b-vn-pricer-v1`
 - [ ] Nếu v1 RMSLE > 0.6 → có vấn đề pipeline, debug trước khi v2
+
+---
+
+### 4.5. QUYẾT ĐỊNH CUỐI Phase 2 (2026-04-26) — BnB-only design
+
+> Section này **OVERRIDE** code template ở 4.2 (vốn dùng Unsloth). Phase 2 thống nhất dùng PEFT + bitsandbytes thuần (giống `02_baseline_v1.ipynb`). 8 quyết định chốt với user qua brainstorming session, có dẫn chiếu English reference (`scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/`).
+
+#### 4.5.1. Decisions matrix
+
+| # | Vấn đề | Quyết định | Lý do |
+|---|--------|-----------|-------|
+| Q1 | Framework | **PEFT + bitsandbytes thuần** (bỏ Unsloth) | Unsloth + Qwen3.5-4B-Base có VLProcessor bug; v1 baseline đã chạy ổn với BnB |
+| Q2 | Truncation | **Cắt SUMMARY token-level từ đuôi** trước khi build prompt (style English reference: `tokens[:MAX_SUMMARY_TOKENS]`) — KHÔNG dùng "Option B" cũ | Plan 4.2 cũ pre-truncate cả prompt → có nguy cơ cắt mất `\n\nGiá là: ` PREFIX. Reference cắt summary giữ nguyên QUESTION + PREFIX |
+| Q3 | Loss masking | **`DataCollatorForCompletionOnlyLM(response_template="\n\nGiá là: ")`** | Mask loss prompt rõ ràng, chỉ học completion. Kiểm soát tốt hơn `dataset_text_field` mode |
+| Q4 | Eval method | **Phương án B+**: Eval Loss CE trong train (`eval_strategy="steps"`, 500 val) + generative RMSLE 1 lần sau train + manual checkpoint eval per-epoch | Theo reference. Bỏ TrainerCallback custom — overhead không đáng cho smoke |
+| Q5 | Inference safety | **(C) Lai**: train completion `+ "\n" + eos_token`; eval dùng regex float-first `r"[-+]?\d*\.\d+\|\d+"` + clamp `pred_k ∈ [5, 1000]`; **bỏ StoppingCriteria** (max_new_tokens=4 đã đủ ngắn) | Clamp bảo vệ RMSLE khỏi outlier; StoppingCriteria không cần |
+| Q6 | Eval scope sau train | **Chỉ 500 val** (~90s) | Smoke validate pipeline. Full 3872 test để dành Phase 3 v2 |
+| Q7 | Push HF | **Push** `SeanSunny/qwen3.5-4b-vn-pricer-v1` | Backup state khi máy thuê mất |
+| Q8 | Logging | **`report_to="none"`**, console-only | Smoke đơn giản. Bật wandb từ v2 |
+
+#### 4.5.2. Đánh giá v1 baseline data processing (đã review vs reference)
+
+**ỔN, giữ nguyên:**
+- Prompt template `"Sản phẩm này có giá bao nhiêu ?\n{summary}\n\nGiá là: "` cùng pattern `QUESTION\n\nsummary\n\nPREFIX` của reference.
+- `padding_side="right"` — giống reference cell 83.
+- Completion `str(round(price_vnd / 1000))` (không có `.00`) — OK vì là số nguyên thuần, `max_new_tokens=4` đủ chứa 3-4 ký tự.
+- Eval tách biệt sau inference — giống reference.
+
+**THAY ĐỔI Phase 2:**
+- Truncation: chuyển từ "Option B pre-truncate prompt" sang "cắt summary token-level" (Q2).
+- Regex parse: từ `r"\d+"` → `r"[-+]?\d*\.\d+|\d+"` (float-first, an toàn hơn nếu model sinh decimal).
+- Clamp `pred_k ∈ [5, 1000]` (= 5K-1M VND, khớp filter dataset).
+
+#### 4.5.3. Hằng số chốt cho Phase 2
+
+```python
+# Model & framework
+BASE_MODEL = "Qwen/Qwen3.5-4B-Base"
+DATASET_NAME = "SeanSunny/items_prompts_tv_3"
+
+# Sequence
+MAX_SEQ_LENGTH = 192          # từ Phase 0 profile
+MAX_NEW_TOKENS = 4
+RESPONSE_TEMPLATE = "\n\nGiá là: "
+
+# Truncation (Q2): cắt summary token-level, KHÔNG cắt cả prompt
+# QUESTION = "Sản phẩm này có giá bao nhiêu ?\n" + suffix "\n\nGiá là: " 
+# Tổng token QUESTION+PREFIX ~ cần đo trong notebook (TOKENS_FIXED)
+# MAX_SUMMARY_TOKENS = MAX_SEQ_LENGTH - TOKENS_FIXED - len(completion_tokens) - 1(EOS) - safety_buffer(2)
+
+# LoRA (smoke v1)
+LORA_R = 32
+LORA_ALPHA = 64                # = 2 * r
+LORA_DROPOUT = 0.1
+LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj"]   # attention-only
+
+# Training (smoke)
+TRAIN_SIZE = 20000
+VAL_EVAL_SIZE = 500
+NUM_EPOCHS = 2
+PER_DEVICE_BATCH = 8
+GRAD_ACCUM = 8                 # effective batch = 64
+LEARNING_RATE = 2e-4
+LR_SCHEDULER = "cosine"
+WARMUP_RATIO = 0.03
+WEIGHT_DECAY = 0.001
+OPTIM = "paged_adamw_32bit"
+PACKING = False                # giữ đơn giản v1
+GRADIENT_CHECKPOINTING = True
+EVAL_STEPS = 100
+SAVE_STRATEGY = "epoch"
+LOGGING_STEPS = 20
+SEED = 42
+
+# Inference safety (Q5 lai)
+PRED_CLAMP_MIN = 5             # 5,000 VND
+PRED_CLAMP_MAX = 1000          # 1,000,000 VND (khớp filter dataset)
+PARSE_REGEX = r"[-+]?\d*\.\d+|\d+"
+
+# Output paths
+ADAPTER_DIR = "fine_tune_qwen/weights/v1_adapter"
+RESULTS_FILE = "fine_tune_qwen/results/v1_results.json"
+HF_REPO_ADAPTER = "SeanSunny/qwen3.5-4b-vn-pricer-v1"
+```
+
+#### 4.5.4. Code skeleton (BnB-only — REPLACE 4.2)
+
+```python
+# ===== 1. Load model 4-bit NF4 + prepare for k-bit training =====
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+
+quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_quant_type="nf4",
+)
+
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "right"
+
+model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    quantization_config=quant_config,
+    device_map="auto",
+    trust_remote_code=True,
+)
+model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+
+# ===== 2. LoRA config =====
+lora_config = LoraConfig(
+    r=LORA_R, lora_alpha=LORA_ALPHA, lora_dropout=LORA_DROPOUT,
+    target_modules=LORA_TARGET_MODULES, bias="none", task_type="CAUSAL_LM",
+)
+model = get_peft_model(model, lora_config)
+model.print_trainable_parameters()
+
+# ===== 3. Dataset + Q2 truncation (summary-level) =====
+# Token count cố định của QUESTION_PREFIX khung — đo 1 lần
+QUESTION_PREFIX = "Sản phẩm này có giá bao nhiêu ?\n"   # đầu prompt
+PRICE_PREFIX    = "\n\nGiá là: "                         # cuối prompt = response_template
+
+# Build prompt với summary đã cắt token-level
+def build_prompt(summary_tokens_truncated_text):
+    return QUESTION_PREFIX + summary_tokens_truncated_text + PRICE_PREFIX
+
+# Pre-process: tách summary từ prompt gốc, cắt token, build lại
+def preprocess(example):
+    # prompt gốc đã có dạng "Sản phẩm này có giá bao nhiêu ?\n{summary}\n\nGiá là: "
+    # → tách summary ra
+    p = example["prompt"]
+    summary = p[len(QUESTION_PREFIX):-len(PRICE_PREFIX)]
+    summary_ids = tokenizer.encode(summary, add_special_tokens=False)
+    # MAX_SUMMARY_TOKENS đo runtime: MAX_SEQ_LENGTH - TOKENS_FIXED - 4 (completion) - 1 (eos) - 2 (buffer)
+    if len(summary_ids) > MAX_SUMMARY_TOKENS:
+        summary_ids = summary_ids[:MAX_SUMMARY_TOKENS]
+        summary = tokenizer.decode(summary_ids, skip_special_tokens=True).rstrip()
+    full_text = build_prompt(summary) + example["completion"] + "\n" + tokenizer.eos_token
+    return {"text": full_text}
+
+train_ds = ds["train"].shuffle(seed=SEED).select(range(TRAIN_SIZE)).map(preprocess)
+val_ds   = ds["val"].shuffle(seed=SEED).select(range(VAL_EVAL_SIZE)).map(preprocess)
+
+# ===== 4. Collator (Q3) =====
+from trl import DataCollatorForCompletionOnlyLM
+collator = DataCollatorForCompletionOnlyLM(
+    response_template=PRICE_PREFIX, tokenizer=tokenizer,
+)
+
+# ===== 5. SFTTrainer (Q4 B+) =====
+from trl import SFTTrainer, SFTConfig
+trainer = SFTTrainer(
+    model=model, tokenizer=tokenizer,
+    train_dataset=train_ds, eval_dataset=val_ds,
+    data_collator=collator,
+    args=SFTConfig(
+        output_dir=ADAPTER_DIR,
+        per_device_train_batch_size=PER_DEVICE_BATCH,
+        gradient_accumulation_steps=GRAD_ACCUM,
+        num_train_epochs=NUM_EPOCHS,
+        learning_rate=LEARNING_RATE, lr_scheduler_type=LR_SCHEDULER,
+        warmup_ratio=WARMUP_RATIO, weight_decay=WEIGHT_DECAY, optim=OPTIM,
+        bf16=True, max_seq_length=MAX_SEQ_LENGTH, packing=PACKING,
+        eval_strategy="steps", eval_steps=EVAL_STEPS,
+        save_strategy=SAVE_STRATEGY,
+        logging_steps=LOGGING_STEPS, report_to="none", seed=SEED,
+        dataset_text_field="text",
+    ),
+)
+trainer.train()
+trainer.save_model(ADAPTER_DIR)
+tokenizer.save_pretrained(ADAPTER_DIR)
+
+# ===== 6. Generative eval (Q5/Q6) =====
+def predict_one(prompt: str) -> int:
+    inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
+    with torch.no_grad():
+        out = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS,
+                             do_sample=False, pad_token_id=tokenizer.eos_token_id)
+    gen = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+    m = re.search(PARSE_REGEX, gen)
+    pred_k = int(float(m.group())) if m else 0
+    return max(PRED_CLAMP_MIN, min(pred_k, PRED_CLAMP_MAX)) if pred_k > 0 else 0
+
+# Manual checkpoint eval (Q4 bonus): load ADAPTER_DIR/checkpoint-{step1}, {step2}
+# riêng biệt → đo RMSLE 500 val mỗi cái → biết epoch 1 vs 2.
+
+# ===== 7. Push HF (Q7) =====
+model.push_to_hub(HF_REPO_ADAPTER, private=True)
+tokenizer.push_to_hub(HF_REPO_ADAPTER, private=True)
+```
+
+#### 4.5.6. Refinements quan trọng (research trl + Qwen3.5)
+
+**R1 — `DataCollatorForCompletionOnlyLM` phải dùng TOKEN IDS, không dùng STRING.**
+Đây là gotcha nổi tiếng của trl: tokenizer có thể tokenize cùng 1 string khác nhau khi đứng giữa context vs đứng riêng (BPE merge). Nếu pass string `"\n\nGiá là: "`, collator có thể không tìm thấy substring trong tokenized sequence → **không mask được prompt** → loss tính trên cả prompt (silent bug).
+
+**Fix bắt buộc trong notebook:**
+```python
+response_template_ids = tokenizer.encode(
+    "\n\nGiá là: ", add_special_tokens=False
+)
+# Verify: decode lại phải ra đúng "\n\nGiá là: "
+print(repr(tokenizer.decode(response_template_ids)))
+collator = DataCollatorForCompletionOnlyLM(
+    response_template=response_template_ids,   # ← LIST INT, không phải str
+    tokenizer=tokenizer,
+)
+```
+
+**Verify mask đúng** (cell test): lấy 1 sample, run qua collator, in `labels[labels != -100]` → chỉ thấy completion tokens + EOS, KHÔNG thấy prompt tokens. Nếu thấy prompt tokens → response_template_ids sai.
+
+**R2 — Qwen3.5-4B-Base module names cho LoRA cần verify runtime.**
+Qwen3.5 có architecture Hybrid (Gated DeltaNet + sparse MoE), không phải vanilla Transformer. Module names `q_proj/k_proj/v_proj/o_proj` có thể KHÔNG tồn tại hoặc nằm sâu trong cấu trúc khác.
+
+**Fix bắt buộc** — cell verify trước khi `get_peft_model()`:
+```python
+# In ra tất cả Linear modules để xác nhận target_modules đúng
+import torch.nn as nn
+linear_names = set()
+for name, module in model.named_modules():
+    if isinstance(module, (nn.Linear, bnb.nn.Linear4bit)):
+        linear_names.add(name.split(".")[-1])
+print("Linear module suffixes:", linear_names)
+# Kỳ vọng thấy: q_proj, k_proj, v_proj, o_proj (attention)
+# Nếu KHÔNG thấy → fallback: target_modules = "all-linear"
+```
+
+**Fallback decision tree:**
+- Thấy đủ `q/k/v/o_proj` → giữ `LORA_TARGET_MODULES = ["q_proj","k_proj","v_proj","o_proj"]`.
+- Thiếu hoặc tên khác → dùng `target_modules="all-linear"` (PEFT auto-detect, an toàn nhưng tốn tham số hơn).
+- MoE expert layers (nếu có `gate`, `experts.*`) → KHÔNG include trong v1 smoke (để Phase 3 v2 thử).
+
+**R3 — Log truncation rate.**
+Sau preprocess, log `% train items có summary_ids dài hơn MAX_SUMMARY_TOKENS` (= bị cắt). Kỳ vọng < 30% (vì p95 prompt = 146 < 192). Nếu > 50% → MAX_SUMMARY_TOKENS quá nhỏ, cần xem lại profile.
+
+**R4 — `prepare_model_for_kbit_training` + LoRA phải đúng thứ tự + bật input grads.**
+```python
+model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+model = get_peft_model(model, lora_config)
+# enable_input_require_grads thường tự động — nhưng nếu loss = 0 từ step 1 → 
+# gọi thủ công: model.enable_input_require_grads()
+```
+
+**R6 — Verify mask labels (Q9 = A).**
+Bắt buộc cell test sau khi build collator. Lấy 1 sample qua collator, decode `labels[labels != -100]` → phải ra đúng `"869\n<|endoftext|>"` (chỉ completion + EOS). Nếu thấy bất kỳ token nào của prompt → response_template_ids sai → **fail loud, dừng notebook**, không train.
+
+**R7 — Truncation strategy (Q10 = C, chốt sau khi xem 3 mẫu thực tế).**
+Schema dataset cố định: `Tiêu đề → Danh mục → Thương hiệu → Mô tả → Thông số`. Phân tích signal:
+- Tiêu đề + Thương hiệu = 2 signal mạnh nhất cho giá → nằm ở **đầu** summary.
+- Mô tả + Thông số = signal medium → nằm ở **cuối**.
+
+→ **Cắt đuôi (reference-style `tokens[:MAX_SUMMARY_TOKENS]`) hợp lý** cho v1 smoke vì không mất signal quan trọng. KHÔNG dùng smart-truncate (option B) vì over-engineer.
+
+**Bắt buộc log:**
+```python
+# Sau khi tokenize toàn bộ train summary
+summary_token_lens = [len(tokenizer.encode(s, add_special_tokens=False)) for s in summaries]
+print(f"Summary token len: p50={np.percentile(summary_token_lens, 50):.0f}, "
+      f"p95={np.percentile(summary_token_lens, 95):.0f}, "
+      f"p99={np.percentile(summary_token_lens, 99):.0f}, "
+      f"max={max(summary_token_lens)}")
+truncated = sum(1 for l in summary_token_lens if l > MAX_SUMMARY_TOKENS)
+print(f"Truncated: {truncated}/{len(summaries)} ({truncated/len(summaries)*100:.1f}%)")
+```
+→ Lưu vào `v1_results.json` để decide Phase 3 có cần smart-truncate hay không.
+
+**R8 — VRAM smoke 100 samples trước (Q11 = B).**
+Trước khi train 20K, chạy smoke run nhỏ:
+```python
+# Cell riêng: train 100 samples, 1 epoch, max_steps=5
+trainer_smoke = SFTTrainer(...)  # cùng config nhưng dataset.select(range(100)), max_steps=5
+trainer_smoke.train()
+print(f"VRAM peak: {torch.cuda.max_memory_allocated() / 1e9:.2f} GB")
+print(f"Time/step: {avg_step_time:.2f}s")
+# Estimate: total_steps = (20000 / (8*8)) * 2 = 625 steps
+# Total time = 625 * avg_step_time
+```
+→ Verify VRAM < 22 GB (giữ headroom cho eval), ước tính total time. Nếu OOM → giảm `per_device_batch_size` xuống 4 + tăng `gradient_accumulation` lên 16 (giữ effective bs=64).
+
+**R5 — Tokenizer EOS cho Qwen3.5-Base.**
+Qwen3.5 tokenizer có thể có nhiều special tokens (`<|endoftext|>`, `<|im_end|>`...). Base model không dùng chat → `tokenizer.eos_token` mặc định là `<|endoftext|>`. Verify cell:
+```python
+print(f"EOS token: {tokenizer.eos_token!r} (id={tokenizer.eos_token_id})")
+print(f"PAD token: {tokenizer.pad_token!r} (id={tokenizer.pad_token_id})")
+```
+Nếu `eos_token_id is None` → set `tokenizer.eos_token = "<|endoftext|>"` thủ công.
+
+#### 4.5.7. Notebook cell structure (đề xuất cho `03_train_v1_smoke.ipynb`)
+
+Đề xuất ~22 cell, chia 8 phần. Mỗi phần có markdown header:
+
+1. **Header markdown** — title, mục đích, config tóm tắt, kỳ vọng RMSLE.
+2. **Setup** — imports, hằng số (Section 4.5.3), GPU check, HF login từ `.env`, mkdir results/weights.
+3. **Load model + tokenizer** — BnB quant config, AutoTokenizer, AutoModelForCausalLM, `prepare_model_for_kbit_training`. **Print** memory_footprint, EOS/PAD tokens (R5).
+4. **Verify Qwen3.5 modules + apply LoRA (R2)** — print all linear suffixes; nếu thiếu q/k/v/o_proj → fallback "all-linear"; `get_peft_model`; `print_trainable_parameters`.
+5. **Load dataset + truncation analysis (R7)** — load `items_prompts_tv_3`, tách summary từ prompt, đo p50/p95/p99 token len summary, derive `MAX_SUMMARY_TOKENS = MAX_SEQ_LENGTH - TOKENS_FIXED - 4 - 1 - 2`, log truncation rate (% bị cắt).
+6. **Preprocess + format text** — apply `preprocess()` ra `{"text": ...}`, in 2-3 sample sau truncate để eyeball verify PREFIX còn nguyên.
+7. **DataCollator + verify mask (R1+R6)** — encode `response_template` ra token IDs, build collator, lấy 1 batch test, decode `labels[labels != -100]` → assert đúng `"<completion>\n<eos>"`. Nếu sai → `raise RuntimeError`.
+8. **VRAM smoke (R8)** — train 100 samples, max_steps=5, log VRAM peak + sec/step, ước tính total time cho 20K. Confirm với user trước khi full train (in `print("[CHECKPOINT] OK to run full train? Re-run notebook from cell X to skip this and continue to full train")`).
+9. **Full train 20K** — SFTTrainer với eval_strategy="steps", eval_steps=100, save_strategy="epoch". `trainer.train()`. Log loss curves từ `trainer.state.log_history`.
+10. **Generative eval 500 val (final epoch 2)** — load model ở mode inference, predict_one cho 500 val (batch nếu thời gian), parse + clamp, compute RMSLE/MAE/MAPE/R2 từ `utils/evaluator.py`.
+11. **Manual checkpoint eval per-epoch (Q4 bonus)** — load `ADAPTER_DIR/checkpoint-XXX` (epoch 1) → eval 500 val → log RMSLE_e1. Load checkpoint epoch 2 → RMSLE_e2. So sánh.
+12. **Save v1_results.json** — schema: `{version, model, config, train_loss_curve, eval_loss_curve, truncation_rate, vram_peak_gb, total_train_sec, metrics_e1, metrics_e2, samples_20: [{idx, prompt_excerpt, generated_raw, pred_vnd, true_vnd, error_pct}]}`.
+13. **Push HF** — `model.push_to_hub("SeanSunny/qwen3.5-4b-vn-pricer-v1", private=True)` + tokenizer + 1 markdown cell trong README mô tả config.
+14. **Leaderboard** — bảng tóm tắt v0 vs v1 vs Day4 v8 reference.
+
+**Lưu ý cho Sonnet:** dùng `# %% [markdown]` và `# %%` style cell separator nếu code .ipynb qua jupytext, hoặc tạo trực tiếp JSON .ipynb. Không hardcode path tuyệt đối — dùng `Path(__file__).parent` hoặc relative.
+
+#### 4.5.5. Checklist Phase 2 (override 4.4)
+
+- [ ] Load model BnB 4-bit + `prepare_model_for_kbit_training` → no OOM
+- [ ] LoRA params trainable ~ 0.1-0.3% tổng params
+- [ ] Tính `TOKENS_FIXED` (QUESTION_PREFIX + PRICE_PREFIX tokens) → derive `MAX_SUMMARY_TOKENS`
+- [ ] In ra 2-3 sample `text` sau preprocess để verify truncation đúng (PREFIX còn nguyên)
+- [ ] `DataCollatorForCompletionOnlyLM` mask đúng prompt tokens (verify bằng decode `labels` → chỉ thấy completion + EOS)
+- [ ] Train 2 epochs, train loss giảm liên tục, eval loss giảm hoặc plateau
+- [ ] Save checkpoint mỗi epoch tại `ADAPTER_DIR/checkpoint-*`
+- [ ] Generative eval 500 val (epoch 2 final): RMSLE < v0 (4.44) — kỳ vọng < 0.6
+- [ ] Manual checkpoint eval epoch 1 vs epoch 2 → so sánh RMSLE
+- [ ] Save `v1_results.json` (RMSLE, MAE, MAPE, R2, 20 sample preds, train loss curve, eval loss curve)
+- [ ] Push adapter HF `SeanSunny/qwen3.5-4b-vn-pricer-v1` (private)
+- [ ] Cập nhật `SESSION_HANDOFF.md` với v1 RMSLE thực tế
 
 ---
 

@@ -34,24 +34,36 @@ Cap nhat moi khi ket thuc 1 session lam viec.
     - **max_seq_length = 192** | **max_new_tokens = 4**
   - Scripts: push_dataset_v3.py, reprofile_v3.py, inspect_dataset.py
 - [x] **Day 5 Phase 1 notebooks READY (2026-04-26):**
-  - `02_baseline_v1.ipynb` — HF transformers + BitsAndBytesConfig, `Qwen/Qwen3.5-4B-Base`, 200 samples. **Stable.**
-  - `02_baseline_v2.ipynb` — Unsloth `FastLanguageModel`, `unsloth/Qwen3.5-4B-Base`, 200 samples. **Thu nghiem.**
+  - `02_baseline_v1.ipynb` — HF transformers + BitsAndBytesConfig, `Qwen/Qwen3.5-4B-Base`, 200 samples. **Stable. CHOSEN.**
+  - `02_baseline_v2.ipynb` — Unsloth `FastLanguageModel`. **DEPRECATED (user da chot bo Unsloth).**
   - Fix: transformers nang len 5.5.0 (`uv add "transformers>=5.2.0"`) — bat buoc cho Qwen3.5
-  - pyproject.toml: da them `unsloth>=2026.4.8`, `transformers>=5.2.0`
+  - pyproject.toml: da them `transformers>=5.2.0` (unsloth khong con dung)
+- [x] **Day 5 Phase 2 design DONE (2026-04-26):**
+  - Xem `fine_tune_qwen/plan_day5.md` Section 4.5 (override Section 4.2 Unsloth).
+  - 8 quyet dinh chot: BnB-only, truncate summary token-level, DataCollatorForCompletionOnlyLM (token IDs),
+    eval B+ (CE loss in-train + generative RMSLE 500 val sau train + manual checkpoint eval per-epoch),
+    inference safety lai (regex float-first + clamp [5,1000], khong StoppingCriteria),
+    eval scope 500 val only, push HF v1 adapter, report_to="none".
+  - 8 refinements research: response_template token IDs (R1), verify Qwen3.5 module names runtime (R2),
+    log truncation rate (R3), prepare_model_for_kbit_training order (R4), verify EOS token (R5),
+    verify mask labels fail-loud (R6), truncation cat duoi reference-style + log p95/p99 (R7),
+    VRAM smoke 100 samples truoc khi train 20K (R8).
 
 ### Buoc tiep (Day 5 — can GPU):
 - [x] **Phase 1 DONE (2026-04-26):** `02_baseline_v1.ipynb` (BnB) chay thanh cong.
   - RMSLE=4.4428 | MAE=296,807 VND | MAPE=105.9% | R2=-2.09 | 0.18s/item
   - Zero preds: 0. Raw output kieu USD decimal ("1.00", "199.") — expected cho zero-shot Base.
   - Saved: `fine_tune_qwen/results/v0_results.json`
-- [ ] **Phase 2 (can GPU):** `03_train_v1_smoke.ipynb` — v1 smoke 20K (r=32, 2ep)
+- [x] **Phase 2 design DONE (2026-04-26):** plan_day5.md Section 4.5 — BnB-only, 8 decisions + 5 refinements.
+- [ ] **Phase 2 implement (can GPU):** `03_train_v1_smoke.ipynb` — v1 smoke 20K (r=32, 2ep), follow Section 4.5
 - [ ] **Phase 3 (can GPU):** `04_train_v2.ipynb` — v2 full (r=64, all 7 modules, 3ep)
 - [ ] **Phase 4 (can GPU):** `05_train_v3.ipynb` — v3 high-rank (r=128)
 - [ ] **Phase 5 (can GPU):** `06_train_v4_final.ipynb` — v4 + NEFTune + packing
 - [ ] **Phase 6:** `07_eval_full.ipynb` + day5_summary.md
 
-**Cau hinh:** Qwen3.5-4B-Base + Unsloth + QLoRA 4-bit NF4 | GPU 24GB (thue) | 4 tuan
-**max_seq_length = 192 | max_new_tokens = 4 | dataset = items_prompts_tv_3**
+**Cau hinh:** Qwen3.5-4B-Base + PEFT + bitsandbytes (QLoRA 4-bit NF4) | GPU 24GB (thue) | 4 tuan
+**Unsloth: DROPPED 2026-04-26** (loi VLProcessor + user chot bo)
+**max_seq_length = 192 | max_new_tokens = 4 | dataset = SeanSunny/items_prompts_tv_3**
 **Target:** RMSLE < 0.38 (phu: beat v8 0.4004 standalone)
 
 ---
@@ -89,33 +101,36 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt cho session moi
 
-### Prompt I: Day 5 — Phase 2 smoke training (sau khi co Phase 1 results)
+### Prompt I: Day 5 — Phase 2 implement (smoke training, sau khi co design)
 
 ```
 Doc cac file sau de nap ngu canh (DOC KY):
 1. "scraping_data_tv/SESSION_HANDOFF.md" (trang thai hien tai)
-2. "fine_tune_qwen/plan_day5.md" (plan chi tiet)
+2. "fine_tune_qwen/plan_day5.md" Section 4.5 (DESIGN CUOI BnB-only)
 
-Trang thai Day 5 Phase 1 DA XONG:
-- v0_results.json: [DAN KET QUA TU fine_tune_qwen/results/v0_results.json]
-- Notebook chay thanh cong: [v1 (BnB) hoac v2 (Unsloth)]
-- Unsloth status: [unsloth/Qwen3.5-4B-Base OK / van loi -> dung BnB]
+Trang thai Day 5:
+- Phase 1 v0 RMSLE=4.4428 (zero-shot, expected) — `fine_tune_qwen/results/v0_results.json`
+- Phase 2 design DONE (2026-04-26) — Section 4.5 plan_day5.md (8 decisions + 5 refinements)
 
-Yeu cau Phase 2 — Smoke test v1 (can GPU):
-1. Tao notebook fine_tune_qwen/03_train_v1_smoke.ipynb:
-   - Load model: neu Unsloth OK thi dung unsloth/Qwen3.5-4B-Base; neu khong thi Qwen/Qwen3.5-4B-Base + PEFT + BnB
-   - Train 20K samples, LoRA r=32, 2 epochs, theo plan_day5.md Section 4
-   - formatting_func voi Option B pre-truncate (MAX_PROMPT_TOKENS = 192 - 4 - 1 = 187)
-   - Eval 500 val samples sau moi epoch
+Yeu cau Phase 2 — Implement smoke v1 (can GPU):
+1. Tao notebook fine_tune_qwen/03_train_v1_smoke.ipynb theo Section 4.5.4 code skeleton:
+   - PEFT + bitsandbytes 4-bit NF4 + Qwen/Qwen3.5-4B-Base (KHONG Unsloth)
+   - 20K train samples, LoRA r=32 attention-only, 2 epochs, bs=8 grad_accum=8 (eff 64)
+   - Truncate SUMMARY token-level (style English reference, KHONG cat ca prompt)
+   - DataCollatorForCompletionOnlyLM voi response_template = TOKEN IDS (R1)
+   - Verify Qwen3.5 module names runtime truoc khi LoRA (R2)
+   - Log truncation rate (R3); verify EOS token (R5)
+   - Eval B+: eval_strategy="steps" (CE loss, 500 val) trong train + generative RMSLE sau train
+   - Inference safety lai: regex float-first + clamp [5, 1000]
    - Save adapter: fine_tune_qwen/weights/v1_adapter/
    - Save results: fine_tune_qwen/results/v1_results.json
-2. KHONG chay training cho den khi user confirm notebook structure OK
+   - Push HF: SeanSunny/qwen3.5-4b-vn-pricer-v1 (private)
+2. KHONG chay training cho den khi user confirm notebook structure OK.
 
 Luu y:
 - uv run cho moi lenh Python, seed=42
-- PEFT training voi BnB: dung get_peft_model tu peft library (KHONG FastLanguageModel.get_peft_model neu Unsloth loi)
-- 3-layer inference safety cho Phase 2: StopOnNonDigit, extract_price_thousands clamp [5,1000], '\n' sau completion
 - Tham khao English reference: scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/
+- Checklist 11 items: Section 4.5.5 plan_day5.md
 ```
 
 ---
@@ -163,7 +178,7 @@ Luu y:
 | `day3/day3_summary.md` | **Summary Day 3** (260 dong): viet bang tieng Viet co dau, giai thich khai niem (tai sao log-transform, char_wb, blending). Doc nhanh de hieu Day 3 ma khong can doc code. |
 | `day4/plan_day4.md` | **Plan Day 4** (160 dong): bang tong hop v4->v8 voi so lieu thuc te, ky thuat ap dung (LLRD/R-Drop/EMA), phan tich stacking weights, fallback Day 5. Co luu y checkpoint v4 (input_size). |
 | `day4/day4_summary.md` | **Summary Day 4** (270 dong): viet bang tieng Viet co dau, giai thich kien truc BERT fine-tuning, tung ky thuat SOTA (tai sao can, code minh hoa), tien trinh v4->v8, phan tich stacking, ceiling analysis, so sanh Mercari benchmark. Doc nhanh de hieu toan bo Day 4. |
-| `fine_tune_qwen/plan_day5.md` | **Plan Day 5** (743 dong): plan chi tiet QLoRA Qwen3.5-4B-Base + Unsloth. 15 sections bao gom muc tieu, decisions (model/prompt/completion), Phase 0-6 chi tiet voi code template, folder structure, HF deliverables, dependencies, risks, acceptance criteria, ghi chu cho Sonnet 4.6, timeline 14 ngay. DOC KY truoc khi bat dau Day 5 implementation. |
+| `fine_tune_qwen/plan_day5.md` | **Plan Day 5** v1.2 (~1100 dong): plan chi tiet QLoRA Qwen3.5-4B-Base + PEFT/BnB. **Section 4.5 la canonical truth cho Phase 2 (override Unsloth template cu).** 15 sections + Section 4.5 (8 decisions + 8 refinements + code skeleton + checklist). DOC KY truoc khi code Phase 2. |
 
 ### Code & weights
 
@@ -178,4 +193,4 @@ Luu y:
 
 ---
 
-*Cap nhat: 2026-04-26 (session 3) — Phase 1 DONE. v0_results.json: RMSLE=4.4428 (zero-shot, expected xau). San sang Phase 2 smoke training. Dung Prompt I.*
+*Cap nhat: 2026-04-26 (session 4) — Phase 2 DESIGN DONE (BnB-only, 8 decisions + 5 refinements, plan_day5 Section 4.5). San sang implement notebook 03_train_v1_smoke.ipynb. Dung Prompt I.*
