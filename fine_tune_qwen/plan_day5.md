@@ -77,7 +77,7 @@ Decoder LLM (Qwen3.5-4B-Base) với:
 | Base model | `Qwen/Qwen3.5-4B-Base` | Base (không Instruct) — không có thinking mode, không có RLHF bias, "vải trắng" cho regression task. Model card chính thức khuyến nghị Base cho fine-tuning. |
 | Quantization | QLoRA 4-bit NF4 + double quant | Giảm VRAM từ ~16GB (bf16) xuống ~4GB cho weights, còn VRAM cho activations + LoRA. |
 | Compute dtype | bfloat16 | RTX 3090/4090 hỗ trợ bf16 native. |
-| Framework | **PEFT + bitsandbytes** + TRL `SFTTrainer` | Unsloth 2026.4.8 load Qwen3.5 như VL model (Qwen3_5ForConditionalGeneration) — gây lỗi tokenizer và inference. Dùng PEFT + bitsandbytes thuần: chậm hơn ~2x nhưng stable. Phase 1 dùng HF transformers + BitsAndBytesConfig. |
+| Framework | **PEFT + bitsandbytes** (Phase 1) / **Unsloth thử nghiệm** (Phase 2+) | Qwen3.5-4B-Base có Vision Encoder trong architecture (Hybrid: Gated DeltaNet + sparse MoE). Unsloth 2026.4.8 + `Qwen/Qwen3.5-4B-Base` → lỗi VLProcessor. **Fix:** dùng `unsloth/Qwen3.5-4B-Base` (Unsloth repo). Phase 1 baseline dùng HF transformers + BitsAndBytesConfig (stable). Phase 2+ thử `unsloth/Qwen3.5-4B-Base` — nếu OK thì 2x nhanh hơn. |
 | Tokenizer | Qwen stock (vocab 151,936) | Không extend vocab ở Day 5 (rủi ro cao, effort lớn). Day 6 consider nếu v4 thất bại. |
 
 **Phát hiện quan trọng về Qwen tokenizer (2026-04-25):**
@@ -260,7 +260,13 @@ def build_completion(price: float, for_test: bool) -> str:
 
 **Mục tiêu:** Đo khả năng ước giá của Qwen3.5-4B-Base KHÔNG fine-tune. Cung cấp lower bound để đánh giá improvement.
 
-### 3.1. Notebook `02_baseline_v0.ipynb`
+### 3.1. Notebook `02_baseline_v0.ipynb` → thực tế dùng `02_baseline_v1.ipynb` hoặc `02_baseline_v2.ipynb`
+
+**Hai notebook thực thi (2026-04-26):**
+- `02_baseline_v1.ipynb` — HF transformers + BitsAndBytesConfig, `Qwen/Qwen3.5-4B-Base`. **Đã xác nhận stable.**
+- `02_baseline_v2.ipynb` — Unsloth `FastLanguageModel`, `unsloth/Qwen3.5-4B-Base` (Unsloth repo). **Thử nghiệm — nếu OK thì 2x nhanh hơn, dùng cho Phase 2+ training.**
+
+Cả 2 đều save ra `results/v0_results.json`. Chạy v2 trước, nếu lỗi thì dùng v1.
 
 **Các bước:**
 
@@ -696,16 +702,18 @@ tech2ai/fine_tune_qwen/
 Thêm vào `pyproject.toml` (hoặc `uv add`):
 
 ```bash
-uv add unsloth
-uv add "trl>=0.8.0"
-uv add "transformers>=4.44.0"
-uv add "peft>=0.11.0"
-uv add "bitsandbytes>=0.43.0"
-uv add "accelerate>=0.30.0"
-uv add datasets
+uv sync                              # cai tat ca tu pyproject.toml
+uv add unsloth                       # them unsloth (chua co trong pyproject.toml goc)
+uv add "transformers>=5.2.0"         # bat buoc cho Qwen3.5 (qwen3_5 model type)
 ```
 
-Lưu ý Unsloth yêu cầu phiên bản PyTorch + CUDA khớp — tham khảo `unsloth.ai/docs/models/qwen3.5` cho lệnh install chính xác.
+**Đã xác nhận trên máy thuê (2026-04-26):** CUDA 12.8 | PyTorch 2.9.0+cu128 | RTX 3090 Ti
+- `unsloth==2026.4.8`, `transformers==5.5.0`, `trl==0.24.0` (unsloth pin)
+
+**Model name quan trọng:**
+- Phase 1 inference: `Qwen/Qwen3.5-4B-Base` (HF repo) — dùng với HF transformers + BnB
+- Phase 2+ training: **`unsloth/Qwen3.5-4B-Base`** (Unsloth repo) — dùng với `FastLanguageModel`
+- Lý do: `Qwen/Qwen3.5-4B-Base` + Unsloth → lỗi VLProcessor. `unsloth/Qwen3.5-4B-Base` được Unsloth optimize riêng.
 
 ### 11.2. HF auth
 
@@ -737,7 +745,7 @@ print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 | R4 | v4 RMSLE vẫn > 0.38 | Trung bình cao | Không đạt target chính | Day 6: (a) vocab extension VN tokens; (b) scale lên Qwen3.5-9B QLoRA với CPU offload; (c) stacking v4 với v8 pool (cần user approve) |
 | R5 | Training diverge (loss tăng) | Thấp | Phải restart | Giảm LR 2x, tăng warmup lên 0.1, check data có NaN |
 | R6 | HF upload fail (token, size) | Thấp | Không push được | Keep local weights, retry sau. Merged 8GB cần git-lfs, kiểm tra quota HF |
-| R7 | Unsloth version conflict với Qwen3.5 | **XAY RA** | Load như VL model, lỗi tokenizer + FailOnRecompileLimitHit | **RESOLVED (2026-04-26):** Dùng PEFT + bitsandbytes thuần cho toàn bộ Day 5. Unsloth bị loại khỏi pipeline. |
+| R7 | Unsloth + `Qwen/Qwen3.5-4B-Base` lỗi VL | **ĐÃ XẢY RA** | Load như Qwen3_5ForConditionalGeneration (VL), lỗi tokenizer + FailOnRecompileLimitHit | **PARTIALLY RESOLVED (2026-04-26):** Phase 1 dùng HF transformers + BnB (stable). Phase 2+ thử `unsloth/Qwen3.5-4B-Base` — Unsloth repo xử lý đúng hơn. Nếu vẫn lỗi: toàn bộ Day 5 dùng PEFT + BnB. |
 | R8 | Qwen sinh thêm digit thừa sau số (digit-by-digit tokenizer) | Trung bình | pred_vnd sai 10x (ví dụ "150"→"1500"→1,500,000 VND) | **3 lớp phòng vệ — implement từ Phase 2:** (1) `StopOnNonDigit` StoppingCriteria dừng khi token không phải digit; (2) `extract_price_thousands()` clamp về [5,1000]; (3) Thêm `"\n"` sau completion trong formatting_func để model học stop token rõ ràng hơn. Phase 1 (zero-shot) chưa cần — kết quả xấu là expected. |
 
 ---

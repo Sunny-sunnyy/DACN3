@@ -5,9 +5,9 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-25)
+## Trang thai hien tai (2026-04-26)
 
-**Trang thai:** Day 5 Phase 0 DONE. San sang Phase 1 (can GPU).
+**Trang thai:** Day 5 Phase 1 notebooks READY. Dang chay tren may thue (RTX 3090 Ti, CUDA 12.8, PyTorch 2.9).
 **Branch hien tai:** `feature/day5-qlora-qwen`
 
 ### Da hoan thanh:
@@ -33,9 +33,14 @@ Cap nhat moi khi ket thuc 1 session lam viec.
     - Prompt p95 = 146 tokens | Full p95 = 149 tokens | Max = 218 tokens
     - **max_seq_length = 192** | **max_new_tokens = 4**
   - Scripts: push_dataset_v3.py, reprofile_v3.py, inspect_dataset.py
+- [x] **Day 5 Phase 1 notebooks READY (2026-04-26):**
+  - `02_baseline_v1.ipynb` — HF transformers + BitsAndBytesConfig, `Qwen/Qwen3.5-4B-Base`, 200 samples. **Stable.**
+  - `02_baseline_v2.ipynb` — Unsloth `FastLanguageModel`, `unsloth/Qwen3.5-4B-Base`, 200 samples. **Thu nghiem.**
+  - Fix: transformers nang len 5.5.0 (`uv add "transformers>=5.2.0"`) — bat buoc cho Qwen3.5
+  - pyproject.toml: da them `unsloth>=2026.4.8`, `transformers>=5.2.0`
 
 ### Buoc tiep (Day 5 — can GPU):
-- [ ] **Phase 1 (can GPU):** `02_baseline_v0.ipynb` — v0 zero-shot baseline (500 test samples)
+- [ ] **Phase 1:** Chay `02_baseline_v2.ipynb` (Unsloth) truoc. Neu loi thi chay `02_baseline_v1.ipynb` (BnB). Lay v0_results.json.
 - [ ] **Phase 2 (can GPU):** `03_train_v1_smoke.ipynb` — v1 smoke 20K (r=32, 2ep)
 - [ ] **Phase 3 (can GPU):** `04_train_v2.ipynb` — v2 full (r=64, all 7 modules, 3ep)
 - [ ] **Phase 4 (can GPU):** `05_train_v3.ipynb` — v3 high-rank (r=128)
@@ -60,6 +65,16 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Luu y ky thuat quan trong
 
+### Qwen3.5-4B-Base architecture (phat hien 2026-04-26)
+- `Qwen3.5-4B-Base` co Vision Encoder trong architecture (Hybrid: Gated DeltaNet + sparse MoE).
+  Model type = `qwen3_5`, class = `Qwen3_5ForConditionalGeneration` — day la DUNG, khong phai bug.
+- **Unsloth + `Qwen/Qwen3.5-4B-Base`** → loi VLProcessor (tokenizer bi wrap nhu image processor) + FailOnRecompileLimitHit.
+- **Fix:** Dung `unsloth/Qwen3.5-4B-Base` (Unsloth repo) thay vi `Qwen/Qwen3.5-4B-Base` (HF repo).
+- **Fallback:** HF transformers + BitsAndBytesConfig + `Qwen/Qwen3.5-4B-Base` — stable, cham hon 2x.
+- **transformers >= 5.2.0** bat buoc (Qwen3.5 dung model type `qwen3_5` chi co tu 5.2.0+).
+- Instruct model co thinking mode (`<think>...</think>`) — Base model thi KHONG co.
+
+### Day 4 / legacy
 - **Checkpoint v4 keys:** `state_dict` (KHONG phai `model_state`)
 - **v4-2b MLP input_size:** 1032 = 1024 (AITeamVN) + 8 (cat one-hot)
 - **v4-0a DNN input_size:** 5008 = 5000 (HashingVec) + 8 (cat one-hot)
@@ -70,6 +85,37 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 ---
 
 ## Prompt cho session moi
+
+### Prompt I: Day 5 — Phase 2 smoke training (sau khi co Phase 1 results)
+
+```
+Doc cac file sau de nap ngu canh (DOC KY):
+1. "scraping_data_tv/SESSION_HANDOFF.md" (trang thai hien tai)
+2. "fine_tune_qwen/plan_day5.md" (plan chi tiet)
+
+Trang thai Day 5 Phase 1 DA XONG:
+- v0_results.json: [DAN KET QUA TU fine_tune_qwen/results/v0_results.json]
+- Notebook chay thanh cong: [v1 (BnB) hoac v2 (Unsloth)]
+- Unsloth status: [unsloth/Qwen3.5-4B-Base OK / van loi -> dung BnB]
+
+Yeu cau Phase 2 — Smoke test v1 (can GPU):
+1. Tao notebook fine_tune_qwen/03_train_v1_smoke.ipynb:
+   - Load model: neu Unsloth OK thi dung unsloth/Qwen3.5-4B-Base; neu khong thi Qwen/Qwen3.5-4B-Base + PEFT + BnB
+   - Train 20K samples, LoRA r=32, 2 epochs, theo plan_day5.md Section 4
+   - formatting_func voi Option B pre-truncate (MAX_PROMPT_TOKENS = 192 - 4 - 1 = 187)
+   - Eval 500 val samples sau moi epoch
+   - Save adapter: fine_tune_qwen/weights/v1_adapter/
+   - Save results: fine_tune_qwen/results/v1_results.json
+2. KHONG chay training cho den khi user confirm notebook structure OK
+
+Luu y:
+- uv run cho moi lenh Python, seed=42
+- PEFT training voi BnB: dung get_peft_model tu peft library (KHONG FastLanguageModel.get_peft_model neu Unsloth loi)
+- 3-layer inference safety cho Phase 2: StopOnNonDigit, extract_price_thousands clamp [5,1000], '\n' sau completion
+- Tham khao English reference: scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/
+```
+
+---
 
 ### Prompt H: Day 5 — Phase 1 zero-shot baseline (can GPU)
 
@@ -129,4 +175,4 @@ Luu y:
 
 ---
 
-*Cap nhat: 2026-04-24 (session 2) — Day 5 Phase 0 infrastructure DA XONG. Notebooks 00+01 tao xong, utils/ tao xong, deps them vao pyproject.toml. User can chay 00_profile_tokens.ipynb + 01_prepare_dataset.ipynb tren local/Colab (khong can GPU). Sau do paste ket qua vao Prompt G de Claude tao Phase 1 notebook.*
+*Cap nhat: 2026-04-26 (session 3) — Phase 1 notebooks san sang: 02_baseline_v1.ipynb (BnB, stable) va 02_baseline_v2.ipynb (Unsloth/Qwen3.5-4B-Base, thu nghiem). Phat hien Qwen3.5 co VL architecture. transformers nang len 5.5.0. Sau khi Phase 1 chay xong, dung Prompt I de tao Phase 2 notebook.*
