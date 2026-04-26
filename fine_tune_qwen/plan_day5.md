@@ -77,7 +77,7 @@ Decoder LLM (Qwen3.5-4B-Base) với:
 | Base model | `Qwen/Qwen3.5-4B-Base` | Base (không Instruct) — không có thinking mode, không có RLHF bias, "vải trắng" cho regression task. Model card chính thức khuyến nghị Base cho fine-tuning. |
 | Quantization | QLoRA 4-bit NF4 + double quant | Giảm VRAM từ ~16GB (bf16) xuống ~4GB cho weights, còn VRAM cho activations + LoRA. |
 | Compute dtype | bfloat16 | RTX 3090/4090 hỗ trợ bf16 native. |
-| Framework | **Unsloth** + TRL `SFTTrainer` | Unsloth giảm ~40% VRAM và tăng ~2x speed so với HF transformers thuần. Tương thích Qwen3.5. |
+| Framework | **PEFT + bitsandbytes** + TRL `SFTTrainer` | Unsloth 2026.4.8 load Qwen3.5 như VL model (Qwen3_5ForConditionalGeneration) — gây lỗi tokenizer và inference. Dùng PEFT + bitsandbytes thuần: chậm hơn ~2x nhưng stable. Phase 1 dùng HF transformers + BitsAndBytesConfig. |
 | Tokenizer | Qwen stock (vocab 151,936) | Không extend vocab ở Day 5 (rủi ro cao, effort lớn). Day 6 consider nếu v4 thất bại. |
 
 **Phát hiện quan trọng về Qwen tokenizer (2026-04-25):**
@@ -737,7 +737,7 @@ print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 | R4 | v4 RMSLE vẫn > 0.38 | Trung bình cao | Không đạt target chính | Day 6: (a) vocab extension VN tokens; (b) scale lên Qwen3.5-9B QLoRA với CPU offload; (c) stacking v4 với v8 pool (cần user approve) |
 | R5 | Training diverge (loss tăng) | Thấp | Phải restart | Giảm LR 2x, tăng warmup lên 0.1, check data có NaN |
 | R6 | HF upload fail (token, size) | Thấp | Không push được | Keep local weights, retry sau. Merged 8GB cần git-lfs, kiểm tra quota HF |
-| R7 | Unsloth version conflict với Qwen3.5 | Trung bình | Không load được model | Downgrade Unsloth, hoặc dùng HF transformers + peft thuần (chậm hơn 2x, vẫn OK) |
+| R7 | Unsloth version conflict với Qwen3.5 | **XAY RA** | Load như VL model, lỗi tokenizer + FailOnRecompileLimitHit | **RESOLVED (2026-04-26):** Dùng PEFT + bitsandbytes thuần cho toàn bộ Day 5. Unsloth bị loại khỏi pipeline. |
 | R8 | Qwen sinh thêm digit thừa sau số (digit-by-digit tokenizer) | Trung bình | pred_vnd sai 10x (ví dụ "150"→"1500"→1,500,000 VND) | **3 lớp phòng vệ — implement từ Phase 2:** (1) `StopOnNonDigit` StoppingCriteria dừng khi token không phải digit; (2) `extract_price_thousands()` clamp về [5,1000]; (3) Thêm `"\n"` sau completion trong formatting_func để model học stop token rõ ràng hơn. Phase 1 (zero-shot) chưa cần — kết quả xấu là expected. |
 
 ---
