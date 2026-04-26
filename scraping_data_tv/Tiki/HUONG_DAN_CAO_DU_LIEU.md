@@ -45,7 +45,8 @@ uv --version
 git clone https://github.com/Sunny-sunnyy/DACN3.git
 #git checkout feature/tiki-scraper
 cd DACN3
-git checkout feature/data-preprocessing-vi
+#git checkout feature/data-preprocessing-vi
+git checkout feature/day5-qlora-qwen
 uv sync
 ```
 

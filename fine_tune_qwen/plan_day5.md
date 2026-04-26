@@ -80,6 +80,20 @@ Decoder LLM (Qwen3.5-4B-Base) với:
 | Framework | **Unsloth** + TRL `SFTTrainer` | Unsloth giảm ~40% VRAM và tăng ~2x speed so với HF transformers thuần. Tương thích Qwen3.5. |
 | Tokenizer | Qwen stock (vocab 151,936) | Không extend vocab ở Day 5 (rủi ro cao, effort lớn). Day 6 consider nếu v4 thất bại. |
 
+**Phát hiện quan trọng về Qwen tokenizer (2026-04-25):**
+Qwen3.5 tokenize từng chữ số thành 1 token riêng (digit-by-digit), khác với Llama 3.2 (3 chữ số = 1 token).
+
+| Number | Llama 3.2 | Qwen3.5 | Tokens Qwen |
+|--------|-----------|---------|-------------|
+| 100 | **1 token** | 3 tokens | `['1','0','0']` |
+| 999 | **1 token** | 3 tokens | `['9','9','9']` |
+| 1000 | ~2 tokens | **4 tokens** | `['1','0','0','0']` |
+
+Tác động:
+- `max_new_tokens = 4` vẫn đúng (completion range [5, 1000], max "1000" = 4 tokens — xác nhận bởi profile_results_v3.json).
+- Qwen phải chain-generate từng digit tuần tự → có rủi ro sinh thêm digit thừa nếu không học EOS đúng cách (xem Section 12, R8).
+- Llama biến bài toán thành classification 1 bước; Qwen chia thành nhiều bước sequential — khó hơn nhưng vẫn feasible với fine-tuning.
+
 ### 1.2. Dữ liệu
 
 | Thành phần | Quyết định |
@@ -232,7 +246,10 @@ def build_completion(price: float, for_test: bool) -> str:
 
 - [ ] `profile_results.json` có đủ p50/p95/p99 cho prompt/completion/full
 - [x] Chốt được `max_seq_length` = **192** (p95_full=149, profile_results_v3.json)
-- [x] Chốt được `max_new_tokens` = **4** (p99_completion=3, +1 buffer)
+  - Lý do giữ 192 thay vì 256: tiết kiệm VRAM, đủ cho p95.
+  - Bù trừ bằng **Option B — pre-truncate prompt trong `formatting_func`**: cắt prompt tối đa `MAX_PROMPT_TOKENS = 192 - 4 - 1 = 187` tokens trước khi concat completion + EOS. Đảm bảo completion không bao giờ bị SFTTrainer truncate (SFTTrainer dùng `keep_start` — cắt từ cuối, completion bị cắt trước). Khoảng 5% prompt dài nhất bị cắt — chấp nhận được (English reference cũng cắt 5.7%).
+  - **Áp dụng từ Phase 2 (training)** — Phase 1 (zero-shot inference) không cần truncate.
+- [x] Chốt được `max_new_tokens` = **4** (profile xác nhận completion max=4 tokens, p99=3; "1000" = 4 digits = 4 tokens với Qwen tokenizer digit-by-digit)
 - [ ] `SeanSunny/items_prompts_tv_1` pushed lên HF, 3 splits
 - [ ] `dataset_stats.md` có sample 5 prompt hoàn chỉnh
 - [ ] Confirm tokenizer không có issue encode/decode tiếng Việt (round-trip test)
@@ -280,11 +297,18 @@ def predict(prompt: str) -> int:
 
 4. Predict trên 500 sample → so với `price_vnd_true`:
    - `pred_vnd = predict(prompt) * 1000`
-   - Compute RMSLE, MAE, MAPE, R²
+   - Compute RMSLE, MAE, MAPE, R² dùng `utils/evaluator.py`
 
-5. **Output:** `v0_results.json` với metrics + 20 sample (prompt, generated_raw, pred_vnd, true_vnd).
+5. **Output:** `results/v0_results.json` với metrics + 20 sample (prompt excerpt, generated_raw, pred_vnd, true_vnd, error_pct).
 
 6. **Kỳ vọng:** RMSLE rất xấu (> 1.0) vì model chưa biết pattern completion number thuần. Đây là baseline để đo improvement.
+
+**Ghi chú kỹ thuật Phase 1 (zero-shot):**
+- Dùng `predict_one()` đơn giản từ `utils/inference.py` — chưa áp dụng StoppingCriteria (xem R8).
+- Mục tiêu Phase 1 là đo lower bound, không cần optimize inference pipeline.
+- Nếu model sinh ra chuỗi không có chữ số → `predict_one` trả về 0 → pred_vnd = 0 → RMSLE rất cao — ghi nhận vào kết quả.
+- **StoppingCriteria + 3-layer inference safety sẽ implement từ Phase 2** khi có fine-tuned model (xem R8).
+- Load model theo cách **Unsloth primary, HF transformers + BitsAndBytes fallback** (xem Section 11).
 
 ### 3.2. Checklist Phase 1
 
@@ -353,9 +377,19 @@ ds = load_dataset("SeanSunny/items_prompts_tv_1")
 train_ds = ds["train"].shuffle(seed=42).select(range(20000))
 val_ds = ds["val"].shuffle(seed=42).select(range(500))
 
-# 4. Format function: concat prompt + completion + EOS
+# 4. Format function: Option B — pre-truncate prompt để đảm bảo completion không bị SFTTrainer cắt.
+# SFTTrainer dùng keep_start (cắt từ cuối) → completion bị mất nếu prompt quá dài.
+# Giải pháp: cắt prompt tại token level trước khi concat, giống English reference (CUTOFF=110).
+MAX_PROMPT_TOKENS = MAX_SEQ_LENGTH - MAX_NEW_TOKENS - 1  # 192 - 4 - 1 = 187
+
 def formatting_func(example):
-    return example["prompt"] + example["completion"] + tokenizer.eos_token
+    prompt_ids = tokenizer.encode(example["prompt"], add_special_tokens=False)
+    if len(prompt_ids) > MAX_PROMPT_TOKENS:
+        prompt_ids = prompt_ids[:MAX_PROMPT_TOKENS]
+        prompt = tokenizer.decode(prompt_ids, skip_special_tokens=True)
+    else:
+        prompt = example["prompt"]
+    return prompt + example["completion"] + "\n" + tokenizer.eos_token
 
 # 5. Trainer
 trainer = SFTTrainer(
@@ -704,6 +738,7 @@ print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 | R5 | Training diverge (loss tăng) | Thấp | Phải restart | Giảm LR 2x, tăng warmup lên 0.1, check data có NaN |
 | R6 | HF upload fail (token, size) | Thấp | Không push được | Keep local weights, retry sau. Merged 8GB cần git-lfs, kiểm tra quota HF |
 | R7 | Unsloth version conflict với Qwen3.5 | Trung bình | Không load được model | Downgrade Unsloth, hoặc dùng HF transformers + peft thuần (chậm hơn 2x, vẫn OK) |
+| R8 | Qwen sinh thêm digit thừa sau số (digit-by-digit tokenizer) | Trung bình | pred_vnd sai 10x (ví dụ "150"→"1500"→1,500,000 VND) | **3 lớp phòng vệ — implement từ Phase 2:** (1) `StopOnNonDigit` StoppingCriteria dừng khi token không phải digit; (2) `extract_price_thousands()` clamp về [5,1000]; (3) Thêm `"\n"` sau completion trong formatting_func để model học stop token rõ ràng hơn. Phase 1 (zero-shot) chưa cần — kết quả xấu là expected. |
 
 ---
 
