@@ -374,6 +374,53 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 
 ---
 
+## Run #4 prep — Stages 2/3/4 notebooks (2026-04-28, session 8)
+
+**Trang thai:** Ba notebook SAN SANG, chua chay GPU/Groq.
+
+### Da tao (session 8)
+
+**`08_augment_dataset_v4.ipynb`** — Stage 2 (Groq Batch augmentation):
+- Source: merge `items_raw_tv_v6` (co `full`) + `items_tv_v6` (co `summary`) → `items_tv_v7` (push HF private).
+- `parse_summary()` regex: tach summary 5 dong thanh `header` (Tieu de/Danh muc/Thuong hieu) + `body` (Mo ta/Thong so).
+- `SYSTEM_PROMPT_AUG`: LLM viet lai chi `body` (2 dong), dung `full` lam context, giu nguyen `header`.
+- `AugBatchManager`: `custom_id = f"{item_idx}_{version}"`, Groq Batch `gpt-oss-20b`, batch 1000 items.
+- Multiplier A5 theo price bucket: `<50K→5x, 50-100K→3x, 100-200K→2x, 200-500K→1x, 500K-1M→4x` (~185K requests total).
+- Cell flow: single-item test → 15-sample batch + USER CONFIRMATION GATE → full submit → poll → parse → combine tv_3 + push `items_prompts_tv_4`.
+- Output schema: `prompt, completion, price_vnd_true` (matching tv_3).
+
+**`06_train_v4_scratch.ipynb`** — Stage 3 (RTX 5090, 22 cells):
+- Dataset: `SeanSunny/items_prompts_tv_4` (~271K).
+- LoRA scratch: `r=128, alpha=256, dropout=0.15, use_dora=True, use_rslora=True` (7 modules).
+- NEFTune alpha=5, weight_decay=0.01, per_device_batch=20, grad_accum=4 (eff=80).
+- Best ckpt theo `eval_rmsle` (RMSLEEvalCallback 500 val) + EarlyStop patience=3.
+- Save `results/v4_scratch_val_predictions.json` (dung cho 07_ensemble).
+- HF push: `SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch` private.
+
+**`07_ensemble.ipynb`** — Stage 4 (25 cells):
+- Load val predictions tu JSON files (v3/v4-resume/v4-scratch/v8).
+- Neu file MISSING: optional Qwen inference tu HF Hub (GPU) hoac huong dan save v8 tu Day 4.
+- Alpha grid search (0.001→10) → Ridge fit trong log-space → eval val + test RMSLE.
+- Graceful fallback khi v8 hoac bat ky model nao thieu.
+- Save `results/ensemble_results.json` + leaderboard final.
+
+### Thu tu chay (nguoi dung)
+
+```
+1. [GPU 3090Ti ~10h]  05_train_v4_resume.ipynb   → v4_resume_val_predictions.json
+2. [Groq ~$3-5]       08_augment_dataset_v4.ipynb  → items_prompts_tv_4 HF
+3. [GPU 5090 ~16-20h] 06_train_v4_scratch.ipynb   → v4_scratch_val_predictions.json
+4. [CPU/GPU ~2h]      07_ensemble.ipynb            → ensemble_results.json
+```
+
+### Notes cho session sau (Run #3 v4-resume)
+
+- Sau khi chay xong 05: dien ket qua vao muc "Run #3 — v4-resume" o day.
+- Sau khi chay xong 06: dien ket qua vao muc "Run #4 — v4-scratch" o day.
+- Sau khi chay xong 07: dien final leaderboard o day.
+
+---
+
 ## Cleanup history
 
 (Khi Opus update plan dua tren execution log → archive run cu vao day, giu file gon)
