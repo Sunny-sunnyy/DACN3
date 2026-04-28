@@ -5,10 +5,18 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-27 — session 6)
+## Trang thai hien tai (2026-04-28 — session 7)
 
-**Trang thai:** Day 5 Phase 3 v3 DONE. RMSLE=0.4426 (chua beat v8 0.4004, gap +0.042). Chuan bi v4 cai thien.
+**Trang thai:** Day 5 Phase 4 v4 Stage 1 NOTEBOOK SAN SANG (chua chay GPU). v3 DONE RMSLE=0.4426.
 **Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 7 ket qua (2026-04-28)
+- [x] Tao `fine_tune_qwen/utils/rmsle_callback.py` — `RMSLEEvalCallback` (generative RMSLE moi 500 step, dung cho `metric_for_best_model="eval_rmsle"`).
+- [x] Tao `fine_tune_qwen/05_train_v4_resume.ipynb` (22 cells) — resume tu `weights/v3_adapter/checkpoint-2680` (PeftModel.from_pretrained, is_trainable=True). LR=5e-5, NEFTune α=3, group_by_length, EarlyStop patience=3, save best by eval_rmsle.
+- [x] Update plan_day5.md Section 4.3 A2: gpt-oss-120b → **gpt-oss-20b** (test 10-20 sample truoc, cost ~$3-5).
+- [x] Self-review fix: transformers 5.5.0 doi `group_by_length=True` → `train_sampling_strategy="group_by_length"`.
+- [ ] **CHO:** chay 05_train_v4_resume tren 1x 3090Ti (~10h, target RMSLE 0.40-0.42).
+- [ ] **Session sau:** sinh notebook 08 (augment), 06 (scratch), 07 (ensemble).
 
 ### Da hoan thanh:
 - [x] Tiki scraper — 111/113 categories, 102,117 SP
@@ -113,107 +121,70 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ## Prompt cho session moi
 
-### Prompt K: Day 5 — Phase 4 v4 implement (Sonnet 4.6, session moi)
+### Prompt K: Day 5 — v4 Stages 2/3/4 (Sonnet 4.6, session moi)
 
 ```
-BAN LA SONNET 4.6 — chuyen code generation. Opus 4.7 da chot design v4 qua interview voi user (2026-04-27).
+BAN LA SONNET 4.6 — chuyen code generation. Opus 4.7 da chot design v4 (2026-04-27) va da sinh xong Stage 1 (notebook 05_train_v4_resume.ipynb + utils/rmsle_callback.py) o session 2026-04-28.
 
-== QUY TAC 3-FILE WORKFLOW (BAT BUOC) ==
-- READ-ONLY: plan_day5.md (Section 4 v4 design), SESSION_HANDOFF.md
-- WRITE: 05_train_v4_resume.ipynb, 06_train_v4_scratch.ipynb, 07_ensemble.ipynb,
-         08_augment_dataset_v4.ipynb, phase2_execution_log.md (Run #3, #4),
-         weights/v4_*_adapter/, results/v4_*_results.json
+== QUY TAC 3-FILE WORKFLOW ==
+- READ-ONLY: plan_day5.md (Section 4 v4 design CANONICAL), SESSION_HANDOFF.md, 05_train_v4_resume.ipynb (style ref)
+- WRITE: 08_augment_dataset_v4.ipynb, 06_train_v4_scratch.ipynb, 07_ensemble.ipynb,
+         phase2_execution_log.md (Run #3 ket qua + Run #4), weights/v4_*_adapter/, results/v4_*_results.json
 - Neu thay design co van de → flag vao phase2_execution_log.md muc "Can Opus xem xet", KHONG tu sua plan.
 
-== DOC NGU CANH (theo thu tu) ==
-1. "scraping_data_tv/SESSION_HANDOFF.md" — trang thai tong the (file nay)
-2. "fine_tune_qwen/plan_day5.md" — DESIGN CANONICAL (rewrite v2.0, gon)
-   - Section 0-3: nen tang + ket qua v0/v1/v3 + lessons learned
-   - Section 4: v4 design FULL (4 stages, config day du)
-3. "fine_tune_qwen/04_train_v3.ipynb" — reference style + bug fix (torch_dtype=bfloat16, manual collator)
-4. "fine_tune_qwen/phase2_execution_log.md" Run #2 — chi tiet ket qua v3 + failure modes
-5. "fine_tune_qwen/results/v3_results.json" — train/eval loss curves + samples
-6. "scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb" — English ref proven
-7. "scraping_data_tv/Data_processing_for_Vietnamese_data/day2/day2_llm_preprocessing_v4.ipynb" — Groq Batch pipeline ref cho A2 augment
+== TRANG THAI BAT DAU SESSION ==
+- Stage 1 (05_train_v4_resume.ipynb) DA TAO XONG. User da/se chay xong, ket qua o `results/v4_resume_results.json` + HF `SeanSunny/qwen3.5-4b-vn-pricer-v4-resume`.
+- DOC ket qua Run #3 trong `fine_tune_qwen/phase2_execution_log.md` truoc khi code Stage 3 (06).
+- v3: RMSLE=0.4426 (HF SeanSunny/qwen3.5-4b-vn-pricer-v3 private).
+- v8 baseline: RMSLE=0.4004 (Day4).
 
-== TRANG THAI ==
-- v3 DONE: RMSLE=0.4426 (85K/3ep/r=64/7mod) — gap v8 +0.042, chua dat target 0.38
-- v3 weights backup tren Google Drive (anh da save ckpt e1, e2, e3)
-- HF: SeanSunny/qwen3.5-4b-vn-pricer-v3 (private)
-- Hardware available: 5090 32GB / 1x 3090Ti 24GB / 2x 3090Ti 24GB
+== DOC NGU CANH (theo thu tu) ==
+1. `scraping_data_tv/SESSION_HANDOFF.md` (file nay) — trang thai tong the
+2. `fine_tune_qwen/plan_day5.md` Section 4 — v4 design CANONICAL (4 stages)
+3. `fine_tune_qwen/05_train_v4_resume.ipynb` — style/bug-fix ref cho 06 (manual collator, dtype=bf16, conv1d cast, RMSLEEvalCallback usage)
+4. `fine_tune_qwen/utils/rmsle_callback.py` — re-use truc tiep cho 06
+5. `fine_tune_qwen/phase2_execution_log.md` Run #2 (v3) + Run #3 prep — failure modes + Stage 1 ket qua
+6. `fine_tune_qwen/01_prepare_dataset.ipynb` — schema dataset items_prompts_tv_3 (truoc khi sinh tv_4)
+7. `scraping_data_tv/Data_processing_for_Vietnamese_data/day2/day2_llm_preprocessing_v4.ipynb` — Groq Batch gpt-oss-20b ref cho 08
+8. `scraping_data_tv/Data_processing_for_Vietnamese_data/pricer_vi/preprocessor.py` — system prompt 5-line schema
 
 == KEY INSIGHTS TU v3 (BAT BUOC NHO) ==
-1. CE ↔ RMSLE divergence: eval CE day o step 2600 (giua ep 2) nhung RMSLE van improve e2→e3. → Best ckpt PHAI chon theo eval generative RMSLE.
-2. Failure modes: (a) bo qua quantity title (Narciso 0.6ml → 600K vs 60K, 900%); (b) anchor category mean (tote 55K → 129K); (c) under-pred price tail > 500K.
-3. v3 hyperparams gan identical voi English Llama recipe proven → bottleneck la DATA SIZE (85K vs 800K).
-4. MAE v3 (80,100 VND) chi cao hon v8 (79,853) 0.3% → fix outlier co the beat v8.
+1. CE ↔ RMSLE divergence: best ckpt PHAI theo eval generative RMSLE (dung RMSLEEvalCallback co san).
+2. Failure modes: (a) bo qua quantity title (0.6ml → 900% error); (b) anchor category mean; (c) under-pred price > 500K.
+3. v3 hyperparams gan identical voi English Llama recipe → bottleneck la DATA SIZE (85K vs 800K English).
+4. transformers 5.5.0: `dtype=torch.bfloat16` (KHONG `torch_dtype`); `train_sampling_strategy="group_by_length"` (KHONG `group_by_length=True`).
+5. DataCollatorForCompletionOnlyLM da bi xoa khoi TRL 0.24.0 → dung manual impl (xem 04_train_v3.ipynb hoac 05_train_v4_resume.ipynb).
 
-== BUG DA FIX (BAT BUOC AP DUNG MOI NOTEBOOK) ==
-- `torch_dtype=torch.bfloat16` trong AutoModelForCausalLM.from_pretrained() — neu khong co se crash conv1d Qwen3.5 GatedDeltaNet luc inference.
-- DataCollatorForCompletionOnlyLM da bi xoa khoi TRL 0.24.0 → dung manual impl tu v3.
-- Qwen3.5 tokenize digit-by-digit (max_new_tokens=4 du).
+== STAGE 2 — 08_augment_dataset_v4.ipynb (UU TIEN) ==
+- Nguon: `SeanSunny/items_prompts_tv_3` train 85,727 (val/test giu nguyen).
+- Pipeline (plan Section 4.3):
+  - A1 regex inject quantity vao Mo ta cho items co pattern (ml, g, x2, combo...)
+  - A2 **Groq Batch `groq/openai/gpt-oss-20b`** paraphrase Mo ta + Thong so x 2-3 versions (giu Tieu de/Danh muc/Thuong hieu/gia). **TEST 10-20 sample truoc** (cost ~$3-5 full).
+  - A4 hard negative mining tu v3 errors (chay v3 inference tren train, augment items quanh failure regions)
+  - A5 price-bucket re-sampling (paraphrase nhieu hon cho bucket thieu data)
+  - A3 SKIP (brand da co san)
+- Output: `SeanSunny/items_prompts_tv_4` train ~255-350K, val/test = tv_3.
+- KHONG add val/test items vao train (data leak).
+- Sample manual 50 items truoc khi push HF.
 
-== YEU CAU (theo thu tu, Plan B chot tu interview) ==
+== STAGE 3 — 06_train_v4_scratch.ipynb (5090 32GB) ==
+- Train from scratch tren items_prompts_tv_4 (KHONG resume).
+- Config (plan Section 4.4): r=128, alpha=256, dropout=0.15, 7 mod, **use_dora=True, use_rslora=True**, NEFTune alpha=5.
+- LR=2e-4 cosine warmup 0.03, weight_decay=0.01, max_grad_norm=0.3, epochs=2 + EarlyStop patience=3.
+- per_device_batch=20, grad_accum=4 (eff=80), max_seq=192, train_sampling_strategy="group_by_length".
+- Eval gen RMSLE moi 500 step (RMSLEEvalCallback, val_subset=500), save best by eval_rmsle.
+- HF push private `SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch`. Target RMSLE 0.36-0.40.
 
-STAGE 1 — Notebook 05_train_v4_resume.ipynb (UU TIEN, chay tren 1x 3090Ti)
-- Load v3 epoch 2 ckpt (anh download tu Google Drive vao weights/v3_adapter_e2/)
-- Train tiep 2 ep tren data CU (items_prompts_tv_3 85K)
-- LR=5e-5 cosine warmup 0.01, NEFTune alpha=3, group_by_length=True, max_seq=192, eff_batch=64
-- Eval generative RMSLE moi 500 step tren 500 val
-- Best ckpt theo eval_rmsle (custom callback)
-- EarlyStoppingCallback patience=3
-- HF push: SeanSunny/qwen3.5-4b-vn-pricer-v4-resume private
-- Time est: ~10h. Muc tieu RMSLE 0.40-0.42.
-- Log: phase2_execution_log.md muc "Run #3 v4-resume"
-
-STAGE 2 — Notebook 08_augment_dataset_v4.ipynb (SONG SONG voi Stage 1)
-- Pipeline tu plan_day5.md Section 4.3:
-  - A1: regex inject quantity vao Mo ta cho ~10% items co pattern
-  - A2: Groq Batch gpt-oss-120b paraphrase Mo ta + Thong so x 2-3 versions (giu Tieu de/Danh muc/Thuong hieu/gia)
-  - A4: hard negative mining tu v3 errors (chay v3 inference tren val, augment train items quanh failure regions)
-  - A5: price-bucket re-sampling (paraphrase nhieu hon cho bucket thieu data)
-  - A3: SKIP (brand da co san trong items_prompts_tv_3)
-- Cost target: $10-15 (Groq batch ~$8/120K item)
-- Output: SeanSunny/items_prompts_tv_4 train ~255-350K, val/test giu nguyen
-- KHONG add val items vao train (data leak)
-- Sample manual 50 items kiem tra paraphrase quality truoc khi push
-
-STAGE 3 — Notebook 06_train_v4_scratch.ipynb (chay tren 5090 32GB)
-- Train from scratch tren items_prompts_tv_4
-- Config full SOTA (plan Section 4.4):
-  - r=128, alpha=256, dropout=0.15, 7 mod
-  - use_dora=True, use_rslora=True, NEFTune alpha=5
-  - LR=2e-4 cosine warmup 0.03, weight_decay=0.01, max_grad_norm=0.3
-  - Epochs=2 + EarlyStoppingCallback patience=3
-  - per_device_batch=20, grad_accum=4 (eff=80) tren 5090
-  - group_by_length=True, max_seq=192
-  - Eval gen RMSLE moi 500 step, save best by eval_rmsle
-- HF push: SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch private
-- Time est: ~16-20h. Muc tieu RMSLE 0.36-0.40.
-- Log: phase2_execution_log.md muc "Run #4 v4-scratch"
-
-STAGE 4 — Notebook 07_ensemble.ipynb (sau khi co v4-resume + v4-scratch)
-- Load predictions cua v3 / v4-resume / v4-scratch / v8 tren 3,926 val
-- Fit Ridge log-space: y_val = w1*log(v3) + w2*log(v4r) + w3*log(v4s) + w4*log(v8) + b
-- Predict test (3,872) bang weights da fit
-- So sanh ensemble RMSLE vs tung model
-- Save: results/ensemble_results.json, output/leaderboard.md
-- Muc tieu RMSLE 0.36-0.38
+== STAGE 4 — 07_ensemble.ipynb ==
+- Load predictions cua v3 / v4-resume / v4-scratch / v8 tren 3,926 val.
+- Fit Ridge log-space: y = Σ w_i*log(pred_i) + b.
+- Apply weights tren test 3,872 → so sanh ensemble vs tung model.
+- Save: `results/ensemble_results.json` + leaderboard. Target RMSLE 0.36-0.38.
 
 == TIEU CHUAN CODE ==
-- uv run cho moi lenh Python, seed=42 moi noi
-- Khong emoji
-- Path tuong doi Path(NOTEBOOK_DIR)
-- Token: os.environ['HF_TOKEN'] / os.environ['GROQ_API_KEY'] tu .env
-- Style match 04_train_v3.ipynb (markdown header VN, print thay vi log)
-
-== DEN BU TUNG STAGE ==
-Sau khi tao xong moi notebook (chua chay):
-- Print cell list summary
-- Dry-run import check
-- Confirm voi user: "Notebook OK, chay [stage]?"
-
-KHONG bat dau training cho den khi user confirm notebook structure OK.
+- uv run, seed=42, khong emoji, path Path(NOTEBOOK_DIR), token tu os.environ.
+- Style match 04_train_v3.ipynb / 05_train_v4_resume.ipynb (markdown VN, print).
+- Sau khi tao xong moi notebook: print cell summary + dry-run import + xin user confirm truoc khi run GPU/Groq.
 ```
 
 ---
@@ -245,4 +216,4 @@ KHONG bat dau training cho den khi user confirm notebook structure OK.
 
 ---
 
-*Cap nhat: 2026-04-27 (session 6) — Phase 3 v3 DONE (RMSLE=0.4426). v4 design CHOT (Plan B: resume + augment + scratch + ensemble). Plan_day5.md rewrite v2.0 gon. San sang cho Sonnet code v4 — dung Prompt K.*
+*Cap nhat: 2026-04-28 (session 7) — Stage 1 notebook (05_train_v4_resume.ipynb) + utils/rmsle_callback.py SAN SANG, cho GPU run. Plan_day5.md A2 fix gpt-oss-20b. Session sau dung Prompt K cho Stages 2/3/4.*

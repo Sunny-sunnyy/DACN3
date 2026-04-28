@@ -345,6 +345,35 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 
 ---
 
+## Run #3 prep — v4-resume notebook (2026-04-28, session 7)
+
+**Trang thai:** Notebook + utils SAN SANG, chua chay GPU.
+
+### Da tao
+- `fine_tune_qwen/utils/rmsle_callback.py` — `RMSLEEvalCallback(TrainerCallback)`:
+  - `on_evaluate` chay generative tren val_subset (500 mau co dinh), modify `metrics["eval_rmsle"]` → Trainer dung cho `metric_for_best_model="eval_rmsle"` (`greater_is_better=False`).
+  - Append entry vao `state.log_history` + restore `model.train()` mode sau eval.
+  - Init: tokenizer, val_subset, max_new_tokens=4, clamp [5, 1000], scale=1000.
+- `fine_tune_qwen/05_train_v4_resume.ipynb` (22 cells, uuid IDs day du):
+  - Resume tu `weights/v3_adapter/checkpoint-2680` (epoch 2 v3) qua `PeftModel.from_pretrained(base_model, ckpt, is_trainable=True)` — KHONG `get_peft_model` (giu nguyen r/alpha/modules cua v3).
+  - Config: LR=5e-5, warmup_ratio=0.01, NEFTune alpha=3, num_epochs=2, eval/save every 500 steps, EarlyStoppingCallback patience=3.
+  - `dtype=torch.bfloat16` (transformers 5.5.0 doi `torch_dtype` → `dtype`) + conv1d cast bf16 + manual `DataCollatorForCompletionOnlyLM` (copy v3).
+  - SFTTrainer + `train_sampling_strategy="group_by_length"` + `length_column_name="length"` + `load_best_model_at_end=True` + `metric_for_best_model="eval_rmsle"` + `greater_is_better=False`.
+  - Final eval tren full 3,926 val + plot 200 sample random (seed=42) + push HF `SeanSunny/qwen3.5-4b-vn-pricer-v4-resume` private.
+
+### Plan v4 update
+- Section 4.3 A2: gpt-oss-120b → **gpt-oss-20b** (theo day2 ref). Test 10-20 mau truoc khi run full ~$3-5 cost.
+
+### Self-review caught
+- `group_by_length=True` removed in transformers 5.5.0 → fix bang `train_sampling_strategy="group_by_length"`. Validate qua `uv run` instantiate SFTConfig pass.
+
+### Cho session sau (08, 06, 07)
+- 08_augment_dataset_v4.ipynb (Groq Batch gpt-oss-20b, target items_prompts_tv_4 ~255-350K)
+- 06_train_v4_scratch.ipynb (5090 32GB, r=128/alpha=256/DoRA/RSLoRA/NEFTune α=5)
+- 07_ensemble.ipynb (Ridge log-space v3 + v4-resume + v4-scratch + v8)
+
+---
+
 ## Cleanup history
 
 (Khi Opus update plan dua tren execution log → archive run cu vao day, giu file gon)

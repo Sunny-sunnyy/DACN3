@@ -2,7 +2,7 @@
 
 **Phiên bản:** 2.0 (rewrite gọn lại)
 **Ngày tạo:** 2026-04-24
-**Cập nhật:** 2026-04-27 (session 6 — v3 DONE, design v4)
+**Cập nhật:** 2026-04-28 (session 7 — chốt gpt-oss-20b cho A2, đồng bộ day2 pipeline)
 **Branch:** `feature/day5-qlora-qwen`
 **Folder:** `tech2ai/fine_tune_qwen/`
 
@@ -246,7 +246,9 @@ Nếu match → inject `[Số lượng/Khối lượng: {match}]` vào đầu `M
 
 Mục tiêu fix: idx 16 v3 (Narciso 0.6ml → pred 600K vs true 60K).
 
-#### A2: LLM Paraphrase (Groq Batch gpt-oss-120b, 2-3 versions)
+#### A2: LLM Paraphrase (Groq Batch `openai/gpt-oss-20b`, 2-3 versions)
+
+**Model:** `openai/gpt-oss-20b` qua Groq Batch API (đồng bộ với pipeline day2 đã proven trên `items_raw_tv_v6 → items_tv_v6`).
 
 Prompt LLM (input mỗi item):
 ```
@@ -261,7 +263,8 @@ Thông số gốc: {features}
 ```
 
 - Per item × 2 versions → 85K → 255K samples (cùng giá, khác phrasing).
-- **Cost: ~$10-12** (anh đã test gpt-oss-120b Groq Batch = $7-8 cho 120K).
+- **Quy trình bắt buộc:** chạy thử **10-20 sample** trước (sample manual check chất lượng paraphrase tiếng Việt + đảm bảo không thay đổi quantity), nếu OK mới submit full batch 85K × 2.
+- **Cost ước tính:** ~$3-5 (gpt-oss-20b rẻ hơn 120b ~3x trên Groq Batch).
 - Time: ~1 giờ batch process.
 
 #### A4: Hard negative mining
