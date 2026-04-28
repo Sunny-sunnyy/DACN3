@@ -1,4 +1,4 @@
-# Phase 2 Execution Log — v1 Smoke Training
+# Phase 2/3 Execution Log — v1 Smoke + v3 Full Train
 
 **File ownership:** Sonnet 4.6 (write) | Opus 4.7 (read-only, dùng để cập nhật plan/handoff giữa session)
 
@@ -206,17 +206,142 @@
 
 ---
 
-## Phase 3 v2 prep log (2026-04-26)
+## Phase 3 v3 prep log (2026-04-26)
 
 Sau khi hoan thanh Run #1:
-- Tao `04a_probe_7mod.ipynb`: 10K/1ep/r=64/7mod — do VRAM+time, quyet dinh config v2.
+- Tao `04a_probe_7mod.ipynb`: 10K/1ep/r=64/7mod — do VRAM+time, quyet dinh config.
 - Tao `04b_probe_4mod.ipynb`: 10K/1ep/r=64/4mod — doi chieu.
-- Tao `04_train_v2.ipynb`: full 85K/3ep, da ap dung tat ca fix tu v1, cho ket qua probe.
-- Cac fix tu v1 da dua vao tat ca notebook Phase 3+:
+- Tao `04_train_v3.ipynb`: full 85K/3ep, da ap dung tat ca fix tu v1.
+  - **User chot config 7mod truc tiep, KHONG chay probe** (probe notebook khong duoc thuc thi).
+- Cac fix tu v1 da dua vao notebook v3:
   1. `torch_dtype=torch.bfloat16` trong `from_pretrained` (fix conv1d crash)
   2. Manual `DataCollatorForCompletionOnlyLM` (TRL 0.24.0 da xoa class nay)
   3. Memory cleanup cells sau moi giai doan chinh
-- Ket qua probe se duoc log o day sau khi chay.
+
+**Note naming:** Skip ten "v2" — version chinh thuc cho full train la **v3** (notebook `04_train_v3.ipynb`, results `v3_results.json`, HF repo `qwen3.5-4b-vn-pricer-v3`).
+
+---
+
+## Run #2 — v3 full train — 2026-04-27
+
+**Notebook:** `fine_tune_qwen/04_train_v3.ipynb` (commit truoc 9c19fe3)
+**Hardware:** NVIDIA RTX 3090 Ti / 25.3 GB VRAM (may thue, GPU load 17-19 GB / 24 GB luc train)
+**Python env:** uv run | torch 2.9.0+cu128 | transformers 5.5.0 | peft 0.19.1 | trl 0.24.0
+
+### Config v3 (vs v1)
+
+| Tham so | v1 smoke | v3 full |
+|---|---|---|
+| Data | 20,000 | **85,727** (full train split) |
+| Epochs | 2 | **3** |
+| LoRA r / alpha | 32 / 64 | **64 / 128** |
+| LoRA dropout | 0.1 | 0.1 |
+| Target modules | 4 (q,k,v,o) | **7** (q,k,v,o,gate,up,down) |
+| per_device_batch / grad_accum | 16 / 4 | 16 / 4 (eff = 64) |
+| gradient_checkpointing | False | **True** |
+| LR / scheduler | 2e-4 / cosine | 2e-4 / cosine |
+| warmup_ratio | 0.03 | 0.03 |
+| weight_decay | 0.001 | 0.001 |
+| max_grad_norm | 0.3 | 0.3 |
+| optim | paged_adamw_32bit | paged_adamw_32bit |
+| eval_steps | 200 | 200 |
+| save_strategy | epoch | epoch (3 ckpt) |
+| max_seq_length | 192 | 192 |
+| Trainable params | 6.29M (0.149%) | ~15-18M (~0.4%) (uoc tinh tu r=64, 7mod) |
+
+**Khac biet quan trong:** v3 = r 2x + 7 modules thay vi 4 → ~3x trainable params; full data 4.3x; +1 epoch.
+
+### F. Full train 85K
+
+- Total optimizer steps: **4,020** (= ceil(85727/64) * 3 = 1340 * 3)
+- Wall-clock time: **773.4 phut** (~12.9 gio)
+- Train loss start (step 50): 1.226
+- Train loss epoch 1 end (~step 1340): 1.041
+- Train loss epoch 2 end (~step 2680): 0.876
+- Train loss epoch 3 end (step 4000): 0.642 (giam manh)
+- Eval CE loss step 200 (start): 1.183
+- Eval CE loss min: **0.957 tai step 2600** (giua epoch 2)
+- Eval CE loss step 4020 (end): 1.002
+- VRAM smoke: 12.96 GB | VRAM peak train: **13.46 GB** | OOM: 0
+
+**Phan tich loss curve (QUAN TRONG):**
+
+1. **Eval CE loss da overfit tu giua epoch 2:** min 0.957 @ step 2600, tang nguoc len 1.00 o cuoi epoch 3. Train loss tut sau (1.04 → 0.64) khien gap train/eval mo rong.
+2. **Train loss step jump tai epoch 3 boundary** (step 2700: 0.83 → 2750: 0.69) — model "thuoc bai" tren training set.
+3. **Generative RMSLE van cai thien e2 → e3** mac du eval CE tang. Day la **CE ↔ RMSLE divergence** — token-level CE penalize toan bo distribution, nhung greedy generation chi can top-1 dung. Model van learn duoc "next number" tot hon du confidence overall te di. **He qua: chon best checkpoint theo eval CE se sai — phai chon theo generative RMSLE.**
+
+### G. Generative eval — final epoch 3 (200 val)
+
+- **RMSLE: 0.4426** (primary, best epoch)
+- MAE: **80,100 VND**
+- MAPE: 37.6%
+- R2: 0.6639
+- Avg sec/item: 0.19s (gpt nhanh hon v1 0.85s do batch=1 + greedy + ngan)
+- Zero pred: 0 | Clamp trigger: 0
+
+### H. Per-epoch checkpoint eval (200 val)
+
+| Epoch | RMSLE | MAE (VND) | MAPE | R2 |
+|---|---|---|---|---|
+| 1 | 0.5424 | 94,854 | 41.0% | 0.579 |
+| 2 | 0.4618 | 82,440 | 38.9% | 0.642 |
+| **3** | **0.4426** | **80,100** | **37.6%** | **0.664** |
+
+Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing returns ro rang.
+
+### I. Save + push
+
+- v3_results.json saved: yes — `fine_tune_qwen/results/v3_results.json`
+- Adapter saved: yes — `fine_tune_qwen/weights/v3_adapter/` (3 epoch checkpoints)
+- HF push: **yes — `SeanSunny/qwen3.5-4b-vn-pricer-v3` (private)**
+
+### Sample analysis (20 val samples)
+
+- **Best (error < 10%):** idx 0 (6.7%), idx 5 (5.0%), idx 9 (9.5%), idx 15 (7.4%), idx 17 (2.5%) — 5/20 = 25%
+- **Acceptable (10-30%):** idx 1 (27.6%), idx 7 (29.2%), idx 13 (20.2%), idx 10 (22.2%), idx 19 (23.3%), idx 18 (18.9%) — 6/20 = 30%
+- **Poor (> 60%):** idx 16 (**900%** — Narciso 0.6ml mini → pred 600K vs true 60K, model bo qua "0.6ml"), idx 4 (200% kem nhuom), idx 11 (151% vali), idx 12 (134% tui tote), idx 3 (140% master lock), idx 8 (74% LEGO 999K under-pred 259K), idx 14 (71% combo loi loc), idx 2 (59% tui handmade)
+
+**Failure modes pho bien:**
+1. **Bo qua so dinh luong trong title** ("0.6ml", "60mlx2", "Combo 5") → over-predict cho mini sample, under-predict cho combo lon.
+2. **Anchor sai theo category mean:** tui xach predict trong khoang 100-300K bat ke detail; LEGO predict tam trung bat ke do phuc tap.
+3. **Outlier price tail (> 500K):** model van under-predict — distribution train co < 5% mau price > 500K.
+
+### Issues / Deviations
+
+1. **[OBSERVATION]** Eval CE loss overfit tu step 2600. Generative RMSLE van improve nhung diminishing returns (-4% e2→e3 vs -15% e1→e2). Nghi van epoch 3 marginal value vs train cost (+4.3 gio).
+2. **[DEVIATION]** Khong chay probe (04a/04b) — user chot 7mod truc tiep. VRAM thuc te 13.46 GB << 23 GB headroom → quyet dinh dung.
+3. **[CONFIG MISSING vs English ref]** Llama recipe co `group_by_length=True` (giam padding waste). v3 KHONG bat → estimate lang phi 10-15% time.
+4. **[LIMITATION]** val_eval_size=200 — noisy. English ref dung 500 → tin cay hon.
+
+### Notes for next session (v4 design candidates)
+
+- Beat v1 dang ke (-27% RMSLE: 0.6084 → 0.4426). Chua beat Day4 v8 (gap +0.042) va chua dat target 0.38.
+- **Levers cho v4 (xem section "Phan tich v3 → v4" duoi):**
+  1. NEFTune alpha=5 (+1-3% generative)
+  2. DoRA (`use_dora=True`) (+1-2% RMSLE tai cung r)
+  3. LoRA dropout 0.1 → 0.15 (chong overfit)
+  4. Epochs 3 → 2 + EarlyStoppingCallback theo eval CE (tiet kiem ~4.3h)
+  5. Best checkpoint theo **generative RMSLE** chu khong eval CE (do divergence)
+  6. group_by_length=True (-10-15% time)
+  7. max_seq_length 192 → 160 hoac 128 (giam padding, p99 = 162)
+  8. val_eval_size 200 → 500 (giam noise)
+  9. Data augmentation hoac mo rong dataset (lever lon nhat — English Llama dat MAE $39 voi 800K mau)
+
+---
+
+## Leaderboard (cap nhat 2026-04-27)
+
+| Version | Approach | Data | Epoch | r/mod | RMSLE | MAE (VND) | Gap vs v8 | Note |
+|---|---|---|---|---|---|---|---|---|
+| Day4 v8 | Stacked 8 models (BERT+TFIDF+LGB) | full | — | — | **0.4004** | 79,853 | — | SOTA hien tai |
+| Target | — | — | — | — | <0.38 | — | -0.020 | Day 5 goal |
+| **v3** | **QLoRA Qwen3.5-4B (full)** | **85,727** | **3** | **64/7** | **0.4426** | **80,100** | **+0.042** | **MAE da gan v8!** |
+| v1 smoke | QLoRA Qwen3.5-4B (smoke) | 20,000 | 2 | 32/4 | 0.6084 | 116,769 | +0.208 | validate pipeline |
+| v0 | Zero-shot Qwen3.5-4B-Base | — | 0 | — | 4.4428 | 296,807 | +4.04 | baseline |
+
+**Diem dang chu y:** v3 MAE = 80,100 VND chi cao hon v8 MAE 79,853 VND chi 0.3% — gap RMSLE chu yeu do v3 sai nang o vai outlier (sample idx 16: 900% error keo RMSLE len). Neu fix duoc failure mode quantity-aware (mini sample, combo), v3 co the beat v8.
+
+---
 
 ---
 

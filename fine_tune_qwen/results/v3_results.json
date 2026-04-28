@@ -1,0 +1,630 @@
+{
+  "version": "v3_full",
+  "model": "Qwen/Qwen3.5-4B-Base",
+  "dataset": "SeanSunny/items_prompts_tv_3",
+  "config": {
+    "train_size": 85727,
+    "val_eval_size": 200,
+    "lora_r": 64,
+    "lora_alpha": 128,
+    "lora_dropout": 0.1,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "num_epochs": 3,
+    "per_device_batch": 16,
+    "grad_accum": 4,
+    "learning_rate": 0.0002,
+    "gradient_checkpointing": true,
+    "max_seq_length": 192,
+    "tokens_fixed": 14,
+    "max_summary_tokens": 171
+  },
+  "vram_smoke_gb": 12.96,
+  "vram_train_peak_gb": 13.46,
+  "total_train_sec": 46401.2,
+  "sec_per_val_item": 0.19,
+  "train_loss_curve": [
+    [
+      50,
+      1.2259996032714844
+    ],
+    [
+      100,
+      1.1968627166748047
+    ],
+    [
+      150,
+      1.187359848022461
+    ],
+    [
+      200,
+      1.1654531097412109
+    ],
+    [
+      250,
+      1.1482674407958984
+    ],
+    [
+      300,
+      1.145305404663086
+    ],
+    [
+      350,
+      1.1415558624267579
+    ],
+    [
+      400,
+      1.127211227416992
+    ],
+    [
+      450,
+      1.1267990112304687
+    ],
+    [
+      500,
+      1.1168257904052734
+    ],
+    [
+      550,
+      1.1028026580810546
+    ],
+    [
+      600,
+      1.1066639709472657
+    ],
+    [
+      650,
+      1.0922089385986329
+    ],
+    [
+      700,
+      1.0964933013916016
+    ],
+    [
+      750,
+      1.0927850341796874
+    ],
+    [
+      800,
+      1.0810253143310546
+    ],
+    [
+      850,
+      1.0672469329833985
+    ],
+    [
+      900,
+      1.0657300567626953
+    ],
+    [
+      950,
+      1.0621648406982422
+    ],
+    [
+      1000,
+      1.0633485412597656
+    ],
+    [
+      1050,
+      1.0547917938232423
+    ],
+    [
+      1100,
+      1.0430711364746095
+    ],
+    [
+      1150,
+      1.039210891723633
+    ],
+    [
+      1200,
+      1.0463893127441406
+    ],
+    [
+      1250,
+      1.041672821044922
+    ],
+    [
+      1300,
+      1.0357121276855468
+    ],
+    [
+      1350,
+      1.0178511810302735
+    ],
+    [
+      1400,
+      0.9682968139648438
+    ],
+    [
+      1450,
+      0.958071517944336
+    ],
+    [
+      1500,
+      0.9874990844726562
+    ],
+    [
+      1550,
+      0.9720811462402343
+    ],
+    [
+      1600,
+      0.9627426147460938
+    ],
+    [
+      1650,
+      0.9660584259033204
+    ],
+    [
+      1700,
+      0.96281494140625
+    ],
+    [
+      1750,
+      0.9496568298339844
+    ],
+    [
+      1800,
+      0.9588959503173828
+    ],
+    [
+      1850,
+      0.9667715454101562
+    ],
+    [
+      1900,
+      0.9468729400634766
+    ],
+    [
+      1950,
+      0.9539187622070312
+    ],
+    [
+      2000,
+      0.9489202117919922
+    ],
+    [
+      2050,
+      0.9183769226074219
+    ],
+    [
+      2100,
+      0.9374662780761719
+    ],
+    [
+      2150,
+      0.9384356689453125
+    ],
+    [
+      2200,
+      0.9291156005859375
+    ],
+    [
+      2250,
+      0.9145362854003907
+    ],
+    [
+      2300,
+      0.9256410217285156
+    ],
+    [
+      2350,
+      0.9176654052734375
+    ],
+    [
+      2400,
+      0.9078676605224609
+    ],
+    [
+      2450,
+      0.9114826202392579
+    ],
+    [
+      2500,
+      0.9191521453857422
+    ],
+    [
+      2550,
+      0.9074380493164063
+    ],
+    [
+      2600,
+      0.8960553741455078
+    ],
+    [
+      2650,
+      0.8761469268798828
+    ],
+    [
+      2700,
+      0.8295085906982422
+    ],
+    [
+      2750,
+      0.6895979309082031
+    ],
+    [
+      2800,
+      0.6823680877685547
+    ],
+    [
+      2850,
+      0.6886981201171875
+    ],
+    [
+      2900,
+      0.6796363067626953
+    ],
+    [
+      2950,
+      0.6818424224853515
+    ],
+    [
+      3000,
+      0.6696906280517578
+    ],
+    [
+      3050,
+      0.6697328186035156
+    ],
+    [
+      3100,
+      0.6675066375732421
+    ],
+    [
+      3150,
+      0.6632994079589843
+    ],
+    [
+      3200,
+      0.6576841735839843
+    ],
+    [
+      3250,
+      0.6520648193359375
+    ],
+    [
+      3300,
+      0.6530869293212891
+    ],
+    [
+      3350,
+      0.6440528869628906
+    ],
+    [
+      3400,
+      0.6483238983154297
+    ],
+    [
+      3450,
+      0.6491190338134766
+    ],
+    [
+      3500,
+      0.6544884490966797
+    ],
+    [
+      3550,
+      0.6471340942382813
+    ],
+    [
+      3600,
+      0.654437255859375
+    ],
+    [
+      3650,
+      0.6319849395751953
+    ],
+    [
+      3700,
+      0.6459886932373047
+    ],
+    [
+      3750,
+      0.6338109588623047
+    ],
+    [
+      3800,
+      0.6395044326782227
+    ],
+    [
+      3850,
+      0.6443338775634766
+    ],
+    [
+      3900,
+      0.6476311492919922
+    ],
+    [
+      3950,
+      0.6342741394042969
+    ],
+    [
+      4000,
+      0.6415727233886719
+    ]
+  ],
+  "eval_loss_curve": [
+    [
+      200,
+      1.1833068132400513
+    ],
+    [
+      400,
+      1.1364294290542603
+    ],
+    [
+      600,
+      1.105629324913025
+    ],
+    [
+      800,
+      1.0935612916946411
+    ],
+    [
+      1000,
+      1.077578067779541
+    ],
+    [
+      1200,
+      1.0611339807510376
+    ],
+    [
+      1400,
+      1.0426392555236816
+    ],
+    [
+      1600,
+      1.0333926677703857
+    ],
+    [
+      1800,
+      1.004744529724121
+    ],
+    [
+      2000,
+      1.0043132305145264
+    ],
+    [
+      2200,
+      0.9825729131698608
+    ],
+    [
+      2400,
+      0.9644380211830139
+    ],
+    [
+      2600,
+      0.9573536515235901
+    ],
+    [
+      2800,
+      1.0028074979782104
+    ],
+    [
+      3000,
+      0.9997157454490662
+    ],
+    [
+      3200,
+      1.0092769861221313
+    ],
+    [
+      3400,
+      1.0098611116409302
+    ],
+    [
+      3600,
+      0.9989610910415649
+    ],
+    [
+      3800,
+      1.0055619478225708
+    ],
+    [
+      4000,
+      1.0034730434417725
+    ],
+    [
+      4020,
+      1.0024586915969849
+    ]
+  ],
+  "metrics_final": {
+    "rmsle": 0.44260705040804327,
+    "mae": 80100.27,
+    "mape": 37.623831158842236,
+    "r2": 0.6639402573548772
+  },
+  "metrics_per_epoch": {
+    "epoch_1": {
+      "rmsle": 0.542383434395024,
+      "mae": 94854.2,
+      "mape": 40.95786915121802,
+      "r2": 0.5794612584602301
+    },
+    "epoch_2": {
+      "rmsle": 0.46184910232786336,
+      "mae": 82440.2,
+      "mape": 38.911588144078394,
+      "r2": 0.6417044893456443
+    },
+    "epoch_3": {
+      "rmsle": 0.44260705040804327,
+      "mae": 80100.27,
+      "mape": 37.623831158842236,
+      "r2": 0.6639402573548772
+    }
+  },
+  "best_epoch": "epoch_3",
+  "samples_20": [
+    {
+      "idx": 0,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Dán cường lực GOR Sapphire cho Apple Watch Ultra 49mm  \nDanh mục: Phụ kiện smar",
+      "generated_raw": "159\n",
+      "pred_vnd": 159000,
+      "true_vnd": 149000,
+      "error_pct": 6.7
+    },
+    {
+      "idx": 1,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Dung Dịch Tắm Gội Toàn Thân Bé Dưới 3 Tuổi D-nee Oganic  \nDanh mục: Dụng Cụ Tắm",
+      "generated_raw": "125\n",
+      "pred_vnd": 125000,
+      "true_vnd": 98000,
+      "error_pct": 27.6
+    },
+    {
+      "idx": 2,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Túi Handmade Hạt Ngọc Trai HRRA-XN  \nDanh mục: Túi xách nữ  \nThương hiệu: HRRA-",
+      "generated_raw": "328\n",
+      "pred_vnd": 328000,
+      "true_vnd": 206000,
+      "error_pct": 59.2
+    },
+    {
+      "idx": 3,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Master Lock 2840 EURD Thân Đồng Rộng 40 mm  \nDanh mục: Khóa cửa & an ninh  \nThư",
+      "generated_raw": "495\n",
+      "pred_vnd": 495000,
+      "true_vnd": 206000,
+      "error_pct": 140.3
+    },
+    {
+      "idx": 4,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Kem Nhuộm Tóc Màu Thời Trang Youth&Color Lavox 60mlx2  \nDanh mục: Dưỡng chất & ",
+      "generated_raw": "180\n",
+      "pred_vnd": 180000,
+      "true_vnd": 60000,
+      "error_pct": 200.0
+    },
+    {
+      "idx": 5,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Đèn Pin Laser Xanh 303 mW  \nDanh mục: Phụ kiện công nghệ và an toàn  \nThương hi",
+      "generated_raw": "190\n",
+      "pred_vnd": 190000,
+      "true_vnd": 181000,
+      "error_pct": 5.0
+    },
+    {
+      "idx": 6,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Sét 2 lô uốn tóc L04  \nDanh mục: Phụ kiện tóc  \nThương hiệu: Phụ kiện thời tran",
+      "generated_raw": "34\n",
+      "pred_vnd": 34000,
+      "true_vnd": 56000,
+      "error_pct": 39.3
+    },
+    {
+      "idx": 7,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Ví nữ ngắn gấp 3 style Korea V2642  \nDanh mục: Túi xách nữ  \nThương hiệu: Túi x",
+      "generated_raw": "131\n",
+      "pred_vnd": 131000,
+      "true_vnd": 185000,
+      "error_pct": 29.2
+    },
+    {
+      "idx": 8,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: LEGO Xe Tải Chở Rác 60220  \nDanh mục: Đồ chơi lắp ghép & xếp hình  \nThương hiệu",
+      "generated_raw": "259\n",
+      "pred_vnd": 259000,
+      "true_vnd": 999000,
+      "error_pct": 74.1
+    },
+    {
+      "idx": 9,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Lư xông trầm điện cao 11cm  \nDanh mục: Đồ dùng hương trầm  \nThương hiệu: Diệu T",
+      "generated_raw": "380\n",
+      "pred_vnd": 380000,
+      "true_vnd": 420000,
+      "error_pct": 9.5
+    },
+    {
+      "idx": 10,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Mô hình khủng long khổng lồ bằng cao su - Mẫu 3  \nDanh mục: Đồ chơi và thú nhồi",
+      "generated_raw": "350\n",
+      "pred_vnd": 350000,
+      "true_vnd": 450000,
+      "error_pct": 22.2
+    },
+    {
+      "idx": 11,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Vali du lịch hình cô gái Maruko, kéo với cốp và bánh xe cao cấp  \nDanh mục: Val",
+      "generated_raw": "590\n",
+      "pred_vnd": 590000,
+      "true_vnd": 235000,
+      "error_pct": 151.1
+    },
+    {
+      "idx": 12,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Túi tote vintage màu kem với họa tiết cô gái  \nDanh mục: Túi xách nữ  \nThương h",
+      "generated_raw": "129\n",
+      "pred_vnd": 129000,
+      "true_vnd": 55000,
+      "error_pct": 134.5
+    },
+    {
+      "idx": 13,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Bàn Chải Đánh Răng 3 Chiều HT SYS  \nDanh mục: Dụng cụ làm sạch răng  \nThương hi",
+      "generated_raw": "79\n",
+      "pred_vnd": 79000,
+      "true_vnd": 99000,
+      "error_pct": 20.2
+    },
+    {
+      "idx": 14,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Combo 5 lõi lọc nước Sanaky & DFP  \nDanh mục: Lọc nước, phụ kiện máy lọc nước  ",
+      "generated_raw": "325\n",
+      "pred_vnd": 325000,
+      "true_vnd": 190000,
+      "error_pct": 71.1
+    },
+    {
+      "idx": 15,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Cáp sạc nhanh siêu bền C to IP 20W  \nDanh mục: Cáp sạc & dữ liệu  \nThương hiệu:",
+      "generated_raw": "145\n",
+      "pred_vnd": 145000,
+      "true_vnd": 135000,
+      "error_pct": 7.4
+    },
+    {
+      "idx": 16,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Nước Hoa Nữ Narciso Rodriguez For Her EDP Intense 0.6ml  \nDanh mục: Nước hoa nữ",
+      "generated_raw": "600\n",
+      "pred_vnd": 600000,
+      "true_vnd": 60000,
+      "error_pct": 900.0
+    },
+    {
+      "idx": 17,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Sữa Tắm Kiss My Body Crazy In Love 380ml  \nDanh mục: Sữa tắm & dưỡng da  \nThươn",
+      "generated_raw": "156\n",
+      "pred_vnd": 156000,
+      "true_vnd": 160000,
+      "error_pct": 2.5
+    },
+    {
+      "idx": 18,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Kem Dưỡng Ẩm Tay Hydration Daily Stanhome  \nDanh mục: Dưỡng da tay  \nThương hiệ",
+      "generated_raw": "248\n",
+      "pred_vnd": 248000,
+      "true_vnd": 305970,
+      "error_pct": 18.9
+    },
+    {
+      "idx": 19,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Tinh dầu dưỡng tóc mềm mượt  \nDanh mục: Sản phẩm chăm sóc tóc  \nThương hiệu: OE",
+      "generated_raw": "159\n",
+      "pred_vnd": 159000,
+      "true_vnd": 129000,
+      "error_pct": 23.3
+    }
+  ]
+}
