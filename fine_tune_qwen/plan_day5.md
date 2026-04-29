@@ -2,7 +2,7 @@
 
 **Phiên bản:** 2.0 (rewrite gọn lại)
 **Ngày tạo:** 2026-04-24
-**Cập nhật:** 2026-04-29 (session 9 — Stage 2 DONE, items_prompts_tv_4 269K pushed)
+**Cập nhật:** 2026-04-29 (session 10 — items_tv_v9 269K pushed, sẵn sàng cho Day3/Day4 retrain)
 **Branch:** `feature/day5-qlora-qwen`
 **Folder:** `tech2ai/fine_tune_qwen/`
 
@@ -18,7 +18,8 @@
 | Phase 3 — Full v3 | **DONE 2026-04-27** | **RMSLE=0.4426** (85K/3ep/r=64/7mod, HF: `SeanSunny/qwen3.5-4b-vn-pricer-v3`) |
 | Phase 4 — Stage 1 (v4-resume) | **TODO** | Target 0.40–0.42 |
 | Phase 4 — Stage 2 (augment) | **DONE 2026-04-29** | `items_prompts_tv_4` 269,112 train đã push HF |
-| Phase 4 — Stage 3 (v4-scratch) | **TODO** | Target 0.36–0.40, dataset = tv_4 |
+| items_tv_v9 (Day3/Day4 retrain) | **DONE 2026-04-29** | `SeanSunny/items_tv_v9` 269,112 train, schema merged |
+| Phase 4 — Stage 3 (v4-scratch) | **TODO** | Target 0.36–0.40, dataset = `items_prompts_tv_4` (269K) |
 | Phase 5 — Ensemble | **DESIGN — Section 7** | Target < 0.38 |
 
 ---

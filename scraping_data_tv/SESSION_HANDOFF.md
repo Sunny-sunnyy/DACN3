@@ -5,10 +5,18 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-29 — session 9)
+## Trang thai hien tai (2026-04-29 — session 10)
 
-**Trang thai:** Day 5 Phase 4 — Stage 2 DONE (items_prompts_tv_4 da push). Con lai: Stage 1 (05), Stage 3 (06), Stage 4 (07).
+**Trang thai:** Day 5 Phase 4 — Stage 2 DONE. items_tv_v9 da push. Buoc tiep: Stage 3 (06_train_v4_scratch tren RTX 5090, 32GB VRAM, dung SeanSunny/items_prompts_tv_4).
 **Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 10 ket qua (2026-04-29)
+- [x] Tao va chay `push_dataset_v9.py` — push `SeanSunny/items_tv_v9`:
+  - train: 85,727 orig + 183,385 aug = **269,112** (shuffle seed=42)
+  - validation: 3,926 | test: 3,872 (filter price <= 1M tu v7)
+  - Schema: title, category, brand, summary (merged), price (round/1000), price_vnd_true
+  - Khong co cot aug_version
+- [x] Day3/Day4 chi can thay doi duong dan dataset → `SeanSunny/items_tv_v9` (code khong doi)
 
 ### Session 9 ket qua (2026-04-29)
 - [x] Chay `push_dataset_v4.py` — push `SeanSunny/items_tv_v8` (183,385 train) + `SeanSunny/items_prompts_tv_4` (269,112 train).

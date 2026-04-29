@@ -436,9 +436,20 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 2. **[BUG DA FIX]** HF server dong ket noi sau 527kB (CLOSE-WAIT TCP state) khi upload 1 parquet file 53.5MB qua WSL2. Fix: them `max_shard_size="20MB"` vao `push_to_hub()` → chia thanh ~3 shard nho, upload thanh cong.
 3. **[DEVIATION]** Thuc te dung `push_dataset_v4.py` thay vi chay notebook `08_augment_dataset_v4_version4.ipynb` truc tiep. Script giai phong RAM o cac buoc key, xu ly chinh xac ca 7 buoc pipeline.
 
+#### items_tv_v9 (Day3/Day4 retrain dataset)
+
+| Dataset | Split | Rows | Ghi chu |
+|---|---|---|---|
+| `SeanSunny/items_tv_v9` | **train** | **269,112** | 85,727 orig + 183,385 aug, shuffled seed=42 |
+| `SeanSunny/items_tv_v9` | validation | 3,926 | filter price <= 1M tu v7 |
+| `SeanSunny/items_tv_v9` | test | 3,872 | filter price <= 1M tu v7 |
+
+Schema: `title, category, brand, summary` (merged — aug dung summary_version2), `price` (round/1000), `price_vnd_true` (VND thuc). Khong co `aug_version`.
+
 ### Thu tu chay (nguoi dung)
 
 ```
+0. [DONE 2026-04-29]  push_dataset_v9.py          → items_tv_v9 (269K) HF — cho Day3/Day4 retrain
 1. [GPU 3090Ti ~10h]  05_train_v4_resume.ipynb   → v4_resume_val_predictions.json
 2. [DONE 2026-04-29]  push_dataset_v4.py          → items_prompts_tv_4 (269K) HF
 3. [GPU 5090 ~16-20h] 06_train_v4_scratch.ipynb   → v4_scratch_val_predictions.json
