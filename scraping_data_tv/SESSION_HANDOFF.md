@@ -5,10 +5,16 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
-## Trang thai hien tai (2026-04-28 — session 8)
+## Trang thai hien tai (2026-04-29 — session 9)
 
-**Trang thai:** Day 5 Phase 4 — TAT CA 4 NOTEBOOK SAN SANG (05/08/06/07). Chua chay GPU/Groq.
+**Trang thai:** Day 5 Phase 4 — Stage 2 DONE (items_prompts_tv_4 da push). Con lai: Stage 1 (05), Stage 3 (06), Stage 4 (07).
 **Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 9 ket qua (2026-04-29)
+- [x] Chay `push_dataset_v4.py` — push `SeanSunny/items_tv_v8` (183,385 train) + `SeanSunny/items_prompts_tv_4` (269,112 train).
+- [x] Fix loi features mismatch (V8_FEATURES explicit schema) + fix HF upload drop connection (max_shard_size="20MB").
+- [x] Tao `fine_tune_qwen/data_augmentation.md` — doc toan bo pipeline tu scraping → Day1 → Day2 → augmentation.
+- [x] Stage 2 (08_augment) DONE: 85,727 orig + 183,385 aug = **269,112 train** cho items_prompts_tv_4.
 
 ### Session 8 ket qua (2026-04-28)
 - [x] Tao `fine_tune_qwen/08_augment_dataset_v4.ipynb` — Stage 2 Groq Batch augmentation: merge tv6+raw_v6 → items_tv_v7, SYSTEM_PROMPT_AUG 2-dong, AugBatchManager, multiplier 5x/3x/2x/1x/4x, USER CONFIRMATION GATE, output items_prompts_tv_4.
@@ -70,8 +76,8 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 - [x] **Phase 2 DONE** — v1 smoke RMSLE=0.6084 (beat v0 86%)
 - [x] **Phase 3 v3 DONE** — full 85K/3ep/r=64/7mod RMSLE=0.4426 (beat v1 27%, gap v8 +0.042, chua dat target 0.38)
 - [ ] **Phase 4 Stage 1** — chay `05_train_v4_resume.ipynb` tren 1x 3090Ti (~10h) → `results/v4_resume_val_predictions.json`
-- [ ] **Phase 4 Stage 2** — chay `08_augment_dataset_v4.ipynb`: test 15 sample (confirm system prompt) → full ~185K requests Groq → push `items_prompts_tv_4`
-- [ ] **Phase 4 Stage 3** — chay `06_train_v4_scratch.ipynb` tren RTX 5090 (~16-20h) → `results/v4_scratch_val_predictions.json`
+- [x] **Phase 4 Stage 2 DONE (2026-04-29)** — `push_dataset_v4.py`: Groq batch 183,385 aug rows → `items_tv_v8` + `items_prompts_tv_4` (269,112 train)
+- [ ] **Phase 4 Stage 3** — chay `06_train_v4_scratch.ipynb` tren RTX 5090 (~16-20h) voi `items_prompts_tv_4` → `results/v4_scratch_val_predictions.json`
 - [ ] **Phase 4 Stage 4** — chay `07_ensemble.ipynb` (CPU, ~2h): Ridge blend v3+v4-resume+v4-scratch+v8
 - [ ] **Phase 5 final** — `09_eval_full.ipynb` + `day5_summary.md`
 
@@ -142,10 +148,10 @@ Day 5 QLoRA Qwen3.5-4B — tat ca 4 notebook da san sang (05/08/06/07). Session 
 3. `fine_tune_qwen/plan_day5.md` — v4 design CANONICAL (Section 4)
 4. `fine_tune_qwen/results/*.json` — ket qua da co (v3, v4-resume, v4-scratch, ensemble)
 
-== NOTEBOOK NAO DA SAN SANG ==
+== NOTEBOOK / SCRIPT DA SAN SANG ==
 - `05_train_v4_resume.ipynb` — Stage 1 (3090Ti ~10h, LR=5e-5, NEFTune α=3, resume v3 ep2)
-- `08_augment_dataset_v4.ipynb` — Stage 2 (Groq Batch gpt-oss-20b, ~185K requests, confirm gate)
-- `06_train_v4_scratch.ipynb` — Stage 3 (5090 ~16-20h, r=128/DoRA/RSLoRA/NEFTune α=5)
+- `push_dataset_v4.py` — Stage 2 DONE: items_tv_v8 + items_prompts_tv_4 (269,112 train) da push HF
+- `06_train_v4_scratch.ipynb` — Stage 3 (5090 ~16-20h, r=128/DoRA/RSLoRA/NEFTune α=5, dataset=items_prompts_tv_4)
 - `07_ensemble.ipynb` — Stage 4 (CPU, Ridge log-space v3+v4r+v4s+v8)
 
 == KEY CONSTRAINTS ==
@@ -191,4 +197,4 @@ Day 5 QLoRA Qwen3.5-4B — tat ca 4 notebook da san sang (05/08/06/07). Session 
 
 ---
 
-*Cap nhat: 2026-04-28 (session 8) — Tat ca 4 notebook Day 5 Phase 4 da san sang (05/08/06/07). Thu tu chay: 05 → 08 → 06 → 07. Session sau dung Prompt L de ghi ket qua + debug + tao 09_eval_full + day5_summary.*
+*Cap nhat: 2026-04-29 (session 9) — Stage 2 DONE: items_prompts_tv_4 (269,112 train) da push HF. Con lai: Stage 1 (05_resume), Stage 3 (06_scratch), Stage 4 (07_ensemble). Session sau dung Prompt L de ghi ket qua + debug + tao 09_eval_full + day5_summary.*

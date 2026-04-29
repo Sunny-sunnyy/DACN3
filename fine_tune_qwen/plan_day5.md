@@ -2,7 +2,7 @@
 
 **Phiên bản:** 2.0 (rewrite gọn lại)
 **Ngày tạo:** 2026-04-24
-**Cập nhật:** 2026-04-28 (session 7 — chốt gpt-oss-20b cho A2, đồng bộ day2 pipeline)
+**Cập nhật:** 2026-04-29 (session 9 — Stage 2 DONE, items_prompts_tv_4 269K pushed)
 **Branch:** `feature/day5-qlora-qwen`
 **Folder:** `tech2ai/fine_tune_qwen/`
 
@@ -16,7 +16,9 @@
 | Phase 1 — Zero-shot v0 | **DONE 2026-04-26** | RMSLE=4.4428 (`02_baseline_v1.ipynb`) |
 | Phase 2 — Smoke v1 | **DONE 2026-04-26** | RMSLE=0.6084 (20K/2ep/r=32/4mod) |
 | Phase 3 — Full v3 | **DONE 2026-04-27** | **RMSLE=0.4426** (85K/3ep/r=64/7mod, HF: `SeanSunny/qwen3.5-4b-vn-pricer-v3`) |
-| Phase 4 — v4 (resume + scratch) | **DESIGN — Section 6** | Target < 0.40 (tốt: < 0.38) |
+| Phase 4 — Stage 1 (v4-resume) | **TODO** | Target 0.40–0.42 |
+| Phase 4 — Stage 2 (augment) | **DONE 2026-04-29** | `items_prompts_tv_4` 269,112 train đã push HF |
+| Phase 4 — Stage 3 (v4-scratch) | **TODO** | Target 0.36–0.40, dataset = tv_4 |
 | Phase 5 — Ensemble | **DESIGN — Section 7** | Target < 0.38 |
 
 ---
@@ -305,7 +307,7 @@ Cells:
 9. Augment train items quanh failure regions
 10. Combine + shuffle → push `SeanSunny/items_prompts_tv_4`
 
-**Output:** `items_prompts_tv_4` có ~255-350K train, val/test giữ nguyên `items_prompts_tv_3`.
+**Output (DONE 2026-04-29):** `SeanSunny/items_prompts_tv_4` — **269,112 train** (85,727 orig + 183,385 aug), val/test giữ nguyên từ `items_prompts_tv_3`. Script: `push_dataset_v4.py`.
 
 ### 4.4. Stage 3 — Notebook `06_train_v4_scratch.ipynb`
 
@@ -337,10 +339,10 @@ Cells:
 | eval_steps | 500 | — |
 | eval generative RMSLE | mỗi 500 steps trên 500 val | CE↔RMSLE divergence |
 | save_strategy | `best` (theo eval_rmsle) | — |
-| Dataset | `items_prompts_tv_4` (~255K) | Augment data |
+| Dataset | `items_prompts_tv_4` (**269,112**) | Augment data (DONE) |
 | HF push | `SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch` | private |
 
-**Time estimate (5090):** 255K × 2ep × ~1.3s/step ≈ 16-20h.
+**Time estimate (5090):** 269K × 2ep × ~1.3s/step ≈ 17-21h.
 
 **Mục tiêu:** RMSLE **0.36-0.40**.
 
@@ -389,9 +391,10 @@ fine_tune_qwen/
 ├── 03_train_v1_smoke.ipynb                # Phase 2 v1 (DONE)
 ├── 04_train_v3.ipynb                      # Phase 3 v3 (DONE)
 ├── 05_train_v4_resume.ipynb               # Stage 1 v4 (TODO)
-├── 06_train_v4_scratch.ipynb              # Stage 3 v4 (TODO)
+├── 06_train_v4_scratch.ipynb              # Stage 3 v4 (TODO) — dataset: items_prompts_tv_4 269K
 ├── 07_ensemble.ipynb                      # Stage 4 (TODO)
-├── 08_augment_dataset_v4.ipynb            # Stage 2 (TODO)
+├── 08_augment_dataset_v4.ipynb            # Stage 2 (DONE — xem push_dataset_v4.py)
+├── push_dataset_v4.py                     # Stage 2 script (DONE 2026-04-29)
 ├── 09_eval_full.ipynb                     # Final eval all versions trên test 3,872 (TODO)
 ├── day5_summary.md                        # Final summary (TODO)
 ├── utils/
@@ -436,4 +439,4 @@ fine_tune_qwen/
 
 ---
 
-*Cập nhật: 2026-04-27 (session 6) — v3 DONE (RMSLE=0.4426). Plan v4 design chốt qua interview với user. Sẵn sàng cho Sonnet code Stage 1+2.*
+*Cập nhật: 2026-04-29 (session 9) — Stage 2 DONE: items_prompts_tv_4 (269,112 train) pushed HF. Sẵn sàng cho Stage 1 (05_resume) + Stage 3 (06_scratch trên RTX 5090).*

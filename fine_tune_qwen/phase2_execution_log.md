@@ -374,9 +374,9 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 
 ---
 
-## Run #4 prep — Stages 2/3/4 notebooks (2026-04-28, session 8)
+## Run #4 prep — Stages 2/3/4 (2026-04-28/29, session 8/9)
 
-**Trang thai:** Ba notebook SAN SANG, chua chay GPU/Groq.
+**Trang thai:** Stage 2 DONE (2026-04-29). Stage 3+4 cho chay GPU.
 
 ### Da tao (session 8)
 
@@ -404,11 +404,43 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 - Graceful fallback khi v8 hoac bat ky model nao thieu.
 - Save `results/ensemble_results.json` + leaderboard final.
 
+### Stage 2 — items_prompts_tv_4 (DONE 2026-04-29)
+
+**Script:** `fine_tune_qwen/push_dataset_v4.py` (tao tu notebook 08_augment_dataset_v4_version4.ipynb)
+**Thoi gian chay:** ~15 phut (rebuild data tu local files + 2 lan push HF)
+
+#### Ket qua Groq batch (da chay truoc)
+
+| Chi so | Gia tri |
+|---|---|
+| Total requests gui di | 185,584 |
+| Batch files | 186 (1,000 req/file) |
+| Responses nhan ve | 185,583 (missing 1) |
+| Parse thanh cong (v8_rows) | **183,385** |
+| Parse that bai (format sai) | 2,199 (1.2%) |
+| Model | `openai/gpt-oss-20b` |
+
+#### Dataset da push len HF
+
+| Dataset | Split | Rows | Ghi chu |
+|---|---|---|---|
+| `SeanSunny/items_tv_v8` | train | 183,385 | augmented rows, co `summary_version2` |
+| `SeanSunny/items_tv_v8` | val/test | 5K/5K | giu nguyen tv_v7, `summary_version2=None` |
+| `SeanSunny/items_prompts_tv_4` | **train** | **269,112** | 85,727 orig + 183,385 aug, shuffled seed=42 |
+| `SeanSunny/items_prompts_tv_4` | val | 3,926 | giu nguyen tu tv_3 |
+| `SeanSunny/items_prompts_tv_4` | test | 3,872 | giu nguyen tu tv_3 |
+
+#### Devations / Issues
+
+1. **[BUG DA FIX]** Features mismatch khi push items_tv_v8: train split co dtype string/int64, val/test split co null dtype. Fix: dung `V8_FEATURES = Features({...})` explicit trong `Dataset.from_list(..., features=V8_FEATURES)`.
+2. **[BUG DA FIX]** HF server dong ket noi sau 527kB (CLOSE-WAIT TCP state) khi upload 1 parquet file 53.5MB qua WSL2. Fix: them `max_shard_size="20MB"` vao `push_to_hub()` → chia thanh ~3 shard nho, upload thanh cong.
+3. **[DEVIATION]** Thuc te dung `push_dataset_v4.py` thay vi chay notebook `08_augment_dataset_v4_version4.ipynb` truc tiep. Script giai phong RAM o cac buoc key, xu ly chinh xac ca 7 buoc pipeline.
+
 ### Thu tu chay (nguoi dung)
 
 ```
 1. [GPU 3090Ti ~10h]  05_train_v4_resume.ipynb   → v4_resume_val_predictions.json
-2. [Groq ~$3-5]       08_augment_dataset_v4.ipynb  → items_prompts_tv_4 HF
+2. [DONE 2026-04-29]  push_dataset_v4.py          → items_prompts_tv_4 (269K) HF
 3. [GPU 5090 ~16-20h] 06_train_v4_scratch.ipynb   → v4_scratch_val_predictions.json
 4. [CPU/GPU ~2h]      07_ensemble.ipynb            → ensemble_results.json
 ```
