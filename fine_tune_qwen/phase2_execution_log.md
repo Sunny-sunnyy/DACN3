@@ -374,9 +374,28 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 
 ---
 
-## Run #4 prep — Stages 2/3/4 (2026-04-28/29, session 8/9)
+## Run #4 prep — Stages 2/3/4 (2026-04-28/29, session 8/9/11)
 
-**Trang thai:** Stage 2 DONE (2026-04-29). Stage 3+4 cho chay GPU.
+**Trang thai (session 11, 2026-04-29):**
+- Stage 1 (v4-resume): **SKIP** — quyet dinh bo, ensemble cuoi se la 3-model (v3 + v4-scratch + v8).
+- Stage 2 (items_prompts_tv_4): DONE 2026-04-29.
+- Stage 3 (06_train_v4_scratch_v2.ipynb): SAN SANG, cho user chay tren RTX 5090 32GB / vast.ai.
+- Stage 4 (07_ensemble): can verify graceful fallback 3-model (Section 2 skip v4-resume load).
+
+### Update session 11 (2026-04-29)
+
+**Verify aug data:** `SeanSunny/items_prompts_tv_4` scan 1000 sample → 0 hallucination, 0 issue. PASS.
+
+**Token re-profile (post-aug):** p99=196, max=346 → bump `max_seq_length` 192 → **208** (trunc rate ~0.5%).
+
+**`06_train_v4_scratch_v2.ipynb`** (NEW, KHONG sua v1, 31 cells / 12 sections):
+- Smoke VRAM cell: 30 steps, abort neu peak > 30GB; rebuild model fresh truoc full train (tranh state pollution).
+- Resume detection: local `output_aug_v3/last-checkpoint` → fallback HF `last-checkpoint` branch (snapshot_download). Resilient cho vast.ai disconnect.
+- `hub_strategy="checkpoint"` — auto push moi 500 step len HF Hub.
+- 8 charts PNG post-train (matplotlib): train loss, eval CE loss, learning rate, grad_norm, RMSLE timeline (eval_steps=500), scatter pred-vs-true (200 sample val), residual histogram, bucket RMSLE.
+- Constants: `MAX_SEQ_LENGTH=208, PER_DEVICE_BATCH=20, GRAD_ACCUM=4` (eff_batch=80), `EVAL_STEPS=500, SAVE_TOTAL_LIMIT=2`.
+- `HF_REPO_ADAPTER="SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch"`, branch `last-checkpoint` cho resume.
+- Bug fix: capture `best_ckpt_path = trainer.state.best_model_checkpoint` truoc `del trainer` (tranh AttributeError o save-results cell).
 
 ### Da tao (session 8)
 
@@ -449,11 +468,11 @@ Schema: `title, category, brand, summary` (merged — aug dung summary_version2)
 ### Thu tu chay (nguoi dung)
 
 ```
-0. [DONE 2026-04-29]  push_dataset_v9.py          → items_tv_v9 (269K) HF — cho Day3/Day4 retrain
-1. [GPU 3090Ti ~10h]  05_train_v4_resume.ipynb   → v4_resume_val_predictions.json
-2. [DONE 2026-04-29]  push_dataset_v4.py          → items_prompts_tv_4 (269K) HF
-3. [GPU 5090 ~16-20h] 06_train_v4_scratch.ipynb   → v4_scratch_val_predictions.json
-4. [CPU/GPU ~2h]      07_ensemble.ipynb            → ensemble_results.json
+0. [DONE 2026-04-29]  push_dataset_v9.py             → items_tv_v9 (269K) HF — cho Day3/Day4 retrain
+1. [SKIP session 11]  05_train_v4_resume.ipynb       → v4-resume bi bo, ensemble 3-model
+2. [DONE 2026-04-29]  push_dataset_v4.py             → items_prompts_tv_4 (269K) HF
+3. [GPU 5090 ~17-20h] 06_train_v4_scratch_v2.ipynb   → v4_scratch_val_predictions.json (vast.ai)
+4. [CPU/GPU ~2h]      07_ensemble.ipynb               → ensemble_results.json (3-model)
 ```
 
 ### Notes cho session sau (Run #3 v4-resume)

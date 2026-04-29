@@ -12,33 +12,65 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - fine_tune_qwen/phase2_execution_log.md
 - fine_tune_qwen/plan_day5.md
+- fine_tune_qwen/06_train_v4_scratch_v2.ipynb (notebook chinh se chay)
 
-Trang thai hien tai (2026-04-29 — session 10 da ket thuc):
+Trang thai hien tai (2026-04-29 — session 11 da ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 5 Phase 4 Stage 2 DONE: items_prompts_tv_4 (269K) + items_tv_v9 (269K) da push HF
-- Stage 1 (05_train_v4_resume.ipynb) chua chay
+- Day 5 Phase 4 Stage 2 DONE: items_prompts_tv_4 (269K) da push HF
+- DECISION: SKIP v4-resume — ensemble se la v3 + v4-scratch + v8 (3-model)
+- Notebook v2 SAN SANG: 06_train_v4_scratch_v2.ipynb (31 cells, 12 sections)
+  + smoke VRAM cell (abort > 30GB)
+  + resume from HF last-checkpoint branch (vast.ai disconnect protection)
+  + hub_strategy="checkpoint" — auto push moi 500 step
+  + 8 charts PNG (training curves + dashboard + bucket RMSLE + error hist)
+  + max_seq_length=208 (bump tu 192 do aug data co outlier 346 tokens)
 
 Nhiem vu hom nay:
-1. Chay fine_tune_qwen/06_train_v4_scratch.ipynb tren RTX 5090 (32GB VRAM)
+1. User da/dang chay 06_train_v4_scratch_v2.ipynb tren RTX 5090 32GB (vast.ai)
    - Dataset: SeanSunny/items_prompts_tv_4 (269,112 train)
-   - Config hien tai: r=128/alpha=256/DoRA/RSLoRA/NEFTune a=5/wd=0.01/eff_batch=80
-   - Target: RMSLE 0.36-0.40, save v4_scratch_val_predictions.json
-2. Sau khi chay xong: cap nhat ket qua vao phase2_execution_log.md + SESSION_HANDOFF.md
-3. Commit va push
+   - Config: r=128/alpha=256/DoRA/RSLoRA/NEFTune a=5/wd=0.01/eff_batch=80, 2 epochs
+   - max_seq_len=208, max_new_tokens=4
+   - Best ckpt theo eval_rmsle (RMSLEEvalCallback 500 val subset)
+   - Target: RMSLE 0.36-0.40, save results/v4_scratch_val_predictions.json
+2. User se thong bao ket qua: smoke VRAM/sec_per_step/time_est, RMSLE per-eval,
+   final RMSLE/MAE/MAPE/R2, 8 charts PNG, best ckpt step.
+3. Sonnet ghi vao phase2_execution_log.md muc Run #4 v4-scratch v2.
+4. Sau khi co v4_scratch_val_predictions.json:
+   - Chay 07_ensemble.ipynb (CPU ~2h) — Ridge log-space blend v3 + v4-scratch + v8
+   - LUU Y: 07 hien tai design cho 4-model (v3+v4r+v4s+v8) — neu skip v4r,
+     can verify graceful fallback. Co the can sua nhe Section 2 (skip v4r load).
+5. Sau khi co ensemble_results.json:
+   - Tao 09_eval_full.ipynb — eval v3/v4-scratch/ensemble tren test 3,872
+   - Viet day5_summary.md (tieng Viet, leaderboard final, lessons learned)
+6. Commit va push tat ca.
 
-Luu y quan trong:
-- Xac nhan lai config 06 phu hop voi 32GB VRAM truoc khi chay (batch size co the tang)
-- Model base: Qwen3.5-4B-Base (khac v4-resume, khong resume tu checkpoint nao)
-- max_seq_length=192, max_new_tokens=4
-- Schema items_prompts_tv_4: prompt, completion (round(price/1000)), price_vnd_true
+Debug protocol khi gap loi:
+- Reproduce → root cause → 1 fix → verify (KHONG fix nhieu thu cung luc)
+- Neu OOM o smoke → giam PER_DEVICE_BATCH 20→16→12, restart kernel, re-run
+- Neu disconnect giua train → instance moi, cell Section 7 auto resume tu HF
+
+KHONG sua plan_day5.md (READ-ONLY).
+KHONG chay GPU tu dong — chi code/debug.
 ```
 
 ---
 
-## Trang thai hien tai (2026-04-29 — session 10)
+## Trang thai hien tai (2026-04-29 — session 11)
 
-**Trang thai:** Day 5 Phase 4 — Stage 2 DONE. items_tv_v9 da push. Buoc tiep: Stage 3 (06_train_v4_scratch tren RTX 5090, 32GB VRAM, dung SeanSunny/items_prompts_tv_4).
+**Trang thai:** Day 5 Phase 4 — Stage 3 SAN SANG. Notebook v2 da tao. Buoc tiep: User chay `06_train_v4_scratch_v2.ipynb` tren RTX 5090 32GB (vast.ai).
 **Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 11 ket qua (2026-04-29)
+- [x] DECISION: SKIP v4-resume — ensemble cuoi se la 3-model (v3 + v4-scratch + v8).
+- [x] Verify chat luong aug data `SeanSunny/items_prompts_tv_4`: 0/1000 hallucination, 0/100 issue → PASS.
+- [x] Re-profile token tren aug data: p99=196, max=346 → de xuat bump `max_seq_length` 192 → **208** (trunc ~0.5%).
+- [x] Tao `fine_tune_qwen/06_train_v4_scratch_v2.ipynb` (31 cells, 12 sections) — KHONG sua v1:
+  + Smoke VRAM cell (30 steps, abort neu peak > 30GB), rebuild model fresh truoc full train.
+  + Resume detection: local `output/last-checkpoint` → fallback HF `last-checkpoint` branch (snapshot_download).
+  + `hub_strategy="checkpoint"` — auto push checkpoint moi 500 step (resilient cho vast.ai disconnect).
+  + 8 charts PNG post-train (matplotlib): train/eval loss, LR, grad_norm, RMSLE timeline, scatter pred vs true (200 sample), residual hist, bucket RMSLE.
+  + `max_seq_length=208`, eff_batch=80, eval_steps=500, save_total_limit=2.
+  + Bug fix: capture `best_ckpt_path = trainer.state.best_model_checkpoint` truoc `del trainer`.
 
 ### Session 10 ket qua (2026-04-29)
 - [x] Tao va chay `push_dataset_v9.py` — push `SeanSunny/items_tv_v9`:
@@ -113,15 +145,15 @@ Luu y quan trong:
 - [x] **Phase 1 DONE** — v0 zero-shot RMSLE=4.4428
 - [x] **Phase 2 DONE** — v1 smoke RMSLE=0.6084 (beat v0 86%)
 - [x] **Phase 3 v3 DONE** — full 85K/3ep/r=64/7mod RMSLE=0.4426 (beat v1 27%, gap v8 +0.042, chua dat target 0.38)
-- [ ] **Phase 4 Stage 1** — chay `05_train_v4_resume.ipynb` tren 1x 3090Ti (~10h) → `results/v4_resume_val_predictions.json`
+- [~] **Phase 4 Stage 1 SKIP** — quyet dinh bo v4-resume (session 11). Ensemble = 3-model.
 - [x] **Phase 4 Stage 2 DONE (2026-04-29)** — `push_dataset_v4.py`: Groq batch 183,385 aug rows → `items_tv_v8` + `items_prompts_tv_4` (269,112 train)
-- [ ] **Phase 4 Stage 3** — chay `06_train_v4_scratch.ipynb` tren RTX 5090 (~16-20h) voi `items_prompts_tv_4` → `results/v4_scratch_val_predictions.json`
-- [ ] **Phase 4 Stage 4** — chay `07_ensemble.ipynb` (CPU, ~2h): Ridge blend v3+v4-resume+v4-scratch+v8
+- [ ] **Phase 4 Stage 3** — chay `06_train_v4_scratch_v2.ipynb` tren RTX 5090 32GB / vast.ai (~17-20h) voi `items_prompts_tv_4` → `results/v4_scratch_val_predictions.json`
+- [ ] **Phase 4 Stage 4** — chay `07_ensemble.ipynb` (CPU, ~2h): Ridge blend v3+v4-scratch+v8 (3-model — can verify graceful skip v4-resume)
 - [ ] **Phase 5 final** — `09_eval_full.ipynb` + `day5_summary.md`
 
 **Cau hinh:** Qwen3.5-4B-Base + PEFT + bitsandbytes (QLoRA 4-bit NF4) | RTX 3090 Ti 25.3GB | 4 tuan
 **Unsloth: DROPPED 2026-04-26** (loi VLProcessor + user chot bo)
-**max_seq_length = 192 | max_new_tokens = 4 | dataset = SeanSunny/items_prompts_tv_3**
+**max_seq_length = 208 (v4-scratch) | max_new_tokens = 4 | dataset = SeanSunny/items_prompts_tv_4**
 **Target:** RMSLE < 0.38 (phu: beat v8 0.4004 standalone)
 
 ---
@@ -235,4 +267,4 @@ Day 5 QLoRA Qwen3.5-4B — tat ca 4 notebook da san sang (05/08/06/07). Session 
 
 ---
 
-*Cap nhat: 2026-04-29 (session 9) — Stage 2 DONE: items_prompts_tv_4 (269,112 train) da push HF. Con lai: Stage 1 (05_resume), Stage 3 (06_scratch), Stage 4 (07_ensemble). Session sau dung Prompt L de ghi ket qua + debug + tao 09_eval_full + day5_summary.*
+*Cap nhat: 2026-04-29 (session 11) — SKIP v4-resume; v2 notebook san sang (smoke VRAM, resume tu HF, hub_strategy=checkpoint, 8 charts, max_seq_len=208). Session sau: ghi ket qua Run #4, verify 07_ensemble graceful 3-model, tao 09_eval_full + day5_summary.*
