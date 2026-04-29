@@ -5,6 +5,36 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 
 ---
 
+## Prompt cho session tiep theo (copy nguyen vao chat moi)
+
+```
+Nap ngu canh tu cac file:
+- scraping_data_tv/SESSION_HANDOFF.md
+- fine_tune_qwen/phase2_execution_log.md
+- fine_tune_qwen/plan_day5.md
+
+Trang thai hien tai (2026-04-29 — session 10 da ket thuc):
+- Branch: feature/day5-qlora-qwen
+- Day 5 Phase 4 Stage 2 DONE: items_prompts_tv_4 (269K) + items_tv_v9 (269K) da push HF
+- Stage 1 (05_train_v4_resume.ipynb) chua chay
+
+Nhiem vu hom nay:
+1. Chay fine_tune_qwen/06_train_v4_scratch.ipynb tren RTX 5090 (32GB VRAM)
+   - Dataset: SeanSunny/items_prompts_tv_4 (269,112 train)
+   - Config hien tai: r=128/alpha=256/DoRA/RSLoRA/NEFTune a=5/wd=0.01/eff_batch=80
+   - Target: RMSLE 0.36-0.40, save v4_scratch_val_predictions.json
+2. Sau khi chay xong: cap nhat ket qua vao phase2_execution_log.md + SESSION_HANDOFF.md
+3. Commit va push
+
+Luu y quan trong:
+- Xac nhan lai config 06 phu hop voi 32GB VRAM truoc khi chay (batch size co the tang)
+- Model base: Qwen3.5-4B-Base (khac v4-resume, khong resume tu checkpoint nao)
+- max_seq_length=192, max_new_tokens=4
+- Schema items_prompts_tv_4: prompt, completion (round(price/1000)), price_vnd_true
+```
+
+---
+
 ## Trang thai hien tai (2026-04-29 — session 10)
 
 **Trang thai:** Day 5 Phase 4 — Stage 2 DONE. items_tv_v9 da push. Buoc tiep: Stage 3 (06_train_v4_scratch tren RTX 5090, 32GB VRAM, dung SeanSunny/items_prompts_tv_4).
