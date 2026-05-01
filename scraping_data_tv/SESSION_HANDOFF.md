@@ -47,6 +47,10 @@ TUONG LAI (sau khi xong Day 5):
 - Day3/Day4 retrain voi items_tv_v9 (269K) — trao doi chi tiet session sau
   Ly do: chi can thay doi dataset path, co the dat RMSLE 0.37-0.39
 
+Coding guidelines:
+- Truoc khi viet hoac sua bat ki doan code nao: invoke skill `karpathy-guidelines`
+  (think before coding, simplicity first, surgical changes, verifiable goals)
+
 Debug protocol khi gap loi:
 - Reproduce → root cause → 1 fix → verify (KHONG fix nhieu thu cung luc)
 - Neu OOM o smoke → giam PER_DEVICE_BATCH: 32→24→20, restart kernel, re-run

@@ -96,3 +96,11 @@ Optional: `BRAVE_API_KEY` (only for price_is_right.py), `GOOGLE_API_KEY`, `HF_TO
 - `curl_cffi` with `impersonate="chrome"` is required for both BestBuy and Amazon scraping from WSL2
 - BestBuy uses internal APIs (searchpage + priceBlocks + v2 product); Amazon uses HTML search page parsing
 - Deprecated files: `amazon_scanner_agent.py` (Brave MCP removed), `bestbuy_scanner_agent.py` (Brave MCP, still exists but unused by search_key pipeline)
+
+## Coding Guidelines
+
+Before writing or reviewing any code, invoke the `karpathy-guidelines` skill:
+```
+/karpathy-guidelines
+```
+This enforces: think before coding, simplicity first, surgical changes, verifiable success criteria.
