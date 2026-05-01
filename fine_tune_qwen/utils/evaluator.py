@@ -17,7 +17,7 @@ def compute_metrics(y_true, y_pred) -> dict:
         "rmsle": rmsle(y_true, y_pred),
         "mae": float(mean_absolute_error(y_true, y_pred)),
         "mape": float(np.mean(np.abs(y_pred - y_true) / y_true) * 100),
-        "r2": float(r2_score(y_true, y_pred)),
+        "r2": float(r2_score(y_true, y_pred)) * 100,
     }
 
 

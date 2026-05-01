@@ -11,43 +11,47 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - fine_tune_qwen/phase2_execution_log.md
-- fine_tune_qwen/plan_day5.md
-- fine_tune_qwen/06_train_v4_scratch_v2.ipynb (notebook chinh se chay)
 
-Trang thai hien tai (2026-04-29 — session 11 da ket thuc):
+Trang thai hien tai (2026-05-01 — session 13 da ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 5 Phase 4 Stage 2 DONE: items_prompts_tv_4 (269K) da push HF
-- DECISION: SKIP v4-resume — ensemble se la v3 + v4-scratch + v8 (3-model)
-- Notebook v2 SAN SANG: 06_train_v4_scratch_v2.ipynb (31 cells, 12 sections)
-  + smoke VRAM cell (abort > 30GB)
-  + resume from HF last-checkpoint branch (vast.ai disconnect protection)
-  + hub_strategy="checkpoint" — auto push moi 500 step
-  + 8 charts PNG (training curves + dashboard + bucket RMSLE + error hist)
-  + max_seq_length=208 (bump tu 192 do aug data co outlier 346 tokens)
+- RTX 5090 32GB (vast.ai), torch 2.9.0+cu128, compute cap 12.0 (Blackwell)
+
+LICH SU QUAN TRONG:
+- 06_train_v4_scratch_v2.ipynb: FAILED — mode collapse RSLoRA scale 22.6x, RMSLE=0.9739, R2=-28%
+  Root cause: USE_RSLORA=True voi r=128 → scale=alpha/sqrt(r)=22.6x → gradient spike step 200 → collapse
+  Model chi predict "199" (gia pho bien nhat). Chi tiet day du: phase2_execution_log.md Run #4 FAILED.
+- 06_train_v4_scratch_v3.ipynb: da tao nhung co loi cau truc (source luu theo tung ki tu), deprecated.
+- 06_train_v4_scratch_v4.ipynb: VERSION DUNG, fix hoan toan:
+  r=64/alpha=128/scale=2.0x/no-DoRA/no-RSLoRA/wd=0.001/3ep/NEFTune=5/batch=32/eff_batch=128
+- utils/evaluator.py: da fix r2_score*100 → tra ve % (nhu day4, vi du 66.39% thay vi 0.6639)
 
 Nhiem vu hom nay:
-1. User da/dang chay 06_train_v4_scratch_v2.ipynb tren RTX 5090 32GB (vast.ai)
+1. User chay 06_train_v4_scratch_v4.ipynb tren RTX 5090 32GB (vast.ai)
+   - KHONG doi gi — constants cell da chot dung
    - Dataset: SeanSunny/items_prompts_tv_4 (269,112 train)
-   - Config: r=128/alpha=256/DoRA/RSLoRA/NEFTune a=5/wd=0.01/eff_batch=80, 2 epochs
-   - max_seq_len=208, max_new_tokens=4
-   - Best ckpt theo eval_rmsle (RMSLEEvalCallback 500 val subset)
-   - Target: RMSLE 0.36-0.40, save results/v4_scratch_val_predictions.json
+   - Config: r=64/alpha=128/no-DoRA/no-RSLoRA/wd=0.001/3ep/NEFTune=5
+   - batch=32 (eff_batch=128), smoke abort limit 28GB, fallback 24 neu VRAM > 28GB
+   - Target: RMSLE 0.36-0.40, save results/v4_scratch_v4_results.json + v4_scratch_v4_val_predictions.json
 2. User se thong bao ket qua: smoke VRAM/sec_per_step/time_est, RMSLE per-eval,
-   final RMSLE/MAE/MAPE/R2, 8 charts PNG, best ckpt step.
-3. Sonnet ghi vao phase2_execution_log.md muc Run #4 v4-scratch v2.
-4. Sau khi co v4_scratch_val_predictions.json:
-   - Chay 07_ensemble.ipynb (CPU ~2h) — Ridge log-space blend v3 + v4-scratch + v8
-   - LUU Y: 07 hien tai design cho 4-model (v3+v4r+v4s+v8) — neu skip v4r,
-     can verify graceful fallback. Co the can sua nhe Section 2 (skip v4r load).
+   final RMSLE/MAE/MAPE/R2%, 8 charts PNG, best ckpt step.
+3. Ghi vao phase2_execution_log.md muc "Run #5 — v4-scratch v4".
+4. Sau khi co v4_scratch_v4_val_predictions.json:
+   - Cap nhat 07_ensemble.ipynb load v4_scratch_v4 (thay vi v4_scratch)
+   - Chay 07_ensemble.ipynb (CPU ~2h) — Ridge log-space blend v3 + v4-scratch-v4 + v8
 5. Sau khi co ensemble_results.json:
-   - Tao 09_eval_full.ipynb — eval v3/v4-scratch/ensemble tren test 3,872
+   - Tao 09_eval_full.ipynb — eval v3/v4-scratch-v4/ensemble tren test 3,872
    - Viet day5_summary.md (tieng Viet, leaderboard final, lessons learned)
 6. Commit va push tat ca.
 
+TUONG LAI (sau khi xong Day 5):
+- Day3/Day4 retrain voi items_tv_v9 (269K) — trao doi chi tiet session sau
+  Ly do: chi can thay doi dataset path, co the dat RMSLE 0.37-0.39
+
 Debug protocol khi gap loi:
 - Reproduce → root cause → 1 fix → verify (KHONG fix nhieu thu cung luc)
-- Neu OOM o smoke → giam PER_DEVICE_BATCH 20→16→12, restart kernel, re-run
-- Neu disconnect giua train → instance moi, cell Section 7 auto resume tu HF
+- Neu OOM o smoke → giam PER_DEVICE_BATCH: 32→24→20, restart kernel, re-run
+- Neu disconnect giua train → instance moi, chay tu Section 7 (auto resume tu HF last-checkpoint)
+  HF branch: last-checkpoint | Repo: SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch-v4
 
 KHONG sua plan_day5.md (READ-ONLY).
 KHONG chay GPU tu dong — chi code/debug.
@@ -55,10 +59,43 @@ KHONG chay GPU tu dong — chi code/debug.
 
 ---
 
-## Trang thai hien tai (2026-04-29 — session 11)
+## Trang thai hien tai (2026-05-01 — session 13)
 
-**Trang thai:** Day 5 Phase 4 — Stage 3 SAN SANG. Notebook v2 da tao. Buoc tiep: User chay `06_train_v4_scratch_v2.ipynb` tren RTX 5090 32GB (vast.ai).
+**Trang thai:** Day 5 Phase 4 Stage 3 — SAN SANG. Notebook `06_train_v4_scratch_v4.ipynb` da tao va fix xong. KHONG dung v2 (failed), KHONG dung v3 (malformed).
 **Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 13 ket qua (2026-05-01)
+
+- [x] **Phan tich Root Cause v4-scratch-v2 mode collapse:**
+  RSLoRA voi r=128 → scale=alpha/sqrt(r)=22.6x → gradient spike step200 (loss 1.24→4.82→2.19) → collapse ve "199".
+  Chi tiet: 17/20 val samples predict "199", R2=-0.28, RMSLE=0.9739.
+- [x] **Tao 06_train_v4_scratch_v4.ipynb** — clone English reference config, fix root cause:
+  r=64/alpha=128/scale=2.0x, USE_DORA=False, USE_RSLORA=False, wd=0.001, 3 epochs, NEFTune=5, batch=32.
+  Output: `results/v4_scratch_v4_results.json`, `results/v4_scratch_v4_val_predictions.json`.
+  HF repo: `SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch-v4`.
+- [x] **Fix utils/evaluator.py** — `compute_metrics` tra ve `r2 * 100` (% nhu day4).
+  Truoc: 0.6639 (0-1 scale). Sau: 66.39% (0-100 scale).
+- [x] **Thao luan so sanh English Llama vs Vietnamese Qwen:**
+  Qwen v3 R2=66.39% (200 mau) — gan ngang PhoBERT++ (64.4%). Gap Llama chu yeu la data volume (9x) + pre-training language fit.
+- [x] **Thao luan Day3/Day4 retrain voi items_tv_v9 (269K)** — plan chi tiet de lai session sau.
+
+### Session 12 ket qua (2026-04-30)
+
+- [x] **System reset cell** — phat hien GPU RTX 5090 load 100% khi moi thue (initialization, khong phai stale process). Cell cleanup chay OK.
+- [x] **Token re-profile tren 5K sample (items_prompts_tv_4):**
+  - p99=191, max=262 (aug data), trunc@208=0.42% → max_seq_length=208 xac nhan hop le.
+  - p99 tu profile lan 1 (SESSION_HANDOFF ghi 196) vs lan nay (191) — chech lech nho do random sample.
+- [x] **Build model:** trainable params=170,643,456 (3.9%), memory footprint=5.01 GB. DoRA voi r=128 tang 10x params so v3 (15M → 170M).
+- [x] **Smoke PER_DEVICE_BATCH=20:** VRAM peak=18.93 GB (PyTorch) / ~24.8 GB (vast.ai UI), 8.64s/step, est 16.1h.
+- [x] **Smoke PER_DEVICE_BATCH=28 (thu nghiem):** VRAM peak=24.39 GB (PyTorch) / 30.3-31.2 GB (vast.ai UI) → chi con 0.6 GB headroom. **ABORT** — OOM risk cao cho 17h run voi group_by_length (batch dai se spike cao hon).
+- [x] **Research causal-conv1d + flash-linear-attention:** SKIP — Triton bug #176426 segfault tren sm_120 (RTX 5090 Blackwell), rui ro crash giua chung.
+- [x] **CHOT CONFIG:** `PER_DEVICE_BATCH=24`, eff_batch=96, est ~17h, ~$6.60. VRAM an toan ~28 GB.
+
+**TONIGHT:** User chay `06_train_v4_scratch_v2.ipynb` voi PER_DEVICE_BATCH=24. Constants cell can doi truoc khi chay:
+```python
+PER_DEVICE_BATCH = 24   # DOI TU 20 (hoac 28) → 24
+GRAD_ACCUM       = 4    # giu nguyen — eff_batch = 96
+```
 
 ### Session 11 ket qua (2026-04-29)
 - [x] DECISION: SKIP v4-resume — ensemble cuoi se la 3-model (v3 + v4-scratch + v8).
@@ -147,7 +184,8 @@ KHONG chay GPU tu dong — chi code/debug.
 - [x] **Phase 3 v3 DONE** — full 85K/3ep/r=64/7mod RMSLE=0.4426 (beat v1 27%, gap v8 +0.042, chua dat target 0.38)
 - [~] **Phase 4 Stage 1 SKIP** — quyet dinh bo v4-resume (session 11). Ensemble = 3-model.
 - [x] **Phase 4 Stage 2 DONE (2026-04-29)** — `push_dataset_v4.py`: Groq batch 183,385 aug rows → `items_tv_v8` + `items_prompts_tv_4` (269,112 train)
-- [ ] **Phase 4 Stage 3** — chay `06_train_v4_scratch_v2.ipynb` tren RTX 5090 32GB / vast.ai (~17-20h) voi `items_prompts_tv_4` → `results/v4_scratch_val_predictions.json`
+- [x] **Phase 4 Stage 3 prep DONE (2026-05-01)** — `06_train_v4_scratch_v4.ipynb` san sang (v2 FAILED, v4 = fixed)
+- [ ] **Phase 4 Stage 3 RUN** — chay `06_train_v4_scratch_v4.ipynb` tren RTX 5090 32GB / vast.ai (~17-20h) → `results/v4_scratch_v4_val_predictions.json`
 - [ ] **Phase 4 Stage 4** — chay `07_ensemble.ipynb` (CPU, ~2h): Ridge blend v3+v4-scratch+v8 (3-model — can verify graceful skip v4-resume)
 - [ ] **Phase 5 final** — `09_eval_full.ipynb` + `day5_summary.md`
 
@@ -174,6 +212,7 @@ KHONG chay GPU tu dong — chi code/debug.
 | Day5 v3 | QLoRA Qwen3.5-4B (85K/3ep/r=64/7mod) | 0.4426 | **80,100** |
 | Day5 v1 | QLoRA Qwen3.5-4B (smoke 20K/2ep/r=32/4mod) | 0.6084 | 116,769 |
 | Day5 v0 | Zero-shot Qwen3.5-4B-Base | 4.4428 | 296,807 |
+| Day5 v4-scratch-v2 | FAILED — mode collapse (RSLoRA scale 22.6x) | 0.9739 | 175,989 |
 
 **Note:** v3 MAE chi cao hon v8 0.3% — gap RMSLE chu yeu do outlier (vd sample mini 0.6ml: 900% error). Fix failure mode quantity-aware co the dua v3 vuot v8.
 
@@ -267,4 +306,4 @@ Day 5 QLoRA Qwen3.5-4B — tat ca 4 notebook da san sang (05/08/06/07). Session 
 
 ---
 
-*Cap nhat: 2026-04-29 (session 11) — SKIP v4-resume; v2 notebook san sang (smoke VRAM, resume tu HF, hub_strategy=checkpoint, 8 charts, max_seq_len=208). Session sau: ghi ket qua Run #4, verify 07_ensemble graceful 3-model, tao 09_eval_full + day5_summary.*
+*Cap nhat: 2026-05-01 (session 13) — v4-scratch-v2 FAILED (mode collapse RSLoRA). Da tao v4-scratch-v4 (fix: r=64/no-DoRA/no-RSLoRA/wd=0.001). Fix evaluator.py R2 display. Session sau: chay v4, ghi Run #5, chay 07_ensemble, tao 09_eval_full + day5_summary.*

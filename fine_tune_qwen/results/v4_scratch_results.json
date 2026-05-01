@@ -1,0 +1,753 @@
+{
+  "version": "v4_scratch_v2",
+  "model": "Qwen/Qwen3.5-4B-Base",
+  "dataset": "SeanSunny/items_prompts_tv_4",
+  "config": {
+    "train_size": 269112,
+    "val_callback_size": 500,
+    "val_full_size": 3926,
+    "max_seq_length": 208,
+    "lora_r": 128,
+    "lora_alpha": 256,
+    "lora_dropout": 0.15,
+    "use_dora": true,
+    "use_rslora": true,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "num_epochs": 2,
+    "per_device_batch": 24,
+    "grad_accum": 4,
+    "learning_rate": 0.0002,
+    "warmup_ratio": 0.03,
+    "weight_decay": 0.01,
+    "neftune_alpha": 5,
+    "group_by_length": true,
+    "gradient_checkpointing": true,
+    "early_stop_patience": 3
+  },
+  "smoke": {
+    "vram_peak_gb": 21.67,
+    "sec_per_step": 9.49,
+    "total_steps_est": 5608,
+    "total_time_est_hr": 14.8
+  },
+  "best_ckpt": {
+    "step": 1500,
+    "rmsle_subset": 0.8646,
+    "path": "/workspace/hieu/DACN3/fine_tune_qwen/weights/v4_scratch_adapter/checkpoint-1500"
+  },
+  "vram_train_peak_gb": 21.05,
+  "total_train_sec": 30200.0,
+  "sec_per_val_item": 0.55,
+  "train_loss_curve": [
+    [
+      50,
+      1.4206950378417968
+    ],
+    [
+      100,
+      1.2472206878662109
+    ],
+    [
+      150,
+      1.2408301544189453
+    ],
+    [
+      200,
+      4.816346740722656
+    ],
+    [
+      250,
+      2.189672393798828
+    ],
+    [
+      300,
+      1.5382489013671874
+    ],
+    [
+      350,
+      1.3908465576171876
+    ],
+    [
+      400,
+      1.3637680053710937
+    ],
+    [
+      450,
+      1.3341560363769531
+    ],
+    [
+      500,
+      1.3463545227050782
+    ],
+    [
+      550,
+      1.3739781188964844
+    ],
+    [
+      600,
+      1.3238778686523438
+    ],
+    [
+      650,
+      1.3243598937988281
+    ],
+    [
+      700,
+      1.3131721496582032
+    ],
+    [
+      750,
+      1.3151809692382812
+    ],
+    [
+      800,
+      1.3056625366210937
+    ],
+    [
+      850,
+      1.3061231994628906
+    ],
+    [
+      900,
+      1.3208226013183593
+    ],
+    [
+      950,
+      1.3036683654785157
+    ],
+    [
+      1000,
+      1.301231689453125
+    ],
+    [
+      1050,
+      1.3019598388671876
+    ],
+    [
+      1100,
+      1.30414306640625
+    ],
+    [
+      1150,
+      1.3025090026855468
+    ],
+    [
+      1200,
+      1.3043141174316406
+    ],
+    [
+      1250,
+      1.3013380432128907
+    ],
+    [
+      1300,
+      1.3051368713378906
+    ],
+    [
+      1350,
+      1.2931803894042968
+    ],
+    [
+      1400,
+      1.2987619018554688
+    ],
+    [
+      1450,
+      1.3059133911132812
+    ],
+    [
+      1500,
+      1.2939508056640625
+    ],
+    [
+      1550,
+      1.2951121520996094
+    ],
+    [
+      1600,
+      1.3023896789550782
+    ],
+    [
+      1650,
+      1.3000582885742187
+    ],
+    [
+      1700,
+      1.2945799255371093
+    ],
+    [
+      1750,
+      1.2957681274414063
+    ],
+    [
+      1800,
+      1.3002755737304688
+    ],
+    [
+      1850,
+      1.292515869140625
+    ],
+    [
+      1900,
+      1.2920269775390625
+    ],
+    [
+      1950,
+      1.2946519470214843
+    ],
+    [
+      2000,
+      1.2892854309082031
+    ],
+    [
+      2050,
+      1.2911248779296876
+    ],
+    [
+      2100,
+      1.294771728515625
+    ],
+    [
+      2150,
+      1.2984523010253906
+    ],
+    [
+      2200,
+      1.2943707275390626
+    ],
+    [
+      2250,
+      1.33686279296875
+    ],
+    [
+      2300,
+      1.294784698486328
+    ],
+    [
+      2350,
+      1.2921966552734374
+    ],
+    [
+      2400,
+      1.2951179504394532
+    ],
+    [
+      2450,
+      1.2857327270507812
+    ],
+    [
+      2500,
+      1.292545928955078
+    ],
+    [
+      2550,
+      1.294093780517578
+    ],
+    [
+      2600,
+      1.288721160888672
+    ],
+    [
+      2650,
+      1.2912551879882812
+    ],
+    [
+      2700,
+      1.2977459716796875
+    ],
+    [
+      2750,
+      1.2926263427734375
+    ],
+    [
+      2800,
+      1.2937472534179688
+    ],
+    [
+      2850,
+      1.298460693359375
+    ],
+    [
+      2900,
+      1.2894876098632813
+    ],
+    [
+      2950,
+      1.2869183349609374
+    ],
+    [
+      3000,
+      1.2881619262695312
+    ]
+  ],
+  "eval_loss_curve": [
+    [
+      500,
+      1.3242295980453491
+    ],
+    [
+      1000,
+      1.293872356414795
+    ],
+    [
+      1500,
+      1.2875969409942627
+    ],
+    [
+      2000,
+      1.2871323823928833
+    ],
+    [
+      2500,
+      1.2822238206863403
+    ],
+    [
+      3000,
+      1.2826274633407593
+    ]
+  ],
+  "eval_rmsle_curve": [
+    [
+      500,
+      0.881487439070664
+    ],
+    [
+      1000,
+      0.9569921177159355
+    ],
+    [
+      1500,
+      0.8646483737602083
+    ],
+    [
+      2000,
+      0.975726981895332
+    ],
+    [
+      2500,
+      0.9621968429286898
+    ],
+    [
+      3000,
+      0.9739043978432075
+    ]
+  ],
+  "lr_curve": [
+    [
+      50,
+      5.798816568047337e-05
+    ],
+    [
+      100,
+      0.00011715976331360947
+    ],
+    [
+      150,
+      0.00017633136094674556
+    ],
+    [
+      200,
+      0.00019998498714553467
+    ],
+    [
+      250,
+      0.0001998932582475326
+    ],
+    [
+      300,
+      0.0001997182173363289
+    ],
+    [
+      350,
+      0.00019946001039785856
+    ],
+    [
+      400,
+      0.00019911885277938568
+    ],
+    [
+      450,
+      0.00019869502900990167
+    ],
+    [
+      500,
+      0.00019818889256282497
+    ],
+    [
+      550,
+      0.00019760086556120074
+    ],
+    [
+      600,
+      0.00019693143842564582
+    ],
+    [
+      650,
+      0.00019618116946533266
+    ],
+    [
+      700,
+      0.000195350684412354
+    ],
+    [
+      750,
+      0.00019444067589985555
+    ],
+    [
+      800,
+      0.00019345190288437293
+    ],
+    [
+      850,
+      0.00019238519001285384
+    ],
+    [
+      900,
+      0.00019124142693489424
+    ],
+    [
+      950,
+      0.00019002156756076118
+    ],
+    [
+      1000,
+      0.0001887266292658218
+    ],
+    [
+      1050,
+      0.00018735769204204162
+    ],
+    [
+      1100,
+      0.00018591589759726026
+    ],
+    [
+      1150,
+      0.00018440244840299506
+    ],
+    [
+      1200,
+      0.00018281860669156736
+    ],
+    [
+      1250,
+      0.00018116569340338794
+    ],
+    [
+      1300,
+      0.0001794450870852786
+    ],
+    [
+      1350,
+      0.00017765822274075021
+    ],
+    [
+      1400,
+      0.00017580659063319456
+    ],
+    [
+      1450,
+      0.00017389173504298952
+    ],
+    [
+      1500,
+      0.00017191525297955305
+    ],
+    [
+      1550,
+      0.00016987879284942076
+    ],
+    [
+      1600,
+      0.00016778405308145788
+    ],
+    [
+      1650,
+      0.0001656327807103518
+    ],
+    [
+      1700,
+      0.00016342676991956733
+    ],
+    [
+      1750,
+      0.0001611678605449787
+    ],
+    [
+      1800,
+      0.00015885793654042763
+    ],
+    [
+      1850,
+      0.00015649892440648623
+    ],
+    [
+      1900,
+      0.00015409279158373553
+    ],
+    [
+      1950,
+      0.00015164154481189955
+    ],
+    [
+      2000,
+      0.00014914722845620374
+    ],
+    [
+      2050,
+      0.0001466119228023531
+    ],
+    [
+      2100,
+      0.00014403774232155228
+    ],
+    [
+      2150,
+      0.00014142683390701473
+    ],
+    [
+      2200,
+      0.00013878137508343142
+    ],
+    [
+      2250,
+      0.0001361035721908928
+    ],
+    [
+      2300,
+      0.0001333956585447782
+    ],
+    [
+      2350,
+      0.00013065989257314765
+    ],
+    [
+      2400,
+      0.00012789855593318942
+    ],
+    [
+      2450,
+      0.00012511395160829446
+    ],
+    [
+      2500,
+      0.00012230840198734403
+    ],
+    [
+      2550,
+      0.00011948424692781364
+    ],
+    [
+      2600,
+      0.00011664384180430747
+    ],
+    [
+      2650,
+      0.0001137895555441515
+    ],
+    [
+      2700,
+      0.00011092376865168365
+    ],
+    [
+      2750,
+      0.00010804887122288848
+    ],
+    [
+      2800,
+      0.00010516726095203222
+    ],
+    [
+      2850,
+      0.00010228134113196113
+    ],
+    [
+      2900,
+      9.939351864973006e-05
+    ],
+    [
+      2950,
+      9.650620197923389e-05
+    ],
+    [
+      3000,
+      9.36217991725153e-05
+    ]
+  ],
+  "metrics_final": {
+    "rmsle": 0.8283176408016838,
+    "mae": 175989.06520631685,
+    "mape": 69.58007042566503,
+    "r2": -0.2763977130992279
+  },
+  "samples_20": [
+    {
+      "idx": 0,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Giày Chelsea Boot Nam Cổ Khóa Da Búc Màu Xám  \nDanh mục: Giày nam thời trang  \n",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 240500,
+      "error_pct": 17.3
+    },
+    {
+      "idx": 1,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Kem Đánh Răng Crest 3D White 158g  \nDanh mục: Dưỡng Da & Sức Khỏe Miệng  \nThươn",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 159000,
+      "error_pct": 25.2
+    },
+    {
+      "idx": 2,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Bàn phím laptop Dell 1654/1764 – Phiên bản US có LED  \nDanh mục: Phụ kiện lapto",
+      "generated_raw": "159\n",
+      "pred_vnd": 159000,
+      "true_vnd": 253471,
+      "error_pct": 37.3
+    },
+    {
+      "idx": 3,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Giày Nhựa Siêu Nhẹ URBAN  \nDanh mục: Giày Dùng Đọc  \nThương hiệu: Urban Footpri",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 115000,
+      "error_pct": 73.0
+    },
+    {
+      "idx": 4,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Dép Xỏ Ngón Nam Da Bò Cao Cấp  \nDanh mục: Giày Dép Nam  \nThương hiệu: DNA2161a ",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 279000,
+      "error_pct": 28.7
+    },
+    {
+      "idx": 5,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Combo Gel Tắm Tinh Dầu Relaxing & Calm 100g  \nDanh mục: Sữa tắm, chăm sóc da  \n",
+      "generated_raw": "159\n",
+      "pred_vnd": 159000,
+      "true_vnd": 54000,
+      "error_pct": 194.4
+    },
+    {
+      "idx": 6,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Túi Đeo Chéo Nam Thương Hiệu K2  \nDanh mục: Túi Xách Nam  \nThương hiệu: K2 Bran",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 479000,
+      "error_pct": 58.5
+    },
+    {
+      "idx": 7,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Trà Hoa Cúc Chamomile Nguyên Bông Hữu Cơ 25g  \nDanh mục: Trà Thảo Dược  \nThương",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 105000,
+      "error_pct": 89.5
+    },
+    {
+      "idx": 8,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Serum Chống Nắng Dưỡng Thể Bioré SPF50+  \nDanh mục: Chống nắng toàn thân  \nThươ",
+      "generated_raw": "159\n",
+      "pred_vnd": 159000,
+      "true_vnd": 78000,
+      "error_pct": 103.8
+    },
+    {
+      "idx": 9,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Túi xách nam nữ 1992 Studio NEALA BAG  \nDanh mục: Túi xách nữ & nam  \nThương hi",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 590000,
+      "error_pct": 66.3
+    },
+    {
+      "idx": 10,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Bàn phím lắp ghép cho Laptop ASUS K45VS  \nDanh mục: Phụ kiện laptop  \nThương hi",
+      "generated_raw": "159\n",
+      "pred_vnd": 159000,
+      "true_vnd": 205706,
+      "error_pct": 22.7
+    },
+    {
+      "idx": 11,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Bột Huyền 500G Miền Tây Thân Yêu  \nDanh mục: Đặc sản An Giang  \nThương hiệu: 1F",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 120000,
+      "error_pct": 65.8
+    },
+    {
+      "idx": 12,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Viên Vai Gáy Flex – 30 viên  \nDanh mục: Thuốc bổ trợ xương khớp  \nThương hiệu: ",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 89000,
+      "error_pct": 123.6
+    },
+    {
+      "idx": 13,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Giày Da Nam Cao Cấp Dập Vân Cá Sấu Có Chuông Vàng Mã L184  \nDanh mục: Giày nam ",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 199000,
+      "error_pct": 0.0
+    },
+    {
+      "idx": 14,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Túi xách nữ công sở da đeo vai size lớn  \nDanh mục: Túi xách nữ  \nThương hiệu: ",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 198997,
+      "error_pct": 0.0
+    },
+    {
+      "idx": 15,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Tẩu thuốc gỗ hương cao cấp kiểu dài  \nDanh mục: Phụ kiện trang trí nội thất  \nT",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 299000,
+      "error_pct": 33.4
+    },
+    {
+      "idx": 16,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Combo 2 Mặt Nạ Ngủ Laneige Cung Cấp Nước 15ml  \nDanh mục: Mỹ phẩm chăm sóc da  ",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 115000,
+      "error_pct": 73.0
+    },
+    {
+      "idx": 17,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Tinh dầu mùi hương Chocolate – Scent Homes  \nDanh mục: Tinh dầu thơm, Chất làm ",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 973000,
+      "error_pct": 79.5
+    },
+    {
+      "idx": 18,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Dây Mát Xa Toàn Thân Dài 95cm  \nDanh mục: Dụng cụ Mát xa & Sức khỏe  \nThương hi",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 64000,
+      "error_pct": 210.9
+    },
+    {
+      "idx": 19,
+      "prompt_excerpt": "Sản phẩm này có giá bao nhiêu ?\nTiêu đề: Dây Cáp Thunderbolt 3 40 Gbps, 100 W, 5K UHD – 0.7 m  \nDanh mục: Phụ kiện máy t",
+      "generated_raw": "199\n",
+      "pred_vnd": 199000,
+      "true_vnd": 410000,
+      "error_pct": 51.5
+    }
+  ]
+}

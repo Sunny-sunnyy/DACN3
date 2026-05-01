@@ -374,6 +374,132 @@ Improvement e1→e2: -0.081 (-15%). e2→e3: -0.019 (-4.2%) — diminishing retu
 
 ---
 
+## Run #4 — v4-scratch v2 — FAILED (mode collapse) — 2026-04-30/2026-05-01
+
+**Notebook:** `fine_tune_qwen/06_train_v4_scratch_v2.ipynb`
+**Hardware:** NVIDIA GeForce RTX 5090 / 31.8 GB VRAM (vast.ai, $0.388/hr)
+**Python env:** torch 2.9.0+cu128 | transformers 5.5.0 | peft 0.19.1 | trl 0.24.0
+**Ket qua:** **FAILED — mode collapse** — RMSLE=0.9739, R2=-0.28, model luon predict "199"
+
+### Ket qua full train (3,000+ steps, epoch ~1.1)
+
+**Train loss:** step150=1.241 → **step200=4.816 (SPIKE)** → step250=2.190 → recovery ~2.0 → stuck
+
+**Eval RMSLE curve (moi 500 step):**
+
+| Step | RMSLE | Nhan xet |
+|---|---|---|
+| 500 | 0.8815 | sau spike |
+| 1000 | 0.9637 | dang tang |
+| 1500 | 0.8646 (best ckpt) | |
+| 2000 | 0.9771 | |
+| 2500 | 0.8815 | |
+| 3000 | 0.9739 | final (dung som) |
+
+**Metrics final (best ckpt step=1500):**
+- RMSLE: **0.9739** (epoch 1.07)
+- MAE: 175,989 VND
+- MAPE: 69.58%
+- R2: **-0.2764** (te hon ca mean predictor)
+
+**Mode collapse:** 17/20 mau val generate chinh xac `"199\n"`, 3/20 generate `"159\n"`. Token accuracy flat 0.537–0.545 qua toan bo 3,000 step.
+
+### Root cause — RSLoRA scale 22.6x
+
+**Config v2 sai:**
+```python
+LORA_R     = 128
+LORA_ALPHA = 256
+USE_RSLORA = True   # ← NGUYEN NHAN GOC
+USE_DORA   = True
+```
+
+RSLoRA scale = alpha / sqrt(r) = 256 / sqrt(128) ≈ **22.6x** (thay vi 2.0x standard).
+
+Khi gradient propagate qua 170M trainable params (DoRA r=128 = 10x params so v3) voi scale 22.6x, loss nhan spike catastrophic tai step 200 (1.24 → **4.82** → 2.19). Model dung hoc dang phan bo, collapse ve most-common price token ("199" = 199,000 VND — gia pho bien nhat trong training set).
+
+**So sanh scale:**
+
+| Config | Scale | Ket qua |
+|---|---|---|
+| v3 (r=64, standard) | alpha/r = 2.0x | RMSLE=0.4426 |
+| v2 (r=128, RSLoRA) | alpha/sqrt(r) = 22.6x | **FAIL** |
+| English ref (r=64, standard) | alpha/r = 2.0x | R2>70% |
+
+### Fix → v4-scratch v4
+
+Tao `06_train_v4_scratch_v4.ipynb` — clone English reference config:
+
+```python
+LORA_R     = 64
+LORA_ALPHA = 128   # = 2 × r, scale=2.0x
+USE_RSLORA = False  # bỏ hoàn toàn
+USE_DORA   = False  # bỏ hoàn toàn
+WEIGHT_DECAY = 0.001  # revert tu 0.01
+NUM_EPOCHS   = 3
+NEFTUNE_ALPHA = 5    # safe addition, khong anh huong gradient scale
+PER_DEVICE_BATCH = 32  # smoke first, fallback 24 neu VRAM > 28GB
+```
+
+**Cung fix:** `utils/evaluator.py` → `compute_metrics` tra ve `r2 * 100` (% nhu day4), cac print trong notebook hien thi `:.2f%`.
+
+---
+
+## Run #4 — v4-scratch v2 — smoke + config finalize (2026-04-30, session 12)
+
+**Notebook:** `fine_tune_qwen/06_train_v4_scratch_v2.ipynb`
+**Hardware:** NVIDIA GeForce RTX 5090 / 31.8 GB VRAM (vast.ai, $0.388/hr)
+**Python env:** torch 2.9.0+cu128 | transformers 5.5.0 | peft 0.19.1 | trl 0.24.0
+**GPU compute cap:** 12.0 (Blackwell) — QUAN TRONG: causal-conv1d + flash-linear-attention SKIP (Triton bug #176426 segfault tren sm_120)
+
+### Token re-profile (Section 2) — 5K random sample tu items_prompts_tv_4
+
+| Percentile | Prompt | Full |
+|---|---|---|
+| p50 | 121 | 126 |
+| p90 | 152 | 157 |
+| p95 | 164 | 169 |
+| p99 | 186 | 191 |
+| max | 257 | 262 |
+
+- Truncation @ max_seq_len=208: **0.42%** — xac nhan hop le (< 1%)
+- TOKENS_FIXED=14 | MAX_SUMMARY_TOKENS=187
+
+### Build model (Section 3)
+
+- Trainable params: **170,643,456 / 4,376,394,752 (3.90%)** — cao hon v3 ~10x do DoRA voi r=128
+- Memory footprint: 5.01 GB (4-bit NF4)
+
+### Smoke batch=20 (buoc dau)
+
+- VRAM peak (PyTorch): 18.93 GB | vast.ai UI: ~24.8 GB
+- Sec/step: 8.64s | Est: 6,728 steps, ~16.1h
+
+### Smoke batch=28 (thu tang toc, bi abort)
+
+- VRAM peak (PyTorch): 24.39 GB | vast.ai UI: **30.3–31.2 GB / 31.8 GB**
+- Headroom: **0.6 GB** — QUA SAT NGUONG
+- Sec/step: 12.84s | Est: 4,806 steps, ~17.1h
+- **ABORT:** group_by_length=True se gom batch dai (208 token) → spike co the vuot 31.8 GB → OOM
+- Full train bat dau (step 42/4806) nhung dung lai ngay
+
+### Config chot cho full train TONIGHT
+
+```python
+PER_DEVICE_BATCH = 24   # tu 20 → 28 → 24 (diem an toan)
+GRAD_ACCUM       = 4    # eff_batch = 96
+```
+
+| Config | VRAM est. | Steps | Time | Cost |
+|---|---|---|---|---|
+| batch=20 (cu) | ~26 GB | 6,728 | ~18.5h | $7.18 |
+| batch=24 (chot) | ~28 GB | 5,607 | ~17h | $6.60 |
+| batch=28 (abort) | 31.2 GB | 4,806 | ~18h | $6.98 |
+
+**Full train se chay toi nay (2026-04-30 evening).**
+
+---
+
 ## Run #4 prep — Stages 2/3/4 (2026-04-28/29, session 8/9/11)
 
 **Trang thai (session 11, 2026-04-29):**
@@ -471,7 +597,8 @@ Schema: `title, category, brand, summary` (merged — aug dung summary_version2)
 0. [DONE 2026-04-29]  push_dataset_v9.py             → items_tv_v9 (269K) HF — cho Day3/Day4 retrain
 1. [SKIP session 11]  05_train_v4_resume.ipynb       → v4-resume bi bo, ensemble 3-model
 2. [DONE 2026-04-29]  push_dataset_v4.py             → items_prompts_tv_4 (269K) HF
-3. [GPU 5090 ~17-20h] 06_train_v4_scratch_v2.ipynb   → v4_scratch_val_predictions.json (vast.ai)
+3. [GPU 5090 ~17-20h] 06_train_v4_scratch_v4.ipynb   → v4_scratch_val_predictions.json (vast.ai)
+   NOTE: v2 FAILED (mode collapse RSLoRA), v3 malformed, v4 = fixed version
 4. [CPU/GPU ~2h]      07_ensemble.ipynb               → ensemble_results.json (3-model)
 ```
 
