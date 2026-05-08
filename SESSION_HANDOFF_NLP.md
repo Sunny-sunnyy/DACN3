@@ -7,7 +7,7 @@
 > - `report_fine_tune_llm.md` — Fine-tune Llama 3.2 (Week 7)
 > - `report_system.md` — Xây dựng hệ thống (search_key + price_is_right)
 >
-> **Ngày cập nhật:** 2026-05-08
+> **Ngày cập nhật:** 2026-05-08 (session 2)
 > **Nhánh git hiện tại:** `claudedev`
 > **Working directory:** `/home/hieu0606sunny/price2026wsl/tech2ai`
 
@@ -425,7 +425,23 @@ cd segment4 && uv run modal deploy -m khong_su_dung.pricer_service2
 
 ---
 
-## 9. Câu hỏi cần trả lời trong session tiếp theo
+## 9. Những gì đã làm — Session 2 (2026-05-08)
+
+### Tài liệu đã tạo
+
+**`scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md`** (MỚI)
+
+Report chi tiết toàn bộ quy trình Day 1–5 + Redemption DNN. Cover:
+- **Day 1:** `items.py`, `parser.py`, `loaders.py`, `day1.ipynb` — giải thích từng hàm + lý do kỹ thuật
+- **Day 2:** `preprocessor.py`, `batch.py` — Groq Batch API pipeline đầy đủ
+- **Day 3:** `evaluator.py`, `day3.ipynb` — 6 baseline models + bảng MAE
+- **Day 4:** `day4.ipynb` — Vanilla NN + Frontier LLMs so sánh
+- **Redemption:** `deep_neural_network.py`, `redemption_train.ipynb` — ResidualBlock, Skip Connection, Log-normalize, AdamW, CosineAnnealingLR
+- Style: Tiếng Việt + English thuật ngữ kỹ thuật có giải thích trong ngoặc
+
+---
+
+## 10. Câu hỏi cần trả lời trong session tiếp theo
 
 Đây là các vấn đề chưa giải quyết / cần làm tiếp:
 
@@ -434,9 +450,8 @@ cd segment4 && uv run modal deploy -m khong_su_dung.pricer_service2
    - Sweet spot giá: $80–$400 (Electronics/Instruments/Appliances, không bị downsampled)
    - Tránh: Automotive parts (95% downsampled, model ít data)
 
-2. **Báo cáo giáo viên** — Tạo 3 file .md riêng:
-   - `report_data_processing.md` — Day 1-2 pipeline
-   - `report_fine_tune_llm.md` — QLoRA Week 7
+2. **Báo cáo giáo viên còn thiếu** — Cần tạo thêm:
+   - `report_fine_tune_llm.md` — QLoRA Week 7 (fine-tune Llama 3.2)
    - `report_system.md` — search_key + price_is_right architecture
 
 3. **Bắt đầu feature từ plan.md** — Pipeline Profiling trước (ưu tiên 1)
@@ -444,6 +459,33 @@ cd segment4 && uv run modal deploy -m khong_su_dung.pricer_service2
 4. **Kiểm tra file tài liệu còn thiếu:**
    - `scraping_data_tv/Data_processing_for_English_data/Data_processing_for_English_data.txt` — File rất lớn (74k tokens), chưa đọc hết
    - `fine_tune_LLM.txt` — File rất lớn (67k tokens), chưa đọc hết (mới đọc ~400 dòng đầu về QLoRA Week 7 Day 1)
+
+---
+
+## 11. Prompt cho session tiếp theo
+
+Dán đoạn sau vào đầu session mới:
+
+```
+Đọc các file sau để nắm ngữ cảnh (theo thứ tự):
+1. SESSION_HANDOFF_NLP.md — trạng thái tổng thể dự án
+2. segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md — kiến trúc App 1
+3. segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md — kiến trúc App 2
+
+Dự án hiện tại: "The Price Is Right" — AI Price Intelligence System (DACN3)
+Nhánh git: claudedev | Working dir: /home/hieu0606sunny/price2026wsl/tech2ai
+
+Những gì đã hoàn thành:
+- Report_data_processing_v2.md: tài liệu chi tiết Day 1-5 + Redemption DNN
+- Report_data_processing.md (v1): tài liệu tổng quan hành trình
+- Cả hai app (search_key.py, price_is_right.py) đang hoạt động production
+
+Việc cần làm tiếp (chọn 1):
+A) Viết report_fine_tune_llm.md — đọc fine_tune_LLM.txt + Code_Fine_tune/Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb
+B) Viết report_system.md — mô tả kiến trúc 2 apps cho giáo viên
+C) Implement feature từ segment4/plan.md — Pipeline Profiling (đo thời gian từng bước)
+D) Chuẩn bị demo cho giáo viên — test app với các keywords tốt nhất
+```
 
 ---
 
