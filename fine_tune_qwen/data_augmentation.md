@@ -368,3 +368,14 @@ items_prompts_tv_4 (test: 3,872)     ← giữ nguyên từ tv_3
 - Giảm lỗi anchor theo category mean (nhiều biến thể mô tả hơn cho cùng 1 sản phẩm)
 - Cải thiện khả năng xử lý outlier giá thấp và cao (multiplier 5× và 4×)
 - Tổng quan: RMSLE giảm thêm ~0.04–0.06 so với v3 (ước tính từ scaling law)
+
+
+### Thông tin bổ sung: toàn bộ file code thực hiện ( đọc thêm nếu thấy cần thiết )
+
+tech2ai/scraping_data_tv/Tiki
+tech2ai/scraping_data_tv/Data_processing_for_Vietnamese_data/day1
+tech2ai/scraping_data_tv/Data_processing_for_Vietnamese_data/day2
+tech2ai/fine_tune_qwen/01_prepare_dataset.ipynb
+tech2ai/fine_tune_qwen/08_augment_dataset_v4_version3.ipynb
+tech2ai/fine_tune_qwen/08_augment_dataset_v4_version4.ipynb
+

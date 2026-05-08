@@ -610,6 +610,90 @@ Schema: `title, category, brand, summary` (merged — aug dung summary_version2)
 
 ---
 
+## Run #5 — v4-scratch v4 — 2026-05-02
+
+**Notebook:** `fine_tune_qwen/06_train_v4_scratch_v4.ipynb`
+**Hardware:** NVIDIA GeForce RTX 5090 / 31.8 GB VRAM (vast.ai, Blackwell sm_120)
+**Python env:** torch 2.9.0+cu128 | transformers 5.5.0 | peft 0.19.1 | trl 0.24.0
+**Checkpoint downloaded:** step-4500 (confirmed by user)
+
+### Config v4-scratch-v4 (vs v3)
+
+| Tham so | v3 full | v4-scratch-v4 |
+|---|---|---|
+| Data | 85,727 (tv_3) | **269,112** (tv_4) |
+| Epochs | 3 | 3 |
+| LoRA r / alpha | 64 / 128 | 64 / 128 (scale=2.0x) |
+| DoRA / RSLoRA | False / False | **False / False** (fix tu v2 failed) |
+| NEFTune alpha | — | **5** |
+| per_device_batch | 16 | **24** (fallback tu 32, VRAM ~26GB@32) |
+| grad_accum | 4 (eff=64) | 4 (eff=96) |
+| weight_decay | 0.001 | 0.001 |
+| val_eval_size | 200 | **500 (callback) / 3926 (final)** |
+
+### E. VRAM smoke
+
+- VRAM peak (PyTorch): 19.79 GB | Sec/step: 6.03s
+- Total steps est: 8,412 | Time est: 14.1h (actual: ~6h do early stop)
+
+### F. Full train
+
+- Total steps actual: **6,000 / 8,412** (early stopping patience=3 kicked in)
+- Wall-clock time: **21,549.8s = ~5.99h**
+- Train loss start (step 50): 1.8942 → end (step 6000): 0.1422
+- Eval CE loss start (step 500): 1.1222 → min (step 2500): **1.0182** → end (step 6000): 1.6538
+- VRAM peak train: **23.62 GB** | OOM: 0
+
+**Loss pattern quan trong:**
+- Eval CE loss overfit NANG tu step 2500 (1.018 → 1.654 cuoi)
+- Train loss tiep tuc giam ve 0.14 — gap train/eval = 1.49 rat lon
+- Generative RMSLE KHONG follow eval CE: best @ step 4500 (0.430) du eval CE da tang tu step 2500
+
+### G. Eval RMSLE timeline (callback 500 samples)
+
+| Step | RMSLE | Note |
+|---|---|---|
+| 500 | 0.6843 | |
+| 1000 | 0.6123 | |
+| 1500 | 0.5832 | |
+| 2000 | 0.5044 | |
+| 2500 | 0.5137 | bounce (noisy) |
+| 3000 | 0.4565 | |
+| 3500 | 0.4522 | |
+| 4000 | 0.4657 | |
+| **4500** | **0.4304** | **BEST CKPT** |
+| 5000 | 0.4579 | patience 1 |
+| 5500 | 0.4414 | patience 2 |
+| 6000 | 0.4586 | patience 3 → STOP |
+
+### H. Final eval — best ckpt step=4500, full val 3926 samples
+
+- **RMSLE: 0.4608** (subset 0.4304 → full val 0.4608, gap=0.030)
+- MAE: **79,589 VND** (gần SOTA Day4 v8: 79,853)
+- MAPE: **32.78%** (cai thien dang ke so v3 37.6%)
+- R2: **62.93%** (v3: 66.39% — thua)
+
+### I. Save + push
+
+- v4_scratch_v4_results.json: yes — `fine_tune_qwen/results/v4_scratch_v4_results.json`
+- v4_scratch_v4_val_predictions.json: yes — `fine_tune_qwen/results/v4_scratch_v4_val_predictions.json` (3,926 samples)
+- 8 charts PNG: yes — `fine_tune_qwen/results/charts/v4_scratch_v4_*.png`
+- Adapter best ckpt: downloaded to local `fine_tune_qwen/weights/v4_scratch_v4_adapter/checkpoint-4500`
+
+### Issues / Deviations
+
+1. **[DEVIATION]** per_device_batch fallback 32→24: smoke @ batch=32 cho VRAM ~26GB, con room nhung lo spike voi group_by_length → chot 24.
+2. **[OBSERVATION]** RMSLE subset (500) vs full val (3926) chech 0.030 — callback 500 qua nhieu hoac val subset khong dai dien phan phoi day du. De nghi tang callback_size len 1000+ cho run tiep theo.
+3. **[OBSERVATION]** Khong dat target 0.36-0.40 — RMSLE 0.4608. Gap so v3 (0.4426 tren 200 mau) khong ro rang do kha nang mau val khac nhau (200 vs 3926).
+4. **[ANALYSIS]** Xem phan thao luan "Tai sao RMSLE khong tot" trong conversation log.
+
+### Notes for next session
+
+- Chua chay 07_ensemble.ipynb (cho session sau).
+- Tieu chi quyet dinh: thao luan retrain Day3/Day4 voi items_tv_v9 (269K) — dataset items_tv_v9 da san sang tren HF.
+
+---
+
 ## Cleanup history
 
 (Khi Opus update plan dua tren execution log → archive run cu vao day, giu file gon)
