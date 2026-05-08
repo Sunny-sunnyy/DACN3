@@ -1,0 +1,5 @@
+ngày 5/8/2026
+
+commit ở nhánh claudedev, commit trước khi xoá các folder không cần thiết,commit cho đồ án cuối kỳ nlp 2026
+
+commit 2: đã xoá các folder không cần thiết
