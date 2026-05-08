@@ -1,0 +1,3 @@
+ngày 5/8/2026
+
+commit ở nhánh claudedev, commit trước khi xoá các folder không cần thiết
