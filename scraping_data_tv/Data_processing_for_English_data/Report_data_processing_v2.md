@@ -38,7 +38,7 @@ Lấy dữ liệu thô từ Amazon (~3M sản phẩm), lọc bỏ rác, chuẩn 
 ### Nguồn dữ liệu
 - Dataset: `McAuley-Lab/Amazon-Reviews-2023` trên HuggingFace
 - 8 categories: Automotive, Electronics, Office Products, Tools and Home Improvement, Cell Phones and Accessories, Toys and Games, Appliances, Musical Instruments
-
+#### Link: https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023
 ---
 
 ### File: `pricer/items.py` — Cấu trúc dữ liệu trung tâm
@@ -67,12 +67,17 @@ class Item(BaseModel):
 
 **Các method quan trọng:**
 
-| Method | Chức năng |
-|--------|-----------|
-| `make_prompt(text)` | Tạo prompt fine-tuning từ text đã cho |
-| `test_prompt()` | Trả về prompt không có đáp án (dùng khi evaluate) |
-| `push_to_hub(name, train, val, test)` | Đẩy dataset lên HuggingFace Hub |
-| `from_hub(name)` | Load dataset từ HuggingFace Hub |
+**`make_prompt(text) → str`**  
+**Mục đích:** Tạo prompt fine-tuning cho Llama — ghép câu hỏi chuẩn + text mô tả + đáp án giá vào 1 chuỗi duy nhất theo format mà model được train để đọc.
+
+**`test_prompt() → str`**  
+**Mục đích:** Tạo prompt để evaluate mà không lộ đáp án — giống `make_prompt` nhưng bỏ phần giá ở cuối, dùng khi chạy inference để test model.
+
+**`push_to_hub(name, train, val, test)` (class method)**  
+**Mục đích:** Publish 3 splits (train/val/test) lên HuggingFace Hub dưới tên dataset chỉ định — cho phép load lại dataset từ bất kỳ máy nào mà không cần lưu file local.
+
+**`from_hub(name) → (train, val, test)` (class method)**  
+**Mục đích:** Load dataset từ HuggingFace Hub và chuyển đổi thành 3 list `Item` — đây là cách tất cả các notebook từ Day 3 trở đi lấy dữ liệu train/val/test.
 
 **Lý do dùng Pydantic `BaseModel`:**  
 Pydantic tự động validate kiểu dữ liệu khi tạo object. Nếu `price` không phải float, nó báo lỗi ngay — tránh data corruption âm thầm.
@@ -102,6 +107,7 @@ Hàng tiêu dùng thông thường hiếm khi vượt $1000. Hàng trên mức n
 **Các hàm:**
 
 #### `simplify(text_list) → str`
+**Mục đích:** Chuẩn hóa 1 trường text (có thể là list hoặc string) thành chuỗi đơn, xóa whitespace thừa và cắt theo giới hạn ký tự.
 ```python
 # Xóa whitespace thừa và cắt text theo giới hạn MAX_TEXT_EACH
 return str(text_list).replace("\n", " ").replace("\r", "")...strip()[:MAX_TEXT_EACH]
@@ -109,6 +115,7 @@ return str(text_list).replace("\n", " ").replace("\r", "")...strip()[:MAX_TEXT_E
 > Ghi chú: Hàm này xử lý cả list lẫn string vì Amazon trả về features dạng list Python.
 
 #### `scrub(title, description, features, details) → str`
+**Mục đích:** Ghép toàn bộ thông tin mô tả sản phẩm (title + description + features + details) thành 1 chuỗi sạch, loại bỏ noise như mã sản phẩm, key vô nghĩa, rồi cắt theo giới hạn tổng.
 ```python
 # 1. Xóa các key vô nghĩa khỏi dict details
 for remove in REMOVALS:
@@ -125,6 +132,7 @@ return re.sub(pattern, "", result).strip()[:MAX_TEXT_TOTAL]
 > **Tại sao xóa Part Numbers?** Mã như "AP4980629", "WD12X10327" không mang thông tin về giá. Để lại sẽ tạo noise cho Bag of Words (mỗi mã là 1 từ riêng, không có ý nghĩa chung).
 
 #### `get_weight(details) → float`
+**Mục đích:** Lấy trọng lượng của 1 sản phẩm từ trường `Item Weight` trong details, rồi chuyển đổi về đơn vị pounds thống nhất. Trả về 0 nếu không có thông tin trọng lượng.
 ```python
 # Chuyển đổi mọi đơn vị trọng lượng về pounds
 weight_str = details.get("Item Weight")
@@ -133,6 +141,7 @@ weight_str = details.get("Item Weight")
 > **Lý do chuẩn hóa về pounds:** Amazon dùng nhiều đơn vị khác nhau tùy seller. Nếu không chuẩn hóa, Linear Regression sẽ nhầm 1 kg với 1 ounce — sai số khổng lồ.
 
 #### `parse(datapoint, category) → Optional[Item]`
+**Mục đích:** Cổng vào (entry point) của quá trình lọc — nhận 1 datapoint thô từ Amazon, kiểm tra toàn bộ điều kiện hợp lệ (giá, độ dài mô tả), rồi trả về `Item` nếu đạt hoặc `None` nếu loại bỏ.
 ```python
 def parse(datapoint, category):
     try:
@@ -159,13 +168,20 @@ WORKERS = max(os.cpu_count() - 1, 1)  # Dùng tất cả CPU trừ 1 nhân cho O
 
 **Các method của `ItemLoader`:**
 
-| Method | Chức năng |
-|--------|-----------|
-| `from_datapoint(datapoint)` | Gọi `parse()` cho 1 dòng dữ liệu |
-| `from_chunk(chunk)` | Xử lý 1 chunk 1000 dòng, lọc bỏ None |
-| `chunk_generator()` | Generator yield từng chunk — tiết kiệm RAM, không load toàn bộ dataset vào RAM cùng lúc |
-| `load_in_parallel(workers)` | **Hàm cốt lõi:** dùng `ProcessPoolExecutor` phân phối chunks cho nhiều processes |
-| `load(workers)` | Entry point: download dataset → chạy parallel → in thống kê |
+#### `from_datapoint(datapoint)`
+**Mục đích:** Chuyển đổi 1 dòng dữ liệu thô từ HuggingFace thành `Item` bằng cách gọi `parse()`. Trả về `None` nếu datapoint không hợp lệ.
+
+#### `from_chunk(chunk)`
+**Mục đích:** Xử lý 1 chunk gồm 1000 dòng liên tiếp — gọi `from_datapoint()` cho từng dòng rồi lọc bỏ các `None`. Đây là đơn vị công việc được phân phối cho mỗi process con.
+
+#### `chunk_generator()`
+**Mục đích:** Sinh (yield) từng chunk 1000 dòng từ dataset theo kiểu Generator (lười biếng) — không load toàn bộ dataset vào RAM cùng lúc, tiết kiệm bộ nhớ cho dataset hàng triệu dòng.
+
+#### `load_in_parallel(workers)`
+**Mục đích:** Hàm cốt lõi — phân phối các chunks cho nhiều process con chạy song song thông qua `ProcessPoolExecutor`. Thu thập và ghép kết quả từ tất cả processes lại.
+
+#### `load(workers)`
+**Mục đích:** Entry point của `ItemLoader` — tải dataset từ HuggingFace, chạy toàn bộ pipeline song song, in thống kê kết quả (số items hợp lệ, thời gian xử lý).
 
 **Sơ đồ hoạt động:**
 ```
@@ -304,11 +320,14 @@ Title: ...  Category: ...  Brand: ...  Description: 1 sentence.  Details: 1 sent
 
 **Class `Preprocessor`:**
 
-| Method | Chức năng |
-|--------|-----------|
-| `__init__(model_name, reasoning_effort)` | Khởi tạo, tracking token usage và cost |
-| `messages_for(text)` | Tạo list messages theo format LiteLLM |
-| `preprocess(text) → str` | Gọi LLM, trả về summary, cộng dồn usage |
+#### `__init__(model_name, reasoning_effort)`
+**Mục đích:** Khởi tạo preprocessor với model và cấu hình, đồng thời khởi tạo các bộ đếm theo dõi tổng token input, token output và chi phí tích lũy qua nhiều lần gọi API.
+
+#### `messages_for(text) → list`
+**Mục đích:** Đóng gói text thô vào format messages chuẩn của LiteLLM (list gồm system prompt + user message), sẵn sàng để gọi API.
+
+#### `preprocess(text) → str`
+**Mục đích:** Gọi LLM để viết lại text thô thành summary sạch theo format chuẩn (Title/Category/Brand/Description/Details), đồng thời cộng dồn thống kê token và chi phí sau mỗi lần gọi.
 
 **Theo dõi chi phí:**
 ```python
@@ -352,6 +371,7 @@ full/
 **Class `Batch` — Methods theo thứ tự pipeline:**
 
 #### `make_jsonl(item) → str`
+**Mục đích:** Tạo 1 dòng JSON theo format chuẩn của Groq Batch API cho 1 item, bao gồm `custom_id` để định danh item và nội dung request gửi LLM.
 ```python
 # Tạo 1 dòng JSON theo format Groq Batch API
 {
@@ -367,22 +387,40 @@ full/
 ```
 > **Tại sao cần `custom_id`?** Groq trả kết quả batch không theo thứ tự gửi. `custom_id = item.id` cho phép map chính xác response về đúng item, bất kể thứ tự.
 
-#### `make_file()` → Ghi file JSONL ra disk
-#### `send_file()` → Upload file lên Groq server, nhận `file_id`
-#### `submit_batch()` → Tạo batch job từ file đã upload, nhận `batch_id`
-#### `is_ready() → bool` → Poll trạng thái batch (completed/failed)
-#### `fetch_output()` → Tải file kết quả về disk
-#### `apply_output()` → Parse kết quả, gán `item.summary` cho từng item theo `custom_id`
+#### `make_file()`
+**Mục đích:** Ghi toàn bộ JSONL requests của 1 batch ra file trên disk, chuẩn bị sẵn để upload lên Groq server.
+
+#### `send_file()`
+**Mục đích:** Upload file JSONL lên Groq server và lưu lại `file_id` nhận được — ID này dùng để tạo batch job ở bước tiếp theo.
+
+#### `submit_batch()`
+**Mục đích:** Tạo batch job trên Groq từ file đã upload (dùng `file_id`), nhận `batch_id` để theo dõi trạng thái. Đây là lúc Groq bắt đầu xử lý các requests bất đồng bộ.
+
+#### `is_ready() → bool`
+**Mục đích:** Kiểm tra (poll) trạng thái của 1 batch job. Nếu `completed`, lưu lại `output_file_id` để tải kết quả. Trả về `True` khi xong, `False` khi vẫn đang xử lý.
+
+#### `fetch_output()`
+**Mục đích:** Tải file kết quả (JSONL) từ Groq server về disk sau khi batch đã completed.
+
+#### `apply_output()`
+**Mục đích:** Đọc file kết quả, dùng `custom_id` để tìm đúng item tương ứng, rồi gán nội dung LLM trả về vào `item.summary`. Đây là bước hoàn thành Knowledge Distillation (chắt lọc kiến thức).
 
 **Class methods (chạy toàn bộ pipeline):**
 
-| Method | Chức năng |
-|--------|-----------|
-| `Batch.create(items, lite)` | Tạo danh sách tất cả batch objects |
-| `Batch.run()` | Gửi tất cả batches (make → send → submit) |
-| `Batch.fetch()` | Poll tất cả batches, tải kết quả nếu xong |
-| `Batch.save()` | Pickle state vào file (resume khi bị ngắt giữa chừng) |
-| `Batch.load(items)` | Load state từ file pickle |
+#### `Batch.create(items, lite)`
+**Mục đích:** Chia danh sách items thành các batch 1000 items, tạo object `Batch` cho từng phần và lưu vào danh sách chung `Batch.batches`.
+
+#### `Batch.run()`
+**Mục đích:** Chạy 3 bước đầu pipeline (make file → send → submit) cho tất cả batches theo thứ tự, sau đó server Groq xử lý bất đồng bộ.
+
+#### `Batch.fetch()`
+**Mục đích:** Poll tất cả batches chưa xong, tải và áp dụng kết quả ngay khi mỗi batch completed. In báo cáo số batch đã hoàn thành.
+
+#### `Batch.save()`
+**Mục đích:** Serialize trạng thái tất cả batches vào file pickle — cho phép resume từ điểm dừng nếu chương trình bị ngắt giữa chừng mà không mất tiến độ.
+
+#### `Batch.load(items)`
+**Mục đích:** Khôi phục trạng thái batches từ file pickle và gắn lại danh sách items (items không được lưu vào pickle để tiết kiệm dung lượng).
 
 **Chi phí thực tế:**
 
@@ -422,21 +460,21 @@ DEFAULT_SIZE = 200 # Đánh giá trên 200 mẫu test
 ```
 
 #### `make_title(predictor) → str` (staticmethod)
+**Mục đích:** Tự động tạo tên hiển thị đẹp cho model từ tên hàm Python — tránh phải đặt tên thủ công cho từng model khi evaluate.
 ```python
-# Tự động lấy tên model từ tên hàm Python
 # predictor.__name__ = "gpt_4__1_nano" → "GPT 4.1 Nano"
 ```
 
 #### `post_process(value) → float` (staticmethod)
+**Mục đích:** Chuẩn hóa output đa dạng của các models về kiểu float — LLM thường trả về string ("$180"), trong khi Neural Network trả về float. Hàm này xử lý cả hai trường hợp.
 ```python
-# Xử lý output đa dạng từ các models
 # Nếu là string: xóa "$", "," → tìm số bằng regex
 # Ví dụ: "$1,299.99" → 1299.99
 ```
 
 #### `color_for(error, truth) → str`
+**Mục đích:** Phân loại chất lượng dự đoán của 1 datapoint thành 3 mức màu (xanh/cam/đỏ) dựa trên cả sai số tuyệt đối lẫn sai số tương đối, để hiển thị trực quan khi chạy evaluate.
 ```python
-# Phân loại sai số bằng màu sắc:
 if error < 40 or error / truth < 0.2:  return "green"   # Sai số < $40 hoặc < 20%
 elif error < 80 or error / truth < 0.4: return "orange"  # Sai số < $80 hoặc < 40%
 else:                                    return "red"     # Sai số lớn
@@ -444,44 +482,45 @@ else:                                    return "red"     # Sai số lớn
 > Ghi chú: Dùng cả giá trị tuyệt đối ($40) lẫn tỷ lệ (20%) vì $40 sai số với sản phẩm $50 rất khác với $40 sai số với sản phẩm $500.
 
 #### `run_datapoint(i) → tuple`
+**Mục đích:** Xử lý toàn bộ pipeline cho 1 datapoint — gọi model dự đoán, chuẩn hóa output, tính sai số và phân loại màu. Đây là đơn vị công việc được gọi song song bởi `ThreadPoolExecutor`.
 ```python
-# Chạy 1 datapoint: gọi predictor → post_process → tính error → gán màu
 value = self.predictor(datapoint)
 guess = self.post_process(value)
 error = abs(guess - truth)
 ```
 
 #### `run()`
+**Mục đích:** Điều phối toàn bộ quá trình evaluate — chạy `run_datapoint()` song song cho `size` mẫu, in kết quả màu real-time, rồi gọi `report()` để vẽ charts tổng kết.
 ```python
-# ThreadPoolExecutor chạy 200 datapoints song song
 with ThreadPoolExecutor(max_workers=self.workers) as ex:
     for title, guess, truth, error, color in tqdm(ex.map(self.run_datapoint, range(self.size))):
-        # Thu thập kết quả
         print(f"{COLOR_MAP[color]}${error:.0f} ", end="")  # In màu real-time
 self.report()
 ```
-> **Tại sao dùng `ThreadPoolExecutor` ở đây** (chứ không phải `ProcessPoolExecutor`)?  
+> **Tại sao dùng `ThreadPoolExecutor`** (chứ không phải `ProcessPoolExecutor`)?  
 > Evaluate là I/O-bound (gọi API LLM, mỗi call đợi network). ThreadPoolExecutor phù hợp hơn vì GIL không ảnh hưởng khi thread đang chờ I/O.
 
 #### `chart(title)` — Scatter Plot (Predicted vs Actual)
-- Trục X: Actual Price, Trục Y: Predicted Price
+**Mục đích:** Vẽ biểu đồ phân tán so sánh giá dự đoán vs giá thực tế — model tốt sẽ có các điểm nằm gần đường `y = x`. Màu sắc điểm phản ánh chất lượng từng dự đoán.
+- Trục X: Actual Price (giá thực), Trục Y: Predicted Price (giá đoán)
 - Màu điểm: xanh/cam/đỏ theo `color_for()`
-- Đường `y = x`: model hoàn hảo nằm trên đường này
+- Đường `y = x` (dashed): model hoàn hảo nằm trên đường này
 - Hover text: tên sản phẩm + giá đoán + giá thực
 
 #### `error_trend_chart()` — Running Average Error Chart
+**Mục đích:** Vẽ biểu đồ MAE tích lũy theo từng sample kèm 95% Confidence Interval (khoảng tin cậy) — giúp đánh giá liệu 200 samples có đủ để kết luận tin cậy chưa.
 ```python
-# Tính running mean và 95% Confidence Interval (khoảng tin cậy)
+# Tính running mean và 95% Confidence Interval
 running_means = [sum/i for sum, i in ...]
-running_stds = [sqrt(sq_sum/i - mean²) for ...]
 ci = [1.96 * (std / sqrt(i)) for ...]  # 1.96 = z-score cho 95% CI
 ```
-> Chart này rất hữu ích: nếu đường running mean vẫn dao động mạnh ở cuối → 200 samples chưa đủ để kết luận chắc chắn.
+> Nếu đường running mean vẫn dao động mạnh ở cuối → cần tăng số mẫu test để có kết quả chắc chắn hơn.
 
-#### `plot_training_history(history)` — Training History Chart (3 subplots)
+#### `plot_training_history(history)` — Training History Chart
+**Mục đích:** Vẽ 3 biểu đồ quan sát quá trình training DNN qua từng epoch — giúp phát hiện overfitting (Train Loss giảm nhưng Val Loss tăng) và xem learning rate schedule hoạt động đúng không.
 - Row 1: Train Loss vs Val Loss qua từng epoch
 - Row 2: Validation MAE ($) qua từng epoch
-- Row 3: Learning Rate schedule
+- Row 3: Learning Rate schedule (CosineAnnealing)
 
 ---
 
@@ -668,6 +707,12 @@ Xây mạng sâu 289 triệu parameters, train trên 800k samples — thử đá
 
 #### Class `ResidualBlock` — Khối cơ bản
 
+**`__init__(hidden_size, dropout_prob)`**  
+**Mục đích:** Xây dựng 1 residual block gồm 2 lớp Linear xen kẽ LayerNorm và ReLU — đây là đơn vị học cơ bản được lặp lại 8 lần trong DeepNeuralNetwork.
+
+**`forward(x)`**  
+**Mục đích:** Tính output của 1 residual block — biến đổi input qua các lớp, rồi cộng thêm chính input gốc (Skip Connection) trước khi qua ReLU cuối. Kỹ thuật này giải quyết vấn đề Vanishing Gradient (gradient biến mất) khi mạng quá sâu.
+
 ```python
 class ResidualBlock(nn.Module):
     def __init__(self, hidden_size, dropout_prob):
@@ -692,6 +737,12 @@ class ResidualBlock(nn.Module):
 Mạng sâu (nhiều lớp) bị "Vanishing Gradient (gradient biến mất)": khi lan truyền ngược (backprop), gradient nhân với nhiều số nhỏ → tiến gần về 0 → các lớp đầu không học được. Skip Connection tạo "đường tắt" cho gradient: `gradient = gradient_through_block + gradient_through_skip`. Phần skip luôn = 1, đảm bảo gradient không bao giờ = 0. Đây là ý tưởng cốt lõi của ResNet (2015).
 
 #### Class `DeepNeuralNetwork` — Kiến trúc tổng thể
+
+**`__init__(input_size, num_layers, hidden_size, dropout_prob)`**  
+**Mục đích:** Lắp ráp toàn bộ mạng DNN gồm 3 phần: Input Layer (chiếu từ 5000 features lên 4096 chiều), 8 Residual Blocks (học biểu diễn sâu), và Output Layer (nén xuống 1 số là giá dự đoán).
+
+**`forward(x)`**  
+**Mục đích:** Tính output của toàn bộ mạng — đưa input qua Input Layer → 8 Residual Blocks lần lượt → Output Layer để ra giá dự đoán cuối cùng.
 
 ```python
 class DeepNeuralNetwork(nn.Module):
@@ -733,7 +784,8 @@ Input (5000 features)
 
 #### Class `DeepNeuralNetworkRunner` — Training và Inference
 
-**`setup()` — Chuẩn bị dữ liệu và model:**
+**`setup()` — Chuẩn bị dữ liệu và model:**  
+**Mục đích:** Khởi tạo toàn bộ pipeline training — vectorize text thành features, log-normalize giá, tạo model DNN, chọn device (CUDA/MPS/CPU), cấu hình optimizer và scheduler, rồi đóng gói thành DataLoader sẵn sàng để train.
 ```python
 def setup(self):
     self.vectorizer = HashingVectorizer(n_features=5000, stop_words="english", binary=True)
@@ -757,7 +809,8 @@ def setup(self):
 **Tại sao Log-normalize giá?**  
 Phân phối giá rất skewed (lệch phải): nhiều sản phẩm $10-100, ít sản phẩm $500-1000. MSE/L1 Loss trên raw price sẽ bị dominated bởi sản phẩm đắt. Log transform kéo phân phối về gần Gaussian → loss đồng đều hơn giữa các price ranges.
 
-**`train(epochs=5)` — Vòng lặp training nâng cao:**
+**`train(epochs=5)` — Vòng lặp training nâng cao:**  
+**Mục đích:** Chạy toàn bộ vòng lặp training — mỗi epoch duyệt qua toàn bộ train set theo batch, tính loss, backpropagation với gradient clipping, rồi đánh giá trên validation set và ghi lại lịch sử metrics để vẽ training chart sau.
 ```python
 for epoch in range(1, epochs + 1):
     # Training phase
@@ -787,7 +840,8 @@ for epoch in range(1, epochs + 1):
 **Tại sao dùng L1Loss thay vì MSELoss?**  
 MSELoss phạt nặng các outlier (sai số lớn bình phương). Dữ liệu giá có nhiều outlier tự nhiên. L1Loss (absolute error) robust hơn — không bị outlier "kéo" training quá mạnh.
 
-**`inference(item) → float`:**
+**`inference(item) → float`:**  
+**Mục đích:** Dự đoán giá cho 1 sản phẩm mới — vectorize text summary, chạy forward pass qua model (không gradient), de-normalize kết quả về giá thực tế, đảm bảo giá không âm.
 ```python
 def inference(self, item):
     self.model.eval()
