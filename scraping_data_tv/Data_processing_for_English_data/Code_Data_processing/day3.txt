@@ -1,0 +1,1124 @@
+DAY 3
+148. Day 3 - Building Baseline Models with Traditional ML and XGBoost
+Chào Hieu, chúc mừng bạn đã đi được một nửa chặng đường của Tuần 6 "khốc liệt" này.
+Sau khi đã tốn công sức làm sạch dữ liệu (Day 1) và dùng LLM xịn để viết lại dữ liệu (Day 2), hôm nay (Day 3) chúng ta sẽ làm một việc nghe có vẻ "ngược đời": Không dùng LLM. Thay vào đó, chúng ta sẽ quay lại quá khứ để sử dụng các thuật toán Machine Learning (ML) truyền thống.
+Dưới đây là tổng hợp nội dung bài học Day 3 - Building Baseline Models with Traditional ML and XGBoost dựa trên tài liệu bạn cung cấp.
+________________________________________
+1. Chủ đề bài học
+Day 3 - Building Baseline Models with Traditional ML and XGBoost
+(Ngày 3 - Xây dựng mô hình cơ sở với Machine Learning truyền thống và XGBoost)
+________________________________________
+2. Tóm tắt cốt lõi (Core Summary)
+•	Tư duy "Start Simple": Trước khi dùng "dao mổ trâu" (LLM) để giải quyết vấn đề, hãy thử dùng "dao gọt hoa quả" (Traditional ML). Nếu mô hình đơn giản, rẻ tiền, chạy trong tích tắc mà giải quyết được 80% vấn đề, thì đó là lựa chọn tối ưu.
+•	Baseline Model (Mô hình cơ sở): Mục tiêu hôm nay không phải là đánh bại LLM, mà là tạo ra một tiêu chuẩn (benchmark). Nếu sau này bạn fine-tune một LLM tốn $100 mà kết quả chỉ ngang bằng mô hình XGBoost miễn phí, thì dự án LLM đó thất bại.
+•	Ôn tập ML cổ điển: Nhắc lại các khái niệm nền tảng: Generalization (Khả năng dự đoán trên dữ liệu mới) và Overfitting (Học vẹt dữ liệu huấn luyện).
+•	Công cụ thực chiến: Sử dụng kỹ thuật xử lý ngôn ngữ tự nhiên cổ điển (Bag of Words) kết hợp với các thuật toán mạnh mẽ (Random Forest, XGBoost) để dự đoán giá.
+________________________________________
+3. Nội dung chính
+A. Tại sao cần Baseline Model?
+1.	Thước đo hiệu quả: Làm sao bạn biết mô hình AI hiện đại của bạn là "tốt"? Bạn cần một con số để so sánh. Baseline chính là con số sàn đó.
+2.	Chi phí & Tốc độ: ML truyền thống chạy cực nhanh (vài giây/phút) và tốn $0.
+3.	Tính thực dụng: Đôi khi, mối quan hệ giữa "Mô tả" và "Giá" chỉ là sự kết hợp tuyến tính đơn giản của các từ khóa (ví dụ: cứ có từ "Gold" thì giá tăng $100). Nếu vậy, Linear Regression là đủ.
+B. Các khái niệm ML nền tảng
+•	Generalization (Khái quát hóa): Là "chén thánh" của AI. Là khả năng mô hình học được các mẫu (patterns) chung từ dữ liệu train để áp dụng chính xác cho dữ liệu chưa từng gặp (unseen data).
+•	Overfitting (Quá khớp): Kẻ thù của Generalization.
+o	Là khi mô hình học quá kỹ, nhớ cả những chi tiết nhiễu (noise) của tập train.
+o	Biểu hiện: Điểm trên tập Train rất cao, nhưng điểm trên tập Validation/Test rất thấp.
+C. Các thuật toán được sử dụng trong bài
+Giảng viên Ed Donner giới thiệu 3 cấp độ mô hình ML truyền thống để thử nghiệm:
+1.	Linear Regression (Hồi quy tuyến tính): Đơn giản nhất. Tìm một đường thẳng (hoặc siêu phẳng) khớp với dữ liệu.
+2.	Random Forest (Rừng ngẫu nhiên): Tập hợp nhiều cây quyết định (Decision Trees). Mạnh hơn Linear Regression và ít bị Overfitting hơn.
+3.	XGBoost (Extreme Gradient Boosting): "Vua" của dữ liệu bảng (Tabular data). Đây là thuật toán mạnh nhất trong giới ML truyền thống, thường xuyên thắng các giải Kaggle trước kỷ nguyên Deep Learning.
+________________________________________
+4. Kiến trúc & Quy trình (Pipeline)
+Do hôm nay không dùng Deep Learning hay LLM API, pipeline xử lý sẽ tuân theo chuẩn Natural Language Processing (NLP) cổ điển:
+1.	Input: Dữ liệu văn bản đã làm sạch ở Day 2 (item.summary).
+2.	Feature Engineering (Trích xuất đặc trưng):
+o	Máy tính không hiểu chữ, chỉ hiểu số.
+o	Sử dụng kỹ thuật Bag of Words (BoW) thông qua CountVectorizer.
+o	Biến mỗi từ thành một cột (feature). Ví dụ: văn bản có từ "Sony" -> cột "Sony" = 1.
+3.	Model Training:
+o	Đưa các vector số vào thuật toán (Linear Regression / XGBoost).
+o	Mô hình học trọng số (weights) cho từng từ (ví dụ: từ "iPhone" có trọng số cao, từ "cáp" có trọng số thấp).
+4.	Prediction: Dự đoán giá trị thực (Scalar).
+5.	Evaluation: So sánh với giá thực tế bằng hàm Mean Absolute Error (MAE).
+________________________________________
+5. Phân tích Code (Logic Mô phỏng)
+Lưu ý: Bạn chưa cung cấp file code .ipynb cụ thể của Day 3, nhưng dựa trên transcript và kiến thức chuẩn của khóa học này, tôi sẽ tái hiện lại logic code chính xác mà bạn sẽ gặp/cần viết.
+A. Chuẩn bị dữ liệu (Data Loading)
+Python
+# Tải dataset đã xử lý ở Day 2 từ Hugging Face
+from datasets import load_dataset
+import pandas as pd
+
+# Giả sử bạn tải bản Lite
+dataset = load_dataset("SeanSunny/items_light") # Thay bằng tên dataset của bạn
+train_df = pd.DataFrame(dataset['train'])
+val_df = pd.DataFrame(dataset['validation'])
+
+# Input là cột summary, Output là cột price
+X_train_text = train_df['summary']
+y_train = train_df['price']
+X_val_text = val_df['summary']
+y_val = val_df['price']
+B. Biến văn bản thành số (Vectorization)
+Đây là bước quan trọng nhất của NLP truyền thống.
+Python
+from sklearn.feature_extraction.text import CountVectorizer
+
+# 1. Khởi tạo Vectorizer
+# max_features=10000: Chỉ lấy 10,000 từ phổ biến nhất để giảm chiều dữ liệu
+vectorizer = CountVectorizer(max_features=10000, stop_words='english')
+
+# 2. Học từ điển từ tập Train và biến đổi thành số
+X_train = vectorizer.fit_transform(X_train_text)
+
+# 3. Chỉ biến đổi tập Val (KHÔNG ĐƯỢC fit trên tập Val để tránh data leakage)
+X_val = vectorizer.transform(X_val_text)
+•	Giải thích: CountVectorizer sẽ tạo ra một ma trận khổng lồ mà mỗi dòng là một sản phẩm, mỗi cột là một từ. Giá trị trong ô là số lần từ đó xuất hiện.
+C. Huấn luyện & Đánh giá (Linear Regression)
+Python
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Khởi tạo và huấn luyện
+model_lr = LinearRegression()
+model_lr.fit(X_train, y_train)
+
+# Dự đoán
+preds = model_lr.predict(X_val)
+
+# Đánh giá sai số (Metrics: Absolute Price Difference)
+mae = mean_absolute_error(y_val, preds)
+print(f"Linear Regression MAE: ${mae:.2f}")
+•	Logic: Nếu kết quả ra MAE = $50, nghĩa là trung bình mô hình đoán sai lệch 50 đô la. Đây là con số Baseline của bạn.
+D. Huấn luyện XGBoost (Mô hình mạnh nhất)
+Python
+import xgboost as xgb
+
+# Khởi tạo mô hình
+model_xgb = xgb.XGBRegressor(objective='reg:absoluteerror', n_estimators=100)
+
+# Huấn luyện
+model_xgb.fit(X_train, y_train)
+
+# Dự đoán và đánh giá
+preds_xgb = model_xgb.predict(X_val)
+mae_xgb = mean_absolute_error(y_val, preds_xgb)
+print(f"XGBoost MAE: ${mae_xgb:.2f}")
+•	Ghi chú: Thường XGBoost sẽ cho kết quả tốt hơn nhiều so với Linear Regression vì nó học được các mối quan hệ phi tuyến tính (ví dụ: "Gaming" + "Laptop" -> Giá cao, nhưng "Gaming" + "Mouse" -> Giá thấp hơn).
+________________________________________
+6. Kiến thức liên quan & Mở rộng
+1. Bag of Words (BoW) vs. Embeddings
+•	Bag of Words (Dùng hôm nay): Chỉ đếm sự xuất hiện của từ. Nó không hiểu ngữ nghĩa.
+o	Ví dụ: "good" và "great" là 2 từ hoàn toàn khác nhau, không liên quan gì nhau trong mắt mô hình.
+•	Embeddings (Dùng cho LLM/Neural Network): Biến từ thành vector số trong không gian đa chiều.
+o	Ví dụ: Vector của "good" sẽ nằm rất gần vector của "great".
+o	Tại sao hôm nay dùng BoW? Vì nó đơn giản, nhanh và dễ hiểu (interpretable) cho một mô hình baseline.
+2. Định lý "Dao cạo Occam" (Occam's Razor) trong AI
+•	Nguyên lý: "Nếu hai giải pháp có kết quả tương đương nhau, hãy chọn giải pháp đơn giản hơn".
+•	Nếu XGBoost đoán giá sai số $30 và LLM Fine-tuned đoán sai số $29.5 nhưng tốn chi phí gấp 1000 lần và chạy chậm gấp 100 lần -> Hãy chọn XGBoost.
+3. Data Leakage trong Vectorization
+•	Một lỗi sơ đẳng nhưng chết người: Gọi vectorizer.fit() trên toàn bộ dữ liệu (cả train và val).
+•	Hậu quả: Mô hình sẽ biết trước "từ vựng" của tập kiểm tra, dẫn đến kết quả ảo.
+•	Quy tắc: Chỉ fit trên Train, và chỉ transform trên Validation/Test.
+Tổng kết ngày học
+Hieu đã nắm trong tay "vũ khí" của quá khứ. Mặc dù chúng "cổ lỗ sĩ" so với GPT-4, nhưng chúng cực kỳ hiệu quả về mặt kinh tế. Con số MAE bạn đạt được hôm nay (ví dụ $40-$50) sẽ là "kẻ thù" mà bạn phải đánh bại trong Day 4 (Neural Networks) và Day 5 (Fine-tuning).
+Bước tiếp theo: Bạn đã sẵn sàng để chuyển sang Deep Learning với PyTorch vào ngày mai chưa?
+149. Day 3 - Building Your First Baseline with Random Pricer and Scikit-learn
+Pythonprint("--- READING day3.ipynb ---")
+import json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+    for cell in notebook['cells']:
+        if cell['cell_type'] == 'code':
+            print("Cell Content:")
+            print(''.join(cell['source']))
+            print("-" * 20)
+
+print("\n--- READING evaluator.py ---")
+with open('evaluator.py', 'r') as f:
+    print(f.read())
+
+Kết quả chạy mã
+--- READING day3.ipynb ---
+Cell Content:
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+Cell Content:
+LITE_MODE = False
+--------------------
+Cell Content:
+username = "ed-donner"
+dataset = f"{username}/items_lite" if LITE_MODE else f"{username}/items_full"
+
+train, val, test = Item.from_hub(dataset)
+
+print(f"Loaded {len(train):,} training items, {len(val):,} validation items, {len(test):,} test items")
+--------------------
+Cell Content:
+def random_pricer(item):
+    return random.randrange(1,1000)
+--------------------
+Cell Content:
+random.seed(42)
+evaluate(random_pricer, test)
+--------------------
+Cell Content:
+# That was fun!
+# We can do better - here's another rather trivial model
+
+training_prices = [item.price for item in train]
+training_average = sum(training_prices) / len(training_prices)
+print(training_average)
+
+def constant_pricer(item):
+    return training_average
+--------------------
+Cell Content:
+evaluate(constant_pricer, test)
+--------------------
+Cell Content:
+def get_features(item):
+    return {
+        "weight": item.weight,
+        "weight_unknown": 1 if item.weight==0 else 0,
+        "text_length": len(item.summary)
+    }
+--------------------
+Cell Content:
+def list_to_dataframe(items):
+    features = [get_features(item) for item in items]
+    df = pd.DataFrame(features)
+    df['price'] = [item.price for item in items]
+    return df
+
+train_df = list_to_dataframe(train)
+test_df = list_to_dataframe(test)
+--------------------
+Cell Content:
+# Traditional Linear Regression!
+
+np.random.seed(42)
+
+# Separate features and target
+feature_columns = ['weight', 'weight_unknown', 'text_length']
+
+X_train = train_df[feature_columns]
+y_train = train_df['price']
+X_test = test_df[feature_columns]
+y_test = test_df['price']
+
+# Train a Linear Regression
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+for feature, coef in zip(feature_columns, model.coef_):
+    print(f"{feature}: {coef}")
+print(f"Intercept: {model.intercept_}")
+
+# Predict the test set and evaluate
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse}")
+print(f"R-squared Score: {r2}")
+--------------------
+Cell Content:
+def linear_regression_pricer(item):
+    features = get_features(item)
+    features_df = pd.DataFrame([features])
+    return model.predict(features_df)[0]
+--------------------
+Cell Content:
+evaluate(linear_regression_pricer, test)
+--------------------
+Cell Content:
+prices = np.array([float(item.price) for item in train])
+documents = [item.summary for item in train]
+--------------------
+Cell Content:
+np.random.seed(42)
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+--------------------
+Cell Content:
+# Here are the 1,000 most common words that it picked, not including "stop words":
+
+selected_words = vectorizer.get_feature_names_out()
+print(f"Number of selected words: {len(selected_words)}")
+print("Selected words:", selected_words[1000:1020])
+--------------------
+Cell Content:
+regressor = LinearRegression()
+regressor.fit(X, prices)
+--------------------
+Cell Content:
+def natural_language_linear_regression_pricer(item):
+    x = vectorizer.transform([item.summary])
+    return max(regressor.predict(x)[0], 0)
+--------------------
+Cell Content:
+evaluate(natural_language_linear_regression_pricer, test)
+--------------------
+Cell Content:
+subset = 15_000
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
+rf_model.fit(X[:subset], prices[:subset])
+--------------------
+Cell Content:
+def random_forest(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, rf_model.predict(x)[0])
+--------------------
+Cell Content:
+evaluate(random_forest, test)
+--------------------
+Cell Content:
+# This is how to save the model if you want to, particularly if you run this on a larger dataset
+
+# import joblib
+# joblib.dump(rf_model, "random_forest.joblib")
+--------------------
+Cell Content:
+import xgboost as xgb
+--------------------
+Cell Content:
+np.random.seed(42)
+
+xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
+xgb_model.fit(X, prices)
+--------------------
+Cell Content:
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+--------------------
+Cell Content:
+evaluate(xg_boost, test)
+--------------------
+
+--- READING evaluator.py ---
+import re
+from sklearn.metrics import mean_squared_error, r2_score
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from itertools import accumulate
+import math
+from tqdm.notebook import tqdm
+from concurrent.futures import ThreadPoolExecutor
+
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
+COLOR_MAP = {"red": RED, "orange": YELLOW, "green": GREEN}
+
+WORKERS = 5
+DEFAULT_SIZE = 200
+
+
+class Tester:
+    def __init__(self, predictor, data, title=None, size=DEFAULT_SIZE, workers=WORKERS):
+        self.predictor = predictor
+        self.data = data
+        self.title = title or self.make_title(predictor)
+        self.size = size
+        self.titles = []
+        self.guesses = []
+        self.truths = []
+        self.errors = []
+        self.colors = []
+        self.workers = workers
+
+    @staticmethod
+    def make_title(predictor) -> str:
+        return predictor.__name__.replace("__", ".").replace("_", " ").title().replace("Gpt", "GPT")
+
+    @staticmethod
+    def post_process(value):
+        if isinstance(value, str):
+            value = value.replace("$", "").replace(",", "")
+            match = re.search(r"[-+]?\d*\.\d+|\d+", value)
+            return float(match.group()) if match else 0
+        else:
+            return value
+
+    def color_for(self, error, truth):
+        if error < 40 or error / truth < 0.2:
+            return "green"
+        elif error < 80 or error / truth < 0.4:
+            return "orange"
+        else:
+            return "red"
+
+    def run_datapoint(self, i):
+        datapoint = self.data[i]
+        value = self.predictor(datapoint)
+        guess = self.post_process(value)
+        truth = datapoint.price
+        error = abs(guess - truth)
+        color = self.color_for(error, truth)
+        title = datapoint.title if len(datapoint.title) <= 40 else datapoint.title[:40] + "..."
+        return title, guess, truth, error, color
+
+    def chart(self, title):
+        df = pd.DataFrame(
+            {
+                "truth": self.truths,
+                "guess": self.guesses,
+                "title": self.titles,
+                "error": self.errors,
+                "color": self.colors,
+            }
+        )
+
+        # Pre-format hover text
+        df["hover"] = [
+            f"{t}\nGuess=${g:,.2f} Actual=${y:,.2f}"
+            for t, g, y in zip(df["title"], df["guess"], df["truth"])
+        ]
+
+        max_val = float(max(df["truth"].max(), df["guess"].max()))
+
+        fig = px.scatter(
+            df,
+            x="truth",
+            y="guess",
+            color="color",
+            color_discrete_map={"green": "green", "orange": "orange", "red": "red"},
+            title=title,
+            labels={"truth": "Actual Price", "guess": "Predicted Price"},
+            width=1000,
+            height=800,
+        )
+
+        # Assign customdata per trace (one color/category = one trace)
+        for tr in fig.data:
+            mask = df["color"] == tr.name
+            tr.customdata = df.loc[mask, ["hover"]].to_numpy()
+            tr.hovertemplate = "%{customdata[0]}<extra></extra>"
+            tr.marker.update(size=6)
+
+        # Reference line y=x
+        fig.add_trace(
+            go.Scatter(
+                x=[0, max_val],
+                y=[0, max_val],
+                mode="lines",
+                line=dict(width=2, dash="dash", color="deepskyblue"),
+                name="y = x",
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+        fig.update_xaxes(range=[0, max_val])
+        fig.update_yaxes(range=[0, max_val])
+        fig.update_layout(showlegend=False)
+        fig.show()
+
+    def error_trend_chart(self):
+        n = len(self.errors)
+
+        # Running mean and std (pure Python)
+        running_sums = list(accumulate(self.errors))
+        x = list(range(1, n + 1))
+        running_means = [s / i for s, i in zip(running_sums, x)]
+
+        running_squares = list(accumulate(e * e for e in self.errors))
+        running_stds = [
+            math.sqrt((sq_sum / i) - (mean**2)) if i > 1 else 0
+            for i, sq_sum, mean in zip(x, running_squares, running_means)
+        ]
+
+        # 95% confidence interval for mean
+        ci = [1.96 * (sd / math.sqrt(i)) if i > 1 else 0 for i, sd in zip(x, running_stds)]
+        upper = [m + c for m, c in zip(running_means, ci)]
+        lower = [m - c for m, c in zip(running_means, ci)]
+
+        # Plot
+        fig = go.Figure()
+
+        # Shaded confidence interval band
+        fig.add_trace(
+            go.Scatter(
+                x=x + x[::-1],
+                y=upper + lower[::-1],
+                fill="toself",
+                fillcolor="rgba(128,128,128,0.2)",
+                line=dict(color="rgba(255,255,255,0)"),
+                hoverinfo="skip",
+                showlegend=False,
+                name="95% CI",
+            )
+        )
+
+        # Main line with hover text showing CI
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=running_means,
+                mode="lines",
+                line=dict(width=3, color="firebrick"),
+                name="Cumulative Avg Error",
+                customdata=list(
+                    zip(
+                        ci,
+                    )
+                ),
+                hovertemplate=(
+                    "n=%{x}<br>"
+                    "Avg Error=$%{y:,.2f}<br>"
+                    "±95% CI=$%{customdata[0]:,.2f}<extra></extra>"
+                ),
+            )
+        )
+
+        # Title with final stats
+        final_mean = running_means[-1]
+        final_ci = ci[-1]
+        title = f"{self.title} Error: ${final_mean:,.2f} ± ${final_ci:,.2f}"
+
+        fig.update_layout(
+            title=title,
+            xaxis_title="Number of Datapoints",
+            yaxis_title="Average Absolute Error ($)",
+            width=1000,
+            height=360,
+            template="plotly_white",
+            showlegend=False,
+        )
+
+        fig.show()
+
+    def report(self):
+        average_error = sum(self.errors) / self.size
+        mse = mean_squared_error(self.truths, self.guesses)
+        r2 = r2_score(self.truths, self.guesses) * 100
+        title = f"{self.title} results<br><b>Error:</b> ${average_error:,.2f} <b>MSE:</b> {mse:,.0f} <b>r²:</b> {r2:.1f}%"
+        self.error_trend_chart()
+        self.chart(title)
+
+    def run(self):
+        with ThreadPoolExecutor(max_workers=self.workers) as ex:
+            for title, guess, truth, error, color in tqdm(
+                ex.map(self.run_datapoint, range(self.size)), total=self.size
+            ):
+                self.titles.append(title)
+                self.guesses.append(guess)
+                self.truths.append(truth)
+                self.errors.append(error)
+                self.colors.append(color)
+                print(f"{COLOR_MAP[color]}${error:.0f} ", end="")
+        self.report()
+
+
+def evaluate(function, data, size=DEFAULT_SIZE, workers=WORKERS):
+    Tester(function, data, size=size, workers=workers).run()
+
+
+Chào bạn Hieu, tôi đã phân tích kỹ phiên âm bài giảng và các file code day3.ipynb, evaluator.py mà bạn cung cấp.
+Dưới đây là tổng hợp chi tiết nội dung bài học "Day 3 - Building Your First Baseline with Random Pricer and Scikit-learn" theo đúng yêu cầu của bạn.
+1. Chủ đề bài học
+149. Day 3 - Building Your First Baseline with Random Pricer and Scikit-learn
+(Ngày 3 - Xây dựng mô hình cơ sở đầu tiên với Bộ định giá ngẫu nhiên và Scikit-learn)
+2. Tóm tắt cốt lõi
+•	Chuyển dịch sang Traditional ML: Sau khi đã xử lý dữ liệu (Curation & Pre-processing), bài học chuyển sang giai đoạn xây dựng mô hình bằng các thuật toán Machine Learning truyền thống (Scikit-learn) thay vì LLM ngay lập tức.
+•	Tư duy "Start Simple": Bắt đầu với một mô hình đơn giản nhất có thể ("Random Pricer" - đoán mò) để thiết lập một Baseline (Mức cơ sở). Mục đích là để có một điểm tham chiếu so sánh cho các mô hình phức tạp sau này.
+•	Cơ chế đánh giá (Evaluation): Sử dụng một hàm evaluate chuyên biệt để chạy thử nghiệm trên tập test, tính toán sai số (MAE, MSE, R²) và vẽ biểu đồ trực quan hóa (Scatter plot) để nhìn thấy độ phân tán giữa giá dự đoán và giá thực tế.
+3. Nội dung chính
+A. Mục tiêu & Công cụ
+•	Mục tiêu: Viết các hàm nhận vào một sản phẩm (item) và ước tính giá (price) của nó.
+•	Công cụ: Sử dụng thư viện scikit-learn (sklearn) - "chú ngựa thồ" của ML truyền thống, bao gồm các thuật toán như Linear Regression, Random Forest, và CountVectorizer cho xử lý ngôn ngữ.
+B. Quy trình thực hiện
+1.	Tải dữ liệu: Load bộ dữ liệu đã xử lý (Train/Val/Test) từ Hugging Face Hub. Tập train có 800.000 mẫu (hoặc ít hơn nếu dùng chế độ Lite), Val và Test mỗi tập có 10.000 mẫu.
+2.	Xây dựng Random Pricer: Tạo một hàm cực kỳ ngớ ngẩn: Bỏ qua hoàn toàn thông tin sản phẩm và đoán bừa một con số từ 1 đến 999.
+3.	Thực hiện đánh giá (Evaluation):
+o	Chạy hàm dự đoán trên 200 mẫu thử nghiệm đầu tiên.
+o	Vẽ biểu đồ phân tán (Scatter Plot): Trục X là giá thực tế ($y$), Trục Y là giá dự đoán ($\hat{y}$).
+o	Đường đứt nét màu xanh là đường hoàn hảo ($y = \hat{y}$). Các điểm càng xa đường này thì dự đoán càng tệ (màu đỏ).
+4.	Kết quả thực nghiệm:
+o	Mô hình ngẫu nhiên cho kết quả rất tệ với sai số trung bình (Mean Absolute Error) khoảng $382.08.
+o	Chỉ số $R^2$ bị âm (tệ hơn cả việc đoán giá trung bình).
+4. Kiến trúc & Quy trình (Pipeline)
+Quy trình trong bài học này tuân theo pipeline đánh giá chuẩn:
+1.	Input: Một đối tượng Item (chứa title, summary, weight...).
+2.	Model (Function): Hàm random_pricer(item) -> Trả về float (giá).
+3.	Evaluator:
+o	So sánh Predicted Price vs Actual Price.
+o	Tính toán Metrics: Error ($|Pred - Actual|$).
+o	Visualizer: Vẽ biểu đồ Scatter và dải tin cậy (Confidence Interval).
+5. Phân tích Code
+Dưới đây là phân tích các khối code quan trọng trong day3.ipynb và evaluator.py với chú thích tiếng Việt.
+A. Tải dữ liệu và Thiết lập môi trường (File day3.ipynb)
+Đoạn code này chuẩn bị dữ liệu đầu vào.
+Python
+# --- CẤU HÌNH VÀ TẢI DỮ LIỆU ---
+
+# Chọn chế độ: False = Dùng full dataset (800k dòng), True = Dùng bản Lite
+LITE_MODE = False
+
+username = "ed-donner"
+# Xác định tên dataset dựa trên chế độ đã chọn
+dataset = f"{username}/items_lite" if LITE_MODE else f"{username}/items_full"
+
+# Tải dữ liệu từ Hugging Face Hub và chia thành 3 tập: train, val, test
+# Logic: Item.from_hub là hàm tiện ích giúp tải và parse dữ liệu JSONL thành object
+train, val, test = Item.from_hub(dataset)
+
+print(f"Loaded {len(train):,} training items, {len(val):,} validation items, {len(test):,} test items")
+B. Mô hình cơ sở 1: Random Pricer (File day3.ipynb)
+Đây là nội dung trọng tâm của video bài giảng.
+Python
+import random
+
+# --- MÔ HÌNH RANDOM PRICER ---
+# Mục đích: Tạo ra một baseline "ngớ ngẩn" nhất để so sánh.
+# Nếu mô hình AI phức tạp của bạn không thắng được hàm này thì vứt đi.
+
+def random_pricer(item):
+    # Logic: Không quan tâm item là gì, chỉ trả về số nguyên ngẫu nhiên từ 1 đến 999
+    return random.randrange(1, 1000)
+
+# Thiết lập seed để kết quả có thể tái lập (chạy lại vẫn ra số giống cũ)
+random.seed(42)
+
+# Gọi hàm đánh giá trên tập test
+evaluate(random_pricer, test)
+C. Hàm đánh giá và Trực quan hóa (File evaluator.py)
+File này chứa class Tester phức tạp hơn để vẽ biểu đồ.
+Python
+# --- PHÂN TÍCH LOGIC EVALUATOR (Trích lược) ---
+
+class Tester:
+    def run_datapoint(self, i):
+        # Lấy 1 điểm dữ liệu
+        datapoint = self.data[i]
+        # Gọi hàm dự đoán (ví dụ: random_pricer)
+        value = self.predictor(datapoint)
+        # Xử lý kết quả trả về (chuyển string thành float nếu cần)
+        guess = self.post_process(value)
+        truth = datapoint.price
+        # Tính sai số tuyệt đối
+        error = abs(guess - truth)
+        # Gán màu: Xanh (tốt) -> Cam -> Đỏ (tệ) dựa trên mức độ sai số
+        color = self.color_for(error, truth)
+        return title, guess, truth, error, color
+
+    def chart(self, title):
+        # Vẽ biểu đồ Scatter bằng Plotly
+        # Trục X: Giá thực tế (Truth)
+        # Trục Y: Giá dự đoán (Guess)
+        # Đường tham chiếu: y = x (Dự đoán hoàn hảo)
+        # ... (Code vẽ biểu đồ) ...
+D. Các bước tiếp theo trong day3.ipynb (Mở rộng quy trình)
+Mặc dù video chỉ nói đến Random Pricer, nhưng file notebook bạn cung cấp đã đi xa hơn, bao gồm cả Linear Regression và Random Forest.
+Python
+# --- MÔ HÌNH HỒI QUY TUYẾN TÍNH CỔ ĐIỂN ---
+
+# 1. Trích xuất đặc trưng (Feature Engineering) thủ công
+def get_features(item):
+    return {
+        "weight": item.weight, # Cân nặng
+        "text_length": len(item.summary) # Độ dài văn bản
+    }
+
+# 2. Huấn luyện Linear Regression
+# Mục đích: Tìm mối quan hệ tuyến tính giữa cân nặng/độ dài và giá
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# --- MÔ HÌNH NLP + RANDOM FOREST (Nâng cao hơn) ---
+
+# 1. Biến đổi văn bản thành số (Bag of Words)
+# Dùng CountVectorizer để đếm tần suất từ xuất hiện trong summary
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+# 2. Huấn luyện Random Forest
+# Random Forest mạnh hơn Linear Regression vì bắt được các quy luật phi tuyến tính
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X[:subset], prices[:subset])
+6. Kiến thức liên quan & Mở rộng
+•	Tại sao cần Baseline? Trong kỹ thuật phần mềm và AI, bạn không bao giờ nên bắt đầu bằng giải pháp phức tạp nhất. Baseline (như Random Pricer hoặc Constant Pricer) cho bạn biết "đáy" của hiệu suất. Bất kỳ nỗ lực nào (Linear Regression, LLM) đều phải có kết quả tốt hơn Baseline mới được coi là có giá trị.
+•	Scikit-learn (sklearn): Thư viện tiêu chuẩn vàng cho Machine Learning tại Python. Nó cung cấp các công cụ nhất quán cho việc tiền xử lý dữ liệu, huấn luyện mô hình và đánh giá.
+•	Khoảng tin cậy (Confidence Interval - Vùng xám trong biểu đồ):
+o	Khi bạn tính sai số trung bình trên 200 mẫu, con số đó có thể là ngẫu nhiên.
+o	Khoảng tin cậy 95% cho biết: "Chúng tôi tin chắc 95% rằng sai số thực sự nằm trong khoảng X đến Y". Dải màu xám càng hẹp thì độ tin cậy càng cao (thường đạt được khi tăng số lượng mẫu kiểm thử).
+•	R-squared ($R^2$): Chỉ số đo mức độ mô hình giải thích được sự biến thiên của dữ liệu.
+o	$R^2 = 1$: Dự đoán hoàn hảo.
+o	$R^2 = 0$: Ngang bằng với việc luôn đoán giá trung bình.
+o	$R^2 < 0$: Tệ hơn cả việc đoán trung bình (như Random Pricer trong bài này).
+
+ 150. Day 3 - Baseline Models and Linear Regression with Scikit-Learn
+Pythonimport json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "Constant" in source or "LinearRegression" in source or "get_features" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells ---
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+def get_features(item):
+    return {
+        "weight": item.weight,
+        "weight_unknown": 1 if item.weight==0 else 0,
+        "text_length": len(item.summary)
+    }
+--------------------
+def list_to_dataframe(items):
+    features = [get_features(item) for item in items]
+    df = pd.DataFrame(features)
+    df['price'] = [item.price for item in items]
+    return df
+
+train_df = list_to_dataframe(train)
+test_df = list_to_dataframe(test)
+--------------------
+# Traditional Linear Regression!
+
+np.random.seed(42)
+
+# Separate features and target
+feature_columns = ['weight', 'weight_unknown', 'text_length']
+
+X_train = train_df[feature_columns]
+y_train = train_df['price']
+X_test = test_df[feature_columns]
+y_test = test_df['price']
+
+# Train a Linear Regression
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+for feature, coef in zip(feature_columns, model.coef_):
+    print(f"{feature}: {coef}")
+print(f"Intercept: {model.intercept_}")
+
+# Predict the test set and evaluate
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse}")
+print(f"R-squared Score: {r2}")
+--------------------
+def linear_regression_pricer(item):
+    features = get_features(item)
+    features_df = pd.DataFrame([features])
+    return model.predict(features_df)[0]
+--------------------
+regressor = LinearRegression()
+regressor.fit(X, prices)
+--------------------
+
+Chào bạn Hieu, tiếp nối phần Random Pricer, bài học này sẽ đưa chúng ta đến với các mô hình nghiêm túc hơn một chút nhưng vẫn rất cơ bản: Constant Pricer (Đoán giá trung bình) và Linear Regression (Hồi quy tuyến tính).
+Dưới đây là tổng hợp chi tiết nội dung bài học "Day 3 - Baseline Models and Linear Regression with Scikit-Learn".
+1. Chủ đề bài học
+150. Day 3 - Baseline Models and Linear Regression with Scikit-Learn
+(Ngày 3 - Các mô hình cơ sở và Hồi quy tuyến tính với Scikit-Learn)
+2. Tóm tắt cốt lõi
+•	Constant Pricer (Mô hình hằng số): Một mô hình "ngây ngô" luôn dự đoán giá sản phẩm bằng đúng giá trị trung bình của tập huấn luyện ($140.56).
+o	Kết quả: Sai số giảm xuống còn $106.18 (tốt hơn nhiều so với đoán ngẫu nhiên $382).
+o	Ý nghĩa: Đây là một Baseline mạnh hơn. Bất kỳ mô hình AI nào cũng phải vượt qua con số $106.18 này mới được coi là có học được điều gì đó.
+•	Linear Regression (Hồi quy tuyến tính): Mô hình Machine Learning thực thụ đầu tiên. Nó cố gắng tìm ra công thức toán học (trọng số) để tính giá dựa trên các đặc điểm (features) của sản phẩm.
+o	Kết quả: Sai số $101.56. Chỉ tốt hơn một chút xíu so với đoán trung bình.
+o	Bài học: Thuật toán tốt (Linear Regression) nhưng dữ liệu đầu vào (Features) tồi (chỉ dùng cân nặng và độ dài văn bản) thì kết quả vẫn sẽ tồi ("Garbage In, Garbage Out").
+3. Nội dung chính
+A. Constant Pricer (Người định giá không đổi)
+•	Ý tưởng: Nếu bạn không biết gì về một sản phẩm, cách an toàn nhất để đoán giá là gì? Đó là đoán mức giá trung bình của tất cả sản phẩm trên thị trường.
+•	Thực hiện:
+1.	Tính giá trung bình của tập Train ($\approx \$140.56$).
+2.	Viết hàm constant_pricer luôn trả về con số này cho mọi sản phẩm.
+•	Chỉ số R-squared ($R^2$):
+o	Với mô hình này, $R^2 \approx 0$.
+o	Điều này khẳng định định nghĩa của $R^2$: $R^2=0$ nghĩa là mô hình của bạn không giải thích được gì thêm so với việc chỉ đoán trung bình.
+B. Linear Regression (Hồi quy tuyến tính)
+•	Nguyên lý: Giả sử giá tiền ($Y$) có quan hệ tuyến tính với các đặc điểm ($X$) như cân nặng, độ dài mô tả...
+o	Công thức: $Price = w_1 \times Weight + w_2 \times Length + Bias$
+•	Feature Engineering (Tạo đặc trưng): Vì máy tính không hiểu trực tiếp đối tượng Item, ta phải trích xuất các con số (features) từ nó:
+o	weight: Cân nặng sản phẩm.
+o	weight_unknown: Cờ báo (1 hoặc 0) nếu không có thông tin cân nặng (một kỹ thuật phổ biến để xử lý dữ liệu thiếu).
+o	text_length: Độ dài của đoạn văn mô tả.
+•	Kết quả thất vọng: Mô hình chỉ cải thiện được khoảng $5 so với việc đoán trung bình. Lý do là các features này (cân nặng, độ dài) không thực sự liên quan nhiều đến giá (ví dụ: một chiếc nhẫn kim cương rất nhẹ nhưng rất đắt).
+4. Kiến trúc & Quy trình (Pipeline)
+Quy trình áp dụng cho Linear Regression trong bài:
+1.	Input: Object Item.
+2.	Feature Extraction: Hàm get_features(item) chuyển đổi Item -> Dictionary (weight, text_length...).
+3.	Data Preparation: Chuyển đổi list các Dictionary thành pandas.DataFrame.
+4.	Training: Dùng sklearn.LinearRegression.fit() để tìm các hệ số $w$.
+5.	Inference: Dùng model.predict() để dự đoán giá cho tập Test.
+5. Phân tích Code (day3.ipynb)
+Dưới đây là các đoạn code quan trọng thể hiện logic của bài học:
+A. Feature Engineering (Trích xuất đặc trưng)
+Python
+def get_features(item):
+    # Trích xuất 3 đặc trưng cơ bản từ sản phẩm
+    return {
+        "weight": item.weight,
+        # Kỹ thuật xử lý missing value: Tạo thêm feature phụ đánh dấu việc thiếu dữ liệu
+        "weight_unknown": 1 if item.weight == 0 else 0,
+        # Giả thuyết ngây thơ: Mô tả càng dài thì hàng càng xịn?
+        "text_length": len(item.summary)
+    }
+
+# Hàm chuyển đổi danh sách Items thành DataFrame (bảng tính) để Scikit-learn hiểu
+def list_to_dataframe(items):
+    features = [get_features(item) for item in items]
+    df = pd.DataFrame(features)
+    df['price'] = [item.price for item in items] # Cột mục tiêu (Target)
+    return df
+B. Huấn luyện Linear Regression
+Python
+from sklearn.linear_model import LinearRegression
+
+# 1. Chuẩn bị dữ liệu
+feature_columns = ['weight', 'weight_unknown', 'text_length']
+X_train = train_df[feature_columns] # Input
+y_train = train_df['price']         # Output (Label)
+
+# 2. Khởi tạo và Huấn luyện mô hình
+# .fit() là lúc mô hình học các trọng số (coefficients) tối ưu
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 3. Kiểm tra trọng số đã học
+# In ra để xem mô hình đánh giá tầm quan trọng của từng feature thế nào
+for feature, coef in zip(feature_columns, model.coef_):
+    print(f"{feature}: {coef}")
+# weight: có thể là số dương (nặng hơn -> đắt hơn?)
+# text_length: có thể rất nhỏ (gần như không ảnh hưởng)
+C. Hàm dự đoán để đánh giá
+Python
+def linear_regression_pricer(item):
+    # Để dự đoán 1 item, ta cũng phải trích xuất feature y hệt lúc train
+    features = get_features(item)
+    # Tạo DataFrame 1 dòng
+    features_df = pd.DataFrame([features])
+    # Trả về giá trị dự đoán đầu tiên
+    return model.predict(features_df)[0]
+6. Kiến thức liên quan & Mở rộng
+•	Feature Engineering (Kỹ thuật đặc trưng): Trong ML truyền thống, đây là công đoạn quan trọng nhất. Bạn phải là chuyên gia về lĩnh vực đó (Domain Expert) để biết feature nào quan trọng (ví dụ: với bất động sản thì là "diện tích", "số phòng ngủ"). Trong bài này, features quá sơ sài nên kết quả kém. Deep Learning sau này sẽ tự động làm việc này.
+•	Dummy Variables / Indicator Features: Việc tạo feature weight_unknown là một kỹ thuật hay. Thay vì điền 0 hoặc trung bình vào chỗ thiếu, ta nói rõ cho mô hình biết "chỗ này bị thiếu thông tin", và mô hình có thể học cách xử lý riêng cho trường hợp đó.
+•	Hạn chế của Linear Regression: Nó giả định mối quan hệ tuyến tính (đường thẳng). Thực tế giá cả phức tạp hơn nhiều (phi tuyến tính). Ví dụ: Độ dài văn bản tăng đến một mức nào đó thì tốt, nhưng dài quá (spam) thì giá lại thấp. Linear Regression khó học được điều này.
+•	Pandas DataFrame: Cấu trúc dữ liệu dạng bảng (giống Excel) cực kỳ phổ biến trong Data Science, giúp thao tác dữ liệu dễ dàng trước khi đưa vào Scikit-learn.
+
+151. Day 3 - Bag of Words and CountVectorizer for Linear Regression NLP
+Pythonimport json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells for Bag of Words ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "CountVectorizer" in source or "Bag of Words" in source or "Linear Regression NLP" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells for Bag of Words ---
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+np.random.seed(42)
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+--------------------
+
+Pythonprint("--- Finding definition of 'documents' and NLP Linear Regression ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "documents =" in source or "documents=" in source:
+             print("Found documents definition:")
+             print(source)
+             print("-" * 20)
+        if "regressor.fit(X" in source: # Looking for where X (from vectorizer) is used
+             print("Found model fitting with X:")
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Finding definition of 'documents' and NLP Linear Regression ---
+Found documents definition:
+prices = np.array([float(item.price) for item in train])
+documents = [item.summary for item in train]
+--------------------
+Found model fitting with X:
+regressor = LinearRegression()
+regressor.fit(X, prices)
+--------------------
+
+Pythonprint("--- Finding prediction function for NLP Linear Regression ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "vectorizer.transform" in source and "predict" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Finding prediction function for NLP Linear Regression ---
+def natural_language_linear_regression_pricer(item):
+    x = vectorizer.transform([item.summary])
+    return max(regressor.predict(x)[0], 0)
+--------------------
+def random_forest(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, rf_model.predict(x)[0])
+--------------------
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+--------------------
+
+Chào bạn Hieu, đây là bước ngoặt quan trọng trong bài học Day 3. Thay vì cố gắng "đoán" xem đặc trưng nào quan trọng (như cân nặng, độ dài), chúng ta sẽ để cho mô hình tự học trực tiếp từ văn bản mô tả sản phẩm bằng kỹ thuật NLP cổ điển nhưng cực kỳ hiệu quả: Bag of Words.
+Dưới đây là tổng hợp chi tiết nội dung bài học "Day 3 - Bag of Words and CountVectorizer for Linear Regression NLP".
+1. Chủ đề bài học
+151. Day 3 - Bag of Words and CountVectorizer for Linear Regression NLP
+(Ngày 3 - Kỹ thuật Túi từ và CountVectorizer cho Hồi quy tuyến tính NLP)
+2. Tóm tắt cốt lõi
+•	Vấn đề của phương pháp cũ: Việc chọn thủ công các tính năng (feature engineering) như "cân nặng" hay "độ dài văn bản" cho kết quả tồi tệ ($101.56 sai số) vì chúng không phản ánh đúng giá trị sản phẩm.
+•	Giải pháp NLP cổ điển: Sử dụng kỹ thuật Bag of Words (BoW) để biến văn bản thành các con số mà máy tính hiểu được.
+•	CountVectorizer: Công cụ của Scikit-Learn giúp tự động tìm ra 2000 từ phổ biến nhất và đếm tần suất xuất hiện của chúng trong mỗi sản phẩm.
+•	Kết quả đột phá: Sai số giảm mạnh xuống còn $76.81 (so với $101.56) và $R^2$ tăng lên 41.8%. Điều này chứng minh rằng nội dung văn bản chứa đựng rất nhiều thông tin về giá cả.
+3. Nội dung chính
+A. Ý tưởng "Túi từ" (Bag of Words - BoW)
+•	Thay vì tự hỏi "Liệu từ 'luxury' có làm tăng giá không?", ta hãy để mô hình tự trả lời.
+•	Nguyên lý:
+1.	Lấy tất cả văn bản trong tập huấn luyện.
+2.	Tìm ra 2000 từ phổ biến nhất (Vocabulary).
+3.	Biến mỗi mô tả sản phẩm thành một vector dài 2000 số. Mỗi số đại diện cho số lần từ đó xuất hiện trong mô tả.
+o	Ví dụ: Nếu từ "Samsung" là từ thứ 100 trong danh sách, và nó xuất hiện 2 lần trong mô tả, thì tại vị trí thứ 100 của vector sẽ là số 2.
+•	Gọi là "Túi từ" vì nó không quan tâm đến trật tự từ hay ngữ pháp, chỉ quan tâm từ đó có xuất hiện hay không và bao nhiêu lần (như ném tất cả từ vào một cái túi và lắc lên).
+B. Thực hiện với Scikit-Learn
+•	CountVectorizer: Đây là class trong Scikit-Learn thực hiện toàn bộ công việc trên.
+•	Stop Words (Từ dừng): Chúng ta loại bỏ những từ vô nghĩa như "and", "the", "is"... (gọi là english stop words) để tập trung vào các từ mang ý nghĩa như "gold", "smart", "budget".
+•	Mô hình kết hợp: Sau khi văn bản được biến thành vector số (2000 features), ta đưa nó vào Linear Regression. Lúc này, mô hình sẽ học trọng số cho từng từ.
+o	Ví dụ: Từ "Gold" có thể có trọng số +$200, từ "Cable" có trọng số +$5.
+4. Kiến trúc & Quy trình (Pipeline)
+1.	Input: Danh sách các đoạn văn bản tóm tắt (summary) của sản phẩm.
+2.	Vectorization (Biến đổi):
+o	CountVectorizer(max_features=2000, stop_words='english')
+o	Học từ điển từ tập Train -> Biến đổi tập Train thành ma trận X (kích thước: số lượng sản phẩm x 2000).
+3.	Training:
+o	LinearRegression.fit(X, y)
+o	Mô hình học mối tương quan giữa sự xuất hiện của các từ và giá tiền.
+4.	Inference (Dự đoán):
+o	Lấy summary của sản phẩm mới -> Biến đổi qua vectorizer (dùng từ điển đã học) -> Đưa vào model để dự đoán giá.
+5. Phân tích Code (day3.ipynb)
+Đây là đoạn code triển khai kỹ thuật Bag of Words:
+Python
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LinearRegression
+import numpy as np
+
+# 1. Chuẩn bị dữ liệu
+# Lấy giá và văn bản tóm tắt từ tập train
+prices = np.array([float(item.price) for item in train])
+documents = [item.summary for item in train]
+
+# 2. Khởi tạo CountVectorizer (Bộ đếm vector)
+# max_features=2000: Chỉ quan tâm 2000 từ xuất hiện nhiều nhất (để giảm nhiễu và tăng tốc độ)
+# stop_words='english': Loại bỏ các từ nối vô nghĩa (the, a, an...)
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+
+# 3. Fit & Transform
+# .fit_transform làm 2 việc:
+# - Học danh sách 2000 từ vựng từ 'documents'
+# - Biến đổi 'documents' thành ma trận số (Sparse Matrix)
+X = vectorizer.fit_transform(documents)
+
+# 4. Huấn luyện Linear Regression trên dữ liệu văn bản đã số hóa
+regressor = LinearRegression()
+regressor.fit(X, prices)
+
+# 5. Hàm dự đoán (Pipeline cho Inference)
+def natural_language_linear_regression_pricer(item):
+    # CỰC KỲ QUAN TRỌNG: Chỉ dùng .transform(), KHÔNG dùng .fit()
+    # Phải dùng đúng bộ từ điển đã học từ tập train
+    x = vectorizer.transform([item.summary])
+    
+    # Dự đoán giá, nếu ra số âm thì lấy 0 (max(..., 0))
+    prediction = regressor.predict(x)[0]
+    return max(prediction, 0)
+Giải thích logic:
+•	X ở đây không phải là ma trận bình thường mà là Sparse Matrix (Ma trận thưa). Vì trong 2000 từ, một sản phẩm chỉ chứa khoảng vài chục từ, nên hầu hết các ô là số 0. Scikit-learn lưu trữ dạng này để tiết kiệm RAM.
+•	Kết quả $76.81 cho thấy mô hình đã bắt đầu "hiểu" sản phẩm thông qua các từ khóa.
+6. Kiến thức liên quan & Mở rộng
+•	Sparse Matrix (Ma trận thưa): Là kỹ thuật lưu trữ dữ liệu thông minh. Thay vì lưu hàng nghìn số 0, nó chỉ lưu vị trí và giá trị của các số khác 0. Điều này cực kỳ quan trọng khi làm việc với Bag of Words (nơi vector có thể lên tới hàng triệu chiều).
+•	Nhược điểm của Bag of Words:
+o	Mất ngữ cảnh: "Dog bites man" và "Man bites dog" sẽ có vector y hệt nhau (vì cùng chứa các từ dog, bites, man).
+o	Không hiểu ngữ nghĩa: "Good" và "Great" được coi là 2 từ hoàn toàn khác nhau, không liên quan gì nhau. Đây là lý do sau này chúng ta cần Embeddings (trong Deep Learning).
+•	N-grams: Một cách nâng cấp nhẹ cho BoW là dùng N-grams (cụm từ). Ví dụ ngram_range=(1, 2) sẽ tính cả từ đơn ("smart", "tv") và từ đôi ("smart tv"). Điều này giúp bắt được ngữ cảnh tốt hơn một chút.
+
+152. Day 3 - Random Forest and XGBoost: Ensemble Models in Scikit-Learn
+Pythonimport json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells for Random Forest and XGBoost ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "RandomForestRegressor" in source or "XGBRegressor" in source or "xgb" in source or "Ensemble" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells for Random Forest and XGBoost ---
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+subset = 15_000
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
+rf_model.fit(X[:subset], prices[:subset])
+--------------------
+import xgboost as xgb
+--------------------
+np.random.seed(42)
+
+xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
+xgb_model.fit(X, prices)
+--------------------
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+--------------------
+
+Chào bạn Hieu, đây là phần cuối cùng và thú vị nhất của Day 3. Sau khi đã thử Linear Regression và đạt kết quả $76.81, chúng ta sẽ chuyển sang "vũ khí hạng nặng" của ML truyền thống: Ensemble Learning (Học tập kết hợp) với hai đại diện ưu tú là Random Forest và XGBoost.
+Dưới đây là tổng hợp chi tiết nội dung bài học "152. Day 3 - Random Forest and XGBoost: Ensemble Models in Scikit-Learn".
+1. Chủ đề bài học
+152. Day 3 - Random Forest and XGBoost: Ensemble Models in Scikit-Learn
+(Ngày 3 - Rừng ngẫu nhiên và XGBoost: Các mô hình kết hợp trong Scikit-Learn)
+2. Tóm tắt cốt lõi
+•	Sức mạnh của Ensemble (Hợp nhất): Thay vì dùng 1 mô hình (như 1 cây quyết định), ta dùng hàng trăm mô hình con và tổng hợp kết quả của chúng. "Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao".
+•	Random Forest (Rừng ngẫu nhiên): Tập hợp nhiều cây quyết định (Decision Trees) độc lập. Kết quả cải thiện lên $72.28 (so với Linear Regression $76.81).
+•	XGBoost (Extreme Gradient Boosting): Phiên bản nâng cấp mạnh mẽ hơn, xây dựng các cây tuần tự để sửa lỗi cho nhau. Đây là "ông vua" của ML truyền thống. Kết quả tốt nhất ngày hôm nay: $68.23.
+•	Kết luận Day 3: Với ML truyền thống và xử lý dữ liệu khéo léo (Bag of Words), ta đã giảm sai số từ ~$382 (đoán mò) xuống còn ~$68. Đây là Baseline vững chắc để thách thức các mô hình Deep Learning trong Day 4.
+3. Nội dung chính
+A. Random Forest (Rừng ngẫu nhiên)
+•	Khái niệm: Dựa trên Decision Tree (Cây quyết định) - về cơ bản là một chuỗi các câu lệnh if-else.
+o	Ví dụ: IF "TV" xuất hiện > 2 lần AND có "LED" -> Price = $500.
+•	Cơ chế:
+o	Tạo ra 100 (hoặc nhiều hơn) cây quyết định khác nhau.
+o	Mỗi cây học trên một tập con ngẫu nhiên của dữ liệu và đặc trưng.
+o	Dự đoán cuối cùng là trung bình cộng của tất cả các cây.
+•	Hiệu năng: Chạy chậm hơn Linear Regression rất nhiều. Trong bài, tác giả chỉ chạy trên tập con 15,000 mẫu để tiết kiệm thời gian.
+B. XGBoost (Extreme Gradient Boosting)
+•	Khác biệt: Nếu Random Forest xây các cây song song và độc lập, thì XGBoost xây cây tuần tự.
+o	Cây thứ 1 xây xong -> Cây thứ 2 nhìn vào sai số của cây 1 để sửa -> Cây thứ 3 sửa lỗi của cây 2...
+•	Ưu điểm:
+o	Cực kỳ nhanh (được tối ưu hóa tốt).
+o	Khả năng Generalization (Khái quát hóa) cực tốt.
+o	Thường xuyên vô địch các giải đấu Kaggle trên dữ liệu bảng (Tabular Data).
+•	Kết quả: Sai số thấp nhất $68.23, thiết lập chuẩn mực (SOTA - State of the Art) cho ngày hôm nay.
+4. Kiến trúc & Quy trình (Pipeline)
+Vẫn giữ nguyên pipeline xử lý văn bản (Bag of Words) từ bài trước, chỉ thay đổi thuật toán dự đoán:
+1.	Input: item.summary
+2.	Vectorizer: CountVectorizer (đã train từ trước) -> Biến văn bản thành vector X (2000 chiều).
+3.	Model:
+o	Random Forest: Input X -> 100 Trees -> Average -> Output Price.
+o	XGBoost: Input X -> Gradient Boosting Trees -> Output Price.
+4.	Prediction: Dự đoán giá trên tập Test.
+5. Phân tích Code (day3.ipynb)
+A. Random Forest Regressor
+Python
+from sklearn.ensemble import RandomForestRegressor
+
+# Sử dụng tập con dữ liệu vì thuật toán này chạy khá lâu
+subset = 15_000
+
+# Khởi tạo mô hình
+# n_estimators=100: Tạo 100 cây quyết định
+# n_jobs=4: Chạy song song trên 4 luồng CPU để nhanh hơn
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
+
+# Huấn luyện trên tập con (X và prices đã có từ bước CountVectorizer trước đó)
+rf_model.fit(X[:subset], prices[:subset])
+
+# Hàm dự đoán
+def random_forest(item):
+    # Biến đổi văn bản thành vector
+    x = vectorizer.transform([item.summary])
+    # Dự đoán
+    prediction = rf_model.predict(x)[0]
+    # Giá không thể âm, nên lấy max(0, prediction)
+    return max(0, prediction)
+B. XGBoost Regressor
+Python
+import xgboost as xgb
+
+# Khởi tạo mô hình XGBoost
+# n_estimators=1000: Số lượng cây rất lớn (vì XGBoost chạy nhanh nên có thể tăng số này lên)
+# learning_rate=0.1: Tốc độ học (quan trọng trong Boosting)
+xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
+
+# Huấn luyện trên TOÀN BỘ dữ liệu (XGBoost đủ nhanh để "nhai" hết dataset)
+xgb_model.fit(X, prices)
+
+# Hàm dự đoán
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+6. Tổng kết bảng xếp hạng Day 3
+Bạn hãy ghi lại các con số này vào tờ giấy ghi chú (prop) của mình như lời giảng viên dặn nhé:
+Mô hình	Sai số (MAE)	Nhận xét
+Random Pricer	~$382.08	Đoán mò (Baseline thảm họa)
+Constant Pricer	~$106.18	Đoán trung bình (Baseline chấp nhận được)
+Linear Regression	~$101.56	Tính năng thủ công (Feature Engineering tồi)
+Linear Regression (NLP)	~$76.81	Dùng Bag of Words (Bước nhảy vọt)
+Random Forest	~$72.28	Ensemble (Mạnh hơn nhưng chậm)
+XGBoost	**~$68.23**	Champion của Day 3 🏆
+7. Kiến thức mở rộng
+•	Tại sao XGBoost thắng? Trong các bài toán dữ liệu có cấu trúc (bảng, csv) hoặc văn bản thô sơ (như Bag of Words), các mô hình dựa trên cây (Tree-based) như XGBoost thường hoạt động tốt hơn Deep Learning vì chúng xử lý tốt các đặc trưng rời rạc và không cần quá nhiều dữ liệu để hội tụ.
+•	Giới hạn của ML truyền thống: Dù $68 là kết quả tốt, nhưng các mô hình này không thực sự "hiểu" ngôn ngữ. Chúng chỉ đếm từ khóa. Nếu mô tả sản phẩm dùng từ ngữ bóng bẩy, ẩn dụ hoặc từ đồng nghĩa mà không có trong từ điển 2000 từ phổ biến, chúng sẽ thất bại. Đó là lý do chúng ta cần Deep Learning (Neural Networks) và LLMs (sẽ học vào Day 4).
+Chúc mừng Hieu đã hoàn thành Day 3! Bạn đã có trong tay một Baseline vững chắc ($68.23). Ngày mai, chúng ta sẽ xem liệu AI hiện đại có thể đánh bại con số này không nhé.

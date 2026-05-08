@@ -183,3 +183,6 @@ node_modules/
 # Ignore memory/session files
 memory.json
 day_mcp/
+
+# Ignore large fine-tune data files (800MB+ JSONL output)
+fine_tune_qwen/

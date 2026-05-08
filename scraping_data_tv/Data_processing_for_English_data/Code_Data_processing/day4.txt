@@ -1,0 +1,882 @@
+DAY 4 
+153. Day 4 - Training Your First Neural Network and Testing Frontier Models 
+Chào Hieu, cảm ơn bạn đã cung cấp đầy đủ ngữ cảnh từ các buổi học trước (file xử_lý_dữ_liệu.docx), slide bài giảng và bản phiên âm chi tiết của Day 4.
+Dựa trên dữ liệu bạn cung cấp, đây là tổng hợp chi tiết nội dung bài học Day 4 - Training Your First Neural Network and Testing Frontier Models.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Bước chuyển mình sang Deep Learning: Sau khi đã thiết lập các mô hình cơ sở (Baseline) bằng Machine Learning truyền thống (Linear Regression, XGBoost) ở Day 3, bài học này tập trung vào việc xây dựng và huấn luyện một Mạng nơ-ron cơ bản (Vanilla Neural Network) từ con số 0.
+•	Lý thuyết huấn luyện (Training Loop): Trọng tâm kiến thức nằm ở "Vòng lặp huấn luyện" với 4 bước bất di bất dịch: Forward Pass (Dự đoán) -> Loss Calculation (Tính lỗi) -> Backward Pass (Tính Gradient) -> Optimization (Cập nhật tham số).
+•	Siêu tham số (Hyperparameters): Làm rõ khái niệm về các tham số cài đặt "bên ngoài" mô hình như Epochs (số vòng lặp), Batch size (kích thước lô), Learning Rate (tốc độ học) và bản chất của việc tối ưu hóa chúng thực ra là "thử và sai" (trial & error).
+•	Frontier Models: So sánh hiệu suất của mạng nơ-ron tự xây với các mô hình ngôn ngữ lớn hàng đầu (Frontier Models - như GPT-4, Claude) trên cùng một bài toán định giá sản phẩm.
+________________________________________
+2. Nội dung chính
+A. Ôn tập & Định vị tiến độ
+•	Day 1 & 2: Đã tuyển chọn dữ liệu Amazon, làm sạch và dùng LLM để viết lại (Pre-processing) thành dữ liệu chất lượng cao.
+•	Day 3: Đã xây dựng Baseline bằng Linear Regression và XGBoost. Kết quả tốt nhất đang là sai số khoảng $68 (với XGBoost).
+•	Mục tiêu Day 4: Phải xem liệu Mạng nơ-ron (Neural Network) và các LLM hiện đại có thể đánh bại con số $68 này không.
+B. Quy trình huấn luyện Mạng nơ-ron (The 4 Steps of Training)
+Giảng viên nhấn mạnh 4 bước kỹ thuật diễn ra lặp đi lặp lại trong quá trình training:
+1.	Forward Pass (Lan truyền xuôi):
+o	Đưa dữ liệu đầu vào (Input) qua mạng nơ-ron.
+o	Mô hình tính toán và đưa ra dự đoán ($\hat{y}$).
+2.	Loss Calculation (Tính toán mất mát):
+o	So sánh giá dự đoán ($\hat{y}$) với giá thực tế ($y$ - Ground Truth).
+o	Tính ra con số sai lệch (Loss/Error).
+3.	Backward Pass (Lan truyền ngược):
+o	Sử dụng giải tích (đạo hàm) để tính Gradient.
+o	Mục đích: Tìm hiểu xem nếu thay đổi từng tham số (weight) một chút xíu thì sai số sẽ tăng hay giảm.
+4.	Optimization (Tối ưu hóa):
+o	Thực hiện một bước nhỏ (Step) để cập nhật lại các tham số theo hướng giảm thiểu sai số.
+o	Thuật toán phổ biến: Stochastic Gradient Descent (SGD).
+C. Siêu tham số (Hyperparameters)
+Đây là các cài đặt cấu hình hệ thống, không phải là trọng số được mô hình tự học:
+•	Batch Size: Số lượng dữ liệu được xử lý trong một lần tính toán (không đưa cả 800k dòng vào cùng lúc mà chia nhỏ ra).
+•	Epochs (Kỷ nguyên): Số lần mô hình được học trọn vẹn toàn bộ tập dữ liệu.
+•	Learning Rate (Tốc độ học): Kích thước của bước nhảy khi cập nhật tham số. Bước quá lớn có thể đi quá đà (không hội tụ), bước quá nhỏ thì học rất lâu.
+•	Hyperparameter Optimization: Thực chất là quá trình thử nghiệm các tổ hợp khác nhau để tìm ra bộ thông số tốt nhất.
+________________________________________
+3. Kiến trúc & Quy trình (Training Pipeline)
+Dựa trên mô tả trong bài giảng, Pipeline huấn luyện mạng nơ-ron (sử dụng PyTorch) sẽ diễn ra như sau:
+1.	Input Data: Dữ liệu văn bản đã được vector hóa (tương tự Bag of Words của Day 3 hoặc Embeddings).
+2.	Network Architecture (Vanilla NN):
+o	Input Layer (Số chiều = Số lượng từ vựng/features).
+o	Hidden Layers (Các lớp ẩn với hàm kích hoạt như ReLU).
+o	Output Layer (1 nơ-ron duy nhất trả về giá tiền).
+3.	Training Loop:
+Đoạn mã
+graph LR
+A[Batch Data] --> B(Forward Pass: Predict Price)
+B --> C(Calculate Loss: Pred vs Real)
+C --> D(Backward Pass: Compute Gradients)
+D --> E(Optimizer Step: Update Weights)
+E --> A
+4.	Evaluation: So sánh kết quả trên tập Test bằng biểu đồ $y$ vs $\hat{y}$.
+________________________________________
+4. Phân tích Code (Mô phỏng dựa trên nội dung bài giảng)
+Lưu ý: Bạn chưa cung cấp file code .ipynb cụ thể của Day 4, nhưng dựa trên bản phiên âm, giảng viên mô tả code PyTorch rất tiêu chuẩn. Dưới đây là cấu trúc code "từng dòng một" tương ứng với 4 bước mà giảng viên đề cập:
+Python
+# Giả lập vòng lặp huấn luyện (Training Loop) trong PyTorch
+# Đây là phần logic cốt lõi được mô tả trong bài học
+
+# 1. Siêu tham số (Hyperparameters) - Những cài đặt "bên ngoài"
+epochs = 100          # Số lần học lại toàn bộ dữ liệu
+learning_rate = 0.01  # Tốc độ cập nhật kiến thức
+
+for epoch in range(epochs):
+    for batch in dataloader: # Duyệt qua từng lô dữ liệu nhỏ
+        
+        # --- BƯỚC 1: FORWARD PASS (Lan truyền xuôi) ---
+        # Đưa dữ liệu (x) vào mô hình để lấy dự đoán (y_pred)
+        y_pred = model(batch_x)
+        
+        # --- BƯỚC 2: LOSS CALCULATION (Tính toán mất mát) ---
+        # So sánh dự đoán với thực tế (batch_y) để xem sai bao nhiêu
+        loss = criterion(y_pred, batch_y)
+        
+        # --- BƯỚC 3: BACKWARD PASS (Lan truyền ngược) ---
+        # Tính toán gradient (đạo hàm) cho tất cả các tham số
+        # Để biết cần chỉnh sửa tham số nào, theo hướng nào
+        loss.backward()
+        
+        # --- BƯỚC 4: OPTIMIZATION (Tối ưu hóa) ---
+        # Cập nhật trọng số của mô hình dựa trên gradient vừa tính
+        # Đây là bước mô hình thực sự "học"
+        optimizer.step()
+        
+        # Đặt lại gradient về 0 cho vòng lặp tiếp theo (đặc thù của PyTorch)
+        optimizer.zero_grad()
+Giải thích logic:
+•	Đoạn code trên thể hiện chính xác quy trình "thử và sai" của máy tính. Nó đoán, xem sai bao nhiêu, rút kinh nghiệm, và sửa lại bộ não của mình một chút. Quá trình này lặp lại hàng nghìn/triệu lần cho đến khi sai số là nhỏ nhất.
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao gọi là "Vanilla" Neural Network?
+•	"Vanilla" (Vani) trong tiếng Anh thường ám chỉ sự cơ bản, nguyên bản, không có gì phức tạp thêm thắt.
+•	Trong bài này, "Vanilla NN" (thường là Multi-Layer Perceptron - MLP) chỉ bao gồm các lớp kết nối đầy đủ (Fully Connected Layers), chưa có cơ chế Attention (như Transformer) hay tích chập (như CNN). Đây là bước đệm để hiểu trước khi sang các mô hình phức tạp.
+B. Frontier Models vs. Fine-tuning (Teaser cho tuần sau)
+•	Bài học kết thúc bằng việc so sánh với Frontier Models. Đây là các mô hình LLM đã được train trước (Pre-trained) với lượng dữ liệu khổng lồ.
+•	Tuy nhiên, ở Day 4, chúng ta có thể chỉ đang dùng chúng ở chế độ Inference (hỏi và đáp) hoặc Few-shot prompting để định giá.
+•	Fine-tuning (Tuần sau): Sẽ là bước đột phá khi ta áp dụng quy trình 4 bước huấn luyện ở trên vào chính các Frontier Models này (thông qua kỹ thuật như LoRA - Low Rank Adaptation được nhắc trong slide) để biến chúng thành chuyên gia định giá.
+C. Generalization vs. Overfitting
+•	Generalization (Khái quát hóa): Là mục tiêu tối thượng. Mô hình học được "quy luật chung" (ví dụ: Ram cao -> Giá cao).
+•	Overfitting (Học vẹt): Mô hình học thuộc lòng dữ liệu train (ví dụ: Cái laptop mã XYZ123 giá $500). Khi gặp dữ liệu mới, nó sẽ đoán sai vì nó chỉ nhớ chứ không hiểu quy luật.
+Bạn đã sẵn sàng để xem kết quả thực nghiệm xem liệu "Deep Learning" sơ khai này có đánh bại được thuật toán "XGBoost" già dơ của Day 3 không chưa?
+154. Day 4 - Human Baseline Performance vs Machine Learning Models in PyTorch 
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        # Look for relevant keywords mentioned in the transcript
+        if "Human" in source or "torch" in source or "evaluate" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells ---
+# imports
+
+import os
+from dotenv import load_dotenv
+from huggingface_hub import login
+from pricer.evaluator import evaluate
+from litellm import completion
+from pricer.items import Item
+import numpy as np
+from tqdm.notebook import tqdm
+import csv
+from sklearn.feature_extraction.text import HashingVectorizer
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+--------------------
+human = human_pricer(test[0])
+actual = test[0].price
+print(f"Human predicted {human} for an item that actually costs {actual}")
+
+--------------------
+evaluate(human_pricer, test, size=100)
+--------------------
+# Define the neural network - here is Pytorch code to create a 8 layer neural network
+
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.layer1 = nn.Linear(input_size, 128)
+        self.layer2 = nn.Linear(128, 64)
+        self.layer3 = nn.Linear(64, 64)
+        self.layer4 = nn.Linear(64, 64)
+        self.layer5 = nn.Linear(64, 64)
+        self.layer6 = nn.Linear(64, 64)
+        self.layer7 = nn.Linear(64, 64)
+        self.layer8 = nn.Linear(64, 1)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        output1 = self.relu(self.layer1(x))
+        output2 = self.relu(self.layer2(output1))
+        output3 = self.relu(self.layer3(output2))
+        output4 = self.relu(self.layer4(output3))
+        output5 = self.relu(self.layer5(output4))
+        output6 = self.relu(self.layer6(output5))
+        output7 = self.relu(self.layer7(output6))
+        output8 = self.layer8(output7)
+        return output8
+--------------------
+# Convert data to PyTorch tensors
+X_train_tensor = torch.FloatTensor(X.toarray())
+y_train_tensor = torch.FloatTensor(y).unsqueeze(1)
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train_tensor, y_train_tensor, test_size=0.01, random_state=42)
+
+# Create the loader
+train_dataset = TensorDataset(X_train, y_train)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+# Initialize the model
+input_size = X_train_tensor.shape[1]
+model = NeuralNetwork(input_size)
+--------------------
+# Define loss function and optimizer
+
+loss_function = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# We will do 2 complete runs through the data
+
+EPOCHS = 2
+
+for epoch in range(EPOCHS):
+    model.train()
+    for batch_X, batch_y in tqdm(train_loader):
+        optimizer.zero_grad()
+
+        # The next 4 lines are the 4 stages of training: forward pass, loss calculation, backward pass, optimize
+        
+        outputs = model(batch_X)
+        loss = loss_function(outputs, batch_y)
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        val_outputs = model(X_val)
+        val_loss = loss_function(val_outputs, y_val)
+
+    print(f'Epoch [{epoch+1}/{EPOCHS}], Train Loss: {loss.item():.3f}, Val Loss: {val_loss.item():.3f}')
+--------------------
+def neural_network(item):
+    model.eval()
+    with torch.no_grad():
+        vector = vectorizer.transform([item.summary])
+        vector = torch.FloatTensor(vector.toarray())
+        result = model(vector)[0].item()
+    return max(0, result)
+--------------------
+evaluate(neural_network, test)
+--------------------
+evaluate(gpt_4__1_nano, test)
+--------------------
+evaluate(claude_opus_4_5, test)
+--------------------
+evaluate(gemini_3_pro_preview, test, size=50, workers=2)
+--------------------
+evaluate(gemini_2__5_flash_lite, test)
+--------------------
+evaluate(grok_4__1_fast, test)
+--------------------
+evaluate(gpt_5__1, test)
+--------------------
+
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Searching for human_pricer definition ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "def human_pricer" in source or "pd.read_csv" in source or "csv.reader" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Searching for human_pricer definition ---
+# Read it back in
+
+human_predictions = []
+with open('human_out.csv', 'r', encoding="utf-8") as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        human_predictions.append(float(row[1]))
+--------------------
+def human_pricer(item):
+    idx = test.index(item)
+    return human_predictions[idx]
+--------------------
+
+Chào Hieu, đây là phần tổng hợp nội dung bài học Day 4 - Human Baseline Performance vs Machine Learning Models in PyTorch dựa trên bản phiên âm và file notebook day4.ipynb.
+Bài học này bắt đầu bằng một bước đi rất thú vị: Trước khi xây dựng những mạng nơ-ron phức tạp, chúng ta cần biết con người (cụ thể là chính giảng viên) làm tốt đến đâu để có một thước đo (Baseline) chuẩn xác.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thiết lập Human Baseline: Giảng viên đã tự mình thực hiện thử thách đoán giá cho 100 sản phẩm đầu tiên trong tập test để tạo ra một "Human Baseline".
+•	Kết quả bất ngờ: Con người (giảng viên) có sai số trung bình khoảng **$87**. Kết quả này tốt hơn mô hình đoán mò (Random) và đoán trung bình (Constant), nhưng lại thua các mô hình Machine Learning đơn giản như Natural Language Linear Regression ($76.8) và XGBoost ($68).
+•	Chuyển sang Deep Learning: Sau khi "thua đau" trước ML truyền thống, bài học chuyển sang xây dựng vũ khí hạng nặng: Mạng nơ-ron nhân tạo (Artificial Neural Network) sử dụng thư viện PyTorch để hy vọng lật ngược tình thế.
+________________________________________
+2. Nội dung chính
+A. Thử nghiệm "Human Performance" (Hiệu suất con người)
+•	Triết lý: Trước khi dùng AI, hãy xem con người làm tốt đến đâu. Nếu AI không thắng được con người thì nó chưa đủ tốt. Ngược lại, nếu con người làm quá tệ, đó là dấu hiệu cho thấy bài toán này thực sự khó.
+•	Thực hiện: Giảng viên tạo file Human.csv chứa mô tả sản phẩm và tự mình điền giá dự đoán vào đó.
+•	Kết quả thực nghiệm:
+o	Human Error (MAE): ~$87.62
+o	So sánh:
+	Thắng: Random Pricer (~$382), Constant Pricer (~$106), Traditional Linear Regression (~$101).
+	Thua: NLP Linear Regression (~$76.8), XGBoost (~$68).
+o	Kết luận: Máy học truyền thống (với Bag of Words) đã đánh bại trực giác của con người trong việc định giá sản phẩm dựa trên mô tả văn bản.
+B. Xây dựng Mạng nơ-ron với PyTorch (PyTorch Neural Network)
+•	Sau phần Human Baseline, bài học đi vào xây dựng mạng nơ-ron đầu tiên.
+•	Kiến trúc: Một mạng thuần (Vanilla NN) với nhiều lớp ẩn (Hidden Layers) xếp chồng lên nhau.
+•	Cơ chế: Sử dụng HashingVectorizer để biến văn bản thành số, sau đó đưa vào mạng nơ-ron để học mối quan hệ phi tuyến tính phức tạp hơn.
+________________________________________
+3. Phân tích Code (File day4.ipynb)
+Dưới đây là phân tích các đoạn code quan trọng liên quan đến Human Baseline và khởi tạo PyTorch:
+A. Human Pricer (Định giá bởi con người)
+Logic ở đây rất đơn giản: Đọc kết quả đoán từ file CSV và trả về khi được hỏi.
+Python
+import csv
+
+# 1. Đọc dữ liệu dự đoán của con người từ file CSV
+human_predictions = []
+with open('human_out.csv', 'r', encoding="utf-8") as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        # Lưu giá dự đoán vào list (cột thứ 2 trong file csv)
+        human_predictions.append(float(row[1]))
+
+# 2. Hàm định giá giả lập "Human"
+def human_pricer(item):
+    # Tìm vị trí của sản phẩm trong tập test
+    idx = test.index(item)
+    # Trả về giá trị mà con người đã điền trước đó tại vị trí tương ứng
+    return human_predictions[idx]
+
+# 3. Đánh giá
+# Chạy hàm evaluate để so sánh Human với các model khác
+evaluate(human_pricer, test, size=100) 
+B. Khởi tạo Mạng nơ-ron (PyTorch)
+Đây là cấu trúc mạng nơ-ron sâu (Deep Neural Network) đầu tiên được giới thiệu.
+Python
+import torch.nn as nn
+
+# Định nghĩa lớp NeuralNetwork kế thừa từ nn.Module của PyTorch
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        # Định nghĩa các lớp tuyến tính (Linear/Dense Layers)
+        # Input size: Kích thước vector văn bản (ví dụ 2000 từ)
+        # Output size: 128 nơ-ron ở lớp ẩn đầu tiên
+        self.layer1 = nn.Linear(input_size, 128)
+        self.layer2 = nn.Linear(128, 64)
+        # ... (nhiều lớp ẩn ở giữa để tăng khả năng học sâu) ...
+        self.layer8 = nn.Linear(64, 1) # Lớp cuối cùng trả về 1 số duy nhất (Giá tiền)
+        
+        # Hàm kích hoạt ReLU (giúp mô hình học được các tương quan phi tuyến tính)
+        self.relu = nn.ReLU()
+
+    # Hàm forward: Quy định luồng dữ liệu đi qua mạng
+    def forward(self, x):
+        # Dữ liệu đi qua lớp 1 -> qua ReLU -> qua lớp 2 -> ...
+        output1 = self.relu(self.layer1(x))
+        output2 = self.relu(self.layer2(output1))
+        # ...
+        output8 = self.layer8(output7)
+        return output8 # Trả về giá dự đoán
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	PyTorch: Là thư viện Deep Learning phổ biến nhất hiện nay (được phát triển bởi Meta), đặc biệt trong giới nghiên cứu và LLM. Nó hoạt động dựa trên cơ chế Dynamic Computation Graph (Biểu đồ tính toán động), rất linh hoạt và dễ debug (giống code Python thuần).
+•	Human-in-the-loop (HITL): Việc giảng viên tự mình gán nhãn/dự đoán dữ liệu là một ví dụ thô sơ của HITL. Trong thực tế, Human Baseline cực kỳ quan trọng để biết "trần" (ceiling) của mô hình. Nếu Human làm sai nhiều (ví dụ ảnh mờ không nhìn rõ), ta không thể kỳ vọng AI làm đúng 100%.
+•	ReLU (Rectified Linear Unit): Hàm kích hoạt $f(x) = max(0, x)$. Nó giúp mạng nơ-ron học nhanh hơn và giải quyết vấn đề "biến mất đạo hàm" (vanishing gradient) so với các hàm cũ như Sigmoid/Tanh.
+Bạn đã thấy con người thua cuộc trước ML truyền thống. Phần tiếp theo của bài học sẽ là cuộc chiến giữa Mạng nơ-ron tự xây (Day 4) vs Các mô hình Frontier (GPT-4, Claude...) để xem ai mới là vua định giá!
+
+ 155. Day 4 - Building Your First Neural Network with PyTorch
+Chào bạn, dưới đây là tổng hợp nội dung bài học Day 4 - Building Your First Neural Network with PyTorch dựa trên bản phiên âm bạn cung cấp.
+1. Tóm tắt cốt lõi
+•	Chuyển sang Deep Learning: Bài học chuyển từ Machine Learning truyền thống sang xây dựng Mạng nơ-ron "thuần" (Vanilla Neural Network) sử dụng thư viện PyTorch11111111.
+•	Cải tiến xử lý dữ liệu: Thay thế CountVectorizer bằng HashingVectorizer để tăng tốc độ và hiệu quả xử lý dữ liệu văn bản quy mô lớn (5000 features)222.
+•	Quy trình huấn luyện (4 bước): Triển khai vòng lặp huấn luyện tiêu chuẩn gồm: Forward pass, Tính Loss (MSE), Backward pass, và Tối ưu hóa (Optimizer step)33333333.
+•	Kết quả vượt trội: Mạng nơ-ron đơn giản (8 lớp) đạt sai số 63.97, đánh bại tất cả các mô hình ML truyền thống trước đó44.
+________________________________________
+2. Nội dung chính
+A. Chuẩn bị dữ liệu: Hashing Vectorizer
+Thay vì dùng CountVectorizer như bài trước, giảng viên chuyển sang dùng HashingVectorizer với các thiết lập sau:
+•	Lý do: Nhanh hơn và hiệu quả hơn về bộ nhớ5. Nhược điểm là không thể truy ngược lại xem từ gốc tiếng Anh là gì (do đã bị mã hóa/hash)6.
+•	Cấu hình:
+o	n_features = 5000: Tăng vốn từ vựng lên 5000 từ (so với 2000 trước đây)7.
+o	binary = True: Chỉ quan tâm từ có xuất hiện hay không (0 hoặc 1), không đếm số lần xuất hiện. Đây là kỹ thuật phổ biến cho mạng nơ-ron, tương tự như "one-hot vector"8888.
+B. Kiến trúc Mạng nơ-ron (Vanilla Neural Network)
+•	Công cụ: Sử dụng PyTorch, cụ thể là class con của nn.Module9999.
+•	Cấu trúc: Mạng gồm 8 lớp (layers)10.
+o	Các lớp này là lớp tuyến tính (linear layers) kết hợp với hàm kích hoạt ReLU sau mỗi lớp11.
+o	Mặc dù gọi là 8 lớp, giảng viên lưu ý đây vẫn được coi là mạng nông (shallow) hoặc mạng nơ-ron thường, chưa phải là "Deep" theo tiêu chuẩn hiện đại12121212.
+•	Tham số: Mô hình có tổng cộng 669,000 tham số được huấn luyện13.
+C. Quy trình Huấn luyện (Training Loop)
+Đây là phần quan trọng nhất, mô phỏng cách máy học thông qua 4 bước lặp đi lặp lại trên từng lô dữ liệu (batch):
+1.	Forward Pass (Lan truyền xuôi): Đưa dữ liệu qua mô hình để lấy kết quả dự đoán14.
+2.	Loss Calculation (Tính toán mất mát): So sánh kết quả dự đoán với thực tế ($y$) bằng hàm Mean Squared Error (MSE)15151515.
+3.	Backward Pass (Lan truyền ngược): Tính toán gradient để xem sai số thay đổi thế nào khi điều chỉnh từng tham số16.
+4.	Optimization (Tối ưu hóa): Thực hiện một bước nhỏ (step) để cập nhật trọng số nhằm giảm sai số (dùng Learning rate = 0.001)17.
+________________________________________
+3. Phân tích Code (Logic Mô phỏng)
+Dựa trên mô tả chi tiết trong phiên âm, dưới đây là logic của các khối code quan trọng:
+Khối 1: Định nghĩa Mạng nơ-ron
+Python
+import torch.nn as nn
+
+# Class mô hình kế thừa từ PyTorch module [cite: 26]
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Định nghĩa 8 lớp tuyến tính 
+        # Kết hợp với hàm kích hoạt ReLU 
+        self.layers = ... 
+
+    def forward(self, x):
+        # Forward pass: Dữ liệu đi qua từng lớp và ReLU [cite: 38]
+        # Input -> Layer 1 -> ReLU -> ... -> Output
+        return self.layers(x)
+Khối 2: Vòng lặp Huấn luyện (The Training Loop)
+Giảng viên nhấn mạnh 4 dòng code cốt lõi tương ứng với 4 bước huấn luyện:
+Python
+# Cài đặt siêu tham số [cite: 66, 81]
+epochs = 2
+optimizer = ... # (VD: Adam hoặc SGD)
+loss_fn = nn.MSELoss() # Mean Squared Error [cite: 79]
+
+for epoch in range(epochs): # Lặp qua toàn bộ dữ liệu 2 lần [cite: 84]
+    for batch_x, batch_y in train_loader:
+        
+        # 1. Forward pass: Tính toán đầu ra 
+        outputs = model(batch_x)
+        
+        # 2. Calculate Loss: Tính sai số so với thực tế [cite: 91]
+        loss = loss_fn(outputs, batch_y)
+        
+        # 3. Backward pass: Tính gradient (đạo hàm) 
+        loss.backward()
+        
+        # 4. Optimization: Cập nhật trọng số (bước nhảy nhỏ 0.001) 
+        optimizer.step()
+        optimizer.zero_grad() # (Thường cần thêm bước này để reset gradient)
+Khối 3: Suy luận (Inference)
+Python
+# Chuyển sang chế độ đánh giá (không huấn luyện) [cite: 104]
+model.eval() 
+
+# Dự đoán
+# Chuyển input thành vector 5000 số (0 hoặc 1) [cite: 105]
+# Đưa vào mô hình PyTorch để lấy kết quả [cite: 106]
+prediction = model(input_vector)
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	Hashing Vectorizer vs. Count Vectorizer:
+o	HashingVectorizer sử dụng thuật toán băm (hashing trick) để ánh xạ từ vựng vào các chỉ số cố định. Nó không cần lưu trữ từ điển trong bộ nhớ (stateless), nên rất phù hợp với dữ liệu lớn (streaming data) và tiết kiệm RAM. Tuy nhiên, nó có thể gặp vấn đề "đụng độ" (collision) - hai từ khác nhau có cùng mã hash18181818.
+•	ReLU (Rectified Linear Unit):
+o	Hàm kích hoạt phổ biến nhất cho các lớp ẩn. Công thức: $f(x) = max(0, x)$. Nó giúp giải quyết vấn đề biến mất đạo hàm (vanishing gradient) tốt hơn Sigmoid hay Tanh và tính toán rất nhanh.
+•	Siêu tham số (Hyperparameters):
+o	Là các thông số bạn phải cài đặt trước khi huấn luyện (như Learning Rate, Batch Size, Epochs) và không được mô hình tự học. Việc tìm ra bộ siêu tham số tốt nhất thường dựa vào "thử và sai" (Trial & Error)19191919.
+Kết quả 63.97 20 là một bước tiến lớn, chứng minh sức mạnh của Mạng nơ-ron ngay cả khi chỉ với kiến trúc đơn giản. Bước tiếp theo sẽ là làm việc với các Large Language Models (LLMs).
+
+156. Day 4 - Testing GPT-4o-mini and Claude Opus Against Neural Networks
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Searching for LLM API calls ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "completion" in source or "gpt" in source or "claude" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Searching for LLM API calls ---
+# imports
+
+import os
+from dotenv import load_dotenv
+from huggingface_hub import login
+from pricer.evaluator import evaluate
+from litellm import completion
+from pricer.items import Item
+import numpy as np
+from tqdm.notebook import tqdm
+import csv
+from sklearn.feature_extraction.text import HashingVectorizer
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+--------------------
+# The function for gpt-4.1-nano
+
+def gpt_4__1_nano(item):
+    response = completion(model="openai/gpt-4.1-nano", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+gpt_4__1_nano(test[0])
+--------------------
+evaluate(gpt_4__1_nano, test)
+--------------------
+def claude_opus_4_5(item):
+    response = completion(model="anthropic/claude-opus-4-5", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+evaluate(claude_opus_4_5, test)
+--------------------
+def gemini_3_pro_preview(item):
+    response = completion(model="gemini/gemini-3-pro-preview", messages=messages_for(item), reasoning_effort='low')
+    return response.choices[0].message.content
+--------------------
+def gemini_2__5_flash_lite(item):
+    response = completion(model="gemini/gemini-2.5-flash-lite", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+
+def grok_4__1_fast(item):
+    response = completion(model="xai/grok-4-1-fast-non-reasoning", messages=messages_for(item), seed=42)
+    return response.choices[0].message.content
+--------------------
+# The function for gpt-5.1
+
+def gpt_5__1(item):
+    response = completion(model="gpt-5.1", messages=messages_for(item), reasoning_effort='high', seed=42)
+    return response.choices[0].message.content
+
+--------------------
+evaluate(gpt_5__1, test)
+--------------------
+
+Chào Hieu, đây là tổng hợp nội dung bài học Testing GPT-4o-mini and Claude Opus Against Neural Networks dựa trên bản phiên âm và file code day4.ipynb.
+Trong bài này, chúng ta bước vào kỷ nguyên của Frontier Models (các mô hình biên giới). Thay vì tự xây dựng và huấn luyện mạng nơ-ron từ đầu, ta sẽ kiểm tra xem các "bộ não" vĩ đại nhất thế giới hiện nay (như GPT, Claude) có thể làm gì ngay khi "đập hộp" (Out-of-the-box).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Sức mạnh của Pre-training: Các mô hình LLM (như GPT-4, Claude 3 Opus) sở hữu lượng "kiến thức thế giới" khổng lồ nhờ được huấn luyện trên hàng nghìn tỷ tham số.
+•	Chiến thuật Zero-shot: Bài học kiểm tra khả năng định giá của LLM mà không cần huấn luyện thêm (No Fine-tuning). Chỉ cần một câu lệnh (Prompt) đơn giản.
+•	Kết quả chấn động:
+o	GPT-4.1 Nano (tương ứng GPT-4o-mini): Đạt sai số **$62.51**, đánh bại cả Human (~$87) và Vanilla Neural Network (~$64).
+o	Claude Opus 4.5 (tương ứng Claude 3 Opus): Đạt sai số **$47.10**, trở thành mô hình tốt nhất tính đến hiện tại, vượt qua cả XGBoost (~$68).
+________________________________________
+2. Nội dung chính
+A. Từ Neural Network đến LLM (Transformer)
+•	Giảng viên giải thích mối liên hệ: Mạng nơ-ron chúng ta vừa xây (Vanilla NN) chính là tiền thân. LLM thực chất là một mạng nơ-ron khổng lồ với kiến trúc Transformer.
+•	Sự khác biệt: LLM có các lớp phức tạp hơn như Attention Layers (Cơ chế chú ý - giúp mô hình biết từ nào quan trọng) và Embeddings (Vector hóa ngữ nghĩa), cho phép khả năng khái quát hóa (Generalization) vượt trội.
+B. Thử nghiệm GPT-4.1 Nano (Đại diện cho các mô hình nhỏ/nhanh - GPT-4o-mini)
+•	Mục tiêu: Kiểm tra một mô hình rẻ, nhanh, phù hợp để sau này Fine-tuning.
+•	Prompt: "Estimate the price of this product. Respond with the price. No explanation." (Ước lượng giá, chỉ trả về số, không giải thích).
+•	Kết quả: Sai số $62.51.
+•	Ý nghĩa: Chỉ bằng kiến thức chung (common sense), nó đã làm tốt hơn một mạng nơ-ron chuyên biệt được huấn luyện trên 800,000 dòng dữ liệu.
+C. Thử nghiệm Claude Opus 4.5 (Đại diện cho các mô hình thông minh nhất - Claude 3 Opus)
+•	Mục tiêu: Xem giới hạn trí tuệ nhân tạo hiện nay (State-of-the-art) nằm ở đâu.
+•	Kết quả: Sai số $47.10.
+•	Ý nghĩa: Đây là một bước nhảy vọt. Nó phá vỡ kỷ lục của năm ngoái và đánh bại thuật toán Machine Learning mạnh nhất là XGBoost. Điều này chứng minh rằng đối với các bài toán phức tạp đòi hỏi sự "hiểu" về ngữ nghĩa, LLM có lợi thế rất lớn.
+________________________________________
+3. Phân tích Code (File day4.ipynb)
+Dưới đây là cách giảng viên thực hiện việc gọi API để đánh giá model (Code trong file notebook sử dụng tên giả lập tương lai, nhưng logic là của thư viện litellm):
+Python
+from litellm import completion
+
+# 1. Hàm gọi GPT-4o-mini (Trong code đặt tên là gpt-4.1-nano)
+def gpt_4__1_nano(item):
+    # Gọi API thông qua thư viện litellm (tương thích nhiều nhà cung cấp)
+    # Model: Tên mô hình (ở đây dùng tên giả lập cho bài học)
+    # Messages: Lịch sử chat (được tạo bởi hàm messages_for)
+    response = completion(model="openai/gpt-4.1-nano", messages=messages_for(item))
+    
+    # Trả về nội dung câu trả lời (giá tiền)
+    return response.choices[0].message.content
+
+# 2. Hàm gọi Claude Opus (Trong code đặt tên là claude-opus-4-5)
+def claude_opus_4_5(item):
+    # Tương tự, gọi đến mô hình của Anthropic
+    response = completion(model="anthropic/claude-opus-4-5", messages=messages_for(item))
+    return response.choices[0].message.content
+
+# 3. Đánh giá
+# evaluate() sẽ chạy hàm trên song song (multithreading) để tiết kiệm thời gian
+evaluate(gpt_4__1_nano, test)
+evaluate(claude_opus_4_5, test)
+Ghi chú:
+•	completion(): Hàm đa năng của litellm, giúp bạn thay đổi model (từ OpenAI sang Claude, Gemini) chỉ bằng cách đổi tham số chuỗi tên model mà không cần sửa lại logic code.
+•	Tên model trong code (gpt-4.1-nano, claude-opus-4-5) là cách giảng viên "đóng vai" bối cảnh tương lai của khóa học. Trong thực tế, bạn sẽ thay bằng gpt-4o-mini hoặc claude-3-opus-20240229.
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	Zero-shot Inference: Là khả năng của mô hình giải quyết nhiệm vụ mà nó chưa từng được huấn luyện cụ thể cho nhiệm vụ đó (mô hình chưa từng nhìn thấy tập dữ liệu Amazon này trong quá trình training của bài học, nhưng nó đã đọc cả internet nên nó biết giá trị của một cái "Guitar Pedal").
+•	API Rate Limits & Tiers: Giảng viên nhắc nhở về việc các nhà cung cấp (OpenAI, Anthropic) chia cấp bậc người dùng (Tier 1, Tier 2...) dựa trên số tiền đã nạp. Cấp cao hơn sẽ được gọi API nhanh hơn (nhiều requests/phút), giúp chạy evaluate song song (workers > 1) mà không bị lỗi.
+•	Generalization vs. Memorization: Neural Network tự xây có thể đang cố "học thuộc" dữ liệu train (Memorization), trong khi LLM sử dụng khả năng suy luận và kiến thức tổng quát (Generalization) để đoán giá, đó là lý do LLM thắng thế trên các dữ liệu mới lạ.
+Kết thúc Day 4, bảng xếp hạng hiện tại:
+1.	Claude Opus ($47.10) 🏆
+2.	GPT-4o-mini ($62.51)
+3.	Vanilla Neural Network ($63.97)
+4.	XGBoost ($68)
+5.	Human ($87)
+Bài học ngày mai (Day 5) sẽ là đỉnh cao: Fine-tuning Frontier Models. Liệu chúng ta có thể làm cho GPT-4o-mini học tốt đến mức đánh bại cả Claude Opus không?
+
+
+157. Day 4 - Testing Gemini 3, GPT-5.1, Claude 4.5 & Grok on Price Prediction
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Searching for specific model evaluation cells ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        # Look for the model names mentioned in the transcript
+        if any(model in source for model in ["gemini", "grok", "gpt-5.1"]):
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Searching for specific model evaluation cells ---
+def gemini_3_pro_preview(item):
+    response = completion(model="gemini/gemini-3-pro-preview", messages=messages_for(item), reasoning_effort='low')
+    return response.choices[0].message.content
+--------------------
+evaluate(gemini_3_pro_preview, test, size=50, workers=2)
+--------------------
+def gemini_2__5_flash_lite(item):
+    response = completion(model="gemini/gemini-2.5-flash-lite", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+evaluate(gemini_2__5_flash_lite, test)
+--------------------
+
+def grok_4__1_fast(item):
+    response = completion(model="xai/grok-4-1-fast-non-reasoning", messages=messages_for(item), seed=42)
+    return response.choices[0].message.content
+--------------------
+evaluate(grok_4__1_fast, test)
+--------------------
+# The function for gpt-5.1
+
+def gpt_5__1(item):
+    response = completion(model="gpt-5.1", messages=messages_for(item), reasoning_effort='high', seed=42)
+    return response.choices[0].message.content
+
+--------------------
+
+Chào Hieu, đây là phần tổng hợp kết quả thử nghiệm các "siêu mẫu" AI (Frontier Models) trong bài học Day 4: Testing Gemini 3, GPT-5.1, Claude 4.5 & Grok.
+Trong phần này, giảng viên đã đưa các mô hình hàng đầu từ Google, OpenAI, Anthropic và xAI lên bàn cân để xem ai là "Vua định giá" (Price Prediction King).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Cuộc đua tam mã: Bài học so sánh 3 dòng mô hình chính: Gemini (Google), Grok (xAI/Elon Musk) và GPT-5.1 (OpenAI - giả định tương lai).
+•	Kết quả bất ngờ:
+o	Claude 4.5 Opus vẫn giữ ngôi vương với sai số thấp nhất ($47).
+o	Gemini 3 Pro bám đuổi sát nút với sai số $50.54.
+o	Grok 4.1 Fast và Gemini 2.5 Flash (các model nhanh/rẻ) đạt kết quả khá tốt (~$57-58), vượt qua GPT-4o-mini (~$62).
+•	Bài học về "Reasoning": Đối với tác vụ đoán giá trực quan này, việc bật chế độ "Reasoning" (suy luận phức tạp/chuỗi suy nghĩ) đôi khi không giúp ích, thậm chí làm giảm hiệu quả so với việc để model trả lời ngay lập tức.
+________________________________________
+2. Nội dung chính
+A. Gemini 3 Pro (Google) - Kẻ thách thức ngôi vương
+•	Cấu hình: Chạy trên tập dữ liệu nhỏ hơn (size=50) và số luồng ít hơn (workers=2) do giới hạn rate limit và tốc độ chậm.
+•	Kết quả: Sai số $50.54.
+•	Nhận xét: Rất thông minh, chỉ thua Claude 4.5 một chút xíu. Chỉ số $R^2$ (độ phù hợp của xu hướng) rất cao, cho thấy nó hiểu quy luật giá cả rất tốt dù đôi khi đoán lệch số tuyệt đối.
+B. Các dòng Model Nhanh & Rẻ (Flash / Fast Models)
+Đây là phân khúc quan trọng cho việc triển khai thực tế (Production) vì chi phí thấp và tốc độ cao.
+1.	Gemini 2.5 Flash Lite:
+o	Sai số: $58.68.
+o	Tốc độ: Cực nhanh ("Slamming through our 200").
+o	So sánh: Tốt hơn GPT-4.1 Nano (tức GPT-4o-mini) vốn đạt ~$62.
+2.	Grok 4.1 Fast (xAI):
+o	Sai số: $57.62.
+o	Nhận xét: Tốt hơn Gemini Flash một chút và cũng vượt qua GPT-4o-mini. "Ông Musk" đã làm khá tốt ở phân khúc tốc độ cao này.
+C. GPT-5.1 (OpenAI - Giả định) & Vấn đề Reasoning
+•	Giảng viên thử nghiệm model mạnh nhất của OpenAI (trong bối cảnh khóa học là GPT-5.1).
+•	Phát hiện thú vị: Khi bật tham số reasoning_effort='high' (bắt model suy nghĩ kỹ), kết quả không tốt hơn, thậm chí tệ đi.
+•	Lý do: Việc đoán giá dựa trên mô tả đôi khi cần trực giác (Intuition/Pattern Recognition) hơn là suy luận logic từng bước (Step-by-step Reasoning). Suy nghĩ quá nhiều có thể dẫn đến "overthinking".
+________________________________________
+3. Phân tích Code & Cấu hình
+Dưới đây là các hàm gọi API tương ứng trong day4.ipynb. Lưu ý cách giảng viên cấu hình tham số cho từng dòng model:
+Python
+from litellm import completion
+
+# 1. Gemini 3 Pro (Mô hình lớn, chậm, thông minh)
+def gemini_3_pro_preview(item):
+    # reasoning_effort='low': Giảm mức độ suy luận để tránh overthinking
+    response = completion(model="gemini/gemini-3-pro-preview", messages=messages_for(item), reasoning_effort='low')
+    return response.choices[0].message.content
+
+# Chạy test với size nhỏ (50) để tránh lỗi timeout/rate limit
+evaluate(gemini_3_pro_preview, test, size=50, workers=2)
+
+
+# 2. Gemini 2.5 Flash (Mô hình nhanh, rẻ)
+def gemini_2__5_flash_lite(item):
+    response = completion(model="gemini/gemini-2.5-flash-lite", messages=messages_for(item))
+    return response.choices[0].message.content
+
+# Chạy full test 200 mẫu vì model này nhanh
+evaluate(gemini_2__5_flash_lite, test)
+
+
+# 3. Grok 4.1 Fast (Mô hình của xAI)
+def grok_4__1_fast(item):
+    # Non-reasoning: Chế độ trả lời nhanh
+    response = completion(model="xai/grok-4-1-fast-non-reasoning", messages=messages_for(item), seed=42)
+    return response.choices[0].message.content
+________________________________________
+4. Bảng Xếp Hạng "The Price Is Right" (Cập nhật Day 4)
+Hãy điền thêm các con số này vào bảng tổng kết của bạn:
+Hạng	Mô hình	Loại	Sai số (MAE)	Ghi chú
+1 👑	Claude 4.5 Opus	Frontier (Heavy)	$47.10	Vua hiện tại (Anthropic)
+2	Gemini 3 Pro	Frontier (Heavy)	$50.54	Á quân xuất sắc (Google)
+3	Grok 4.1 Fast	Fast Model	$57.62	Tốt nhất phân khúc giá rẻ (xAI)
+4	Gemini 2.5 Flash	Fast Model	$58.68	Nhanh và hiệu quả
+5	GPT-4.1 Nano	Fast Model	$62.51	(GPT-4o-mini)
+6	Vanilla Neural Net	Deep Learning	$63.97	Tự xây bằng PyTorch
+7	XGBoost	ML	$68.23	Best of Day 3
+...	Human	Biology	$87.62	Con người
+Kết luận Day 4:
+AI (cả Neural Network tự xây và Frontier Models) đã chính thức vượt qua con người và các thuật toán Machine Learning cổ điển trong bài toán định giá này.
+Ngày mai (Day 5), chúng ta sẽ thực hiện bước cuối cùng: Fine-tuning. Liệu chúng ta có thể lấy một mô hình "nhanh & rẻ" (như GPT-4o-mini hoặc Gemini Flash) và huấn luyện nó để đánh bại "nhà vua" Claude Opus đắt đỏ không? Đó sẽ là nội dung của tuần tới!
+
+DAY 5 
+162. Day 5 - When Fine-Tuning Frontier Models Fails & Building Deep Neural Networks 
+Chào Hieu, cảm ơn bạn đã đồng hành đến ngày cuối cùng của Tuần 6.
+Đây là một buổi học mang tính bước ngoặt về tư duy. Chúng ta bắt đầu với một sự "thất vọng" (Fine-tuning thất bại) nhưng kết thúc bằng một sự "cứu rỗi" (Redemption) với kỹ thuật Deep Learning chuyên sâu.
+Dưới đây là tổng hợp chi tiết bài học Day 5 - When Fine-Tuning Frontier Models Fails & Building Deep Neural Networks.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thất bại của Fine-tuning Frontier Model: Việc Fine-tune một mô hình cực thông minh (như GPT-4o-mini) cho bài toán đoán giá sản phẩm đã không mang lại kết quả tốt hơn, thậm chí còn gây nhiễu. Bài học rút ra: Không nên Fine-tune Frontier Model để dạy "kiến thức" (knowledge) mà nó đã biết, chỉ nên dùng để dạy "hành vi" (behavior/format).
+•	Tư duy R&D: Trong Data Science, kết quả xấu không phải là "lỗi" (bug), mà là một thông tin giá trị giúp loại bỏ hướng đi sai.
+•	Deep Neural Network (DNN) nâng cao: Để cứu vãn tình thế, giảng viên giới thiệu một kiến trúc mạng nơ-ron chuyên nghiệp (Pro-grade) sử dụng kỹ thuật Residual Blocks (ResNet), cho phép huấn luyện mạng sâu hơn, ổn định hơn so với "Vanilla NN" của Day 4.
+________________________________________
+2. Nội dung chính
+A. Tại sao Fine-tuning Frontier Model thất bại?
+Chúng ta đã thử Fine-tune GPT-4o-mini (bản giả định GPT-4.1 Nano) với hy vọng nó đoán giá chuẩn hơn, nhưng kết quả lại trồi sụt thất thường.
+•	Lý do: Frontier Model đã được học trên hàng trăm triệu đô la dữ liệu. Nó đã có "kiến thức thế giới" (World Knowledge) khổng lồ để hiểu sản phẩm là gì. Việc chúng ta đưa thêm vài nghìn ví dụ về giá chỉ như "muối bỏ bể", thậm chí tạo ra tiếng ồn (noise) khiến mô hình bị lệch lạc (overfitting) vào tập dữ liệu nhỏ đó thay vì dùng kiến thức tổng quát.
+•	Khi nào NÊN Fine-tune Frontier Model?
+1.	Style/Tone: Muốn mô hình nói chuyện theo giọng văn cụ thể (vd: cướp biển, luật sư).
+2.	Format: Bắt buộc output ra định dạng JSON/XML đặc thù.
+3.	Edge Cases: Xử lý các trường hợp ngoại lệ mà Prompting không giải quyết được.
+4.	New Skill: Một kỹ năng mới lạ chưa từng có trong dữ liệu huấn luyện gốc.
+B. Giới thiệu Deep Neural Network (DNN) với Residual Blocks
+Để kết thúc tuần học với kết quả tích cực, giảng viên giới thiệu file deep_neural_network.py. Đây không còn là mạng nơ-ron "nhập môn" (Vanilla) nữa mà là kiến trúc hiện đại:
+•	Deep: Mạng sâu hơn (có thể coi là 10 đến 50 lớp tùy cách đếm).
+•	Residual Connections (Skip Connections): Kỹ thuật cho phép tín hiệu đi tắt qua các lớp, giúp tránh vấn đề biến mất đạo hàm (vanishing gradient) khi mạng quá sâu.
+________________________________________
+3. Kiến trúc & Quy trình (Pipeline)
+Kiến trúc mạng DNN mới này được xây dựng dựa trên các khối Residual Block lặp lại:
+Đoạn mã
+graph TD
+    Input --> Linear1
+    Linear1 --> LayerNorm1
+    LayerNorm1 --> ReLU1
+    ReLU1 --> Dropout
+    Dropout --> Linear2
+    Linear2 --> LayerNorm2
+    LayerNorm2 --> Sum((+))
+    Input --> Sum
+    Sum --> ReLU_Out --> Output
+•	Giải thích: Dữ liệu đi qua các lớp xử lý (Linear, Norm...) nhưng đồng thời cũng có một đường "đi tắt" (Input --> Sum). Tại đầu ra, kết quả xử lý được cộng gộp với input ban đầu. Điều này giúp mô hình học được "sự thay đổi" (residual) thay vì phải học lại từ đầu, giúp hội tụ nhanh hơn và sâu hơn.
+________________________________________
+4. Phân tích Code (deep_neural_network.py)
+Đây là file code quan trọng nhất, thể hiện trình độ "Pro" của kỹ sư AI.
+A. Khối Residual Block (Trái tim của mạng)
+Python
+class ResidualBlock(nn.Module):
+    def __init__(self, hidden_size, dropout_prob):
+        super(ResidualBlock, self).__init__()
+        # Chuỗi các lớp xử lý liên tiếp
+        self.block = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size), # Lớp tuyến tính
+            nn.LayerNorm(hidden_size),           # Chuẩn hóa để ổn định training
+            nn.ReLU(),                           # Hàm kích hoạt
+            nn.Dropout(dropout_prob),            # Ngẫu nhiên tắt nơ-ron để tránh học vẹt (Overfitting)
+            nn.Linear(hidden_size, hidden_size),
+            nn.LayerNorm(hidden_size),
+        )
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        residual = x          # 1. Lưu lại giá trị input gốc (bản sao)
+        out = self.block(x)   # 2. Cho input đi qua các lớp xử lý
+        out += residual       # 3. KỸ THUẬT QUAN TRỌNG: Cộng input gốc vào kết quả (Skip Connection)
+        return self.relu(out) # 4. Kích hoạt lần cuối
+•	Ghi chú: Dòng out += residual chính là phép màu của ResNet (Microsoft Research), cho phép huấn luyện các mạng cực sâu mà không bị lỗi.
+B. Mạng Deep Neural Network (DNN)
+Python
+class DeepNeuralNetwork(nn.Module):
+    def __init__(self, input_size, num_layers=10, hidden_size=4096, dropout_prob=0.2):
+        super(DeepNeuralNetwork, self).__init__()
+
+        # Lớp đầu vào: Biến đổi vector đặc trưng thành vector ẩn (hidden size)
+        self.input_layer = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.LayerNorm(hidden_size),
+            nn.ReLU()
+        )
+        
+        # Tạo chồng (stack) các Residual Blocks
+        # ModuleList giúp PyTorch quản lý danh sách các layer này
+        self.residual_blocks = nn.ModuleList([
+            ResidualBlock(hidden_size, dropout_prob) for _ in range(num_layers)
+        ])
+        
+        # Lớp đầu ra: Nén về 1 con số duy nhất (Giá tiền)
+        self.output_layer = nn.Linear(hidden_size, 1)
+
+    def forward(self, x):
+        x = self.input_layer(x)
+        for block in self.residual_blocks: # Đi qua từng block
+            x = block(x)
+        return self.output_layer(x)
+C. Training Loop (Vòng lặp huấn luyện)
+Code trong class DeepNeuralNetworkRunner thực hiện đúng 4 bước lý thuyết đã học:
+Python
+# 1. Forward Pass
+outputs = self.model(batch_X)
+# 2. Loss Calculation
+loss = self.loss_function(outputs, batch_y)
+# 3. Backward Pass
+loss.backward()
+# 4. Optimization
+self.optimizer.step()
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+•	Tại sao lại cần Residual (Skip Connection)?
+o	Hãy tưởng tượng bạn chơi truyền tin (tam sao thất bản). Nếu hàng người quá dài (mạng quá sâu), thông tin từ người đầu đến người cuối sẽ bị sai lệch hoặc mất hẳn (vanishing gradient).
+o	Skip Connection giống như việc người đầu tiên hét to thông tin gốc cho người cuối cùng nghe thấy, đảm bảo thông tin không bị mất đi qua các lớp trung gian.
+•	Layer Normalization (LayerNorm): Kỹ thuật giúp chuẩn hóa dữ liệu đầu ra của từng lớp về dạng phân phối chuẩn, giúp mạng học ổn định hơn và cho phép dùng Learning Rate lớn hơn.
+•	Dropout: Kỹ thuật "tắt ngẫu nhiên" một số nơ-ron trong quá trình train. Giống như việc bạn học bài nhưng thỉnh thoảng bịt một mắt lại, bắt buộc não bộ phải dùng các nơ-ron khác để bù đắp, từ đó mô hình trở nên "khỏe" (robust) hơn và tránh học tủ (overfitting).
+Kết luận Tuần 6:
+Chúng ta đã đi từ Machine Learning cổ điển -> Vanilla Neural Network -> Frontier Models -> Fine-tuning (Thất bại) -> Deep Neural Network (ResNet).
+Tuần tới (Tuần 7), chúng ta sẽ bước vào lĩnh vực Fine-tuning Open Source Models (Llama, Mistral) bằng kỹ thuật LoRA - nơi chúng ta thực sự kiểm soát hoàn toàn quá trình huấn luyện để tạo ra các siêu mô hình nhỏ gọn!
+
+163. Day 5 - Deep Neural Network Redemption: 289M Parameters vs Frontier Models
+Chào Hieu, chúc mừng bạn đã chính thức hoàn thành Tuần 6! 🎉
+Chúng ta kết thúc tuần học bằng một cú "lội ngược dòng" (Redemption) ngoạn mục. Sau khi thất vọng vì Fine-tuning GPT-4o-mini không hiệu quả, giảng viên đã chứng minh rằng: Một mô hình Deep Learning được thiết kế chuyên biệt (Specialized) hoàn toàn có thể đánh bại các "gã khổng lồ" đa năng (Generalist) trên một tác vụ cụ thể.
+Dưới đây là tổng hợp nội dung bài học cuối cùng: Day 5 - Deep Neural Network Redemption.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Sự trở lại của Deep Learning: Thay vì dựa vào API của OpenAI, chúng ta quay lại tự huấn luyện một mạng nơ-ron sâu (Deep Neural Network - DNN) với quy mô lớn hơn nhiều so với Day 4.
+•	Thông số ấn tượng: Mô hình này có 289 triệu tham số (so với 600k của Vanilla NN). Dù nhỏ so với hàng tỷ tham số của LLM, nhưng nó là một "cỗ xe tăng" hạng nặng cho tác vụ cụ thể này.
+•	Kết quả chấn động: Với sai số **$46.49**, mô hình tự xây này đã đánh bại Claude 4.5 Opus ($47.10) và chỉ thua sát nút GPT-5.1 (trong bối cảnh giả định).
+•	Bài học: "Một nghề cho chín còn hơn chín nghề". Mô hình này thắng vì nó chỉ học duy nhất việc định giá trên 800.000 dữ liệu, không bị phân tâm bởi việc làm thơ hay viết code như LLM.
+________________________________________
+2. Nội dung chính
+A. Mô hình "Redemption" (289M Parameters)
+•	Kiến trúc: Sử dụng kiến trúc Deep Residual Network (như đã phân tích ở bài trước) nhưng với kích thước lớp ẩn (hidden size) lớn hơn và nhiều lớp hơn.
+•	Huấn luyện:
+o	Mất khoảng 40 phút/epoch trên GPU mạnh (tổng cộng ~4 giờ cho 5 epochs).
+o	Dữ liệu: Full dataset (800,000 mẫu).
+•	Triển khai: Giảng viên cung cấp sẵn file trọng số đã huấn luyện (deep_neural_network.pth ~2GB) để học viên có thể tải về chạy ngay (Inference) mà không cần chờ train.
+B. So sánh kết quả cuối cùng (The Final Showdown)
+Đây là bảng xếp hạng chung cuộc của Tuần 6 cho bài toán "The Price Is Right":
+Hạng	Mô hình	Loại	Sai số (MAE)	Nhận xét
+1 💎	GPT-5.1 (Giả định)	Frontier LLM	<$46	Vẫn là vua (King of Generalist)
+2 🥈	Deep Neural Network	Specialized DL	$46.49	Cú lội ngược dòng ngoạn mục!
+3 🥉	Claude 4.5 Opus	Frontier LLM	$47.10	Bị mô hình tự xây đánh bại
+4	Gemini 3 Pro	Frontier LLM	~$50.54	
+5	Grok / Gemini Flash	Fast LLM	~$57 - $58	
+6	GPT-4o-mini	Fast LLM	~$62.51	
+7	Vanilla Neural Net	Basic DL	~$64.00	
+8	XGBoost	ML	~$68.23	
+...	Human (Giảng viên)	Biology	~$87.62	
+C. Tổng kết Tuần 6 (75% Hành trình)
+Bạn đã hoàn thành 3/4 chặng đường trở thành LLM Engineer. Tuần này chúng ta đã đi qua một quy trình R&D chuẩn mực:
+1.	Data Curation: Xử lý dữ liệu thô, làm sạch, vector hóa.
+2.	Baselines: Thiết lập mốc chuẩn bằng Random, Constant, Linear Regression.
+3.	Advanced ML: Sử dụng XGBoost và Vanilla Neural Network.
+4.	Frontier Models: Đánh giá sức mạnh của GPT-4, Claude, Gemini.
+5.	Failure Analysis: Hiểu tại sao Fine-tuning Frontier Model thất bại (do bản chất bài toán kiến thức vs hành vi).
+6.	Redemption: Thành công rực rỡ với Deep Learning chuyên sâu.
+________________________________________
+3. Phân tích Code
+Trong bài học này, chúng ta có 2 notebook chính để xử lý mô hình lớn này:
+A. redemption_train.ipynb (Dành cho ai muốn tự train)
+Python
+# Khởi tạo Runner cho mạng nơ-ron sâu
+runner = DeepNeuralNetworkRunner(device=device)
+
+# Bắt đầu huấn luyện (Mất nhiều thời gian!)
+# Quá trình này sẽ chạy forward/backward pass trên 800k dữ liệu x 5 lần
+runner.train(epochs=5)
+
+# Lưu trọng số (Weights) ra file để dùng lại
+runner.save('deep_neural_network.pth')
+B. redemption_run.ipynb (Dành cho việc kiểm thử nhanh)
+Python
+# 1. Tải trọng số đã train sẵn (Pre-trained weights)
+# Giúp tiết kiệm 4 tiếng chờ đợi
+runner.load('deep_neural_network.pth')
+
+# 2. Định nghĩa hàm dự đoán
+def deep_neural_network(item):
+    # Hàm inference đã được tối ưu hóa trong class Runner
+    return runner.inference(item)
+
+# 3. Đánh giá
+evaluate(deep_neural_network, test)
+# Output: Error $46.49 -> WOW!
+________________________________________
+4. Teaser cho Tuần 7 (Next Week)
+Giảng viên kết thúc bằng một lời hứa hẹn cực kỳ hấp dẫn cho tuần sau:
+•	Mục tiêu: Liệu chúng ta có thể đạt được hiệu suất của Frontier Model (như GPT-4o-mini) nhưng lại sử dụng một mô hình Open Source nhỏ và miễn phí (như Llama 3.2) không?
+•	Công cụ: Chúng ta sẽ không dùng DNN tự xây nữa, mà sẽ dùng kỹ thuật Fine-tuning LLM thực thụ (với LoRA/QLoRA) để biến một mô hình ngôn ngữ nhỏ thành chuyên gia định giá.
+Bạn hãy nghỉ ngơi và chuẩn bị tinh thần cho Tuần 7 - tuần học về kỹ thuật Open Source Fine-tuning, kỹ năng "kiếm cơm" quan trọng bậc nhất của một AI Engineer hiện nay!

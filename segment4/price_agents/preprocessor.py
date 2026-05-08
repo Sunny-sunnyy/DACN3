@@ -1,6 +1,8 @@
-from litellm import completion
-from dotenv import load_dotenv
+import logging
 import os
+
+from dotenv import load_dotenv
+from litellm import completion
 
 load_dotenv(override=True)
 
@@ -36,13 +38,17 @@ class Preprocessor:
 
     def preprocess(self, text: str) -> str:
         messages = self.messages_for(text)
-        response = completion(
-            messages=messages,
-            model=self.model_name,
-            reasoning_effort=self.reasoning_effort,
-            api_base=self.base_url,
-        )
-        self.total_input_tokens += response.usage.prompt_tokens
-        self.total_output_tokens += response.usage.completion_tokens
-        self.total_cost += response._hidden_params["response_cost"]
-        return response.choices[0].message.content
+        try:
+            response = completion(
+                messages=messages,
+                model=self.model_name,
+                reasoning_effort=self.reasoning_effort,
+                api_base=self.base_url,
+            )
+            self.total_input_tokens += response.usage.prompt_tokens
+            self.total_output_tokens += response.usage.completion_tokens
+            self.total_cost += response._hidden_params["response_cost"]
+            return response.choices[0].message.content
+        except Exception as e:
+            logging.warning(f"[Preprocessor] LLM call failed ({type(e).__name__}), using raw text: {e}")
+            return text

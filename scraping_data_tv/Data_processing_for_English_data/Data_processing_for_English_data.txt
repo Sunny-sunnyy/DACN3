@@ -1,0 +1,3078 @@
+WEEK 6
+DAY 1
+137. Day 1 - Training, Datasets, and Generalization: Your Capstone Begins
+Chào Hieu, chúc mừng bạn đã hoàn thành 5 tuần đầu tiên và chính thức bước sang Tuần 6. Đây là cột mốc quan trọng chuyển giao từ việc chỉ sử dụng các mô hình có sẵn (Inference) sang việc thực sự huấn luyện và tinh chỉnh chúng (Training).
+Dưới đây là tổng hợp nội dung bài học Day 1 - Week 6 dựa trên tài liệu và phiên âm bạn cung cấp.
+________________________________________
+1. Chủ đề bài học
+Day 1 - Training, Datasets, and Generalization: Your Capstone Begins
+(Ngày 1 - Huấn luyện, Tập dữ liệu và Sự khái quát hóa: Khởi động dự án Capstone)
+________________________________________
+2. Tóm tắt cốt lõi
+Buổi học này đánh dấu sự khởi đầu của chuỗi 3 tuần chuyên sâu (Tuần 6, 7, 8) về kỹ thuật "Pro". Trọng tâm chuyển dịch từ Inference Time (các kỹ thuật xử lý khi chạy mô hình như Prompting, RAG) sang Training Time (thay đổi tham số bên trong mô hình).
+Nội dung cốt lõi bao gồm:
+1.	Giới thiệu chiến lược 5 bước để xây dựng sản phẩm LLM thương mại1.
+2.	Khởi động dự án Capstone: "The Price Is Right" (Dự đoán giá sản phẩm)2.
+3.	Làm rõ khái niệm quan trọng nhất trong AI: Generalization (Sự khái quát hóa).
+________________________________________
+3. Nội dung chính
+A. Lộ trình Tuần 6: Data Curation & Evaluation 3
+•	Day 1 (Hôm nay): Curate the data (Tuyển chọn dữ liệu)4.
+•	Day 2: Pre-process the data (Tiền xử lý dữ liệu)5.
+•	Day 3: Baseline Models & Traditional ML (Mô hình cơ sở & Machine Learning truyền thống)6.
+•	Day 4: Neural Networks & Frontier LLMs (Mạng nơ-ron & LLM hàng đầu)7.
+•	Day 5: Fine-Tuned Frontier LLM (Tinh chỉnh LLM hàng đầu)8.
+B. Chiến lược 5 bước (The 5 Step Strategy)
+Để giải quyết bài toán thương mại với LLM, giáo trình đưa ra quy trình chuẩn9:
+1.	Understand (Hiểu): Thu thập yêu cầu, xác định metrics (chỉ số đánh giá), hiểu về dữ liệu, ngân sách 10.
+2.	Prepare (Chuẩn bị): Nghiên cứu giải pháp hiện có, so sánh các LLM, tuyển chọn và làm sạch dữ liệu 11.
+3.	Select (Lựa chọn): Chọn LLM, thử nghiệm, huấn luyện và kiểm thử (validate) 12.
+4.	Customize (Tùy chỉnh): Tối ưu hóa hiệu suất bằng Prompt, RAG, Agents hoặc Fine-tune 13.
+5.	Productionize (Triển khai): Xây dựng API, kiến trúc hosting, giám sát (monitoring), bảo mật và đánh giá liên tục 14.
+C. Dự án Capstone: "The Price Is Right"
+•	Mục tiêu: Đưa ra mô tả của một sản phẩm, mô hình cần dự đoán giá của sản phẩm đó15.
+•	Ý nghĩa: Đây là bước đệm để xây dựng một giải pháp Agentic (AI Agent) có khả năng săn hàng giảm giá sau này16.
+•	Cách đánh giá (Evaluation): Dựa trên chênh lệch giá tuyệt đối (absolute price difference)17.
+•	3 Lựa chọn thực hiện Capstone cho học viên18:
+1.	Focus on intuition: Chỉ xem bài giảng và tái tạo kết quả cuối cùng19.
+2.	Follow along: Sử dụng bộ dữ liệu rút gọn ("Lite version" - 20,000 dòng thay vì 800,000) và dùng dữ liệu đã được làm sạch sẵn20.
+3.	Dig deep: Sử dụng toàn bộ dữ liệu (800,000 dòng), tự tuyển chọn và huấn luyện đầy đủ (Tốn công sức nhưng rất thỏa mãn)21.
+D. Lý thuyết cốt lõi: Generalization (Sự khái quát hóa)
+•	Training (Huấn luyện): Là quá trình thiết lập các tham số (parameters/weights) bên trong mô hình dựa trên các cặp đầu vào (input) và đầu ra (output) mẫu.
+•	Mục đích: Không phải để mô hình ghi nhớ (memorize) các ví dụ đã học, mà để nó học được các mẫu (patterns).
+•	Generalization: Là khả năng mô hình đưa ra dự đoán chính xác trên dữ liệu chưa từng thấy (unseen data). Đây là thước đo thành công của một mô hình AI.
+________________________________________
+4. Phân tích Code (Không có file code)
+Lưu ý: Trong tài liệu bạn cung cấp chỉ có file PDF slide và phiên âm, chưa có file code cụ thể (ví dụ .ipynb hay .py).
+Tuy nhiên, dựa trên nội dung bài học, logic code của ngày hôm nay sẽ tập trung vào bước Prepare:
+1.	Data Loading: Sử dụng thư viện datasets của Hugging Face để tải bộ dữ liệu về sản phẩm.
+2.	Exploratory Data Analysis (EDA): Kiểm tra cấu trúc dữ liệu, các trường thông tin (tên sản phẩm, mô tả, giá).
+3.	Data Splitting: Chia dữ liệu thành tập Train (để huấn luyện) và Test/Validation (để đánh giá khả năng Generalization).
+Nếu bạn có file code của buổi này, hãy gửi lên, mình sẽ giải thích chi tiết từng dòng lệnh cho bạn.
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Inference Time vs. Training Time
+Trong các tuần trước (1-5), bạn đã làm việc ở Inference Time (Thời gian suy luận):
+•	Mô hình đã được huấn luyện xong ("đóng băng" trọng số).
+•	Bạn dùng Prompt Engineering, In-context Learning (Few-shot), RAG để hướng dẫn mô hình đưa ra kết quả tốt hơn.
+Từ tuần này, bạn chuyển sang Training Time (Thời gian huấn luyện):
+•	Bạn can thiệp vào chính bộ não của mô hình.
+•	Bạn thay đổi các tham số (weights) để mô hình học kiến thức mới hoặc hành vi mới vĩnh viễn (đối với phiên bản đó).
+B. Generalization, Overfitting và Underfitting
+Để hiểu sâu hơn về "Generalization" mà giảng viên nhấn mạnh:
+•	Generalization (Tốt): Mô hình học được quy luật chung, đoán đúng cả trên dữ liệu mới.
+•	Underfitting (Chưa học được): Mô hình quá đơn giản, không học được quy luật của dữ liệu (ví dụ: đoán giá sản phẩm nào cũng bằng nhau).
+•	Overfitting (Học vẹt): Mô hình học quá kỹ các chi tiết nhiễu của dữ liệu huấn luyện. Nó đoán cực đúng trên tập Train nhưng đoán sai bét trên tập Test (dữ liệu mới).
+C. Hugging Face Datasets
+Giảng viên nhắc đến việc tải dữ liệu từ Hugging Face. Đây là thư viện tiêu chuẩn trong ngành AI hiện nay để quản lý dữ liệu.
+•	Nó hỗ trợ tải dữ liệu khổng lồ mà không cần lưu hết vào RAM (thông qua cơ chế memory mapping).
+•	Tương thích tốt với pandas và PyTorch/TensorFlow.
+Bước tiếp theo cho Hieu
+Bạn có muốn tôi hướng dẫn cách viết code Python để tải và khám phá một bộ dữ liệu mẫu từ Hugging Face (mô phỏng lại phần bài tập logic của ngày hôm nay) để bạn thực hành ngay trên VS Code/Cursor không?
+138. Day 1 - Finetuning LLMs & The Price is Right Capstone Project Intro
+Chào Hieu, đây là tổng hợp nội dung bài học số 138. Day 1 - Finetuning LLMs & The Price is Right Capstone Project Intro. Bài học này đóng vai trò là cầu nối quan trọng, chuyển từ việc sử dụng các mô hình có sẵn sang kỹ thuật tinh chỉnh (Fine-tuning) và giới thiệu dự án lớn (Capstone) của khóa học.
+Dưới đây là chi tiết nội dung:
+________________________________________
+1. Chủ đề bài học
+Day 1 - Finetuning LLMs & The Price is Right Capstone Project Intro
+(Ngày 1 - Tinh chỉnh LLM & Giới thiệu Dự án Capstone "The Price is Right")
+________________________________________
+2. Tóm tắt cốt lõi
+Bài học giải thích lý do tại sao chúng ta sử dụng Transfer Learning (Học chuyển giao) và Fine-tuning (Tinh chỉnh) thay vì đào tạo LLM từ đầu. Đồng thời, giáo viên giới thiệu dự án Capstone mang tên "The Price Is Right" - một bài toán hồi quy (Regression) dự đoán giá sản phẩm dựa trên mô tả, giúp đánh giá hiệu suất của LLM một cách định lượng và chính xác.
+________________________________________
+3. Nội dung chính
+A. Tại sao chọn Fine-tuning thay vì Training từ đầu?
+•	Chi phí và Quy mô: Các mô hình ML truyền thống chỉ có 20-200 tham số, nhưng LLM có hàng tỷ tham số. Việc đào tạo một LLM từ đầu (như GPT) tốn hàng trăm triệu đô la, vượt xa ngân sách cá nhân.
+•	Giải pháp - Transfer Learning: Chúng ta tận dụng các mô hình đã được người khác (như OpenAI, Meta) đào tạo trước (Pre-trained). Sau đó, ta đào tạo thêm một chút với dữ liệu đặc thù của doanh nghiệp. Kỹ thuật này gọi là Fine-tuning.
+•	Lợi ích: Giữ lại kiến thức gốc của mô hình đồng thời cải thiện khả năng thực hiện tác vụ cụ thể.
+B. Giới thiệu Dự án Capstone: "The Price Is Right"
+•	Mục tiêu: Xây dựng một nền tảng nhận đầu vào là mô tả sản phẩm (TV, máy tính, phụ tùng...) và dự đoán giá thực tế của nó.
+•	Bản chất bài toán: Trong Khoa học dữ liệu, đây là bài toán Hồi quy (Regression) - tìm ra một con số dựa trên các đặc trưng (features).
+•	Lý do chọn bài toán này cho LLM:
+1.	Đánh giá rõ ràng: Khác với việc tạo văn bản (khó đánh giá hay/dở), việc dự đoán giá cho phép ta đo lường chính xác sai số (Giá dự đoán vs Giá thực tế).
+2.	Hiểu ngữ cảnh: LLM có khả năng hiểu các sắc thái trong mô tả (ví dụ: "hàng cao cấp", "smart TV") tốt hơn ML truyền thống để đưa ra định giá chính xác.
+•	Đích đến (Tuần 8): Dự án này sẽ được tích hợp vào một AI Agent có khả năng tự động săn hàng giảm giá (Bargain Hunter) trên internet.
+C. Lộ trình thực hiện trong tuần này
+•	Day 1 (Hôm nay): Quản lý và tuyển chọn dữ liệu (Data Curation).
+•	Day 2: Tiền xử lý dữ liệu (Data Pre-processing) sử dụng chính LLM để viết lại dữ liệu.
+•	Day 3: Xây dựng mô hình cơ sở (Baseline) bằng Machine Learning truyền thống để so sánh.
+•	Day 4: Sử dụng Mạng nơ-ron (Neural Networks) với PyTorch và Frontier LLMs.
+•	Day 5: Tinh chỉnh (Fine-tune) một Frontier Model.
+D. 3 Cấp độ tham gia dành cho học viên
+Giáo viên đưa ra 3 lựa chọn tùy thuộc vào mục tiêu và ngân sách của bạn:
+1.	Focus on Intuition (Tập trung vào trực giác): Chỉ xem bài giảng, nắm bắt ý tưởng và thuật ngữ, không cần chạy code nặng.
+2.	Follow along - Lite Version (Phiên bản rút gọn): Sử dụng bộ dữ liệu nhỏ (20.000 dòng thay vì 800.000). Dùng dữ liệu đã xử lý sẵn của giáo viên. Chi phí: $0 - $5.
+3.	Dig Deep - All in (Chuyên sâu): Sử dụng bộ dữ liệu đầy đủ (800.000 dòng), tự chạy toàn bộ quy trình training và xử lý dữ liệu. Chi phí: $5 - $35 (chủ yếu cho API xử lý dữ liệu). Khuyên dùng cho Hieu để có trải nghiệm Engineer thực thụ.
+________________________________________
+4. Kiến trúc & Quy trình (Pipeline dự kiến)
+Dựa trên mô tả, quy trình xử lý cho dự án này sẽ như sau:
+1.	Input: Product Description (Văn bản mô tả sản phẩm).
+2.	Processing:
+o	Traditional ML: Trích xuất đặc trưng (Features) -> Linear Regression/XGBoost.
+o	LLM: Tokenization -> Embedding -> Model Layers -> Head (Regression/Generation).
+3.	Output: Predicted Price (Số thực).
+4.	Evaluation: So sánh Predicted Price với Actual Price (Ground Truth).
+________________________________________
+5. Phân tích Code
+(Buổi học này là phần giới thiệu lý thuyết và lộ trình, chưa đi sâu vào code cụ thể. Phần code xử lý dữ liệu sẽ bắt đầu từ phần sau của Day 1 và Day 2).
+________________________________________
+6. Kiến thức liên quan & Mở rộng
+Pre-training vs. Fine-tuning
+•	Pre-training (Đào tạo trước): Là giai đoạn mô hình học kiến thức tổng quát từ lượng dữ liệu khổng lồ (Wikipedia, sách, internet...). Giai đoạn này tốn kém nhất và tạo ra "Base Model".
+•	Fine-tuning (Tinh chỉnh): Là giai đoạn bạn lấy Base Model và dạy nó một kỹ năng cụ thể (ví dụ: đoán giá, viết code, y tế) bằng một lượng dữ liệu nhỏ hơn nhiều. Đây là trọng tâm công việc của một LLM Engineer.
+LLM cho bài toán Regression (Hồi quy)
+Thông thường LLM được biết đến với bài toán Generation (tạo văn bản - dự đoán token tiếp theo). Tuy nhiên, trong bài này, chúng ta ép LLM làm bài toán Regression (dự đoán một giá trị số).
+•	Cách làm thường thấy: Yêu cầu LLM chỉ xuất ra con số (text) và ta parse con số đó.
+•	Cách nâng cao (có thể học sau): Thay đổi lớp cuối cùng (output layer) của mạng nơ-ron để xuất ra một giá trị scalar thay vì xác suất của các token trong từ điển.
+Bước tiếp theo cho Hieu
+Bạn có muốn tôi hỗ trợ phân tích chi tiết cách tải và làm sạch bộ dữ liệu 800.000 dòng (hoặc bản Lite 20.000 dòng) bằng Python/Pandas để chuẩn bị cho các bước tiếp theo không?
+139. Day 1 - Curating Datasets: Finding Data Sources and Building Training Sets
+Chào Hieu, đây là tổng hợp nội dung bài học số 139. Day 1 - Curating Datasets: Finding Data Sources and Building Training Sets. Buổi học này đi sâu vào "phần chìm của tảng băng trôi" trong AI Engineer: Dữ liệu.
+Dưới đây là chi tiết nội dung:
+________________________________________
+1. Chủ đề bài học
+Day 1 - Curating Datasets: Finding Data Sources and Building Training Sets
+(Ngày 1 - Tuyển chọn tập dữ liệu: Tìm nguồn dữ liệu và Xây dựng tập huấn luyện)
+________________________________________
+2. Tóm tắt cốt lõi
+Giảng viên Ed Donner nhấn mạnh lại câu nói nổi tiếng của Andrew Ng: "AI là dòng điện mới", nhưng điều chỉnh lại rằng "Dữ liệu mới là dòng điện thực sự vận hành mọi thứ".
+Điểm quan trọng nhất: Chất lượng dữ liệu (Data Curation) có tác động lớn đến hiệu suất mô hình hơn là việc tối ưu hóa siêu tham số (Hyperparameter optimization). Buổi học tập trung vào việc lấy dữ liệu Amazon, làm sạch, chọn chỉ số đánh giá (Metric) phù hợp và chia tập dữ liệu (Splitting).
+________________________________________
+3. Nội dung chính
+A. Nguồn dữ liệu (Data Sources)
+Để xây dựng AI Startup hoặc dự án, bạn có thể tìm dữ liệu từ:
+1.	Dữ liệu độc quyền (Proprietary Data): Dữ liệu do chính bạn/công ty tạo ra. Đây là loại tốt nhất và tạo nên lợi thế cạnh tranh.
+2.	Cộng đồng công khai (Public Communities):
+o	Kaggle: Nổi tiếng trong giới Data Science.
+o	Hugging Face: Kho tàng dữ liệu khổng lồ, đặc biệt cho LLM.
+3.	Dữ liệu tổng hợp (Synthetic Data): Dùng LLM để tạo ra dữ liệu huấn luyện (như bài tập tuần trước).
+4.	Dịch vụ bên thứ 3: Các công ty chuyên dán nhãn và tạo dữ liệu (ví dụ: Scale AI).
+B. Tập dữ liệu dự án: Amazon Reviews 2023
+•	Nguồn: Macaulay Lab (trên Hugging Face).
+•	Nội dung: Chứa đánh giá, mô tả sản phẩm và giá cả.
+•	Mục tiêu: Sử dụng trường "Mô tả sản phẩm" để dự đoán "Giá".
+C. Chỉ số đánh giá (Evaluation Metrics)
+Giảng viên phân biệt hai loại chỉ số:
+•	Model-centric metrics (Kỹ thuật): Ví dụ như Cross-entropy loss. Tốt cho việc tối ưu mô hình nhưng khó hiểu với người làm kinh doanh.
+•	Business-centric metrics (Kinh doanh): Ví dụ như doanh thu, sự hài lòng.
+•	Lựa chọn cho dự án này: Absolute Price Difference (Sai số tuyệt đối về giá).
+o	Lý do: Nó hữu hình và dễ hiểu (ví dụ: "Mô hình đoán sai 100 đô la").
+o	So sánh: Trực quan hơn MSE (Mean Squared Error) - chỉ số thường dùng trong ML truyền thống nhưng con số (ví dụ: 10,000) khó hình dung ý nghĩa thực tế.
+D. Chiến lược chia dữ liệu (Data Splitting Strategy)
+Quy trình chuẩn để chia dữ liệu huấn luyện:
+1.	Training Data (Tập huấn luyện): Chiếm phần lớn, dùng để cài đặt tham số cho mô hình.
+2.	Validation Data (Tập xác thực - Held out): Dùng để đánh giá liên tục trong quá trình train, giúp quyết định khi nào dừng train hoặc chọn phiên bản mô hình nào tốt nhất.
+3.	Test Data (Tập kiểm tra - Held out): Giữ kín đến tận cùng. Chỉ dùng 1 lần duy nhất sau khi đã chốt mô hình để đánh giá khả năng Generalization (khái quát hóa) khách quan nhất.
+________________________________________
+4. Phân tích Code (Mô phỏng)
+Do bạn chưa cung cấp file code cụ thể, dưới đây là logic code Python (sử dụng thư viện datasets và pandas) mà bài học này thực hiện dựa trên mô tả của giảng viên:
+1.	Load Data: Tải dataset McAuley-Lab/Amazon-Reviews-2023 từ Hugging Face.
+2.	Filter/Clean: Loại bỏ các dòng thiếu giá (price) hoặc mô tả (description).
+3.	EDA (Exploratory Data Analysis): Vẽ biểu đồ phân phối giá (Histogram) để xem dữ liệu có bị lệch (skewed) không.
+4.	Splitting:
+o	Sử dụng hàm train_test_split (thường từ thư viện sklearn).
+o	Chia Train (lớn nhất), Val, Test.
+o	Lưu các tập này lại (dạng .jsonl hoặc đẩy ngược lên Hugging Face Hub của riêng bạn).
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+1. Tại sao chọn Absolute Error (MAE) thay vì Squared Error (MSE)?
+•	MSE (Mean Squared Error): Bình phương sai số. Nó trừng phạt rất nặng các sai số lớn (outliers). Trong toán học, nó dễ đạo hàm (tính gradient) hơn.
+•	MAE (Mean Absolute Error): Trị tuyệt đối. Trong bài toán dự đoán giá cả cho người dùng cuối (như dự án này), MAE phản ánh đúng tâm lý người mua ("Cái này đắt hơn giá trị thực bao nhiêu tiền?").
+2. Data Leakage (Rò rỉ dữ liệu)
+Khi chia dữ liệu (Train/Val/Test), một lỗi nghiêm trọng là để thông tin từ tập Test lọt vào tập Train. Ví dụ:
+•	Dữ liệu trùng lặp: Cùng một sản phẩm xuất hiện ở cả Train và Test.
+•	Kết quả: Mô hình học vẹt (Overfitting), điểm test rất cao nhưng ra thực tế dự đoán sai bét.
+•	Lưu ý: Khi curate dataset Amazon, cần đảm bảo không có sản phẩm trùng lặp giữa các tập.
+Bước tiếp theo cho Hieu
+Vì Hieu đang sử dụng Cursor/VS Code và uv package manager, bạn có muốn tôi cung cấp một đoạn script Python mẫu sử dụng thư viện datasets của Hugging Face để:
+1.	Tải một phần nhỏ dữ liệu Amazon về máy.
+2.	Thực hiện chia tách Train/Val/Test và lưu xuống ổ cứng để bạn hình dung quy trình này không?
+140. Day 1 - Curating Amazon Data with Hugging Face for Price Prediction
+Chào Hieu, chúng ta chính thức bắt đầu hành trình "làm dơ tay" với dữ liệu (Data Curation) trong Tuần 6 - Day 1. Đây là nền móng quan trọng nhất cho dự án Capstone "The Price Is Right".
+Dưới đây là tổng hợp kiến thức và phân tích chi tiết dựa trên các file day1.ipynb, parser.py, items.py và nội dung bài giảng.
+________________________________________
+1. Chủ đề bài học
+140. Day 1 - Curating Amazon Data with Hugging Face for Price Prediction
+(Ngày 1 - Tuyển chọn dữ liệu Amazon với Hugging Face cho bài toán Dự đoán giá)
+________________________________________
+2. Tóm tắt cốt lõi
+•	Mục tiêu: Xây dựng bộ dữ liệu chất lượng cao từ nguồn dữ liệu thô khổng lồ (Amazon Reviews 2023) để huấn luyện mô hình dự đoán giá sản phẩm.
+•	Thông điệp chính: "Data Curation" (Tuyển chọn dữ liệu) không phải là việc nhàm chán mà là nơi "khoa học" thực sự diễn ra. Việc xử lý dữ liệu tốt có tác động lớn đến kết quả hơn là việc tối ưu siêu tham số sau này.
+•	Kết quả: Tạo ra các tập dữ liệu train, validation, test đã được làm sạch, chuẩn hóa và đẩy lên Hugging Face Hub.
+________________________________________
+3. Nội dung chính & Các bước thực hiện
+Quy trình trong day1.ipynb diễn ra theo các bước sau:
+1.	Thiết lập môi trường: Đăng nhập Hugging Face, tải các thư viện cần thiết.
+2.	Khám phá dữ liệu (Exploratory Data Analysis - EDA):
+o	Tải danh mục "Appliances" (Thiết bị gia dụng) để kiểm tra thử.
+o	Phát hiện các điểm dữ liệu lỗi (thiếu giá).
+o	Phát hiện ngoại lai (Outlier): Ví dụ chiếc lò vi sóng TurboChef giá $21,000 (giá trị thực, không phải lỗi, nhưng quá cao so với phổ thông).
+3.	Xây dựng bộ lọc (Parsing Logic):
+o	Loại bỏ sản phẩm thiếu giá hoặc mô tả quá ngắn.
+o	Giới hạn khung giá từ $0.5 đến $999.49 (quyết định kinh doanh để tập trung vào hàng tiêu dùng phổ thông).
+o	Chuẩn hóa văn bản (xóa khoảng trắng thừa, xóa mã sản phẩm vô nghĩa).
+4.	Mở rộng quy mô (Scaling Up):
+o	Áp dụng logic lọc cho nhiều danh mục: Automotive, Electronics, Office Products, v.v.
+o	Thực hiện Deduplication (Loại bỏ trùng lặp) dựa trên tiêu đề và nội dung mô tả để tránh rò rỉ dữ liệu (data leakage).
+5.	Phân tích & Trực quan hóa:
+o	Vẽ biểu đồ phân phối giá (Price distribution) và độ dài văn bản (Text length).
+o	Kiểm tra sự cân bằng giữa các danh mục sản phẩm (Category balance).
+6.	Đóng gói & Lưu trữ:
+o	Chia tập dữ liệu (Train/Val/Test).
+o	Đẩy lên Hugging Face Hub để dùng cho các ngày sau.
+________________________________________
+4. Phân tích Code
+Đây là phần quan trọng nhất, logic xử lý nằm ở 2 file parser.py và items.py.
+A. File parser.py - Bộ lọc và làm sạch dữ liệu
+File này chứa logic "biến dữ liệu thô thành dữ liệu tinh".
+Python
+from pricer.items import Item
+import json
+import re
+
+# --- CẤU HÌNH CÁC NGƯỠNG LỌC ---
+MIN_CHARS = 600       # Chỉ lấy mô tả dài hơn 600 ký tự (để đảm bảo đủ thông tin huấn luyện)
+MIN_PRICE = 0.5       # Loại bỏ rác hoặc phụ kiện quá rẻ
+MAX_PRICE = 999.49    # Loại bỏ hàng xa xỉ/công nghiệp để tránh làm nhiễu mô hình
+MAX_TEXT_EACH = 3000  # Giới hạn độ dài từng phần (mô tả, tính năng)
+MAX_TEXT_TOTAL = 4000 # Giới hạn tổng độ dài văn bản đầu vào
+
+# Các trường thông tin nhiễu cần loại bỏ
+REMOVALS = [
+    "Part Number",
+    "Best Sellers Rank",
+    "Batteries Included?",
+    "Batteries Required?",
+    "Item model number",
+]
+
+def simplify(text_list) -> str:
+    """
+    Hàm làm sạch chuỗi: xóa xuống dòng, tab, khoảng trắng thừa.
+    """
+    return (
+        str(text_list)
+        .replace("\n", " ")
+        .replace("\r", "")
+        .replace("\t", "")
+        .replace("  ", " ") # Xóa khoảng trắng kép
+        .strip()[:MAX_TEXT_EACH] # Cắt bớt nếu quá dài
+    )
+
+def scrub(title, description, features, details) -> bool:
+    """
+    Hàm kết hợp và làm sạch toàn bộ thông tin sản phẩm.
+    """
+    # 1. Loại bỏ các thông tin không quan trọng trong details
+    for remove in REMOVALS:
+        details.pop(remove, None)
+    
+    # 2. Ghép tiêu đề, mô tả, tính năng và chi tiết thành 1 chuỗi lớn
+    result = title + "\n"
+    if description:
+        result += simplify(description) + "\n"
+    if features:
+        result += simplify(features) + "\n"
+    if details:
+        result += json.dumps(details) + "\n"
+    
+    # 3. Sử dụng Regex để xóa các mã sản phẩm (Product ID) vô nghĩa
+    # Pattern tìm các chuỗi gồm chữ in hoa và số xen kẽ dài hơn 7 ký tự
+    pattern = r"\b(?=[A-Z0-9]{7,}\b)(?=.*\d)[A-Z0-9]+\b"
+    return re.sub(pattern, "", result).strip()[:MAX_TEXT_TOTAL]
+
+def get_weight(details):
+    """
+    Hàm chuẩn hóa trọng lượng về đơn vị Pounds (lbs).
+    Xử lý nhiều đơn vị khác nhau: ounces, grams, kg...
+    """
+    weight_str = details.get("Item Weight")
+    if weight_str:
+        parts = weight_str.split(" ")
+        amount = float(parts[0])
+        unit = parts[1].lower()
+        # Chuyển đổi tất cả về pounds
+        if unit == "pounds": return amount
+        elif unit == "ounces": return amount / 16
+        elif unit == "grams": return amount / 453.592
+        # ... (các đơn vị khác)
+    return 0
+
+def parse(datapoint, category):
+    """
+    Hàm chính: Quyết định xem một sản phẩm có được đưa vào tập dữ liệu hay không.
+    """
+    try:
+        price = float(datapoint["price"])
+    except ValueError:
+        return None # Bỏ qua nếu không có giá hợp lệ
+
+    # Chỉ lấy sản phẩm trong khung giá quy định
+    if MIN_PRICE <= price <= MAX_PRICE:
+        title = datapoint["title"]
+        description = datapoint["description"]
+        features = datapoint["features"]
+        details = json.loads(datapoint["details"])
+        
+        weight = get_weight(details)
+        full = scrub(title, description, features, details) # Làm sạch văn bản
+        
+        # Chỉ lấy nếu văn bản sau khi làm sạch đủ dài (đủ dữ liệu để học)
+        if len(full) >= MIN_CHARS:
+            return Item(
+                title=title,
+                category=category,
+                price=price,
+                full=full,
+                weight=weight,
+            )
+B. File items.py - Cấu trúc dữ liệu (Data Schema)
+File này định nghĩa đối tượng Item bằng Pydantic, giúp quản lý kiểu dữ liệu chặt chẽ và tương tác với Hugging Face.
+Python
+from pydantic import BaseModel
+from datasets import Dataset, DatasetDict, load_dataset
+from typing import Optional, Self
+
+PREFIX = "Price is $"
+QUESTION = "What does this cost to the nearest dollar?"
+
+class Item(BaseModel):
+    """
+    Định nghĩa cấu trúc một điểm dữ liệu (Data Point)
+    """
+    title: str
+    category: str
+    price: float
+    full: Optional[str] = None # Chuỗi văn bản đầy đủ đã làm sạch
+    weight: Optional[float] = None
+    # ... các trường khác
+
+    def make_prompt(self, text: str):
+        """Tạo prompt cho LLM: Câu hỏi + Nội dung + Giá (để training)"""
+        self.prompt = f"{QUESTION}\n\n{text}\n\n{PREFIX}{round(self.price)}.00"
+
+    @staticmethod
+    def push_to_hub(dataset_name: str, train: list[Self], val: list[Self], test: list[Self]):
+        """
+        Đẩy dữ liệu lên Hugging Face Hub.
+        Chuyển đổi list các object Item thành DatasetDict của Hugging Face.
+        """
+        DatasetDict(
+            {
+                "train": Dataset.from_list([item.model_dump() for item in train]),
+                "validation": Dataset.from_list([item.model_dump() for item in val]),
+                "test": Dataset.from_list([item.model_dump() for item in test]),
+            }
+        ).push_to_hub(dataset_name)
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao cần giới hạn giá ($0.5 - $999.49)?
+Đây là một quyết định Business/Modeling:
+•	Tránh nhiễu (Outliers): Những sản phẩm quá đắt (như thiết bị công nghiệp) hoặc quá rẻ (ốc vít, phụ kiện nhỏ) thường có quy luật định giá khác hẳn hàng tiêu dùng thông thường. Nếu đưa vào, mô hình sẽ khó hội tụ (converge).
+•	Tập trung mục tiêu: Dự án muốn xây dựng AI cho người tiêu dùng phổ thông (Consumer focus).
+B. Data Deduplication (Loại bỏ trùng lặp)
+Trong Notebook có đoạn code:
+Python
+seen = set()
+items = [x for x in tqdm(items) if not (x.title in seen or seen.add(x.title))]
+Đây là bước cực kỳ quan trọng. Nếu không làm bước này:
+•	Dữ liệu train và test có thể chứa cùng một sản phẩm.
+•	Mô hình sẽ "nhớ" đáp án thay vì học cách dự đoán (Data Leakage), dẫn đến điểm số ảo cao nhưng thực tế hoạt động kém.
+C. Quy trình EDA (Exploratory Data Analysis)
+Giảng viên sử dụng biểu đồ (Matplotlib) để kiểm tra:
+•	Histogram độ dài văn bản: Đảm bảo đầu vào không quá ngắn (thiếu thông tin) hoặc quá dài (tốn token).
+•	Histogram giá: Kiểm tra xem dữ liệu có bị lệch (skewed) hay không. Thường dữ liệu giá cả sẽ bị lệch phải (right-skewed), số lượng sản phẩm giá rẻ nhiều hơn giá đắt.
+•	Scatter Plot (Giá vs Độ dài/Cân nặng): Tìm kiếm các mối tương quan tuyến tính đơn giản. Nếu thấy tương quan rõ rệt, ML truyền thống sẽ hoạt động tốt.
+Đây là bước chuẩn bị hoàn hảo để ngày mai chúng ta bước vào Data Pre-processing (dùng LLM để viết lại dữ liệu).
+141. Day 1 - Exploring Amazon Dataset Distribution and Removing Duplicates
+Chào Hieu, đây là tổng hợp nội dung bài học số 141. Day 1 - Exploring Amazon Dataset Distribution and Removing Duplicates. Bài học này tập trung vào việc mở rộng quy mô dữ liệu, phân tích sự phân bố và xử lý một vấn đề chí tử trong Machine Learning: Dữ liệu trùng lặp (Duplicates).
+Dưới đây là chi tiết nội dung:
+________________________________________
+1. Chủ đề bài học
+141. Day 1 - Exploring Amazon Dataset Distribution and Removing Duplicates
+(Ngày 1 - Khám phá phân phối dữ liệu Amazon và Loại bỏ trùng lặp)
+________________________________________
+2. Tóm tắt cốt lõi
+•	Mở rộng quy mô: Tăng từ một danh mục (Appliances) lên toàn bộ các danh mục khác (Automotive, Electronics, v.v.), nâng tổng số lượng dữ liệu lên gần 3 triệu mẫu.
+•	Phát hiện vấn đề: Dữ liệu bị lệch (Skewed) nặng về các sản phẩm giá rẻ và danh mục phụ tùng ô tô.
+•	Xử lý rủi ro: Phát hiện và loại bỏ các bản ghi trùng lặp (Duplicates) để ngăn chặn hiện tượng Data Leakage (Rò rỉ dữ liệu) - nguyên nhân hàng đầu khiến mô hình đánh giá sai năng lực thực tế.
+________________________________________
+3. Nội dung chính
+A. Phân tích phân phối dữ liệu (EDA)
+Giảng viên thực hiện phân tích thống kê trên tập dữ liệu mở rộng:
+1.	Độ dài mô tả (Description Length):
+o	Trung bình khoảng 1400 ký tự.
+o	Bị cắt (truncate) ở mức tối đa 4000 ký tự.
+o	Ví dụ: Một bộ lọc máy sấy (dryer vent filter) có mô tả rất dài nhưng chứa nhiều thông tin lặp lại/thừa.
+2.	Phân phối giá (Price Distribution):
+o	Dữ liệu bị lệch hẳn về phía giá rẻ (Heavily skewed). Giá trung bình khoảng $56 - $59.
+o	Đỉnh của biểu đồ nằm ở vùng $30 - $40.
+o	Điều này gây khó khăn cho mô hình khi học cách dự đoán các sản phẩm đắt tiền hơn.
+3.	Phân phối danh mục (Category Distribution):
+o	Danh mục Automotive (Ô tô) chiếm đa số áp đảo (gần 1 triệu sản phẩm).
+o	Các danh mục khác như Electronics, Musical Instruments ít hơn nhiều.
+B. Vấn đề trùng lặp và Data Leakage
+•	Nguyên nhân: Cùng một sản phẩm có thể xuất hiện ở nhiều danh mục khác nhau trên Amazon hoặc bị cào (scraped) nhiều lần.
+•	Hậu quả (Data Leakage): Nếu không loại bỏ, một sản phẩm có thể xuất hiện vừa ở tập Train vừa ở tập Validation/Test.
+o	Kết quả Validation sẽ cao giả tạo (vì mô hình đã "nhìn thấy" đáp án trong lúc học).
+o	Dẫn đến Overfitting: Mô hình hoạt động tệ hại trên dữ liệu thực tế hoàn toàn mới.
+•	Giải pháp: Xáo trộn (Shuffle) dữ liệu và loại bỏ các mục có cùng Tiêu đề (Title) hoặc cùng Mô tả đầy đủ (Full description).
+________________________________________
+4. Phân tích Code: loaders.py
+File này chứa công cụ để tải và xử lý dữ liệu quy mô lớn một cách hiệu quả (Parallel Processing).
+Python
+from datetime import datetime
+from tqdm import tqdm
+from datasets import load_dataset
+from concurrent.futures import ProcessPoolExecutor
+from pricer.parser import parse
+import os
+
+CHUNK_SIZE = 1000
+# Tự động xác định số lượng CPU core để chạy song song
+cpu_count = os.cpu_count()
+WORKERS = max(cpu_count - 1, 1)
+
+class ItemLoader:
+    def __init__(self, category):
+        self.category = category
+        self.dataset = None
+
+    def from_datapoint(self, datapoint):
+        """
+        Chuyển đổi một dòng dữ liệu thô thành object Item.
+        Sử dụng hàm 'parse' (từ file parser.py đã học trước đó).
+        """
+        return parse(datapoint, self.category)
+
+    def chunk_generator(self):
+        """
+        Kỹ thuật Generator: Thay vì load hết vào RAM, hàm này 'nhả' ra từng cục (chunk)
+        dữ liệu (1000 dòng/lần) để xử lý dần.
+        """
+        size = len(self.dataset)
+        for i in range(0, size, CHUNK_SIZE):
+            yield self.dataset.select(range(i, min(i + CHUNK_SIZE, size)))
+
+    def load_in_parallel(self, workers):
+        """
+        Xử lý song song (Parallel Processing):
+        Đây là phần quan trọng nhất để xử lý 3 triệu dòng dữ liệu.
+        Sử dụng ProcessPoolExecutor để chia việc cho các nhân CPU.
+        """
+        results = []
+        chunk_count = (len(self.dataset) // CHUNK_SIZE) + 1
+        # Tạo một hồ bơi các tiến trình (pool of workers)
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            # Map công việc xử lý chunk cho các workers
+            for batch in tqdm(pool.map(self.from_chunk, self.chunk_generator()), total=chunk_count):
+                results.extend(batch)
+        return results
+
+    def load(self, workers=WORKERS):
+        """
+        Hàm chính để gọi từ bên ngoài.
+        1. Tải dataset thô từ Hugging Face.
+        2. Gọi hàm xử lý song song để làm sạch và parse dữ liệu.
+        """
+        # ... (code loading dataset)
+        results = self.load_in_parallel(workers)
+        # ...
+        return results
+Tại sao cần load_in_parallel?
+Vì việc xử lý chuỗi (string manipulation) trong Python tốn nhiều CPU. Với 3 triệu sản phẩm, nếu chạy tuần tự (vòng lặp for đơn thuần), bạn có thể mất hàng giờ. Kỹ thuật này tận dụng đa nhân CPU để giảm thời gian xuống còn vài phút.
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Data Leakage (Rò rỉ dữ liệu)
+Đây là khái niệm cực kỳ quan trọng trong thi đấu Kaggle và thực tế.
+•	Leakage do trùng lặp: Như bài học đã đề cập.
+•	Leakage do thời gian: Dùng dữ liệu tương lai để dự đoán quá khứ.
+•	Dấu hiệu nhận biết: Khi mô hình của bạn có chỉ số accuracy cao bất thường (ví dụ 99.9%) trên tập validation ngay từ đầu, khả năng cao là đã bị Leakage.
+B. Imbalanced Data (Dữ liệu mất cân bằng)
+Dữ liệu Amazon này bị mất cân bằng nặng:
+•	Về giá: Quá nhiều đồ rẻ.
+•	Về loại: Quá nhiều đồ ô tô.
+Hậu quả là mô hình sẽ có xu hướng đoán giá thấp cho mọi thứ (bias) vì làm vậy an toàn hơn. Để khắc phục, chúng ta cần kỹ thuật Sampling (lấy mẫu lại) - sẽ được đề cập trong phần tiếp theo của bài học (chọn lọc tập con dữ liệu để cân bằng lại phân phối).
+C. Python Generators & Multiprocessing
+•	Generators (yield): Giúp tiết kiệm RAM khi xử lý Big Data. Nó không tạo ra list 3 triệu phần tử ngay lập tức mà chỉ tạo khi cần.
+•	Multiprocessing: Python có cơ chế GIL (Global Interpreter Lock) hạn chế đa luồng (threading) thực sự trên CPU. Do đó, để tận dụng đa nhân cho các tác vụ nặng về tính toán (CPU-bound) như xử lý văn bản, ta phải dùng ProcessPoolExecutor (đa tiến trình) thay vì ThreadPoolExecutor.
+Bước tiếp theo cho Hieu
+Bạn đã có code parser, items, và loaders. Bước tiếp theo là chạy script này để tạo ra tập dữ liệu thô khổng lồ, sau đó áp dụng thuật toán Sampling để giải quyết vấn đề mất cân bằng dữ liệu (Imbalance) mà giảng viên vừa cảnh báo. Bạn có muốn tôi giải thích về đoạn code Sampling (dựa trên phân phối xác suất) thường dùng trong trường hợp này không?
+
+142. Day 1 - Weighted Sampling with NumPy and Uploading Datasets to Hugging Face
+Chào Hieu, đây là tổng hợp nội dung bài học số 142. Day 1 - Weighted Sampling with NumPy and Uploading Datasets to Hugging Face. Đây là bước cuối cùng của Ngày 1 để "chuốt" lại dữ liệu cho thật cân bằng trước khi bước vào huấn luyện.
+Dưới đây là chi tiết nội dung:
+________________________________________
+1. Chủ đề bài học
+142. Day 1 - Weighted Sampling with NumPy and Uploading Datasets to Hugging Face
+(Ngày 1 - Lấy mẫu có trọng số với NumPy và Tải dữ liệu lên Hugging Face)
+________________________________________
+2. Tóm tắt cốt lõi
+•	Vấn đề: Như đã phân tích ở bài trước, dữ liệu thô đang bị lệch (skewed) quá nhiều về các sản phẩm giá rẻ và danh mục phụ tùng ô tô (chiếm gần 1 triệu/3 triệu mẫu).
+•	Giải pháp: Sử dụng kỹ thuật Weighted Sampling (Lấy mẫu có trọng số) để chọn ra tập dữ liệu con (820,000 mẫu) sao cho phân phối giá và danh mục trở nên cân bằng hơn.
+•	Kết quả: Tạo ra bộ dữ liệu "Price is Right" hoàn chỉnh (gồm bản Full và bản Lite), chia tách train/val/test và lưu trữ trên đám mây.
+________________________________________
+3. Nội dung chính
+A. Kỹ thuật Weighted Sampling (Lấy mẫu có trọng số)
+Thay vì chọn ngẫu nhiên (random choice) đều nhau, chúng ta gán xác suất được chọn cho mỗi sản phẩm dựa trên đặc điểm của nó:
+1.	Ưu tiên hàng đắt tiền: Bình phương giá của sản phẩm (price^2) để làm trọng số. Điều này giúp các món hàng đắt tiền có cơ hội được chọn cao hơn, kéo mức giá trung bình của tập dữ liệu từ ~$59 lên ~$140.
+2.	Phạt (Penalize) các danh mục chiếm đa số:
+o	Danh mục Tools & Home Improvement: Giảm trọng số đi 50% (nhân 0.5).
+o	Danh mục Automotive: Giảm trọng số đi 95% (nhân 0.05) vì nó quá áp đảo.
+B. Random Seed 42
+•	Khi thực hiện xáo trộn (shuffle) lần cuối, giảng viên đặt random.seed(42).
+•	Mục đích kỹ thuật: Để đảm bảo tính tái lập (reproducibility). Bất kỳ ai chạy code này cũng sẽ ra kết quả giống hệt nhau, không phải là "cherry picking" (chọn lọc kết quả tốt nhất).
+•	Ý nghĩa văn hóa: Con số 42 là tham chiếu đến tác phẩm The Hitchhiker's Guide to the Galaxy - câu trả lời cho "Sự sống, Vũ trụ và Mọi thứ".
+C. Đóng gói và Tải lên (Uploading)
+Tập dữ liệu cuối cùng được chia thành 2 phiên bản và đẩy lên Hugging Face Hub:
+1.	Full Version (Bản đầy đủ):
+o	Tổng: 820,000 mẫu.
+o	Chia tách: 800k Train / 10k Validation / 10k Test.
+o	Dành cho ai muốn training nghiêm túc ("All in").
+2.	Lite Version (Bản rút gọn):
+o	Tổng: 22,000 mẫu.
+o	Chia tách: 20k Train / 1k Validation / 1k Test.
+o	Dành cho việc học tập nhanh, tiết kiệm thời gian và chi phí tính toán.
+________________________________________
+4. Phân tích Code (day1.ipynb)
+Đoạn code quan trọng nhất nằm ở bước lấy mẫu (Sampling):
+Python
+import numpy as np
+
+# 1. Chuẩn hóa giá về khoảng [0, 1]
+p = (prices - prices.min()) / (prices.max() - prices.min() + 1e-9)
+
+# 2. Tạo trọng số (weights) ban đầu bằng cách bình phương giá
+# Mục đích: Ưu tiên chọn các món hàng đắt tiền hơn (để cân bằng với số lượng hàng rẻ quá nhiều)
+w = p**2
+
+# 3. Điều chỉnh trọng số theo danh mục (Penalizing categories)
+# Giảm khả năng được chọn của các danh mục đang bị thừa dữ liệu
+w[categories == "Tools_and_Home_Improvement"] *= 0.5  # Giảm 50%
+w[categories == "Automotive"] *= 0.05                 # Giảm 95% (vì Automotive quá nhiều)
+
+# 4. Chuẩn hóa lại trọng số để tổng bằng 1 (yêu cầu của hàm numpy choice)
+w = w / w.sum()
+
+# 5. Thực hiện lấy mẫu dựa trên trọng số w
+idx = np.random.choice(len(items), size=SIZE, replace=False, p=w)
+sample = [items[i] for i in idx]
+Giải thích logic:
+•	p = w: Đây là phân phối xác suất. Món hàng nào có w cao thì khả năng hàm np.random.choice bốc trúng món đó càng cao.
+•	replace=False: Đảm bảo một món hàng không được chọn 2 lần (không trùng lặp).
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao cần Sampling?
+Trong thực tế, dữ liệu hiếm khi hoàn hảo.
+•	Nếu train model trên dữ liệu gốc (90% là phụ tùng ô tô giá rẻ), model sẽ học được kiểu "lười biếng": Cứ đoán giá thấp cho mọi thứ là khả năng đúng cao.
+•	Kỹ thuật Resampling (Undersampling nhóm đa số, Oversampling nhóm thiểu số) giúp model học được các đặc trưng (features) thực sự của sản phẩm thay vì học xác suất xuất hiện của danh mục.
+B. Batch Mode & Pre-processing (Preview Day 2)
+Giảng viên hé lộ nội dung ngày mai:
+•	Sử dụng LLM để viết lại (rewrite) dữ liệu, biến các mô tả lộn xộn thành văn bản chất lượng cao.
+•	Sử dụng Batch Mode của API: Gửi hàng loạt yêu cầu một lúc (không đồng bộ) để tiết kiệm 50% chi phí và tránh nghẽn mạng so với gọi từng cái (Synchronous).
+Tổng kết Ngày 1
+Bạn đã hoàn thành việc:
+1.	Hiểu quy trình dự án Capstone "The Price Is Right".
+2.	Tải và xử lý 3 triệu dòng dữ liệu thô.
+3.	Loại bỏ trùng lặp (Deduplication).
+4.	Cân bằng lại dữ liệu (Weighted Sampling).
+5.	Chuẩn bị sẵn sàng dataset trên Hugging Face.
+Ngày mai chúng ta sẽ bắt đầu dùng LLM để xử lý dữ liệu ("Pre-processing with LLMs"). Bạn đã sẵn sàng chưa?
+DAY 2
+143. Day 2 - Five-Step Strategy for Selecting and Applying LLMs to Business Problems
+Chào Hieu, chúc mừng bạn đã hoàn thành buổi học thứ 2 của tuần Capstone! Đây là buổi học mang tính chiến lược cao, giúp bạn định hình tư duy của một "Lead AI Engineer" thực thụ thay vì chỉ là một người viết code đơn thuần.
+Dưới đây là tổng hợp chi tiết nội dung bài học Day 2 - Week 6, kết hợp phân tích code bạn đã cung cấp để bạn nắm vững cả lý thuyết và thực hành.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học này chuyển trọng tâm từ kỹ thuật thuần túy sang Tư duy Chiến lược (Strategic Thinking).
+•	Chiến lược 5 bước: Một khung làm việc (framework) chuẩn để giải quyết mọi bài toán AI thương mại: Từ việc hiểu vấn đề đến khi đưa mô hình ra thị trường.
+•	Training vs. Inference: Phân định rõ ràng khi nào nên dùng kỹ thuật ở thời gian chạy (RAG, Prompting) và khi nào cần can thiệp vào trọng số mô hình (Fine-tuning).
+•	Kỹ thuật Pre-processing nâng cao: Sử dụng chính LLM (thông qua Batch API) để làm sạch và viết lại dữ liệu, thay vì chỉ dùng regex hay code Python thông thường.
+________________________________________
+2. Nội dung chính: Chiến lược 5 Bước (The 5-Step Strategy)
+Giảng viên Ed Donner đưa ra quy trình chuẩn để không bị lạc lối trong "cơn bão hype" của AI:
+Bước 1: Understand (Hiểu vấn đề)
+•	Đừng bắt đầu bằng giải pháp: Đừng nói "Tôi cần xây dựng một AI Agent". Hãy hỏi "Vấn đề kinh doanh là gì?".
+•	Xác định Metrics (Chỉ số đo lường):
+o	Phân biệt rõ Technical Metrics (Loss, Accuracy) và Business Metrics (Doanh thu, Tỷ lệ giữ chân khách hàng).
+o	Với dự án "The Price Is Right", metric là Sai số giá tuyệt đối (Absolute Price Difference).
+•	Đánh giá dữ liệu: Số lượng, chất lượng, và các yêu cầu phi chức năng (độ trễ, chi phí).
+Bước 2: Prepare (Chuẩn bị) - Trọng tâm của code hôm nay
+•	Xây dựng Baseline (Mốc cơ sở): Trước khi dùng LLM xịn, hãy thử giải quyết bằng code Python thuần (Regex) hoặc Machine Learning cổ điển. Nếu AI không thắng được code thường thì không nên dùng AI.
+•	Data Curation: Tuyển chọn, làm sạch dữ liệu. Đây là bước quyết định thành bại của Fine-tuning.
+Bước 3: Select (Lựa chọn)
+•	Thực hiện R&D để chọn mô hình nền tảng (Base Model) phù hợp dựa trên các bảng xếp hạng (Leaderboards) và thử nghiệm thực tế.
+Bước 4: Customize (Tùy chỉnh/Áp dụng)
+Đây là lúc bạn quyết định kỹ thuật nào sẽ được sử dụng. Có 4 con đường chính:
+1.	Prompting (Inference Time): Few-shot, Chain-of-Thought. Rẻ và nhanh nhất.
+2.	RAG (Inference Time): Khi cần cung cấp Kiến thức (Knowledge) mới hoặc dữ liệu riêng tư mà mô hình chưa biết.
+3.	Agents (Inference Time): Khi cần thực hiện Quy trình (Workflow) phức tạp, sử dụng công cụ (Tools).
+4.	Fine-tuning (Training Time): Khi cần dạy cho mô hình một Kỹ năng (Skill) mới hoặc thay đổi hành vi/văn phong (Style).
+o	Dự án này chọn Fine-tuning vì ta muốn mô hình học "Kỹ năng định giá" (Generalization) chứ không phải học thuộc lòng giá của sản phẩm.
+Bước 5: Productionize (Triển khai)
+•	Xây dựng API, Hosting, Monitoring và đánh giá liên tục.
+________________________________________
+3. Phân tích Code (Code Analysis)
+Dựa trên các file bạn cung cấp (items.py, parser.py, loaders.py, day1.ipynb), đây là hạ tầng kỹ thuật phục vụ cho Bước 2 (Prepare) trong chiến lược trên.
+Hệ thống code này được thiết kế để xử lý lượng dữ liệu lớn (Big Data) một cách hiệu quả.
+A. File items.py - Định nghĩa Cấu trúc Dữ liệu
+File này sử dụng Pydantic để định nghĩa "hình hài" của một sản phẩm sạch.
+Python
+class Item(BaseModel):
+    # Các trường cơ bản
+    title: str
+    price: float
+    full: Optional[str] = None      # Nội dung text đầy đủ sau khi gộp
+    summary: Optional[str] = None   # <--- ĐIỂM QUAN TRỌNG CHO DAY 2
+    # ...
+    
+    def make_prompt(self, text: str):
+        """
+        Tạo prompt để Fine-tune sau này. 
+        Format: Câu hỏi + Mô tả sản phẩm -> Câu trả lời (Giá)
+        """
+        self.prompt = f"{QUESTION}\n\n{text}\n\n{PREFIX}{round(self.price)}.00"
+•	Giải thích: Trường summary đang để trống (None). Trong bài học Day 2 (phần Batch Mode), mục tiêu là dùng một LLM để đọc full text lộn xộn và viết lại thành một summary sạch đẹp, chất lượng cao. Đây chính là kỹ thuật "Pre-process using LLMs".
+B. File parser.py - Bộ lọc Rule-based (Tiền xử lý thô)
+Trước khi đưa cho AI, ta dùng code thường để lọc rác.
+Python
+# Cấu hình các ngưỡng lọc cứng
+MIN_CHARS = 600       # Quá ngắn -> Bỏ
+MIN_PRICE = 0.5       # Quá rẻ (phụ kiện rác) -> Bỏ
+MAX_PRICE = 999.49    # Quá đắt (hàng công nghiệp/lỗi) -> Bỏ
+
+def scrub(title, description, features, details) -> bool:
+    """
+    Hàm làm sạch chính:
+    1. Loại bỏ các trường rác (REMOVALS)
+    2. Gộp Title + Description + Features
+    3. Dùng Regex (Simplify) để xóa khoảng trắng thừa
+    """
+    # ...logic code...
+•	Logic: Đây là bước "Prepare" đầu tiên. Ta không muốn tốn tiền gửi dữ liệu rác (quá ngắn hoặc lỗi giá) vào LLM API. Code này đóng vai trò "người gác cổng" (Gatekeeper).
+C. File loaders.py - Xử lý song song (Parallel Processing)
+Để xử lý 800.000 dòng dữ liệu, chạy vòng lặp for bình thường sẽ mất cả ngày. File này giải quyết vấn đề hiệu năng.
+Python
+from concurrent.futures import ProcessPoolExecutor
+
+# Tự động nhận diện số nhân CPU của máy tính
+cpu_count = os.cpu_count()
+WORKERS = max(cpu_count - 1, 1) # Chừa lại 1 nhân để máy không bị đơ
+
+class ItemLoader:
+    def load_in_parallel(self, workers):
+        """
+        Chia dữ liệu thành các 'chunk' (miếng nhỏ) và giao cho các nhân CPU xử lý cùng lúc.
+        """
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            # map: Ánh xạ hàm xử lý vào từng chunk dữ liệu
+            for batch in tqdm(pool.map(self.from_chunk, self.chunk_generator()), ...):
+                results.extend(batch)
+•	Ý nghĩa: Kỹ thuật này rất quan trọng khi làm Data Engineer. Nó tận dụng tối đa sức mạnh phần cứng để giảm thời gian xử lý dữ liệu từ hàng giờ xuống hàng phút.
+________________________________________
+4. Kiến thức liên quan & Mở rộng (Extended Knowledge)
+A. Batch Mode (Chế độ hàng loạt) - Kỹ thuật "Pro"
+Trong bài học, giảng viên nhắc đến việc dùng Batch Mode của OpenAI/Anthropic để pre-process dữ liệu.
+•	Vấn đề: Gọi API từng cái một (Synchronous) rất chậm và đắt.
+•	Giải pháp Batch Mode:
+1.	Gom 10.000 yêu cầu (requests) vào 1 file .jsonl.
+2.	Gửi 1 lần lên server của OpenAI (Asynchronous).
+3.	Chờ kết quả trả về (thường trong vòng 24h).
+•	Lợi ích: Giảm 50% chi phí so với gọi API thông thường và không bị lỗi Rate Limit. Đây là cách các công ty lớn xử lý dữ liệu huấn luyện.
+B. Tại sao chọn Fine-tuning cho dự án "The Price Is Right"?
+Có sự phân biệt rõ ràng giữa RAG và Fine-tuning trong bài này:
+•	RAG (Retrieval Augmented Generation): Giống như cho học sinh đi thi được mang sách vào phòng thi. Học sinh không cần nhớ, chỉ cần biết tra cứu. Dùng khi cần độ chính xác về thông tin (facts).
+•	Fine-tuning: Giống như bắt học sinh ôn luyện giải 1000 bài toán mẫu trước khi thi. Học sinh học được tư duy/kỹ năng giải bài.
+o	Trong dự án này, ta muốn mô hình nhìn vào mô tả và "cảm nhận" được giá trị (kỹ năng định giá), chứ không phải tra cứu giá trong database (vì sản phẩm mới chưa có trong database). Do đó, Fine-tuning là lựa chọn chính xác.
+C. Lời khuyên thực hành
+Bạn đang có file day1.ipynb. Để thực hành nội dung Day 2:
+1.	Chạy hết code Day 1 để có danh sách items.
+2.	(Mở rộng) Viết một hàm sử dụng LLM (qua API) nhận vào item.full và trả về một đoạn tóm tắt ngắn gọn, hấp dẫn hơn.
+3.	Lưu kết quả đó vào item.summary. Đây sẽ là dữ liệu chất lượng cao ("Gold Data") để Fine-tune mô hình sau này.
+
+144. Day 2 - The Five-Step AI Process & Productionizing with MLOps
+Chào bạn, tôi đã nắm được toàn bộ nội dung phần tiếp theo của buổi học Day 2. Đây là phần giảng viên Ed Donner tổng kết lại bức tranh toàn cảnh (Big Picture) và nhấn mạnh vào bước quan trọng cuối cùng thường bị bỏ quên: Productionize (Triển khai thực tế), cũng như đặt ra thử thách cho học viên.
+Dưới đây là tổng hợp kiến thức chi tiết dựa trên phiên âm và các file code bạn đã cung cấp trước đó.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Bước thứ 5 (The Missing Step): Quy trình AI không kết thúc ở việc chọn mô hình (Step 4). Bước 5 là Productionize (Triển khai), đưa mô hình vào hạ tầng thực tế, bao gồm giám sát (monitoring), bảo mật và tuân thủ.
+•	MLOps & Model Drift: Khái niệm quan trọng là Model Drift (sự trôi dạt mô hình) - khi dữ liệu thực tế thay đổi theo thời gian khiến mô hình kém chính xác đi. Do đó, quy trình là một vòng lặp: Triển khai -> Đánh giá liên tục -> Đào tạo lại (Retrain).
+•	Batch Mode Strategy: Chiến lược kỹ thuật chính của hôm nay là dùng Batch API (gửi yêu cầu hàng loạt) để dùng một LLM "khôn" (Frontier Model) viết lại/tóm tắt dữ liệu cho sạch đẹp trước khi dùng dữ liệu đó để training mô hình nhỏ hơn.
+•	Thử thách (The Challenge): Giảng viên khuyến khích học viên chọn con đường "Hard mode" (dùng toàn bộ 800k dữ liệu) và thực hiện các thí nghiệm để đánh bại chỉ số dự đoán giá của giảng viên.
+________________________________________
+2. Nội dung chính
+A. Chiến lược 5 Bước (Hoàn thiện)
+Giảng viên nhắc lại 4 bước đầu và bổ sung chi tiết bước 5:
+1.	Understand: Hiểu bài toán kinh doanh và metrics (với dự án này là $|Price_{pred} - Price_{true}|$).
+2.	Prepare: Chuẩn bị dữ liệu (Data Curation) và Baseline model (sẽ làm vào Day 3).
+3.	Select: Chọn mô hình phù hợp (dựa trên Leaderboard, context length...).
+4.	Customize: Áp dụng kỹ thuật (RAG, Prompting, Fine-tuning).
+5.	Productionize (Trọng tâm hôm nay):
+o	Deployment: Chọn cloud (AWS/GCP/Azure).
+o	Observability: Đặc biệt quan trọng với AI Agents (theo dõi các LLM nói gì với nhau).
+o	Continuous Evaluation: Đánh giá mô hình trên dữ liệu thực (Real-world data).
+B. Lộ trình dự án Capstone "The Price Is Right"
+•	Mục tiêu: Input là mô tả sản phẩm -> Output là giá tiền.
+•	Metrics: Absolute Price Difference (Sai số tuyệt đối).
+•	Kế hoạch tuần này (Week 6):
+o	Day 1: Xử lý dữ liệu thô (Done).
+o	Day 2 (Today): Pre-processing (Tiền xử lý) dùng LLM qua Batch Mode.
+o	Day 3: Machine Learning truyền thống (Traditional ML) & Baselines.
+o	Day 4: Neural Networks.
+o	Day 5: Fine-tuning Frontier Model (qua API).
+•	Tuần sau (Week 7): Fine-tuning Open Source Model (Llama 3) - Đây mới là "real engineering".
+C. Ba con đường cho học viên
+1.	Just Listen: Hiểu tư duy (Intuition).
+2.	Lite Version: Dùng dataset nhỏ (20k dòng), bỏ qua bước clean dữ liệu nặng nhọc.
+3.	Go Big (Khuyên dùng): Dùng full dataset (800k dòng), tự chạy Batch processing, tự train và tìm cách đánh bại kết quả của giảng viên bằng thực nghiệm (trial & error).
+________________________________________
+3. Phân tích Code & Quy trình (Code & Pipeline Analysis)
+Dựa vào ngữ cảnh "Pre-processing using LLMs" và "Batch Mode" trong bài giảng, ta phân tích lại các file code để thấy sự chuẩn bị cho bước này.
+Mục tiêu: Dùng một LLM mạnh (ví dụ GPT-4o hoặc Claude 3.5 Sonnet) để đọc full text (lộn xộn) và viết lại thành summary (chất lượng cao). Sau đó dùng summary này để train model.
+File items.py - Chuẩn bị cấu trúc dữ liệu
+Python
+class Item(BaseModel):
+    title: str
+    price: float
+    full: Optional[str] = None      # Dữ liệu thô ban đầu (gộp từ title, desc...)
+    summary: Optional[str] = None   # <--- MỤC TIÊU CỦA DAY 2
+    
+    # ...
+    
+    def make_prompt(self, text: str):
+        """
+        Hàm này tạo ra chuỗi input để gửi vào LLM.
+        Trong context của Batch Mode hôm nay, ta sẽ sửa logic này một chút (hoặc dùng một hàm tương tự)
+        để yêu cầu LLM: "Hãy tóm tắt và làm sạch đoạn văn bản sau..."
+        """
+        # Logic hiện tại đang là prompt cho việc Training (Hỏi giá)
+        # self.prompt = f"{QUESTION}\n\n{text}\n\n{PREFIX}{round(self.price)}.00"
+        pass 
+Quy trình Batch Mode (Mô tả Logic Code sẽ thực hiện)
+Vì code cụ thể gọi Batch API chưa có trong các file cũ, tôi sẽ mô tả logic mà giảng viên sẽ hướng dẫn bạn viết trong phần thực hành tiếp theo (dựa trên loaders.py và kiến thức Batch API):
+1.	Tạo file JSONL: Duyệt qua danh sách items, lấy trường full.
+2.	Construct Request: Tạo object request cho từng item:
+JSON
+{"custom_id": "item_123", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Rewrite this product description..."}]}}
+3.	Upload & Execute: Gửi file này lên OpenAI/Anthropic Platform.
+4.	Retrieve: Chờ (khoảng 12-24h) và tải kết quả về.
+5.	Update: Ghi nội dung trả về vào trường item.summary.
+File loaders.py - Vai trò trong Pipeline
+File này vẫn giữ vai trò nạp dữ liệu thô để chuẩn bị cho quá trình tạo Batch request.
+Python
+# Đoạn code này đảm bảo chúng ta có thể load 800k dòng dữ liệu đủ nhanh
+# để sau đó tạo file batch request mà không bị treo máy.
+def load_in_parallel(self, workers):
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        # ... logic song song ...
+________________________________________
+4. Kiến thức liên quan & Mở rộng (Extended Knowledge)
+A. MLOps: Model Drift (Sự trôi dạt mô hình)
+Giảng viên nhắc đến "Model Drift". Đây là hiện tượng mô hình AI bị "lỗi thời" dù code không đổi.
+•	Data Drift: Dữ liệu đầu vào thay đổi. Ví dụ: Trước đây sản phẩm Amazon chỉ bán sách, giờ bán cả đồ điện tử. Mô hình chỉ học bán sách sẽ đoán sai giá đồ điện tử.
+•	Concept Drift: Mối quan hệ giữa Input và Output thay đổi. Ví dụ: Lạm phát làm giá cả tăng lên. Cùng một mô tả sản phẩm "Laptop 8GB RAM", năm 2020 giá $800, nhưng năm 2024 có thể giá khác.
+•	Giải pháp: Phải có hệ thống Monitoring để phát hiện khi sai số (Metric) tăng cao, từ đó kích hoạt quy trình Retraining.
+B. Batch API - Tại sao lại dùng cho Pre-processing?
+Tại sao không dùng code Python (regex) để làm sạch mà phải tốn tiền dùng LLM?
+•	Chất lượng: Regex không hiểu ngữ nghĩa. LLM có thể sửa lỗi chính tả, chuẩn hóa văn phong, loại bỏ câu marketing vô nghĩa ("Mua ngay kẻo lỡ") để giữ lại thông tin kỹ thuật thuần túy.
+•	Chi phí: Sử dụng Batch Mode (như giảng viên đề cập) rẻ hơn 50% so với gọi API trực tiếp (Synchronous). Đây là cách duy nhất để xử lý 800.000 dòng dữ liệu với chi phí chấp nhận được cho một dự án cá nhân/học tập.
+C. Chiến thuật "Distillation" (Chưng cất tri thức)
+Việc dùng LLM to (GPT-4) để viết lại dữ liệu, sau đó dùng dữ liệu đó train LLM nhỏ (Llama 3 8B) được gọi là Knowledge Distillation.
+•	Ta đang "chưng cất" sự thông minh của GPT-4 vào bộ dữ liệu sạch.
+•	Sau đó mô hình nhỏ học từ bộ dữ liệu sạch này sẽ hoạt động tốt hơn nhiều so với học từ dữ liệu rác ban đầu.
+Lời khuyên: Nếu bạn chọn con đường "Go Big" như giảng viên thách thức, hãy chuẩn bị sẵn thẻ tín dụng (chi phí API OpenAI khoảng vài chục USD cho dataset lớn) hoặc dùng các mô hình nhỏ hơn/free tier để chạy batch trên một phần dữ liệu.
+
+145. Day 2 - Data Pre-processing with LLMs and Groq Batch Mode
+Chào bạn, chúng ta đang đi vào phần kỹ thuật thú vị nhất của Day 2: Biến dữ liệu "rác" thành dữ liệu "vàng" bằng cách sử dụng chính LLM.
+Đây là bước phân biệt giữa một dự án nghiệp dư và một dự án chuyên nghiệp. Thay vì train model trên dữ liệu hỗn độn, chúng ta sẽ dùng một model thông minh để "dạy" lại dữ liệu trước khi đưa vào huấn luyện.
+Dưới đây là tổng hợp chi tiết bài học 145. Day 2 - Data Pre-processing with LLMs and Groq Batch Mode.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Mục tiêu: Chuyển đổi dữ liệu thô (Raw Data) hỗn loạn, chứa nhiều nhiễu (mã sản phẩm, quảng cáo) thành dữ liệu có cấu trúc (Structured), ngắn gọn và giàu thông tin (High Signal-to-Noise Ratio).
+•	Công cụ: Sử dụng Groq (nền tảng Inference siêu tốc) thông qua Batch API (tương thích chuẩn OpenAI).
+•	Chiến lược: Không gọi API từng cái (Synchronous) mà gửi hàng loạt (Asynchronous/Batch) để tiết kiệm 50% chi phí và không cần duy trì kết nối chờ đợi.
+•	Hiệu quả: Chi phí cực rẻ (~0.01 xu cho 1 item) nhưng nhân với 800.000 items thì vẫn là vấn đề lớn -> Cần cân nhắc giải pháp Local Model (bài sau).
+________________________________________
+2. Nội dung chính
+A. Tư duy Pre-processing bằng LLM
+Trước đây, để làm sạch dữ liệu văn bản, kỹ sư phải viết hàng tá quy tắc Regex phức tạp (nếu có chuỗi "Part No.", hãy xóa...). Tuy nhiên, với LLM, ta có thể giải quyết vấn đề này chỉ bằng một câu lệnh (Prompt).
+•	Input: "F59 Interior Knob... deadbolt... oil rubbed bronze... easy installation..." (Rất dài dòng, lộn xộn).
+•	Output mong muốn:
+o	Title: F59 Interior Knob
+o	Category: Hardware
+o	Description: Oil rubbed bronze knob...
+•	Lợi ích: Model sau này sẽ học được "tư duy định giá" tốt hơn vì nó không bị phân tâm bởi các từ ngữ vô nghĩa.
+B. Groq & Batch Mode
+•	Groq (không phải Grok của Elon Musk): Đây là công ty sản xuất chip LPU (Language Processing Unit) giúp chạy LLM (như Llama 3) với tốc độ cực nhanh.
+•	Batch Mode:
+o	Thay vì: Gửi request 1 -> Chờ -> Nhận kết quả 1 -> Gửi request 2...
+o	Ta làm: Gửi 1 file chứa 10.000 requests -> Đi ngủ -> Sáng mai tải kết quả về.
+o	Lợi ích: Rẻ hơn (thường giảm 50% giá), không lo timeout, phù hợp xử lý dữ liệu lớn (Big Data).
+________________________________________
+3. Phân tích Code (day2.ipynb)
+Dựa trên file notebook và nội dung giảng dạy, đây là logic code quan trọng:
+Bước 1: Chuẩn bị dữ liệu & Đánh Index
+Trước khi gửi đi xử lý hàng loạt, ta cần gán ID cho từng item để sau này khi nhận kết quả về (có thể không theo thứ tự), ta biết kết quả đó là của sản phẩm nào.
+Python
+# Load dataset (Light hoặc Full)
+ds = load_dataset(...)
+
+# Gán ID cho từng dòng dữ liệu (từ 0, 1, 2...)
+# Logic: ID giúp map lại kết quả sau khi Batch Processing trả về
+def add_id(example, idx):
+    example['id'] = idx
+    return example
+
+ds = ds.map(add_id, with_indices=True)
+Bước 2: System Prompt - "Bộ não" của quá trình
+Đây là đoạn code quan trọng nhất quyết định chất lượng dữ liệu đầu ra.
+Python
+system_prompt = """
+Create a concise description of a product. 
+Respond only in this format. Do not include part numbers.
+Title: ...
+Category: ...
+Brand: ...
+Description: ...
+Details: ...
+"""
+•	Giải thích:
+o	Concise description: Yêu cầu LLM tóm tắt, bỏ từ thừa.
+o	Do not include part numbers: Loại bỏ các mã số vô nghĩa (Noise) làm nhiễu mô hình định giá.
+o	Custom Format: Tại sao không dùng JSON?
+	JSON tốn nhiều token cho các dấu ngoặc {}, dấu ngoặc kép "".
+	Với 800.000 items, việc tiết kiệm vài token mỗi dòng giúp giảm đáng kể chi phí. Định dạng Key: Value đơn giản này vừa đủ dùng và tiết kiệm.
+Bước 3: Test thử nghiệm (Sanity Check)
+Trước khi chạy Batch cho cả ngàn item, giảng viên chạy thử 1 item để kiểm tra giá và chất lượng.
+Python
+# Giả lập gọi API (Code thực tế sẽ dùng client của Groq hoặc OpenAI)
+response = client.chat.completions.create(
+    model="Start-with-OSS-model", # Sử dụng model nguồn mở qua API
+    messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": item_0_full_text}
+    ]
+)
+•	Kết quả:
+o	Input: 446 tokens (Dài, lộn xộn).
+o	Output: 125 tokens (Ngắn gọn, sạch đẹp).
+o	Chi phí: ~0.011 cents ($0.00011).
+o	Nhận xét: Rất rẻ cho 1 item, nhưng nếu nhân lên 800k items -> ~$88. Đây là mức giá chấp nhận được cho doanh nghiệp, nhưng với sinh viên thì cần cân nhắc (đó là lý do phần sau sẽ nói về Local Model).
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+A. Groq vs. Traditional GPU
+•	Trong bài giảng, giảng viên nhấn mạnh dùng Groq. Groq sử dụng kiến trúc chip LPU (Language Processing Unit) chuyên biệt cho suy luận (Inference), giúp tốc độ token/s nhanh gấp 10 lần GPU thường. Điều này cực kỳ hữu ích khi bạn cần test nhanh prompt trên dữ liệu mẫu.
+B. Phân biệt Groq và Grok
+•	Groq: Công ty phần cứng (Chip LPU), cung cấp API chạy Llama 3, Mixtral cực nhanh. Đây là cái chúng ta dùng.
+•	Grok: Mô hình AI của xAI (Elon Musk) tích hợp trên X (Twitter).
+•	Lưu ý: Đừng nhầm lẫn khi viết code hoặc chọn API Key.
+C. Tại sao không dùng JSON Mode (Structured Outputs)?
+Giảng viên có nhắc đến Structured Outputs (JSON).
+•	Ưu điểm: Dễ dàng parse bằng code (json.loads()), đảm bảo không bao giờ sai format.
+•	Nhược điểm: Tốn token (chi phí cao hơn) và xử lý chậm hơn một chút.
+•	Quyết định: Trong bài toán Big Data này (800k items), sự đơn giản (Text Format) chiến thắng sự tiện lợi (JSON) để tối ưu chi phí. Tuy nhiên, trong môi trường Production cần độ tin cậy tuyệt đối, JSON Mode vẫn là lựa chọn số 1.
+D. Batch Processing Architecture
+Quy trình Batch thực tế mà bạn sẽ code (hoặc thấy trong các file sau):
+1.	Prepare: Tạo file .jsonl (mỗi dòng là một request JSON).
+2.	Upload: Upload file lên Server (Groq/OpenAI).
+3.	Create Batch: Gửi lệnh "Xử lý file này cho tôi".
+4.	Wait: Server xử lý (có thể mất 12-24h tùy nhà cung cấp, Groq thì nhanh hơn).
+5.	Retrieve: Tải file kết quả .jsonl về và merge vào dataset chính.
+Bước tiếp theo của bài học sẽ là giải pháp thay thế "0 đồng": Chạy model cục bộ (Local Model) cho những ai không muốn tốn tiền API.
+
+146. Day 2 - Batch Processing with Groq API and JSONL Files for LLM Workflows
+Chào bạn, chúng ta đang đi vào phần kỹ thuật cốt lõi của việc xử lý dữ liệu lớn (Big Data) trong AI. Phần này cực kỳ quan trọng vì trong thực tế, bạn sẽ không bao giờ gọi API từng dòng một cho hàng triệu sản phẩm – điều đó sẽ làm bạn "phá sản" và mất quá nhiều thời gian.
+Dưới đây là tổng hợp chi tiết nội dung bài học 146. Day 2 - Batch Processing with Groq API and JSONL Files.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thử nghiệm Local: Giảng viên thử dùng Llama 3.2 (Local/Free) để viết lại dữ liệu. Kết quả: Chạy được, miễn phí, nhưng chất lượng định dạng không tốt bằng model lớn và tốc độ chậm.
+•	Chuyển sang Groq Batch: Để xử lý 20.000 (Lite) hoặc 800.000 (Full) sản phẩm, giải pháp tối ưu là dùng Groq API ở chế độ Batch.
+•	JSONL là chìa khóa: Định dạng file tiêu chuẩn cho Batch Processing là JSONL (JSON Lines). Mỗi dòng là một request độc lập.
+•	Quy trình 3 bước: Upload File -> Create Batch (chờ xử lý) -> Retrieve Results (Tải kết quả).
+•	Xử lý bất đồng bộ: Kết quả trả về sẽ không theo thứ tự gửi đi, do đó bắt buộc phải dùng custom_id để map kết quả về đúng sản phẩm.
+________________________________________
+2. Nội dung chính
+A. So sánh nhanh: Local Llama 3.2 vs. API
+•	Llama 3.2 (Local):
+o	Ưu điểm: Miễn phí hoàn toàn.
+o	Nhược điểm: Output hơi "ngố" (thêm Markdown headers không cần thiết), ít chi tiết hơn. Token count thấp (48 tokens) do model ít "suy nghĩ" (reasoning) hơn so với model lớn.
+•	Groq API (Cloud):
+o	Ưu điểm: Tốc độ siêu nhanh, chất lượng cao, tuân thủ format tốt.
+o	Chi phí: Dùng Batch Mode giảm được 50% giá (vốn đã rẻ).
+B. Quy trình Batch Processing (Groq/OpenAI)
+Đây là quy trình chuẩn công nghiệp (Industry Standard) mà Groq đã sao chép y hệt từ OpenAI:
+1.	Chuẩn bị file (.jsonl): Đóng gói toàn bộ hàng ngàn prompt vào một file.
+2.	Upload: Gửi file lên server của nhà cung cấp.
+3.	Execute: Ra lệnh "Chạy lô này cho tôi". Nhà cung cấp cam kết xong trong 24h (thường Groq xong ngay lập tức vì tốc độ quá nhanh).
+4.	Download & Map: Tải về và ghép kết quả.
+ 
+Shutterstock
+________________________________________
+3. Phân tích Code & Pipeline
+Dựa trên transcript và logic lập trình, đây là cách code hoạt động chi tiết:
+Bước 1: Tạo file JSONL (make_jsonl)
+File JSONL khác JSON thường. Nó không có dấu phẩy giữa các dòng, không có ngoặc vuông [] bao quanh.
+Python
+# Cấu trúc một dòng trong file JSONL
+request_line = {
+    "custom_id": "item_123",  # QUAN TRỌNG: ID để định danh sản phẩm
+    "method": "POST",
+    "url": "/v1/chat/completions",
+    "body": {
+        "model": "llama-3.1-8b-instant", # Hoặc model bạn chọn trên Groq
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": item_full_text}
+        ]
+    }
+}
+•	Tại sao cần custom_id? Vì khi bạn gửi 1000 requests, server xử lý song song. Request số 10 có thể xong trước request số 1. Khi trả về, thứ tự bị xáo trộn. custom_id giúp bạn biết kết quả này là của sản phẩm nào.
+Bước 2: Gửi Batch Job (Code Python)
+Giảng viên sử dụng thư viện groq (tương tự openai).
+Python
+from groq import Groq
+
+client = Groq(api_key="...")
+
+# 1. Upload file input
+batch_file = client.files.create(
+    file=open("data/batch_input.jsonl", "rb"),
+    purpose="batch"
+)
+
+# 2. Tạo Batch Job
+batch_job = client.batches.create(
+    input_file_id=batch_file.id,
+    endpoint="/v1/chat/completions",
+    completion_window="24h", # Cam kết xong trong 24h (để được giảm giá)
+    metadata={"description": "Pre-processing data day 2"}
+)
+
+print(f"Batch ID: {batch_job.id}")
+Bước 3: Kiểm tra và Tải về (retrieve & content)
+Python
+# 3. Kiểm tra trạng thái
+import time
+while True:
+    batch_status = client.batches.retrieve(batch_job.id)
+    if batch_status.status == "completed":
+        break
+    time.sleep(10) # Đợi một chút
+
+# 4. Tải kết quả
+result_file_id = batch_status.output_file_id
+content = client.files.content(result_file_id).read()
+
+# Ghi ra file output
+with open("data/batch_results.jsonl", "wb") as f:
+    f.write(content)
+Bước 4: Xử lý kết quả (Mapping)
+Đây là đoạn code logic "thuần Python" cuối cùng mà giảng viên nhắc tới:
+Python
+# Đọc file kết quả và map ngược lại vào dataset
+results_map = {}
+with open("data/batch_results.jsonl", "r") as f:
+    for line in f:
+        data = json.loads(line)
+        custom_id = int(data['custom_id']) # Lấy lại ID
+        # Lấy nội dung text model trả về
+        summary = data['response']['body']['choices'][0]['message']['content']
+        results_map[custom_id] = summary
+
+# Cập nhật vào dataset chính
+for item in items:
+    if item.id in results_map:
+        item.summary = results_map[item.id]
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+A. JSON vs JSONL (JSON Lines)
+•	JSON (.json): Toàn bộ dữ liệu là một object lớn. Phải load hết vào RAM mới đọc được. Nếu file 10GB -> Crash máy.
+•	JSONL (.jsonl): Mỗi dòng là một object. Có thể đọc từng dòng (stream), xử lý xong dòng nào xóa dòng đó khỏi RAM. Đây là định dạng chuẩn cho Big Data và training LLM.
+B. "Reasoning Tokens" là gì?
+Trong bài, giảng viên thấy sự khác biệt về số lượng token output (48 vs 125).
+•	Các model lớn hoặc được tinh chỉnh tốt thường có xu hướng "suy nghĩ" (reasoning/chain-of-thought) ngầm hoặc diễn giải chi tiết hơn để đảm bảo độ chính xác trước khi đưa ra kết quả cuối cùng.
+•	Local model nhỏ (Llama 3.2) thường trả lời "cộc lốc" hoặc đi thẳng vào vấn đề (đôi khi sai format), dẫn đến số token ít hơn.
+C. Chiến lược tiết kiệm chi phí (Cost Efficiency)
+•	Batch Mode: Luôn giảm 50% chi phí so với gọi API trực tiếp.
+•	Tại sao rẻ? Các nhà cung cấp cloud (OpenAI/Groq) có những lúc server rảnh rỗi (ví dụ: 3 giờ sáng). Batch request cho phép họ lấp đầy khoảng thời gian rảnh đó bằng các job không gấp (chấp nhận chờ 24h). Đó là lý do bạn được giảm giá.
+Bài học tiếp theo sẽ là kiểm tra kết quả cuối cùng sau khi đã chạy xong Batch và chuẩn bị cho ngày 3: Machine Learning truyền thống.
+
+147. Day 2 - Batch Processing with Groq: Running 22K LLM Requests for Under $1
+Chào Hieu, chúc mừng bạn đã chính thức hoàn thành Day 2! Đây là một cột mốc rất lớn. Bạn vừa thực hiện một quy trình kỹ thuật thực tế mà các kỹ sư AI tại các công ty lớn làm hàng ngày: Biến đổi một lượng dữ liệu khổng lồ (Big Data) với chi phí cực thấp.
+Dưới đây là tổng kết phần cuối cùng của ngày học: Chạy thực nghiệm trên toàn bộ tập dữ liệu (Scaling Up).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Kết quả thực nghiệm:
+o	Lite Dataset (22,000 items): Chạy mất vài phút, chi phí < $1.
+o	Full Dataset (820,000 items): Chạy mất vài giờ, chi phí ~ $30.
+•	Hiệu quả kinh tế: Sử dụng Batch Mode giúp giảm 50% chi phí so với gọi API thông thường. Kết hợp với tốc độ của Groq, đây là giải pháp tối ưu cho xử lý dữ liệu lớn.
+•	Sản phẩm cuối cùng: Ta đã có một tập dữ liệu sạch (item.summary), loại bỏ hoàn toàn dữ liệu thô (item.full). Dữ liệu này đã được đẩy lên Hugging Face với tên items_light và items_full.
+________________________________________
+2. Nội dung chính & Quy trình mở rộng
+A. Quy trình tự động hóa (The Batch Module)
+Trong phần trước, ta làm thủ công cho 1 file (1000 items). Trong phần này, giảng viên giới thiệu module batch (file batch.py - dù không có trong danh sách upload nhưng logic được mô tả rất rõ) để tự động hóa vòng lặp:
+1.	Chunking: Chia 22,000 items thành 22 files nhỏ (mỗi file 1000 dòng JSONL).
+2.	Submission Loop: Vòng lặp gửi lần lượt các files lên Groq.
+3.	Polling: Liên tục hỏi Server: "Xong chưa?".
+4.	Retrieval & Merging: Khi xong, tải về và ghép 22 file kết quả lại vào dataset chính.
+B. Dọn dẹp dữ liệu (Data Hygiene)
+Sau khi có trường summary xịn xò do LLM viết lại, giảng viên thực hiện hành động quyết liệt:
+•	Xóa trường full: Dữ liệu gốc quá nhiễu, không cần thiết nữa.
+•	Xóa trường id tạm: Chỉ dùng để map kết quả batch, giờ không cần nữa.
+•	Kết quả: Dataset giảm dung lượng (250MB cho 800k dòng), mật độ thông tin (Signal density) cực cao.
+C. Chi phí và Thực tế (Reality Check)
+Giảng viên nhấn mạnh:
+•	Nếu làm thủ công (Synchronous API calls): Tốn $60 và có thể mất cả ngày để treo máy chờ.
+•	Làm Batch: Tốn $30, "Fire and forget" (Gửi đi rồi đi ngủ, sáng sau lấy về).
+________________________________________
+3. Phân tích Logic Code (Dựa trên day2.ipynb và mô tả)
+Dù file batch.py chưa được upload, nhưng dựa trên day2.ipynb và transcript, logic xử lý hàng loạt được gói gọn như sau:
+Python
+# Logic giả lập của module batch
+class BatchProcessor:
+    def create_batches(self, items, batch_size=1000):
+        # Chia nhỏ dataset thành nhiều file JSONL
+        pass
+        
+    def submit_all(self):
+        # Gửi 22 files lên Groq
+        # Hiển thị thanh tiến trình (tqdm)
+        pass
+        
+    def check_status(self):
+        # Kiểm tra xem bao nhiêu batch đã xong (ví dụ: 18/22)
+        pass
+        
+    def fetch_results(self):
+        # Tải kết quả về và map vào item.summary
+        pass
+
+# Thực thi
+batch.run(items, light_mode=True) # Chạy vèo cái xong 22k items
+•	tqdm: Giảng viên nhắc đến thanh tiến trình này rất nhiều. Khi xử lý data lớn, việc nhìn thấy thanh tiến trình chạy (ví dụ: Processed: 7/22 batches) cực kỳ quan trọng về mặt tâm lý để biết chương trình không bị treo.
+________________________________________
+4. Kiến thức liên quan & Mở rộng (Extended Knowledge)
+A. Prompt Caching (Bộ nhớ đệm lời nhắc)
+Giảng viên có nhắc đến "Prompt Caching" như một kỹ thuật giảm chi phí.
+•	Vấn đề: Trong 22,000 requests, cái System Prompt (hướng dẫn format, quy tắc...) được lặp lại y hệt 22,000 lần.
+•	Giải pháp: Các nhà cung cấp (như Anthropic, và sắp tới là Groq/OpenAI rộng rãi) cho phép "cache" phần đầu này. Bạn chỉ trả tiền 1 lần cho system prompt, các lần sau gọi lại rất rẻ.
+•	Lưu ý: Batch Mode kết hợp Prompt Caching là kỹ thuật "tiết kiệm tận xương tủy" cho AI Engineer.
+B. Tầm quan trọng của Signal-to-Noise Ratio (Tỷ lệ tín hiệu trên nhiễu)
+Tại sao chúng ta tốn $30 để viết lại dữ liệu?
+•	Dữ liệu gốc (full): "Mua ngay! Giảm giá 50%! Ship nhanh! Mã sản phẩm XJ-99..." -> Nhiễu (Noise) nhiều. Model học định giá sẽ bị rối (Liệu từ "Ship nhanh" có làm tăng giá không?).
+•	Dữ liệu mới (summary): "Tai nghe Bluetooth, chống ồn, pin 20h, màu đen." -> Tín hiệu (Signal) rõ ràng.
+•	Quy tắc: "Garbage In, Garbage Out". Dữ liệu sạch quyết định 80% thành công của việc Training sau này.
+C. Chuẩn bị cho Day 3: Baseline Models
+Giảng viên hé lộ ngày mai sẽ dùng Random Forest và XGBoost.
+•	Đây là các thuật toán Machine Learning cổ điển (không phải Deep Learning).
+•	Mục đích: Để làm Baseline (Mốc chuẩn). Nếu mô hình XGBoost chạy mất 5 giây, tốn $0 mà đoán giá sai số $5, thì mô hình LLM tốn $100 training phải đoán sai số < $3 mới đáng để đầu tư.
+Tổng kết ngày học Day 2
+Bạn đã đi từ lý thuyết chiến lược 5 bước, đến thực hành Batch Processing, và kết thúc bằng một dataset hoàn hảo. Bây giờ bạn đã sẵn sàng cho Day 3: Xây dựng các mô hình cơ sở. Hãy nghỉ ngơi, bạn đã tiết kiệm được $30 và rất nhiều thời gian so với việc tự mày mò!
+
+DAY 3
+148. Day 3 - Building Baseline Models with Traditional ML and XGBoost
+Chào Hieu, chúc mừng bạn đã đi được một nửa chặng đường của Tuần 6 "khốc liệt" này.
+Sau khi đã tốn công sức làm sạch dữ liệu (Day 1) và dùng LLM xịn để viết lại dữ liệu (Day 2), hôm nay (Day 3) chúng ta sẽ làm một việc nghe có vẻ "ngược đời": Không dùng LLM. Thay vào đó, chúng ta sẽ quay lại quá khứ để sử dụng các thuật toán Machine Learning (ML) truyền thống.
+Dưới đây là tổng hợp nội dung bài học Day 3 - Building Baseline Models with Traditional ML and XGBoost dựa trên tài liệu bạn cung cấp.
+________________________________________
+1. Chủ đề bài học
+Day 3 - Building Baseline Models with Traditional ML and XGBoost
+(Ngày 3 - Xây dựng mô hình cơ sở với Machine Learning truyền thống và XGBoost)
+________________________________________
+2. Tóm tắt cốt lõi (Core Summary)
+•	Tư duy "Start Simple": Trước khi dùng "dao mổ trâu" (LLM) để giải quyết vấn đề, hãy thử dùng "dao gọt hoa quả" (Traditional ML). Nếu mô hình đơn giản, rẻ tiền, chạy trong tích tắc mà giải quyết được 80% vấn đề, thì đó là lựa chọn tối ưu.
+•	Baseline Model (Mô hình cơ sở): Mục tiêu hôm nay không phải là đánh bại LLM, mà là tạo ra một tiêu chuẩn (benchmark). Nếu sau này bạn fine-tune một LLM tốn $100 mà kết quả chỉ ngang bằng mô hình XGBoost miễn phí, thì dự án LLM đó thất bại.
+•	Ôn tập ML cổ điển: Nhắc lại các khái niệm nền tảng: Generalization (Khả năng dự đoán trên dữ liệu mới) và Overfitting (Học vẹt dữ liệu huấn luyện).
+•	Công cụ thực chiến: Sử dụng kỹ thuật xử lý ngôn ngữ tự nhiên cổ điển (Bag of Words) kết hợp với các thuật toán mạnh mẽ (Random Forest, XGBoost) để dự đoán giá.
+________________________________________
+3. Nội dung chính
+A. Tại sao cần Baseline Model?
+1.	Thước đo hiệu quả: Làm sao bạn biết mô hình AI hiện đại của bạn là "tốt"? Bạn cần một con số để so sánh. Baseline chính là con số sàn đó.
+2.	Chi phí & Tốc độ: ML truyền thống chạy cực nhanh (vài giây/phút) và tốn $0.
+3.	Tính thực dụng: Đôi khi, mối quan hệ giữa "Mô tả" và "Giá" chỉ là sự kết hợp tuyến tính đơn giản của các từ khóa (ví dụ: cứ có từ "Gold" thì giá tăng $100). Nếu vậy, Linear Regression là đủ.
+B. Các khái niệm ML nền tảng
+•	Generalization (Khái quát hóa): Là "chén thánh" của AI. Là khả năng mô hình học được các mẫu (patterns) chung từ dữ liệu train để áp dụng chính xác cho dữ liệu chưa từng gặp (unseen data).
+•	Overfitting (Quá khớp): Kẻ thù của Generalization.
+o	Là khi mô hình học quá kỹ, nhớ cả những chi tiết nhiễu (noise) của tập train.
+o	Biểu hiện: Điểm trên tập Train rất cao, nhưng điểm trên tập Validation/Test rất thấp.
+C. Các thuật toán được sử dụng trong bài
+Giảng viên Ed Donner giới thiệu 3 cấp độ mô hình ML truyền thống để thử nghiệm:
+1.	Linear Regression (Hồi quy tuyến tính): Đơn giản nhất. Tìm một đường thẳng (hoặc siêu phẳng) khớp với dữ liệu.
+2.	Random Forest (Rừng ngẫu nhiên): Tập hợp nhiều cây quyết định (Decision Trees). Mạnh hơn Linear Regression và ít bị Overfitting hơn.
+3.	XGBoost (Extreme Gradient Boosting): "Vua" của dữ liệu bảng (Tabular data). Đây là thuật toán mạnh nhất trong giới ML truyền thống, thường xuyên thắng các giải Kaggle trước kỷ nguyên Deep Learning.
+________________________________________
+4. Kiến trúc & Quy trình (Pipeline)
+Do hôm nay không dùng Deep Learning hay LLM API, pipeline xử lý sẽ tuân theo chuẩn Natural Language Processing (NLP) cổ điển:
+1.	Input: Dữ liệu văn bản đã làm sạch ở Day 2 (item.summary).
+2.	Feature Engineering (Trích xuất đặc trưng):
+o	Máy tính không hiểu chữ, chỉ hiểu số.
+o	Sử dụng kỹ thuật Bag of Words (BoW) thông qua CountVectorizer.
+o	Biến mỗi từ thành một cột (feature). Ví dụ: văn bản có từ "Sony" -> cột "Sony" = 1.
+3.	Model Training:
+o	Đưa các vector số vào thuật toán (Linear Regression / XGBoost).
+o	Mô hình học trọng số (weights) cho từng từ (ví dụ: từ "iPhone" có trọng số cao, từ "cáp" có trọng số thấp).
+4.	Prediction: Dự đoán giá trị thực (Scalar).
+5.	Evaluation: So sánh với giá thực tế bằng hàm Mean Absolute Error (MAE).
+________________________________________
+5. Phân tích Code (Logic Mô phỏng)
+Lưu ý: Bạn chưa cung cấp file code .ipynb cụ thể của Day 3, nhưng dựa trên transcript và kiến thức chuẩn của khóa học này, tôi sẽ tái hiện lại logic code chính xác mà bạn sẽ gặp/cần viết.
+A. Chuẩn bị dữ liệu (Data Loading)
+Python
+# Tải dataset đã xử lý ở Day 2 từ Hugging Face
+from datasets import load_dataset
+import pandas as pd
+
+# Giả sử bạn tải bản Lite
+dataset = load_dataset("SeanSunny/items_light") # Thay bằng tên dataset của bạn
+train_df = pd.DataFrame(dataset['train'])
+val_df = pd.DataFrame(dataset['validation'])
+
+# Input là cột summary, Output là cột price
+X_train_text = train_df['summary']
+y_train = train_df['price']
+X_val_text = val_df['summary']
+y_val = val_df['price']
+B. Biến văn bản thành số (Vectorization)
+Đây là bước quan trọng nhất của NLP truyền thống.
+Python
+from sklearn.feature_extraction.text import CountVectorizer
+
+# 1. Khởi tạo Vectorizer
+# max_features=10000: Chỉ lấy 10,000 từ phổ biến nhất để giảm chiều dữ liệu
+vectorizer = CountVectorizer(max_features=10000, stop_words='english')
+
+# 2. Học từ điển từ tập Train và biến đổi thành số
+X_train = vectorizer.fit_transform(X_train_text)
+
+# 3. Chỉ biến đổi tập Val (KHÔNG ĐƯỢC fit trên tập Val để tránh data leakage)
+X_val = vectorizer.transform(X_val_text)
+•	Giải thích: CountVectorizer sẽ tạo ra một ma trận khổng lồ mà mỗi dòng là một sản phẩm, mỗi cột là một từ. Giá trị trong ô là số lần từ đó xuất hiện.
+C. Huấn luyện & Đánh giá (Linear Regression)
+Python
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Khởi tạo và huấn luyện
+model_lr = LinearRegression()
+model_lr.fit(X_train, y_train)
+
+# Dự đoán
+preds = model_lr.predict(X_val)
+
+# Đánh giá sai số (Metrics: Absolute Price Difference)
+mae = mean_absolute_error(y_val, preds)
+print(f"Linear Regression MAE: ${mae:.2f}")
+•	Logic: Nếu kết quả ra MAE = $50, nghĩa là trung bình mô hình đoán sai lệch 50 đô la. Đây là con số Baseline của bạn.
+D. Huấn luyện XGBoost (Mô hình mạnh nhất)
+Python
+import xgboost as xgb
+
+# Khởi tạo mô hình
+model_xgb = xgb.XGBRegressor(objective='reg:absoluteerror', n_estimators=100)
+
+# Huấn luyện
+model_xgb.fit(X_train, y_train)
+
+# Dự đoán và đánh giá
+preds_xgb = model_xgb.predict(X_val)
+mae_xgb = mean_absolute_error(y_val, preds_xgb)
+print(f"XGBoost MAE: ${mae_xgb:.2f}")
+•	Ghi chú: Thường XGBoost sẽ cho kết quả tốt hơn nhiều so với Linear Regression vì nó học được các mối quan hệ phi tuyến tính (ví dụ: "Gaming" + "Laptop" -> Giá cao, nhưng "Gaming" + "Mouse" -> Giá thấp hơn).
+________________________________________
+6. Kiến thức liên quan & Mở rộng
+1. Bag of Words (BoW) vs. Embeddings
+•	Bag of Words (Dùng hôm nay): Chỉ đếm sự xuất hiện của từ. Nó không hiểu ngữ nghĩa.
+o	Ví dụ: "good" và "great" là 2 từ hoàn toàn khác nhau, không liên quan gì nhau trong mắt mô hình.
+•	Embeddings (Dùng cho LLM/Neural Network): Biến từ thành vector số trong không gian đa chiều.
+o	Ví dụ: Vector của "good" sẽ nằm rất gần vector của "great".
+o	Tại sao hôm nay dùng BoW? Vì nó đơn giản, nhanh và dễ hiểu (interpretable) cho một mô hình baseline.
+2. Định lý "Dao cạo Occam" (Occam's Razor) trong AI
+•	Nguyên lý: "Nếu hai giải pháp có kết quả tương đương nhau, hãy chọn giải pháp đơn giản hơn".
+•	Nếu XGBoost đoán giá sai số $30 và LLM Fine-tuned đoán sai số $29.5 nhưng tốn chi phí gấp 1000 lần và chạy chậm gấp 100 lần -> Hãy chọn XGBoost.
+3. Data Leakage trong Vectorization
+•	Một lỗi sơ đẳng nhưng chết người: Gọi vectorizer.fit() trên toàn bộ dữ liệu (cả train và val).
+•	Hậu quả: Mô hình sẽ biết trước "từ vựng" của tập kiểm tra, dẫn đến kết quả ảo.
+•	Quy tắc: Chỉ fit trên Train, và chỉ transform trên Validation/Test.
+Tổng kết ngày học
+Hieu đã nắm trong tay "vũ khí" của quá khứ. Mặc dù chúng "cổ lỗ sĩ" so với GPT-4, nhưng chúng cực kỳ hiệu quả về mặt kinh tế. Con số MAE bạn đạt được hôm nay (ví dụ $40-$50) sẽ là "kẻ thù" mà bạn phải đánh bại trong Day 4 (Neural Networks) và Day 5 (Fine-tuning).
+Bước tiếp theo: Bạn đã sẵn sàng để chuyển sang Deep Learning với PyTorch vào ngày mai chưa?
+149. Day 3 - Building Your First Baseline with Random Pricer and Scikit-learn
+Pythonprint("--- READING day3.ipynb ---")
+import json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+    for cell in notebook['cells']:
+        if cell['cell_type'] == 'code':
+            print("Cell Content:")
+            print(''.join(cell['source']))
+            print("-" * 20)
+
+print("\n--- READING evaluator.py ---")
+with open('evaluator.py', 'r') as f:
+    print(f.read())
+
+Kết quả chạy mã
+--- READING day3.ipynb ---
+Cell Content:
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+Cell Content:
+LITE_MODE = False
+--------------------
+Cell Content:
+username = "ed-donner"
+dataset = f"{username}/items_lite" if LITE_MODE else f"{username}/items_full"
+
+train, val, test = Item.from_hub(dataset)
+
+print(f"Loaded {len(train):,} training items, {len(val):,} validation items, {len(test):,} test items")
+--------------------
+Cell Content:
+def random_pricer(item):
+    return random.randrange(1,1000)
+--------------------
+Cell Content:
+random.seed(42)
+evaluate(random_pricer, test)
+--------------------
+Cell Content:
+# That was fun!
+# We can do better - here's another rather trivial model
+
+training_prices = [item.price for item in train]
+training_average = sum(training_prices) / len(training_prices)
+print(training_average)
+
+def constant_pricer(item):
+    return training_average
+--------------------
+Cell Content:
+evaluate(constant_pricer, test)
+--------------------
+Cell Content:
+def get_features(item):
+    return {
+        "weight": item.weight,
+        "weight_unknown": 1 if item.weight==0 else 0,
+        "text_length": len(item.summary)
+    }
+--------------------
+Cell Content:
+def list_to_dataframe(items):
+    features = [get_features(item) for item in items]
+    df = pd.DataFrame(features)
+    df['price'] = [item.price for item in items]
+    return df
+
+train_df = list_to_dataframe(train)
+test_df = list_to_dataframe(test)
+--------------------
+Cell Content:
+# Traditional Linear Regression!
+
+np.random.seed(42)
+
+# Separate features and target
+feature_columns = ['weight', 'weight_unknown', 'text_length']
+
+X_train = train_df[feature_columns]
+y_train = train_df['price']
+X_test = test_df[feature_columns]
+y_test = test_df['price']
+
+# Train a Linear Regression
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+for feature, coef in zip(feature_columns, model.coef_):
+    print(f"{feature}: {coef}")
+print(f"Intercept: {model.intercept_}")
+
+# Predict the test set and evaluate
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse}")
+print(f"R-squared Score: {r2}")
+--------------------
+Cell Content:
+def linear_regression_pricer(item):
+    features = get_features(item)
+    features_df = pd.DataFrame([features])
+    return model.predict(features_df)[0]
+--------------------
+Cell Content:
+evaluate(linear_regression_pricer, test)
+--------------------
+Cell Content:
+prices = np.array([float(item.price) for item in train])
+documents = [item.summary for item in train]
+--------------------
+Cell Content:
+np.random.seed(42)
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+--------------------
+Cell Content:
+# Here are the 1,000 most common words that it picked, not including "stop words":
+
+selected_words = vectorizer.get_feature_names_out()
+print(f"Number of selected words: {len(selected_words)}")
+print("Selected words:", selected_words[1000:1020])
+--------------------
+Cell Content:
+regressor = LinearRegression()
+regressor.fit(X, prices)
+--------------------
+Cell Content:
+def natural_language_linear_regression_pricer(item):
+    x = vectorizer.transform([item.summary])
+    return max(regressor.predict(x)[0], 0)
+--------------------
+Cell Content:
+evaluate(natural_language_linear_regression_pricer, test)
+--------------------
+Cell Content:
+subset = 15_000
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
+rf_model.fit(X[:subset], prices[:subset])
+--------------------
+Cell Content:
+def random_forest(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, rf_model.predict(x)[0])
+--------------------
+Cell Content:
+evaluate(random_forest, test)
+--------------------
+Cell Content:
+# This is how to save the model if you want to, particularly if you run this on a larger dataset
+
+# import joblib
+# joblib.dump(rf_model, "random_forest.joblib")
+--------------------
+Cell Content:
+import xgboost as xgb
+--------------------
+Cell Content:
+np.random.seed(42)
+
+xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
+xgb_model.fit(X, prices)
+--------------------
+Cell Content:
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+--------------------
+Cell Content:
+evaluate(xg_boost, test)
+--------------------
+
+--- READING evaluator.py ---
+import re
+from sklearn.metrics import mean_squared_error, r2_score
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from itertools import accumulate
+import math
+from tqdm.notebook import tqdm
+from concurrent.futures import ThreadPoolExecutor
+
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
+COLOR_MAP = {"red": RED, "orange": YELLOW, "green": GREEN}
+
+WORKERS = 5
+DEFAULT_SIZE = 200
+
+
+class Tester:
+    def __init__(self, predictor, data, title=None, size=DEFAULT_SIZE, workers=WORKERS):
+        self.predictor = predictor
+        self.data = data
+        self.title = title or self.make_title(predictor)
+        self.size = size
+        self.titles = []
+        self.guesses = []
+        self.truths = []
+        self.errors = []
+        self.colors = []
+        self.workers = workers
+
+    @staticmethod
+    def make_title(predictor) -> str:
+        return predictor.__name__.replace("__", ".").replace("_", " ").title().replace("Gpt", "GPT")
+
+    @staticmethod
+    def post_process(value):
+        if isinstance(value, str):
+            value = value.replace("$", "").replace(",", "")
+            match = re.search(r"[-+]?\d*\.\d+|\d+", value)
+            return float(match.group()) if match else 0
+        else:
+            return value
+
+    def color_for(self, error, truth):
+        if error < 40 or error / truth < 0.2:
+            return "green"
+        elif error < 80 or error / truth < 0.4:
+            return "orange"
+        else:
+            return "red"
+
+    def run_datapoint(self, i):
+        datapoint = self.data[i]
+        value = self.predictor(datapoint)
+        guess = self.post_process(value)
+        truth = datapoint.price
+        error = abs(guess - truth)
+        color = self.color_for(error, truth)
+        title = datapoint.title if len(datapoint.title) <= 40 else datapoint.title[:40] + "..."
+        return title, guess, truth, error, color
+
+    def chart(self, title):
+        df = pd.DataFrame(
+            {
+                "truth": self.truths,
+                "guess": self.guesses,
+                "title": self.titles,
+                "error": self.errors,
+                "color": self.colors,
+            }
+        )
+
+        # Pre-format hover text
+        df["hover"] = [
+            f"{t}\nGuess=${g:,.2f} Actual=${y:,.2f}"
+            for t, g, y in zip(df["title"], df["guess"], df["truth"])
+        ]
+
+        max_val = float(max(df["truth"].max(), df["guess"].max()))
+
+        fig = px.scatter(
+            df,
+            x="truth",
+            y="guess",
+            color="color",
+            color_discrete_map={"green": "green", "orange": "orange", "red": "red"},
+            title=title,
+            labels={"truth": "Actual Price", "guess": "Predicted Price"},
+            width=1000,
+            height=800,
+        )
+
+        # Assign customdata per trace (one color/category = one trace)
+        for tr in fig.data:
+            mask = df["color"] == tr.name
+            tr.customdata = df.loc[mask, ["hover"]].to_numpy()
+            tr.hovertemplate = "%{customdata[0]}<extra></extra>"
+            tr.marker.update(size=6)
+
+        # Reference line y=x
+        fig.add_trace(
+            go.Scatter(
+                x=[0, max_val],
+                y=[0, max_val],
+                mode="lines",
+                line=dict(width=2, dash="dash", color="deepskyblue"),
+                name="y = x",
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+        fig.update_xaxes(range=[0, max_val])
+        fig.update_yaxes(range=[0, max_val])
+        fig.update_layout(showlegend=False)
+        fig.show()
+
+    def error_trend_chart(self):
+        n = len(self.errors)
+
+        # Running mean and std (pure Python)
+        running_sums = list(accumulate(self.errors))
+        x = list(range(1, n + 1))
+        running_means = [s / i for s, i in zip(running_sums, x)]
+
+        running_squares = list(accumulate(e * e for e in self.errors))
+        running_stds = [
+            math.sqrt((sq_sum / i) - (mean**2)) if i > 1 else 0
+            for i, sq_sum, mean in zip(x, running_squares, running_means)
+        ]
+
+        # 95% confidence interval for mean
+        ci = [1.96 * (sd / math.sqrt(i)) if i > 1 else 0 for i, sd in zip(x, running_stds)]
+        upper = [m + c for m, c in zip(running_means, ci)]
+        lower = [m - c for m, c in zip(running_means, ci)]
+
+        # Plot
+        fig = go.Figure()
+
+        # Shaded confidence interval band
+        fig.add_trace(
+            go.Scatter(
+                x=x + x[::-1],
+                y=upper + lower[::-1],
+                fill="toself",
+                fillcolor="rgba(128,128,128,0.2)",
+                line=dict(color="rgba(255,255,255,0)"),
+                hoverinfo="skip",
+                showlegend=False,
+                name="95% CI",
+            )
+        )
+
+        # Main line with hover text showing CI
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=running_means,
+                mode="lines",
+                line=dict(width=3, color="firebrick"),
+                name="Cumulative Avg Error",
+                customdata=list(
+                    zip(
+                        ci,
+                    )
+                ),
+                hovertemplate=(
+                    "n=%{x}<br>"
+                    "Avg Error=$%{y:,.2f}<br>"
+                    "±95% CI=$%{customdata[0]:,.2f}<extra></extra>"
+                ),
+            )
+        )
+
+        # Title with final stats
+        final_mean = running_means[-1]
+        final_ci = ci[-1]
+        title = f"{self.title} Error: ${final_mean:,.2f} ± ${final_ci:,.2f}"
+
+        fig.update_layout(
+            title=title,
+            xaxis_title="Number of Datapoints",
+            yaxis_title="Average Absolute Error ($)",
+            width=1000,
+            height=360,
+            template="plotly_white",
+            showlegend=False,
+        )
+
+        fig.show()
+
+    def report(self):
+        average_error = sum(self.errors) / self.size
+        mse = mean_squared_error(self.truths, self.guesses)
+        r2 = r2_score(self.truths, self.guesses) * 100
+        title = f"{self.title} results<br><b>Error:</b> ${average_error:,.2f} <b>MSE:</b> {mse:,.0f} <b>r²:</b> {r2:.1f}%"
+        self.error_trend_chart()
+        self.chart(title)
+
+    def run(self):
+        with ThreadPoolExecutor(max_workers=self.workers) as ex:
+            for title, guess, truth, error, color in tqdm(
+                ex.map(self.run_datapoint, range(self.size)), total=self.size
+            ):
+                self.titles.append(title)
+                self.guesses.append(guess)
+                self.truths.append(truth)
+                self.errors.append(error)
+                self.colors.append(color)
+                print(f"{COLOR_MAP[color]}${error:.0f} ", end="")
+        self.report()
+
+
+def evaluate(function, data, size=DEFAULT_SIZE, workers=WORKERS):
+    Tester(function, data, size=size, workers=workers).run()
+
+
+Chào bạn Hieu, tôi đã phân tích kỹ phiên âm bài giảng và các file code day3.ipynb, evaluator.py mà bạn cung cấp.
+Dưới đây là tổng hợp chi tiết nội dung bài học "Day 3 - Building Your First Baseline with Random Pricer and Scikit-learn" theo đúng yêu cầu của bạn.
+1. Chủ đề bài học
+149. Day 3 - Building Your First Baseline with Random Pricer and Scikit-learn
+(Ngày 3 - Xây dựng mô hình cơ sở đầu tiên với Bộ định giá ngẫu nhiên và Scikit-learn)
+2. Tóm tắt cốt lõi
+•	Chuyển dịch sang Traditional ML: Sau khi đã xử lý dữ liệu (Curation & Pre-processing), bài học chuyển sang giai đoạn xây dựng mô hình bằng các thuật toán Machine Learning truyền thống (Scikit-learn) thay vì LLM ngay lập tức.
+•	Tư duy "Start Simple": Bắt đầu với một mô hình đơn giản nhất có thể ("Random Pricer" - đoán mò) để thiết lập một Baseline (Mức cơ sở). Mục đích là để có một điểm tham chiếu so sánh cho các mô hình phức tạp sau này.
+•	Cơ chế đánh giá (Evaluation): Sử dụng một hàm evaluate chuyên biệt để chạy thử nghiệm trên tập test, tính toán sai số (MAE, MSE, R²) và vẽ biểu đồ trực quan hóa (Scatter plot) để nhìn thấy độ phân tán giữa giá dự đoán và giá thực tế.
+3. Nội dung chính
+A. Mục tiêu & Công cụ
+•	Mục tiêu: Viết các hàm nhận vào một sản phẩm (item) và ước tính giá (price) của nó.
+•	Công cụ: Sử dụng thư viện scikit-learn (sklearn) - "chú ngựa thồ" của ML truyền thống, bao gồm các thuật toán như Linear Regression, Random Forest, và CountVectorizer cho xử lý ngôn ngữ.
+B. Quy trình thực hiện
+1.	Tải dữ liệu: Load bộ dữ liệu đã xử lý (Train/Val/Test) từ Hugging Face Hub. Tập train có 800.000 mẫu (hoặc ít hơn nếu dùng chế độ Lite), Val và Test mỗi tập có 10.000 mẫu.
+2.	Xây dựng Random Pricer: Tạo một hàm cực kỳ ngớ ngẩn: Bỏ qua hoàn toàn thông tin sản phẩm và đoán bừa một con số từ 1 đến 999.
+3.	Thực hiện đánh giá (Evaluation):
+o	Chạy hàm dự đoán trên 200 mẫu thử nghiệm đầu tiên.
+o	Vẽ biểu đồ phân tán (Scatter Plot): Trục X là giá thực tế ($y$), Trục Y là giá dự đoán ($\hat{y}$).
+o	Đường đứt nét màu xanh là đường hoàn hảo ($y = \hat{y}$). Các điểm càng xa đường này thì dự đoán càng tệ (màu đỏ).
+4.	Kết quả thực nghiệm:
+o	Mô hình ngẫu nhiên cho kết quả rất tệ với sai số trung bình (Mean Absolute Error) khoảng $382.08.
+o	Chỉ số $R^2$ bị âm (tệ hơn cả việc đoán giá trung bình).
+4. Kiến trúc & Quy trình (Pipeline)
+Quy trình trong bài học này tuân theo pipeline đánh giá chuẩn:
+1.	Input: Một đối tượng Item (chứa title, summary, weight...).
+2.	Model (Function): Hàm random_pricer(item) -> Trả về float (giá).
+3.	Evaluator:
+o	So sánh Predicted Price vs Actual Price.
+o	Tính toán Metrics: Error ($|Pred - Actual|$).
+o	Visualizer: Vẽ biểu đồ Scatter và dải tin cậy (Confidence Interval).
+5. Phân tích Code
+Dưới đây là phân tích các khối code quan trọng trong day3.ipynb và evaluator.py với chú thích tiếng Việt.
+A. Tải dữ liệu và Thiết lập môi trường (File day3.ipynb)
+Đoạn code này chuẩn bị dữ liệu đầu vào.
+Python
+# --- CẤU HÌNH VÀ TẢI DỮ LIỆU ---
+
+# Chọn chế độ: False = Dùng full dataset (800k dòng), True = Dùng bản Lite
+LITE_MODE = False
+
+username = "ed-donner"
+# Xác định tên dataset dựa trên chế độ đã chọn
+dataset = f"{username}/items_lite" if LITE_MODE else f"{username}/items_full"
+
+# Tải dữ liệu từ Hugging Face Hub và chia thành 3 tập: train, val, test
+# Logic: Item.from_hub là hàm tiện ích giúp tải và parse dữ liệu JSONL thành object
+train, val, test = Item.from_hub(dataset)
+
+print(f"Loaded {len(train):,} training items, {len(val):,} validation items, {len(test):,} test items")
+B. Mô hình cơ sở 1: Random Pricer (File day3.ipynb)
+Đây là nội dung trọng tâm của video bài giảng.
+Python
+import random
+
+# --- MÔ HÌNH RANDOM PRICER ---
+# Mục đích: Tạo ra một baseline "ngớ ngẩn" nhất để so sánh.
+# Nếu mô hình AI phức tạp của bạn không thắng được hàm này thì vứt đi.
+
+def random_pricer(item):
+    # Logic: Không quan tâm item là gì, chỉ trả về số nguyên ngẫu nhiên từ 1 đến 999
+    return random.randrange(1, 1000)
+
+# Thiết lập seed để kết quả có thể tái lập (chạy lại vẫn ra số giống cũ)
+random.seed(42)
+
+# Gọi hàm đánh giá trên tập test
+evaluate(random_pricer, test)
+C. Hàm đánh giá và Trực quan hóa (File evaluator.py)
+File này chứa class Tester phức tạp hơn để vẽ biểu đồ.
+Python
+# --- PHÂN TÍCH LOGIC EVALUATOR (Trích lược) ---
+
+class Tester:
+    def run_datapoint(self, i):
+        # Lấy 1 điểm dữ liệu
+        datapoint = self.data[i]
+        # Gọi hàm dự đoán (ví dụ: random_pricer)
+        value = self.predictor(datapoint)
+        # Xử lý kết quả trả về (chuyển string thành float nếu cần)
+        guess = self.post_process(value)
+        truth = datapoint.price
+        # Tính sai số tuyệt đối
+        error = abs(guess - truth)
+        # Gán màu: Xanh (tốt) -> Cam -> Đỏ (tệ) dựa trên mức độ sai số
+        color = self.color_for(error, truth)
+        return title, guess, truth, error, color
+
+    def chart(self, title):
+        # Vẽ biểu đồ Scatter bằng Plotly
+        # Trục X: Giá thực tế (Truth)
+        # Trục Y: Giá dự đoán (Guess)
+        # Đường tham chiếu: y = x (Dự đoán hoàn hảo)
+        # ... (Code vẽ biểu đồ) ...
+D. Các bước tiếp theo trong day3.ipynb (Mở rộng quy trình)
+Mặc dù video chỉ nói đến Random Pricer, nhưng file notebook bạn cung cấp đã đi xa hơn, bao gồm cả Linear Regression và Random Forest.
+Python
+# --- MÔ HÌNH HỒI QUY TUYẾN TÍNH CỔ ĐIỂN ---
+
+# 1. Trích xuất đặc trưng (Feature Engineering) thủ công
+def get_features(item):
+    return {
+        "weight": item.weight, # Cân nặng
+        "text_length": len(item.summary) # Độ dài văn bản
+    }
+
+# 2. Huấn luyện Linear Regression
+# Mục đích: Tìm mối quan hệ tuyến tính giữa cân nặng/độ dài và giá
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# --- MÔ HÌNH NLP + RANDOM FOREST (Nâng cao hơn) ---
+
+# 1. Biến đổi văn bản thành số (Bag of Words)
+# Dùng CountVectorizer để đếm tần suất từ xuất hiện trong summary
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+# 2. Huấn luyện Random Forest
+# Random Forest mạnh hơn Linear Regression vì bắt được các quy luật phi tuyến tính
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X[:subset], prices[:subset])
+6. Kiến thức liên quan & Mở rộng
+•	Tại sao cần Baseline? Trong kỹ thuật phần mềm và AI, bạn không bao giờ nên bắt đầu bằng giải pháp phức tạp nhất. Baseline (như Random Pricer hoặc Constant Pricer) cho bạn biết "đáy" của hiệu suất. Bất kỳ nỗ lực nào (Linear Regression, LLM) đều phải có kết quả tốt hơn Baseline mới được coi là có giá trị.
+•	Scikit-learn (sklearn): Thư viện tiêu chuẩn vàng cho Machine Learning tại Python. Nó cung cấp các công cụ nhất quán cho việc tiền xử lý dữ liệu, huấn luyện mô hình và đánh giá.
+•	Khoảng tin cậy (Confidence Interval - Vùng xám trong biểu đồ):
+o	Khi bạn tính sai số trung bình trên 200 mẫu, con số đó có thể là ngẫu nhiên.
+o	Khoảng tin cậy 95% cho biết: "Chúng tôi tin chắc 95% rằng sai số thực sự nằm trong khoảng X đến Y". Dải màu xám càng hẹp thì độ tin cậy càng cao (thường đạt được khi tăng số lượng mẫu kiểm thử).
+•	R-squared ($R^2$): Chỉ số đo mức độ mô hình giải thích được sự biến thiên của dữ liệu.
+o	$R^2 = 1$: Dự đoán hoàn hảo.
+o	$R^2 = 0$: Ngang bằng với việc luôn đoán giá trung bình.
+o	$R^2 < 0$: Tệ hơn cả việc đoán trung bình (như Random Pricer trong bài này).
+
+ 150. Day 3 - Baseline Models and Linear Regression with Scikit-Learn
+Pythonimport json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "Constant" in source or "LinearRegression" in source or "get_features" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells ---
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+def get_features(item):
+    return {
+        "weight": item.weight,
+        "weight_unknown": 1 if item.weight==0 else 0,
+        "text_length": len(item.summary)
+    }
+--------------------
+def list_to_dataframe(items):
+    features = [get_features(item) for item in items]
+    df = pd.DataFrame(features)
+    df['price'] = [item.price for item in items]
+    return df
+
+train_df = list_to_dataframe(train)
+test_df = list_to_dataframe(test)
+--------------------
+# Traditional Linear Regression!
+
+np.random.seed(42)
+
+# Separate features and target
+feature_columns = ['weight', 'weight_unknown', 'text_length']
+
+X_train = train_df[feature_columns]
+y_train = train_df['price']
+X_test = test_df[feature_columns]
+y_test = test_df['price']
+
+# Train a Linear Regression
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+for feature, coef in zip(feature_columns, model.coef_):
+    print(f"{feature}: {coef}")
+print(f"Intercept: {model.intercept_}")
+
+# Predict the test set and evaluate
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse}")
+print(f"R-squared Score: {r2}")
+--------------------
+def linear_regression_pricer(item):
+    features = get_features(item)
+    features_df = pd.DataFrame([features])
+    return model.predict(features_df)[0]
+--------------------
+regressor = LinearRegression()
+regressor.fit(X, prices)
+--------------------
+
+Chào bạn Hieu, tiếp nối phần Random Pricer, bài học này sẽ đưa chúng ta đến với các mô hình nghiêm túc hơn một chút nhưng vẫn rất cơ bản: Constant Pricer (Đoán giá trung bình) và Linear Regression (Hồi quy tuyến tính).
+Dưới đây là tổng hợp chi tiết nội dung bài học "Day 3 - Baseline Models and Linear Regression with Scikit-Learn".
+1. Chủ đề bài học
+150. Day 3 - Baseline Models and Linear Regression with Scikit-Learn
+(Ngày 3 - Các mô hình cơ sở và Hồi quy tuyến tính với Scikit-Learn)
+2. Tóm tắt cốt lõi
+•	Constant Pricer (Mô hình hằng số): Một mô hình "ngây ngô" luôn dự đoán giá sản phẩm bằng đúng giá trị trung bình của tập huấn luyện ($140.56).
+o	Kết quả: Sai số giảm xuống còn $106.18 (tốt hơn nhiều so với đoán ngẫu nhiên $382).
+o	Ý nghĩa: Đây là một Baseline mạnh hơn. Bất kỳ mô hình AI nào cũng phải vượt qua con số $106.18 này mới được coi là có học được điều gì đó.
+•	Linear Regression (Hồi quy tuyến tính): Mô hình Machine Learning thực thụ đầu tiên. Nó cố gắng tìm ra công thức toán học (trọng số) để tính giá dựa trên các đặc điểm (features) của sản phẩm.
+o	Kết quả: Sai số $101.56. Chỉ tốt hơn một chút xíu so với đoán trung bình.
+o	Bài học: Thuật toán tốt (Linear Regression) nhưng dữ liệu đầu vào (Features) tồi (chỉ dùng cân nặng và độ dài văn bản) thì kết quả vẫn sẽ tồi ("Garbage In, Garbage Out").
+3. Nội dung chính
+A. Constant Pricer (Người định giá không đổi)
+•	Ý tưởng: Nếu bạn không biết gì về một sản phẩm, cách an toàn nhất để đoán giá là gì? Đó là đoán mức giá trung bình của tất cả sản phẩm trên thị trường.
+•	Thực hiện:
+1.	Tính giá trung bình của tập Train ($\approx \$140.56$).
+2.	Viết hàm constant_pricer luôn trả về con số này cho mọi sản phẩm.
+•	Chỉ số R-squared ($R^2$):
+o	Với mô hình này, $R^2 \approx 0$.
+o	Điều này khẳng định định nghĩa của $R^2$: $R^2=0$ nghĩa là mô hình của bạn không giải thích được gì thêm so với việc chỉ đoán trung bình.
+B. Linear Regression (Hồi quy tuyến tính)
+•	Nguyên lý: Giả sử giá tiền ($Y$) có quan hệ tuyến tính với các đặc điểm ($X$) như cân nặng, độ dài mô tả...
+o	Công thức: $Price = w_1 \times Weight + w_2 \times Length + Bias$
+•	Feature Engineering (Tạo đặc trưng): Vì máy tính không hiểu trực tiếp đối tượng Item, ta phải trích xuất các con số (features) từ nó:
+o	weight: Cân nặng sản phẩm.
+o	weight_unknown: Cờ báo (1 hoặc 0) nếu không có thông tin cân nặng (một kỹ thuật phổ biến để xử lý dữ liệu thiếu).
+o	text_length: Độ dài của đoạn văn mô tả.
+•	Kết quả thất vọng: Mô hình chỉ cải thiện được khoảng $5 so với việc đoán trung bình. Lý do là các features này (cân nặng, độ dài) không thực sự liên quan nhiều đến giá (ví dụ: một chiếc nhẫn kim cương rất nhẹ nhưng rất đắt).
+4. Kiến trúc & Quy trình (Pipeline)
+Quy trình áp dụng cho Linear Regression trong bài:
+1.	Input: Object Item.
+2.	Feature Extraction: Hàm get_features(item) chuyển đổi Item -> Dictionary (weight, text_length...).
+3.	Data Preparation: Chuyển đổi list các Dictionary thành pandas.DataFrame.
+4.	Training: Dùng sklearn.LinearRegression.fit() để tìm các hệ số $w$.
+5.	Inference: Dùng model.predict() để dự đoán giá cho tập Test.
+5. Phân tích Code (day3.ipynb)
+Dưới đây là các đoạn code quan trọng thể hiện logic của bài học:
+A. Feature Engineering (Trích xuất đặc trưng)
+Python
+def get_features(item):
+    # Trích xuất 3 đặc trưng cơ bản từ sản phẩm
+    return {
+        "weight": item.weight,
+        # Kỹ thuật xử lý missing value: Tạo thêm feature phụ đánh dấu việc thiếu dữ liệu
+        "weight_unknown": 1 if item.weight == 0 else 0,
+        # Giả thuyết ngây thơ: Mô tả càng dài thì hàng càng xịn?
+        "text_length": len(item.summary)
+    }
+
+# Hàm chuyển đổi danh sách Items thành DataFrame (bảng tính) để Scikit-learn hiểu
+def list_to_dataframe(items):
+    features = [get_features(item) for item in items]
+    df = pd.DataFrame(features)
+    df['price'] = [item.price for item in items] # Cột mục tiêu (Target)
+    return df
+B. Huấn luyện Linear Regression
+Python
+from sklearn.linear_model import LinearRegression
+
+# 1. Chuẩn bị dữ liệu
+feature_columns = ['weight', 'weight_unknown', 'text_length']
+X_train = train_df[feature_columns] # Input
+y_train = train_df['price']         # Output (Label)
+
+# 2. Khởi tạo và Huấn luyện mô hình
+# .fit() là lúc mô hình học các trọng số (coefficients) tối ưu
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 3. Kiểm tra trọng số đã học
+# In ra để xem mô hình đánh giá tầm quan trọng của từng feature thế nào
+for feature, coef in zip(feature_columns, model.coef_):
+    print(f"{feature}: {coef}")
+# weight: có thể là số dương (nặng hơn -> đắt hơn?)
+# text_length: có thể rất nhỏ (gần như không ảnh hưởng)
+C. Hàm dự đoán để đánh giá
+Python
+def linear_regression_pricer(item):
+    # Để dự đoán 1 item, ta cũng phải trích xuất feature y hệt lúc train
+    features = get_features(item)
+    # Tạo DataFrame 1 dòng
+    features_df = pd.DataFrame([features])
+    # Trả về giá trị dự đoán đầu tiên
+    return model.predict(features_df)[0]
+6. Kiến thức liên quan & Mở rộng
+•	Feature Engineering (Kỹ thuật đặc trưng): Trong ML truyền thống, đây là công đoạn quan trọng nhất. Bạn phải là chuyên gia về lĩnh vực đó (Domain Expert) để biết feature nào quan trọng (ví dụ: với bất động sản thì là "diện tích", "số phòng ngủ"). Trong bài này, features quá sơ sài nên kết quả kém. Deep Learning sau này sẽ tự động làm việc này.
+•	Dummy Variables / Indicator Features: Việc tạo feature weight_unknown là một kỹ thuật hay. Thay vì điền 0 hoặc trung bình vào chỗ thiếu, ta nói rõ cho mô hình biết "chỗ này bị thiếu thông tin", và mô hình có thể học cách xử lý riêng cho trường hợp đó.
+•	Hạn chế của Linear Regression: Nó giả định mối quan hệ tuyến tính (đường thẳng). Thực tế giá cả phức tạp hơn nhiều (phi tuyến tính). Ví dụ: Độ dài văn bản tăng đến một mức nào đó thì tốt, nhưng dài quá (spam) thì giá lại thấp. Linear Regression khó học được điều này.
+•	Pandas DataFrame: Cấu trúc dữ liệu dạng bảng (giống Excel) cực kỳ phổ biến trong Data Science, giúp thao tác dữ liệu dễ dàng trước khi đưa vào Scikit-learn.
+
+151. Day 3 - Bag of Words and CountVectorizer for Linear Regression NLP
+Pythonimport json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells for Bag of Words ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "CountVectorizer" in source or "Bag of Words" in source or "Linear Regression NLP" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells for Bag of Words ---
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+np.random.seed(42)
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+--------------------
+
+Pythonprint("--- Finding definition of 'documents' and NLP Linear Regression ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "documents =" in source or "documents=" in source:
+             print("Found documents definition:")
+             print(source)
+             print("-" * 20)
+        if "regressor.fit(X" in source: # Looking for where X (from vectorizer) is used
+             print("Found model fitting with X:")
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Finding definition of 'documents' and NLP Linear Regression ---
+Found documents definition:
+prices = np.array([float(item.price) for item in train])
+documents = [item.summary for item in train]
+--------------------
+Found model fitting with X:
+regressor = LinearRegression()
+regressor.fit(X, prices)
+--------------------
+
+Pythonprint("--- Finding prediction function for NLP Linear Regression ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "vectorizer.transform" in source and "predict" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Finding prediction function for NLP Linear Regression ---
+def natural_language_linear_regression_pricer(item):
+    x = vectorizer.transform([item.summary])
+    return max(regressor.predict(x)[0], 0)
+--------------------
+def random_forest(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, rf_model.predict(x)[0])
+--------------------
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+--------------------
+
+Chào bạn Hieu, đây là bước ngoặt quan trọng trong bài học Day 3. Thay vì cố gắng "đoán" xem đặc trưng nào quan trọng (như cân nặng, độ dài), chúng ta sẽ để cho mô hình tự học trực tiếp từ văn bản mô tả sản phẩm bằng kỹ thuật NLP cổ điển nhưng cực kỳ hiệu quả: Bag of Words.
+Dưới đây là tổng hợp chi tiết nội dung bài học "Day 3 - Bag of Words and CountVectorizer for Linear Regression NLP".
+1. Chủ đề bài học
+151. Day 3 - Bag of Words and CountVectorizer for Linear Regression NLP
+(Ngày 3 - Kỹ thuật Túi từ và CountVectorizer cho Hồi quy tuyến tính NLP)
+2. Tóm tắt cốt lõi
+•	Vấn đề của phương pháp cũ: Việc chọn thủ công các tính năng (feature engineering) như "cân nặng" hay "độ dài văn bản" cho kết quả tồi tệ ($101.56 sai số) vì chúng không phản ánh đúng giá trị sản phẩm.
+•	Giải pháp NLP cổ điển: Sử dụng kỹ thuật Bag of Words (BoW) để biến văn bản thành các con số mà máy tính hiểu được.
+•	CountVectorizer: Công cụ của Scikit-Learn giúp tự động tìm ra 2000 từ phổ biến nhất và đếm tần suất xuất hiện của chúng trong mỗi sản phẩm.
+•	Kết quả đột phá: Sai số giảm mạnh xuống còn $76.81 (so với $101.56) và $R^2$ tăng lên 41.8%. Điều này chứng minh rằng nội dung văn bản chứa đựng rất nhiều thông tin về giá cả.
+3. Nội dung chính
+A. Ý tưởng "Túi từ" (Bag of Words - BoW)
+•	Thay vì tự hỏi "Liệu từ 'luxury' có làm tăng giá không?", ta hãy để mô hình tự trả lời.
+•	Nguyên lý:
+1.	Lấy tất cả văn bản trong tập huấn luyện.
+2.	Tìm ra 2000 từ phổ biến nhất (Vocabulary).
+3.	Biến mỗi mô tả sản phẩm thành một vector dài 2000 số. Mỗi số đại diện cho số lần từ đó xuất hiện trong mô tả.
+o	Ví dụ: Nếu từ "Samsung" là từ thứ 100 trong danh sách, và nó xuất hiện 2 lần trong mô tả, thì tại vị trí thứ 100 của vector sẽ là số 2.
+•	Gọi là "Túi từ" vì nó không quan tâm đến trật tự từ hay ngữ pháp, chỉ quan tâm từ đó có xuất hiện hay không và bao nhiêu lần (như ném tất cả từ vào một cái túi và lắc lên).
+B. Thực hiện với Scikit-Learn
+•	CountVectorizer: Đây là class trong Scikit-Learn thực hiện toàn bộ công việc trên.
+•	Stop Words (Từ dừng): Chúng ta loại bỏ những từ vô nghĩa như "and", "the", "is"... (gọi là english stop words) để tập trung vào các từ mang ý nghĩa như "gold", "smart", "budget".
+•	Mô hình kết hợp: Sau khi văn bản được biến thành vector số (2000 features), ta đưa nó vào Linear Regression. Lúc này, mô hình sẽ học trọng số cho từng từ.
+o	Ví dụ: Từ "Gold" có thể có trọng số +$200, từ "Cable" có trọng số +$5.
+4. Kiến trúc & Quy trình (Pipeline)
+1.	Input: Danh sách các đoạn văn bản tóm tắt (summary) của sản phẩm.
+2.	Vectorization (Biến đổi):
+o	CountVectorizer(max_features=2000, stop_words='english')
+o	Học từ điển từ tập Train -> Biến đổi tập Train thành ma trận X (kích thước: số lượng sản phẩm x 2000).
+3.	Training:
+o	LinearRegression.fit(X, y)
+o	Mô hình học mối tương quan giữa sự xuất hiện của các từ và giá tiền.
+4.	Inference (Dự đoán):
+o	Lấy summary của sản phẩm mới -> Biến đổi qua vectorizer (dùng từ điển đã học) -> Đưa vào model để dự đoán giá.
+5. Phân tích Code (day3.ipynb)
+Đây là đoạn code triển khai kỹ thuật Bag of Words:
+Python
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LinearRegression
+import numpy as np
+
+# 1. Chuẩn bị dữ liệu
+# Lấy giá và văn bản tóm tắt từ tập train
+prices = np.array([float(item.price) for item in train])
+documents = [item.summary for item in train]
+
+# 2. Khởi tạo CountVectorizer (Bộ đếm vector)
+# max_features=2000: Chỉ quan tâm 2000 từ xuất hiện nhiều nhất (để giảm nhiễu và tăng tốc độ)
+# stop_words='english': Loại bỏ các từ nối vô nghĩa (the, a, an...)
+vectorizer = CountVectorizer(max_features=2000, stop_words='english')
+
+# 3. Fit & Transform
+# .fit_transform làm 2 việc:
+# - Học danh sách 2000 từ vựng từ 'documents'
+# - Biến đổi 'documents' thành ma trận số (Sparse Matrix)
+X = vectorizer.fit_transform(documents)
+
+# 4. Huấn luyện Linear Regression trên dữ liệu văn bản đã số hóa
+regressor = LinearRegression()
+regressor.fit(X, prices)
+
+# 5. Hàm dự đoán (Pipeline cho Inference)
+def natural_language_linear_regression_pricer(item):
+    # CỰC KỲ QUAN TRỌNG: Chỉ dùng .transform(), KHÔNG dùng .fit()
+    # Phải dùng đúng bộ từ điển đã học từ tập train
+    x = vectorizer.transform([item.summary])
+    
+    # Dự đoán giá, nếu ra số âm thì lấy 0 (max(..., 0))
+    prediction = regressor.predict(x)[0]
+    return max(prediction, 0)
+Giải thích logic:
+•	X ở đây không phải là ma trận bình thường mà là Sparse Matrix (Ma trận thưa). Vì trong 2000 từ, một sản phẩm chỉ chứa khoảng vài chục từ, nên hầu hết các ô là số 0. Scikit-learn lưu trữ dạng này để tiết kiệm RAM.
+•	Kết quả $76.81 cho thấy mô hình đã bắt đầu "hiểu" sản phẩm thông qua các từ khóa.
+6. Kiến thức liên quan & Mở rộng
+•	Sparse Matrix (Ma trận thưa): Là kỹ thuật lưu trữ dữ liệu thông minh. Thay vì lưu hàng nghìn số 0, nó chỉ lưu vị trí và giá trị của các số khác 0. Điều này cực kỳ quan trọng khi làm việc với Bag of Words (nơi vector có thể lên tới hàng triệu chiều).
+•	Nhược điểm của Bag of Words:
+o	Mất ngữ cảnh: "Dog bites man" và "Man bites dog" sẽ có vector y hệt nhau (vì cùng chứa các từ dog, bites, man).
+o	Không hiểu ngữ nghĩa: "Good" và "Great" được coi là 2 từ hoàn toàn khác nhau, không liên quan gì nhau. Đây là lý do sau này chúng ta cần Embeddings (trong Deep Learning).
+•	N-grams: Một cách nâng cấp nhẹ cho BoW là dùng N-grams (cụm từ). Ví dụ ngram_range=(1, 2) sẽ tính cả từ đơn ("smart", "tv") và từ đôi ("smart tv"). Điều này giúp bắt được ngữ cảnh tốt hơn một chút.
+
+152. Day 3 - Random Forest and XGBoost: Ensemble Models in Scikit-Learn
+Pythonimport json
+
+with open('day3.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells for Random Forest and XGBoost ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "RandomForestRegressor" in source or "XGBRegressor" in source or "xgb" in source or "Ensemble" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells for Random Forest and XGBoost ---
+import random
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from pricer.evaluator import evaluate
+from pricer.items import Item
+--------------------
+subset = 15_000
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
+rf_model.fit(X[:subset], prices[:subset])
+--------------------
+import xgboost as xgb
+--------------------
+np.random.seed(42)
+
+xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
+xgb_model.fit(X, prices)
+--------------------
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+--------------------
+
+Chào bạn Hieu, đây là phần cuối cùng và thú vị nhất của Day 3. Sau khi đã thử Linear Regression và đạt kết quả $76.81, chúng ta sẽ chuyển sang "vũ khí hạng nặng" của ML truyền thống: Ensemble Learning (Học tập kết hợp) với hai đại diện ưu tú là Random Forest và XGBoost.
+Dưới đây là tổng hợp chi tiết nội dung bài học "152. Day 3 - Random Forest and XGBoost: Ensemble Models in Scikit-Learn".
+1. Chủ đề bài học
+152. Day 3 - Random Forest and XGBoost: Ensemble Models in Scikit-Learn
+(Ngày 3 - Rừng ngẫu nhiên và XGBoost: Các mô hình kết hợp trong Scikit-Learn)
+2. Tóm tắt cốt lõi
+•	Sức mạnh của Ensemble (Hợp nhất): Thay vì dùng 1 mô hình (như 1 cây quyết định), ta dùng hàng trăm mô hình con và tổng hợp kết quả của chúng. "Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao".
+•	Random Forest (Rừng ngẫu nhiên): Tập hợp nhiều cây quyết định (Decision Trees) độc lập. Kết quả cải thiện lên $72.28 (so với Linear Regression $76.81).
+•	XGBoost (Extreme Gradient Boosting): Phiên bản nâng cấp mạnh mẽ hơn, xây dựng các cây tuần tự để sửa lỗi cho nhau. Đây là "ông vua" của ML truyền thống. Kết quả tốt nhất ngày hôm nay: $68.23.
+•	Kết luận Day 3: Với ML truyền thống và xử lý dữ liệu khéo léo (Bag of Words), ta đã giảm sai số từ ~$382 (đoán mò) xuống còn ~$68. Đây là Baseline vững chắc để thách thức các mô hình Deep Learning trong Day 4.
+3. Nội dung chính
+A. Random Forest (Rừng ngẫu nhiên)
+•	Khái niệm: Dựa trên Decision Tree (Cây quyết định) - về cơ bản là một chuỗi các câu lệnh if-else.
+o	Ví dụ: IF "TV" xuất hiện > 2 lần AND có "LED" -> Price = $500.
+•	Cơ chế:
+o	Tạo ra 100 (hoặc nhiều hơn) cây quyết định khác nhau.
+o	Mỗi cây học trên một tập con ngẫu nhiên của dữ liệu và đặc trưng.
+o	Dự đoán cuối cùng là trung bình cộng của tất cả các cây.
+•	Hiệu năng: Chạy chậm hơn Linear Regression rất nhiều. Trong bài, tác giả chỉ chạy trên tập con 15,000 mẫu để tiết kiệm thời gian.
+B. XGBoost (Extreme Gradient Boosting)
+•	Khác biệt: Nếu Random Forest xây các cây song song và độc lập, thì XGBoost xây cây tuần tự.
+o	Cây thứ 1 xây xong -> Cây thứ 2 nhìn vào sai số của cây 1 để sửa -> Cây thứ 3 sửa lỗi của cây 2...
+•	Ưu điểm:
+o	Cực kỳ nhanh (được tối ưu hóa tốt).
+o	Khả năng Generalization (Khái quát hóa) cực tốt.
+o	Thường xuyên vô địch các giải đấu Kaggle trên dữ liệu bảng (Tabular Data).
+•	Kết quả: Sai số thấp nhất $68.23, thiết lập chuẩn mực (SOTA - State of the Art) cho ngày hôm nay.
+4. Kiến trúc & Quy trình (Pipeline)
+Vẫn giữ nguyên pipeline xử lý văn bản (Bag of Words) từ bài trước, chỉ thay đổi thuật toán dự đoán:
+1.	Input: item.summary
+2.	Vectorizer: CountVectorizer (đã train từ trước) -> Biến văn bản thành vector X (2000 chiều).
+3.	Model:
+o	Random Forest: Input X -> 100 Trees -> Average -> Output Price.
+o	XGBoost: Input X -> Gradient Boosting Trees -> Output Price.
+4.	Prediction: Dự đoán giá trên tập Test.
+5. Phân tích Code (day3.ipynb)
+A. Random Forest Regressor
+Python
+from sklearn.ensemble import RandomForestRegressor
+
+# Sử dụng tập con dữ liệu vì thuật toán này chạy khá lâu
+subset = 15_000
+
+# Khởi tạo mô hình
+# n_estimators=100: Tạo 100 cây quyết định
+# n_jobs=4: Chạy song song trên 4 luồng CPU để nhanh hơn
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
+
+# Huấn luyện trên tập con (X và prices đã có từ bước CountVectorizer trước đó)
+rf_model.fit(X[:subset], prices[:subset])
+
+# Hàm dự đoán
+def random_forest(item):
+    # Biến đổi văn bản thành vector
+    x = vectorizer.transform([item.summary])
+    # Dự đoán
+    prediction = rf_model.predict(x)[0]
+    # Giá không thể âm, nên lấy max(0, prediction)
+    return max(0, prediction)
+B. XGBoost Regressor
+Python
+import xgboost as xgb
+
+# Khởi tạo mô hình XGBoost
+# n_estimators=1000: Số lượng cây rất lớn (vì XGBoost chạy nhanh nên có thể tăng số này lên)
+# learning_rate=0.1: Tốc độ học (quan trọng trong Boosting)
+xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
+
+# Huấn luyện trên TOÀN BỘ dữ liệu (XGBoost đủ nhanh để "nhai" hết dataset)
+xgb_model.fit(X, prices)
+
+# Hàm dự đoán
+def xg_boost(item):
+    x = vectorizer.transform([item.summary])
+    return max(0, xgb_model.predict(x)[0])
+6. Tổng kết bảng xếp hạng Day 3
+Bạn hãy ghi lại các con số này vào tờ giấy ghi chú (prop) của mình như lời giảng viên dặn nhé:
+Mô hình	Sai số (MAE)	Nhận xét
+Random Pricer	~$382.08	Đoán mò (Baseline thảm họa)
+Constant Pricer	~$106.18	Đoán trung bình (Baseline chấp nhận được)
+Linear Regression	~$101.56	Tính năng thủ công (Feature Engineering tồi)
+Linear Regression (NLP)	~$76.81	Dùng Bag of Words (Bước nhảy vọt)
+Random Forest	~$72.28	Ensemble (Mạnh hơn nhưng chậm)
+XGBoost	**~$68.23**	Champion của Day 3 🏆
+7. Kiến thức mở rộng
+•	Tại sao XGBoost thắng? Trong các bài toán dữ liệu có cấu trúc (bảng, csv) hoặc văn bản thô sơ (như Bag of Words), các mô hình dựa trên cây (Tree-based) như XGBoost thường hoạt động tốt hơn Deep Learning vì chúng xử lý tốt các đặc trưng rời rạc và không cần quá nhiều dữ liệu để hội tụ.
+•	Giới hạn của ML truyền thống: Dù $68 là kết quả tốt, nhưng các mô hình này không thực sự "hiểu" ngôn ngữ. Chúng chỉ đếm từ khóa. Nếu mô tả sản phẩm dùng từ ngữ bóng bẩy, ẩn dụ hoặc từ đồng nghĩa mà không có trong từ điển 2000 từ phổ biến, chúng sẽ thất bại. Đó là lý do chúng ta cần Deep Learning (Neural Networks) và LLMs (sẽ học vào Day 4).
+Chúc mừng Hieu đã hoàn thành Day 3! Bạn đã có trong tay một Baseline vững chắc ($68.23). Ngày mai, chúng ta sẽ xem liệu AI hiện đại có thể đánh bại con số này không nhé.
+DAY 4 
+153. Day 4 - Training Your First Neural Network and Testing Frontier Models 
+Chào Hieu, cảm ơn bạn đã cung cấp đầy đủ ngữ cảnh từ các buổi học trước (file xử_lý_dữ_liệu.docx), slide bài giảng và bản phiên âm chi tiết của Day 4.
+Dựa trên dữ liệu bạn cung cấp, đây là tổng hợp chi tiết nội dung bài học Day 4 - Training Your First Neural Network and Testing Frontier Models.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Bước chuyển mình sang Deep Learning: Sau khi đã thiết lập các mô hình cơ sở (Baseline) bằng Machine Learning truyền thống (Linear Regression, XGBoost) ở Day 3, bài học này tập trung vào việc xây dựng và huấn luyện một Mạng nơ-ron cơ bản (Vanilla Neural Network) từ con số 0.
+•	Lý thuyết huấn luyện (Training Loop): Trọng tâm kiến thức nằm ở "Vòng lặp huấn luyện" với 4 bước bất di bất dịch: Forward Pass (Dự đoán) -> Loss Calculation (Tính lỗi) -> Backward Pass (Tính Gradient) -> Optimization (Cập nhật tham số).
+•	Siêu tham số (Hyperparameters): Làm rõ khái niệm về các tham số cài đặt "bên ngoài" mô hình như Epochs (số vòng lặp), Batch size (kích thước lô), Learning Rate (tốc độ học) và bản chất của việc tối ưu hóa chúng thực ra là "thử và sai" (trial & error).
+•	Frontier Models: So sánh hiệu suất của mạng nơ-ron tự xây với các mô hình ngôn ngữ lớn hàng đầu (Frontier Models - như GPT-4, Claude) trên cùng một bài toán định giá sản phẩm.
+________________________________________
+2. Nội dung chính
+A. Ôn tập & Định vị tiến độ
+•	Day 1 & 2: Đã tuyển chọn dữ liệu Amazon, làm sạch và dùng LLM để viết lại (Pre-processing) thành dữ liệu chất lượng cao.
+•	Day 3: Đã xây dựng Baseline bằng Linear Regression và XGBoost. Kết quả tốt nhất đang là sai số khoảng $68 (với XGBoost).
+•	Mục tiêu Day 4: Phải xem liệu Mạng nơ-ron (Neural Network) và các LLM hiện đại có thể đánh bại con số $68 này không.
+B. Quy trình huấn luyện Mạng nơ-ron (The 4 Steps of Training)
+Giảng viên nhấn mạnh 4 bước kỹ thuật diễn ra lặp đi lặp lại trong quá trình training:
+1.	Forward Pass (Lan truyền xuôi):
+o	Đưa dữ liệu đầu vào (Input) qua mạng nơ-ron.
+o	Mô hình tính toán và đưa ra dự đoán ($\hat{y}$).
+2.	Loss Calculation (Tính toán mất mát):
+o	So sánh giá dự đoán ($\hat{y}$) với giá thực tế ($y$ - Ground Truth).
+o	Tính ra con số sai lệch (Loss/Error).
+3.	Backward Pass (Lan truyền ngược):
+o	Sử dụng giải tích (đạo hàm) để tính Gradient.
+o	Mục đích: Tìm hiểu xem nếu thay đổi từng tham số (weight) một chút xíu thì sai số sẽ tăng hay giảm.
+4.	Optimization (Tối ưu hóa):
+o	Thực hiện một bước nhỏ (Step) để cập nhật lại các tham số theo hướng giảm thiểu sai số.
+o	Thuật toán phổ biến: Stochastic Gradient Descent (SGD).
+C. Siêu tham số (Hyperparameters)
+Đây là các cài đặt cấu hình hệ thống, không phải là trọng số được mô hình tự học:
+•	Batch Size: Số lượng dữ liệu được xử lý trong một lần tính toán (không đưa cả 800k dòng vào cùng lúc mà chia nhỏ ra).
+•	Epochs (Kỷ nguyên): Số lần mô hình được học trọn vẹn toàn bộ tập dữ liệu.
+•	Learning Rate (Tốc độ học): Kích thước của bước nhảy khi cập nhật tham số. Bước quá lớn có thể đi quá đà (không hội tụ), bước quá nhỏ thì học rất lâu.
+•	Hyperparameter Optimization: Thực chất là quá trình thử nghiệm các tổ hợp khác nhau để tìm ra bộ thông số tốt nhất.
+________________________________________
+3. Kiến trúc & Quy trình (Training Pipeline)
+Dựa trên mô tả trong bài giảng, Pipeline huấn luyện mạng nơ-ron (sử dụng PyTorch) sẽ diễn ra như sau:
+1.	Input Data: Dữ liệu văn bản đã được vector hóa (tương tự Bag of Words của Day 3 hoặc Embeddings).
+2.	Network Architecture (Vanilla NN):
+o	Input Layer (Số chiều = Số lượng từ vựng/features).
+o	Hidden Layers (Các lớp ẩn với hàm kích hoạt như ReLU).
+o	Output Layer (1 nơ-ron duy nhất trả về giá tiền).
+3.	Training Loop:
+Đoạn mã
+graph LR
+A[Batch Data] --> B(Forward Pass: Predict Price)
+B --> C(Calculate Loss: Pred vs Real)
+C --> D(Backward Pass: Compute Gradients)
+D --> E(Optimizer Step: Update Weights)
+E --> A
+4.	Evaluation: So sánh kết quả trên tập Test bằng biểu đồ $y$ vs $\hat{y}$.
+________________________________________
+4. Phân tích Code (Mô phỏng dựa trên nội dung bài giảng)
+Lưu ý: Bạn chưa cung cấp file code .ipynb cụ thể của Day 4, nhưng dựa trên bản phiên âm, giảng viên mô tả code PyTorch rất tiêu chuẩn. Dưới đây là cấu trúc code "từng dòng một" tương ứng với 4 bước mà giảng viên đề cập:
+Python
+# Giả lập vòng lặp huấn luyện (Training Loop) trong PyTorch
+# Đây là phần logic cốt lõi được mô tả trong bài học
+
+# 1. Siêu tham số (Hyperparameters) - Những cài đặt "bên ngoài"
+epochs = 100          # Số lần học lại toàn bộ dữ liệu
+learning_rate = 0.01  # Tốc độ cập nhật kiến thức
+
+for epoch in range(epochs):
+    for batch in dataloader: # Duyệt qua từng lô dữ liệu nhỏ
+        
+        # --- BƯỚC 1: FORWARD PASS (Lan truyền xuôi) ---
+        # Đưa dữ liệu (x) vào mô hình để lấy dự đoán (y_pred)
+        y_pred = model(batch_x)
+        
+        # --- BƯỚC 2: LOSS CALCULATION (Tính toán mất mát) ---
+        # So sánh dự đoán với thực tế (batch_y) để xem sai bao nhiêu
+        loss = criterion(y_pred, batch_y)
+        
+        # --- BƯỚC 3: BACKWARD PASS (Lan truyền ngược) ---
+        # Tính toán gradient (đạo hàm) cho tất cả các tham số
+        # Để biết cần chỉnh sửa tham số nào, theo hướng nào
+        loss.backward()
+        
+        # --- BƯỚC 4: OPTIMIZATION (Tối ưu hóa) ---
+        # Cập nhật trọng số của mô hình dựa trên gradient vừa tính
+        # Đây là bước mô hình thực sự "học"
+        optimizer.step()
+        
+        # Đặt lại gradient về 0 cho vòng lặp tiếp theo (đặc thù của PyTorch)
+        optimizer.zero_grad()
+Giải thích logic:
+•	Đoạn code trên thể hiện chính xác quy trình "thử và sai" của máy tính. Nó đoán, xem sai bao nhiêu, rút kinh nghiệm, và sửa lại bộ não của mình một chút. Quá trình này lặp lại hàng nghìn/triệu lần cho đến khi sai số là nhỏ nhất.
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao gọi là "Vanilla" Neural Network?
+•	"Vanilla" (Vani) trong tiếng Anh thường ám chỉ sự cơ bản, nguyên bản, không có gì phức tạp thêm thắt.
+•	Trong bài này, "Vanilla NN" (thường là Multi-Layer Perceptron - MLP) chỉ bao gồm các lớp kết nối đầy đủ (Fully Connected Layers), chưa có cơ chế Attention (như Transformer) hay tích chập (như CNN). Đây là bước đệm để hiểu trước khi sang các mô hình phức tạp.
+B. Frontier Models vs. Fine-tuning (Teaser cho tuần sau)
+•	Bài học kết thúc bằng việc so sánh với Frontier Models. Đây là các mô hình LLM đã được train trước (Pre-trained) với lượng dữ liệu khổng lồ.
+•	Tuy nhiên, ở Day 4, chúng ta có thể chỉ đang dùng chúng ở chế độ Inference (hỏi và đáp) hoặc Few-shot prompting để định giá.
+•	Fine-tuning (Tuần sau): Sẽ là bước đột phá khi ta áp dụng quy trình 4 bước huấn luyện ở trên vào chính các Frontier Models này (thông qua kỹ thuật như LoRA - Low Rank Adaptation được nhắc trong slide) để biến chúng thành chuyên gia định giá.
+C. Generalization vs. Overfitting
+•	Generalization (Khái quát hóa): Là mục tiêu tối thượng. Mô hình học được "quy luật chung" (ví dụ: Ram cao -> Giá cao).
+•	Overfitting (Học vẹt): Mô hình học thuộc lòng dữ liệu train (ví dụ: Cái laptop mã XYZ123 giá $500). Khi gặp dữ liệu mới, nó sẽ đoán sai vì nó chỉ nhớ chứ không hiểu quy luật.
+Bạn đã sẵn sàng để xem kết quả thực nghiệm xem liệu "Deep Learning" sơ khai này có đánh bại được thuật toán "XGBoost" già dơ của Day 3 không chưa?
+154. Day 4 - Human Baseline Performance vs Machine Learning Models in PyTorch 
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Notebook Cells ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        # Look for relevant keywords mentioned in the transcript
+        if "Human" in source or "torch" in source or "evaluate" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Notebook Cells ---
+# imports
+
+import os
+from dotenv import load_dotenv
+from huggingface_hub import login
+from pricer.evaluator import evaluate
+from litellm import completion
+from pricer.items import Item
+import numpy as np
+from tqdm.notebook import tqdm
+import csv
+from sklearn.feature_extraction.text import HashingVectorizer
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+--------------------
+human = human_pricer(test[0])
+actual = test[0].price
+print(f"Human predicted {human} for an item that actually costs {actual}")
+
+--------------------
+evaluate(human_pricer, test, size=100)
+--------------------
+# Define the neural network - here is Pytorch code to create a 8 layer neural network
+
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        self.layer1 = nn.Linear(input_size, 128)
+        self.layer2 = nn.Linear(128, 64)
+        self.layer3 = nn.Linear(64, 64)
+        self.layer4 = nn.Linear(64, 64)
+        self.layer5 = nn.Linear(64, 64)
+        self.layer6 = nn.Linear(64, 64)
+        self.layer7 = nn.Linear(64, 64)
+        self.layer8 = nn.Linear(64, 1)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        output1 = self.relu(self.layer1(x))
+        output2 = self.relu(self.layer2(output1))
+        output3 = self.relu(self.layer3(output2))
+        output4 = self.relu(self.layer4(output3))
+        output5 = self.relu(self.layer5(output4))
+        output6 = self.relu(self.layer6(output5))
+        output7 = self.relu(self.layer7(output6))
+        output8 = self.layer8(output7)
+        return output8
+--------------------
+# Convert data to PyTorch tensors
+X_train_tensor = torch.FloatTensor(X.toarray())
+y_train_tensor = torch.FloatTensor(y).unsqueeze(1)
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train_tensor, y_train_tensor, test_size=0.01, random_state=42)
+
+# Create the loader
+train_dataset = TensorDataset(X_train, y_train)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+# Initialize the model
+input_size = X_train_tensor.shape[1]
+model = NeuralNetwork(input_size)
+--------------------
+# Define loss function and optimizer
+
+loss_function = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# We will do 2 complete runs through the data
+
+EPOCHS = 2
+
+for epoch in range(EPOCHS):
+    model.train()
+    for batch_X, batch_y in tqdm(train_loader):
+        optimizer.zero_grad()
+
+        # The next 4 lines are the 4 stages of training: forward pass, loss calculation, backward pass, optimize
+        
+        outputs = model(batch_X)
+        loss = loss_function(outputs, batch_y)
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        val_outputs = model(X_val)
+        val_loss = loss_function(val_outputs, y_val)
+
+    print(f'Epoch [{epoch+1}/{EPOCHS}], Train Loss: {loss.item():.3f}, Val Loss: {val_loss.item():.3f}')
+--------------------
+def neural_network(item):
+    model.eval()
+    with torch.no_grad():
+        vector = vectorizer.transform([item.summary])
+        vector = torch.FloatTensor(vector.toarray())
+        result = model(vector)[0].item()
+    return max(0, result)
+--------------------
+evaluate(neural_network, test)
+--------------------
+evaluate(gpt_4__1_nano, test)
+--------------------
+evaluate(claude_opus_4_5, test)
+--------------------
+evaluate(gemini_3_pro_preview, test, size=50, workers=2)
+--------------------
+evaluate(gemini_2__5_flash_lite, test)
+--------------------
+evaluate(grok_4__1_fast, test)
+--------------------
+evaluate(gpt_5__1, test)
+--------------------
+
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Searching for human_pricer definition ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "def human_pricer" in source or "pd.read_csv" in source or "csv.reader" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Searching for human_pricer definition ---
+# Read it back in
+
+human_predictions = []
+with open('human_out.csv', 'r', encoding="utf-8") as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        human_predictions.append(float(row[1]))
+--------------------
+def human_pricer(item):
+    idx = test.index(item)
+    return human_predictions[idx]
+--------------------
+
+Chào Hieu, đây là phần tổng hợp nội dung bài học Day 4 - Human Baseline Performance vs Machine Learning Models in PyTorch dựa trên bản phiên âm và file notebook day4.ipynb.
+Bài học này bắt đầu bằng một bước đi rất thú vị: Trước khi xây dựng những mạng nơ-ron phức tạp, chúng ta cần biết con người (cụ thể là chính giảng viên) làm tốt đến đâu để có một thước đo (Baseline) chuẩn xác.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thiết lập Human Baseline: Giảng viên đã tự mình thực hiện thử thách đoán giá cho 100 sản phẩm đầu tiên trong tập test để tạo ra một "Human Baseline".
+•	Kết quả bất ngờ: Con người (giảng viên) có sai số trung bình khoảng **$87**. Kết quả này tốt hơn mô hình đoán mò (Random) và đoán trung bình (Constant), nhưng lại thua các mô hình Machine Learning đơn giản như Natural Language Linear Regression ($76.8) và XGBoost ($68).
+•	Chuyển sang Deep Learning: Sau khi "thua đau" trước ML truyền thống, bài học chuyển sang xây dựng vũ khí hạng nặng: Mạng nơ-ron nhân tạo (Artificial Neural Network) sử dụng thư viện PyTorch để hy vọng lật ngược tình thế.
+________________________________________
+2. Nội dung chính
+A. Thử nghiệm "Human Performance" (Hiệu suất con người)
+•	Triết lý: Trước khi dùng AI, hãy xem con người làm tốt đến đâu. Nếu AI không thắng được con người thì nó chưa đủ tốt. Ngược lại, nếu con người làm quá tệ, đó là dấu hiệu cho thấy bài toán này thực sự khó.
+•	Thực hiện: Giảng viên tạo file Human.csv chứa mô tả sản phẩm và tự mình điền giá dự đoán vào đó.
+•	Kết quả thực nghiệm:
+o	Human Error (MAE): ~$87.62
+o	So sánh:
+	Thắng: Random Pricer (~$382), Constant Pricer (~$106), Traditional Linear Regression (~$101).
+	Thua: NLP Linear Regression (~$76.8), XGBoost (~$68).
+o	Kết luận: Máy học truyền thống (với Bag of Words) đã đánh bại trực giác của con người trong việc định giá sản phẩm dựa trên mô tả văn bản.
+B. Xây dựng Mạng nơ-ron với PyTorch (PyTorch Neural Network)
+•	Sau phần Human Baseline, bài học đi vào xây dựng mạng nơ-ron đầu tiên.
+•	Kiến trúc: Một mạng thuần (Vanilla NN) với nhiều lớp ẩn (Hidden Layers) xếp chồng lên nhau.
+•	Cơ chế: Sử dụng HashingVectorizer để biến văn bản thành số, sau đó đưa vào mạng nơ-ron để học mối quan hệ phi tuyến tính phức tạp hơn.
+________________________________________
+3. Phân tích Code (File day4.ipynb)
+Dưới đây là phân tích các đoạn code quan trọng liên quan đến Human Baseline và khởi tạo PyTorch:
+A. Human Pricer (Định giá bởi con người)
+Logic ở đây rất đơn giản: Đọc kết quả đoán từ file CSV và trả về khi được hỏi.
+Python
+import csv
+
+# 1. Đọc dữ liệu dự đoán của con người từ file CSV
+human_predictions = []
+with open('human_out.csv', 'r', encoding="utf-8") as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        # Lưu giá dự đoán vào list (cột thứ 2 trong file csv)
+        human_predictions.append(float(row[1]))
+
+# 2. Hàm định giá giả lập "Human"
+def human_pricer(item):
+    # Tìm vị trí của sản phẩm trong tập test
+    idx = test.index(item)
+    # Trả về giá trị mà con người đã điền trước đó tại vị trí tương ứng
+    return human_predictions[idx]
+
+# 3. Đánh giá
+# Chạy hàm evaluate để so sánh Human với các model khác
+evaluate(human_pricer, test, size=100) 
+B. Khởi tạo Mạng nơ-ron (PyTorch)
+Đây là cấu trúc mạng nơ-ron sâu (Deep Neural Network) đầu tiên được giới thiệu.
+Python
+import torch.nn as nn
+
+# Định nghĩa lớp NeuralNetwork kế thừa từ nn.Module của PyTorch
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size):
+        super(NeuralNetwork, self).__init__()
+        # Định nghĩa các lớp tuyến tính (Linear/Dense Layers)
+        # Input size: Kích thước vector văn bản (ví dụ 2000 từ)
+        # Output size: 128 nơ-ron ở lớp ẩn đầu tiên
+        self.layer1 = nn.Linear(input_size, 128)
+        self.layer2 = nn.Linear(128, 64)
+        # ... (nhiều lớp ẩn ở giữa để tăng khả năng học sâu) ...
+        self.layer8 = nn.Linear(64, 1) # Lớp cuối cùng trả về 1 số duy nhất (Giá tiền)
+        
+        # Hàm kích hoạt ReLU (giúp mô hình học được các tương quan phi tuyến tính)
+        self.relu = nn.ReLU()
+
+    # Hàm forward: Quy định luồng dữ liệu đi qua mạng
+    def forward(self, x):
+        # Dữ liệu đi qua lớp 1 -> qua ReLU -> qua lớp 2 -> ...
+        output1 = self.relu(self.layer1(x))
+        output2 = self.relu(self.layer2(output1))
+        # ...
+        output8 = self.layer8(output7)
+        return output8 # Trả về giá dự đoán
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	PyTorch: Là thư viện Deep Learning phổ biến nhất hiện nay (được phát triển bởi Meta), đặc biệt trong giới nghiên cứu và LLM. Nó hoạt động dựa trên cơ chế Dynamic Computation Graph (Biểu đồ tính toán động), rất linh hoạt và dễ debug (giống code Python thuần).
+•	Human-in-the-loop (HITL): Việc giảng viên tự mình gán nhãn/dự đoán dữ liệu là một ví dụ thô sơ của HITL. Trong thực tế, Human Baseline cực kỳ quan trọng để biết "trần" (ceiling) của mô hình. Nếu Human làm sai nhiều (ví dụ ảnh mờ không nhìn rõ), ta không thể kỳ vọng AI làm đúng 100%.
+•	ReLU (Rectified Linear Unit): Hàm kích hoạt $f(x) = max(0, x)$. Nó giúp mạng nơ-ron học nhanh hơn và giải quyết vấn đề "biến mất đạo hàm" (vanishing gradient) so với các hàm cũ như Sigmoid/Tanh.
+Bạn đã thấy con người thua cuộc trước ML truyền thống. Phần tiếp theo của bài học sẽ là cuộc chiến giữa Mạng nơ-ron tự xây (Day 4) vs Các mô hình Frontier (GPT-4, Claude...) để xem ai mới là vua định giá!
+
+ 155. Day 4 - Building Your First Neural Network with PyTorch
+Chào bạn, dưới đây là tổng hợp nội dung bài học Day 4 - Building Your First Neural Network with PyTorch dựa trên bản phiên âm bạn cung cấp.
+1. Tóm tắt cốt lõi
+•	Chuyển sang Deep Learning: Bài học chuyển từ Machine Learning truyền thống sang xây dựng Mạng nơ-ron "thuần" (Vanilla Neural Network) sử dụng thư viện PyTorch11111111.
+•	Cải tiến xử lý dữ liệu: Thay thế CountVectorizer bằng HashingVectorizer để tăng tốc độ và hiệu quả xử lý dữ liệu văn bản quy mô lớn (5000 features)222.
+•	Quy trình huấn luyện (4 bước): Triển khai vòng lặp huấn luyện tiêu chuẩn gồm: Forward pass, Tính Loss (MSE), Backward pass, và Tối ưu hóa (Optimizer step)33333333.
+•	Kết quả vượt trội: Mạng nơ-ron đơn giản (8 lớp) đạt sai số 63.97, đánh bại tất cả các mô hình ML truyền thống trước đó44.
+________________________________________
+2. Nội dung chính
+A. Chuẩn bị dữ liệu: Hashing Vectorizer
+Thay vì dùng CountVectorizer như bài trước, giảng viên chuyển sang dùng HashingVectorizer với các thiết lập sau:
+•	Lý do: Nhanh hơn và hiệu quả hơn về bộ nhớ5. Nhược điểm là không thể truy ngược lại xem từ gốc tiếng Anh là gì (do đã bị mã hóa/hash)6.
+•	Cấu hình:
+o	n_features = 5000: Tăng vốn từ vựng lên 5000 từ (so với 2000 trước đây)7.
+o	binary = True: Chỉ quan tâm từ có xuất hiện hay không (0 hoặc 1), không đếm số lần xuất hiện. Đây là kỹ thuật phổ biến cho mạng nơ-ron, tương tự như "one-hot vector"8888.
+B. Kiến trúc Mạng nơ-ron (Vanilla Neural Network)
+•	Công cụ: Sử dụng PyTorch, cụ thể là class con của nn.Module9999.
+•	Cấu trúc: Mạng gồm 8 lớp (layers)10.
+o	Các lớp này là lớp tuyến tính (linear layers) kết hợp với hàm kích hoạt ReLU sau mỗi lớp11.
+o	Mặc dù gọi là 8 lớp, giảng viên lưu ý đây vẫn được coi là mạng nông (shallow) hoặc mạng nơ-ron thường, chưa phải là "Deep" theo tiêu chuẩn hiện đại12121212.
+•	Tham số: Mô hình có tổng cộng 669,000 tham số được huấn luyện13.
+C. Quy trình Huấn luyện (Training Loop)
+Đây là phần quan trọng nhất, mô phỏng cách máy học thông qua 4 bước lặp đi lặp lại trên từng lô dữ liệu (batch):
+1.	Forward Pass (Lan truyền xuôi): Đưa dữ liệu qua mô hình để lấy kết quả dự đoán14.
+2.	Loss Calculation (Tính toán mất mát): So sánh kết quả dự đoán với thực tế ($y$) bằng hàm Mean Squared Error (MSE)15151515.
+3.	Backward Pass (Lan truyền ngược): Tính toán gradient để xem sai số thay đổi thế nào khi điều chỉnh từng tham số16.
+4.	Optimization (Tối ưu hóa): Thực hiện một bước nhỏ (step) để cập nhật trọng số nhằm giảm sai số (dùng Learning rate = 0.001)17.
+________________________________________
+3. Phân tích Code (Logic Mô phỏng)
+Dựa trên mô tả chi tiết trong phiên âm, dưới đây là logic của các khối code quan trọng:
+Khối 1: Định nghĩa Mạng nơ-ron
+Python
+import torch.nn as nn
+
+# Class mô hình kế thừa từ PyTorch module [cite: 26]
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Định nghĩa 8 lớp tuyến tính 
+        # Kết hợp với hàm kích hoạt ReLU 
+        self.layers = ... 
+
+    def forward(self, x):
+        # Forward pass: Dữ liệu đi qua từng lớp và ReLU [cite: 38]
+        # Input -> Layer 1 -> ReLU -> ... -> Output
+        return self.layers(x)
+Khối 2: Vòng lặp Huấn luyện (The Training Loop)
+Giảng viên nhấn mạnh 4 dòng code cốt lõi tương ứng với 4 bước huấn luyện:
+Python
+# Cài đặt siêu tham số [cite: 66, 81]
+epochs = 2
+optimizer = ... # (VD: Adam hoặc SGD)
+loss_fn = nn.MSELoss() # Mean Squared Error [cite: 79]
+
+for epoch in range(epochs): # Lặp qua toàn bộ dữ liệu 2 lần [cite: 84]
+    for batch_x, batch_y in train_loader:
+        
+        # 1. Forward pass: Tính toán đầu ra 
+        outputs = model(batch_x)
+        
+        # 2. Calculate Loss: Tính sai số so với thực tế [cite: 91]
+        loss = loss_fn(outputs, batch_y)
+        
+        # 3. Backward pass: Tính gradient (đạo hàm) 
+        loss.backward()
+        
+        # 4. Optimization: Cập nhật trọng số (bước nhảy nhỏ 0.001) 
+        optimizer.step()
+        optimizer.zero_grad() # (Thường cần thêm bước này để reset gradient)
+Khối 3: Suy luận (Inference)
+Python
+# Chuyển sang chế độ đánh giá (không huấn luyện) [cite: 104]
+model.eval() 
+
+# Dự đoán
+# Chuyển input thành vector 5000 số (0 hoặc 1) [cite: 105]
+# Đưa vào mô hình PyTorch để lấy kết quả [cite: 106]
+prediction = model(input_vector)
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	Hashing Vectorizer vs. Count Vectorizer:
+o	HashingVectorizer sử dụng thuật toán băm (hashing trick) để ánh xạ từ vựng vào các chỉ số cố định. Nó không cần lưu trữ từ điển trong bộ nhớ (stateless), nên rất phù hợp với dữ liệu lớn (streaming data) và tiết kiệm RAM. Tuy nhiên, nó có thể gặp vấn đề "đụng độ" (collision) - hai từ khác nhau có cùng mã hash18181818.
+•	ReLU (Rectified Linear Unit):
+o	Hàm kích hoạt phổ biến nhất cho các lớp ẩn. Công thức: $f(x) = max(0, x)$. Nó giúp giải quyết vấn đề biến mất đạo hàm (vanishing gradient) tốt hơn Sigmoid hay Tanh và tính toán rất nhanh.
+•	Siêu tham số (Hyperparameters):
+o	Là các thông số bạn phải cài đặt trước khi huấn luyện (như Learning Rate, Batch Size, Epochs) và không được mô hình tự học. Việc tìm ra bộ siêu tham số tốt nhất thường dựa vào "thử và sai" (Trial & Error)19191919.
+Kết quả 63.97 20 là một bước tiến lớn, chứng minh sức mạnh của Mạng nơ-ron ngay cả khi chỉ với kiến trúc đơn giản. Bước tiếp theo sẽ là làm việc với các Large Language Models (LLMs).
+
+156. Day 4 - Testing GPT-4o-mini and Claude Opus Against Neural Networks
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Searching for LLM API calls ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        if "completion" in source or "gpt" in source or "claude" in source:
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Searching for LLM API calls ---
+# imports
+
+import os
+from dotenv import load_dotenv
+from huggingface_hub import login
+from pricer.evaluator import evaluate
+from litellm import completion
+from pricer.items import Item
+import numpy as np
+from tqdm.notebook import tqdm
+import csv
+from sklearn.feature_extraction.text import HashingVectorizer
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+--------------------
+# The function for gpt-4.1-nano
+
+def gpt_4__1_nano(item):
+    response = completion(model="openai/gpt-4.1-nano", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+gpt_4__1_nano(test[0])
+--------------------
+evaluate(gpt_4__1_nano, test)
+--------------------
+def claude_opus_4_5(item):
+    response = completion(model="anthropic/claude-opus-4-5", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+evaluate(claude_opus_4_5, test)
+--------------------
+def gemini_3_pro_preview(item):
+    response = completion(model="gemini/gemini-3-pro-preview", messages=messages_for(item), reasoning_effort='low')
+    return response.choices[0].message.content
+--------------------
+def gemini_2__5_flash_lite(item):
+    response = completion(model="gemini/gemini-2.5-flash-lite", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+
+def grok_4__1_fast(item):
+    response = completion(model="xai/grok-4-1-fast-non-reasoning", messages=messages_for(item), seed=42)
+    return response.choices[0].message.content
+--------------------
+# The function for gpt-5.1
+
+def gpt_5__1(item):
+    response = completion(model="gpt-5.1", messages=messages_for(item), reasoning_effort='high', seed=42)
+    return response.choices[0].message.content
+
+--------------------
+evaluate(gpt_5__1, test)
+--------------------
+
+Chào Hieu, đây là tổng hợp nội dung bài học Testing GPT-4o-mini and Claude Opus Against Neural Networks dựa trên bản phiên âm và file code day4.ipynb.
+Trong bài này, chúng ta bước vào kỷ nguyên của Frontier Models (các mô hình biên giới). Thay vì tự xây dựng và huấn luyện mạng nơ-ron từ đầu, ta sẽ kiểm tra xem các "bộ não" vĩ đại nhất thế giới hiện nay (như GPT, Claude) có thể làm gì ngay khi "đập hộp" (Out-of-the-box).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Sức mạnh của Pre-training: Các mô hình LLM (như GPT-4, Claude 3 Opus) sở hữu lượng "kiến thức thế giới" khổng lồ nhờ được huấn luyện trên hàng nghìn tỷ tham số.
+•	Chiến thuật Zero-shot: Bài học kiểm tra khả năng định giá của LLM mà không cần huấn luyện thêm (No Fine-tuning). Chỉ cần một câu lệnh (Prompt) đơn giản.
+•	Kết quả chấn động:
+o	GPT-4.1 Nano (tương ứng GPT-4o-mini): Đạt sai số **$62.51**, đánh bại cả Human (~$87) và Vanilla Neural Network (~$64).
+o	Claude Opus 4.5 (tương ứng Claude 3 Opus): Đạt sai số **$47.10**, trở thành mô hình tốt nhất tính đến hiện tại, vượt qua cả XGBoost (~$68).
+________________________________________
+2. Nội dung chính
+A. Từ Neural Network đến LLM (Transformer)
+•	Giảng viên giải thích mối liên hệ: Mạng nơ-ron chúng ta vừa xây (Vanilla NN) chính là tiền thân. LLM thực chất là một mạng nơ-ron khổng lồ với kiến trúc Transformer.
+•	Sự khác biệt: LLM có các lớp phức tạp hơn như Attention Layers (Cơ chế chú ý - giúp mô hình biết từ nào quan trọng) và Embeddings (Vector hóa ngữ nghĩa), cho phép khả năng khái quát hóa (Generalization) vượt trội.
+B. Thử nghiệm GPT-4.1 Nano (Đại diện cho các mô hình nhỏ/nhanh - GPT-4o-mini)
+•	Mục tiêu: Kiểm tra một mô hình rẻ, nhanh, phù hợp để sau này Fine-tuning.
+•	Prompt: "Estimate the price of this product. Respond with the price. No explanation." (Ước lượng giá, chỉ trả về số, không giải thích).
+•	Kết quả: Sai số $62.51.
+•	Ý nghĩa: Chỉ bằng kiến thức chung (common sense), nó đã làm tốt hơn một mạng nơ-ron chuyên biệt được huấn luyện trên 800,000 dòng dữ liệu.
+C. Thử nghiệm Claude Opus 4.5 (Đại diện cho các mô hình thông minh nhất - Claude 3 Opus)
+•	Mục tiêu: Xem giới hạn trí tuệ nhân tạo hiện nay (State-of-the-art) nằm ở đâu.
+•	Kết quả: Sai số $47.10.
+•	Ý nghĩa: Đây là một bước nhảy vọt. Nó phá vỡ kỷ lục của năm ngoái và đánh bại thuật toán Machine Learning mạnh nhất là XGBoost. Điều này chứng minh rằng đối với các bài toán phức tạp đòi hỏi sự "hiểu" về ngữ nghĩa, LLM có lợi thế rất lớn.
+________________________________________
+3. Phân tích Code (File day4.ipynb)
+Dưới đây là cách giảng viên thực hiện việc gọi API để đánh giá model (Code trong file notebook sử dụng tên giả lập tương lai, nhưng logic là của thư viện litellm):
+Python
+from litellm import completion
+
+# 1. Hàm gọi GPT-4o-mini (Trong code đặt tên là gpt-4.1-nano)
+def gpt_4__1_nano(item):
+    # Gọi API thông qua thư viện litellm (tương thích nhiều nhà cung cấp)
+    # Model: Tên mô hình (ở đây dùng tên giả lập cho bài học)
+    # Messages: Lịch sử chat (được tạo bởi hàm messages_for)
+    response = completion(model="openai/gpt-4.1-nano", messages=messages_for(item))
+    
+    # Trả về nội dung câu trả lời (giá tiền)
+    return response.choices[0].message.content
+
+# 2. Hàm gọi Claude Opus (Trong code đặt tên là claude-opus-4-5)
+def claude_opus_4_5(item):
+    # Tương tự, gọi đến mô hình của Anthropic
+    response = completion(model="anthropic/claude-opus-4-5", messages=messages_for(item))
+    return response.choices[0].message.content
+
+# 3. Đánh giá
+# evaluate() sẽ chạy hàm trên song song (multithreading) để tiết kiệm thời gian
+evaluate(gpt_4__1_nano, test)
+evaluate(claude_opus_4_5, test)
+Ghi chú:
+•	completion(): Hàm đa năng của litellm, giúp bạn thay đổi model (từ OpenAI sang Claude, Gemini) chỉ bằng cách đổi tham số chuỗi tên model mà không cần sửa lại logic code.
+•	Tên model trong code (gpt-4.1-nano, claude-opus-4-5) là cách giảng viên "đóng vai" bối cảnh tương lai của khóa học. Trong thực tế, bạn sẽ thay bằng gpt-4o-mini hoặc claude-3-opus-20240229.
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+•	Zero-shot Inference: Là khả năng của mô hình giải quyết nhiệm vụ mà nó chưa từng được huấn luyện cụ thể cho nhiệm vụ đó (mô hình chưa từng nhìn thấy tập dữ liệu Amazon này trong quá trình training của bài học, nhưng nó đã đọc cả internet nên nó biết giá trị của một cái "Guitar Pedal").
+•	API Rate Limits & Tiers: Giảng viên nhắc nhở về việc các nhà cung cấp (OpenAI, Anthropic) chia cấp bậc người dùng (Tier 1, Tier 2...) dựa trên số tiền đã nạp. Cấp cao hơn sẽ được gọi API nhanh hơn (nhiều requests/phút), giúp chạy evaluate song song (workers > 1) mà không bị lỗi.
+•	Generalization vs. Memorization: Neural Network tự xây có thể đang cố "học thuộc" dữ liệu train (Memorization), trong khi LLM sử dụng khả năng suy luận và kiến thức tổng quát (Generalization) để đoán giá, đó là lý do LLM thắng thế trên các dữ liệu mới lạ.
+Kết thúc Day 4, bảng xếp hạng hiện tại:
+1.	Claude Opus ($47.10) 🏆
+2.	GPT-4o-mini ($62.51)
+3.	Vanilla Neural Network ($63.97)
+4.	XGBoost ($68)
+5.	Human ($87)
+Bài học ngày mai (Day 5) sẽ là đỉnh cao: Fine-tuning Frontier Models. Liệu chúng ta có thể làm cho GPT-4o-mini học tốt đến mức đánh bại cả Claude Opus không?
+
+
+157. Day 4 - Testing Gemini 3, GPT-5.1, Claude 4.5 & Grok on Price Prediction
+Pythonimport json
+
+with open('day4.ipynb', 'r') as f:
+    notebook = json.load(f)
+
+print("--- Searching for specific model evaluation cells ---")
+for cell in notebook['cells']:
+    if cell['cell_type'] == 'code':
+        source = ''.join(cell['source'])
+        # Look for the model names mentioned in the transcript
+        if any(model in source for model in ["gemini", "grok", "gpt-5.1"]):
+             print(source)
+             print("-" * 20)
+
+Kết quả chạy mã
+--- Searching for specific model evaluation cells ---
+def gemini_3_pro_preview(item):
+    response = completion(model="gemini/gemini-3-pro-preview", messages=messages_for(item), reasoning_effort='low')
+    return response.choices[0].message.content
+--------------------
+evaluate(gemini_3_pro_preview, test, size=50, workers=2)
+--------------------
+def gemini_2__5_flash_lite(item):
+    response = completion(model="gemini/gemini-2.5-flash-lite", messages=messages_for(item))
+    return response.choices[0].message.content
+--------------------
+evaluate(gemini_2__5_flash_lite, test)
+--------------------
+
+def grok_4__1_fast(item):
+    response = completion(model="xai/grok-4-1-fast-non-reasoning", messages=messages_for(item), seed=42)
+    return response.choices[0].message.content
+--------------------
+evaluate(grok_4__1_fast, test)
+--------------------
+# The function for gpt-5.1
+
+def gpt_5__1(item):
+    response = completion(model="gpt-5.1", messages=messages_for(item), reasoning_effort='high', seed=42)
+    return response.choices[0].message.content
+
+--------------------
+
+Chào Hieu, đây là phần tổng hợp kết quả thử nghiệm các "siêu mẫu" AI (Frontier Models) trong bài học Day 4: Testing Gemini 3, GPT-5.1, Claude 4.5 & Grok.
+Trong phần này, giảng viên đã đưa các mô hình hàng đầu từ Google, OpenAI, Anthropic và xAI lên bàn cân để xem ai là "Vua định giá" (Price Prediction King).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Cuộc đua tam mã: Bài học so sánh 3 dòng mô hình chính: Gemini (Google), Grok (xAI/Elon Musk) và GPT-5.1 (OpenAI - giả định tương lai).
+•	Kết quả bất ngờ:
+o	Claude 4.5 Opus vẫn giữ ngôi vương với sai số thấp nhất ($47).
+o	Gemini 3 Pro bám đuổi sát nút với sai số $50.54.
+o	Grok 4.1 Fast và Gemini 2.5 Flash (các model nhanh/rẻ) đạt kết quả khá tốt (~$57-58), vượt qua GPT-4o-mini (~$62).
+•	Bài học về "Reasoning": Đối với tác vụ đoán giá trực quan này, việc bật chế độ "Reasoning" (suy luận phức tạp/chuỗi suy nghĩ) đôi khi không giúp ích, thậm chí làm giảm hiệu quả so với việc để model trả lời ngay lập tức.
+________________________________________
+2. Nội dung chính
+A. Gemini 3 Pro (Google) - Kẻ thách thức ngôi vương
+•	Cấu hình: Chạy trên tập dữ liệu nhỏ hơn (size=50) và số luồng ít hơn (workers=2) do giới hạn rate limit và tốc độ chậm.
+•	Kết quả: Sai số $50.54.
+•	Nhận xét: Rất thông minh, chỉ thua Claude 4.5 một chút xíu. Chỉ số $R^2$ (độ phù hợp của xu hướng) rất cao, cho thấy nó hiểu quy luật giá cả rất tốt dù đôi khi đoán lệch số tuyệt đối.
+B. Các dòng Model Nhanh & Rẻ (Flash / Fast Models)
+Đây là phân khúc quan trọng cho việc triển khai thực tế (Production) vì chi phí thấp và tốc độ cao.
+1.	Gemini 2.5 Flash Lite:
+o	Sai số: $58.68.
+o	Tốc độ: Cực nhanh ("Slamming through our 200").
+o	So sánh: Tốt hơn GPT-4.1 Nano (tức GPT-4o-mini) vốn đạt ~$62.
+2.	Grok 4.1 Fast (xAI):
+o	Sai số: $57.62.
+o	Nhận xét: Tốt hơn Gemini Flash một chút và cũng vượt qua GPT-4o-mini. "Ông Musk" đã làm khá tốt ở phân khúc tốc độ cao này.
+C. GPT-5.1 (OpenAI - Giả định) & Vấn đề Reasoning
+•	Giảng viên thử nghiệm model mạnh nhất của OpenAI (trong bối cảnh khóa học là GPT-5.1).
+•	Phát hiện thú vị: Khi bật tham số reasoning_effort='high' (bắt model suy nghĩ kỹ), kết quả không tốt hơn, thậm chí tệ đi.
+•	Lý do: Việc đoán giá dựa trên mô tả đôi khi cần trực giác (Intuition/Pattern Recognition) hơn là suy luận logic từng bước (Step-by-step Reasoning). Suy nghĩ quá nhiều có thể dẫn đến "overthinking".
+________________________________________
+3. Phân tích Code & Cấu hình
+Dưới đây là các hàm gọi API tương ứng trong day4.ipynb. Lưu ý cách giảng viên cấu hình tham số cho từng dòng model:
+Python
+from litellm import completion
+
+# 1. Gemini 3 Pro (Mô hình lớn, chậm, thông minh)
+def gemini_3_pro_preview(item):
+    # reasoning_effort='low': Giảm mức độ suy luận để tránh overthinking
+    response = completion(model="gemini/gemini-3-pro-preview", messages=messages_for(item), reasoning_effort='low')
+    return response.choices[0].message.content
+
+# Chạy test với size nhỏ (50) để tránh lỗi timeout/rate limit
+evaluate(gemini_3_pro_preview, test, size=50, workers=2)
+
+
+# 2. Gemini 2.5 Flash (Mô hình nhanh, rẻ)
+def gemini_2__5_flash_lite(item):
+    response = completion(model="gemini/gemini-2.5-flash-lite", messages=messages_for(item))
+    return response.choices[0].message.content
+
+# Chạy full test 200 mẫu vì model này nhanh
+evaluate(gemini_2__5_flash_lite, test)
+
+
+# 3. Grok 4.1 Fast (Mô hình của xAI)
+def grok_4__1_fast(item):
+    # Non-reasoning: Chế độ trả lời nhanh
+    response = completion(model="xai/grok-4-1-fast-non-reasoning", messages=messages_for(item), seed=42)
+    return response.choices[0].message.content
+________________________________________
+4. Bảng Xếp Hạng "The Price Is Right" (Cập nhật Day 4)
+Hãy điền thêm các con số này vào bảng tổng kết của bạn:
+Hạng	Mô hình	Loại	Sai số (MAE)	Ghi chú
+1 👑	Claude 4.5 Opus	Frontier (Heavy)	$47.10	Vua hiện tại (Anthropic)
+2	Gemini 3 Pro	Frontier (Heavy)	$50.54	Á quân xuất sắc (Google)
+3	Grok 4.1 Fast	Fast Model	$57.62	Tốt nhất phân khúc giá rẻ (xAI)
+4	Gemini 2.5 Flash	Fast Model	$58.68	Nhanh và hiệu quả
+5	GPT-4.1 Nano	Fast Model	$62.51	(GPT-4o-mini)
+6	Vanilla Neural Net	Deep Learning	$63.97	Tự xây bằng PyTorch
+7	XGBoost	ML	$68.23	Best of Day 3
+...	Human	Biology	$87.62	Con người
+Kết luận Day 4:
+AI (cả Neural Network tự xây và Frontier Models) đã chính thức vượt qua con người và các thuật toán Machine Learning cổ điển trong bài toán định giá này.
+Ngày mai (Day 5), chúng ta sẽ thực hiện bước cuối cùng: Fine-tuning. Liệu chúng ta có thể lấy một mô hình "nhanh & rẻ" (như GPT-4o-mini hoặc Gemini Flash) và huấn luyện nó để đánh bại "nhà vua" Claude Opus đắt đỏ không? Đó sẽ là nội dung của tuần tới!
+
+DAY 5 
+162. Day 5 - When Fine-Tuning Frontier Models Fails & Building Deep Neural Networks 
+Chào Hieu, cảm ơn bạn đã đồng hành đến ngày cuối cùng của Tuần 6.
+Đây là một buổi học mang tính bước ngoặt về tư duy. Chúng ta bắt đầu với một sự "thất vọng" (Fine-tuning thất bại) nhưng kết thúc bằng một sự "cứu rỗi" (Redemption) với kỹ thuật Deep Learning chuyên sâu.
+Dưới đây là tổng hợp chi tiết bài học Day 5 - When Fine-Tuning Frontier Models Fails & Building Deep Neural Networks.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thất bại của Fine-tuning Frontier Model: Việc Fine-tune một mô hình cực thông minh (như GPT-4o-mini) cho bài toán đoán giá sản phẩm đã không mang lại kết quả tốt hơn, thậm chí còn gây nhiễu. Bài học rút ra: Không nên Fine-tune Frontier Model để dạy "kiến thức" (knowledge) mà nó đã biết, chỉ nên dùng để dạy "hành vi" (behavior/format).
+•	Tư duy R&D: Trong Data Science, kết quả xấu không phải là "lỗi" (bug), mà là một thông tin giá trị giúp loại bỏ hướng đi sai.
+•	Deep Neural Network (DNN) nâng cao: Để cứu vãn tình thế, giảng viên giới thiệu một kiến trúc mạng nơ-ron chuyên nghiệp (Pro-grade) sử dụng kỹ thuật Residual Blocks (ResNet), cho phép huấn luyện mạng sâu hơn, ổn định hơn so với "Vanilla NN" của Day 4.
+________________________________________
+2. Nội dung chính
+A. Tại sao Fine-tuning Frontier Model thất bại?
+Chúng ta đã thử Fine-tune GPT-4o-mini (bản giả định GPT-4.1 Nano) với hy vọng nó đoán giá chuẩn hơn, nhưng kết quả lại trồi sụt thất thường.
+•	Lý do: Frontier Model đã được học trên hàng trăm triệu đô la dữ liệu. Nó đã có "kiến thức thế giới" (World Knowledge) khổng lồ để hiểu sản phẩm là gì. Việc chúng ta đưa thêm vài nghìn ví dụ về giá chỉ như "muối bỏ bể", thậm chí tạo ra tiếng ồn (noise) khiến mô hình bị lệch lạc (overfitting) vào tập dữ liệu nhỏ đó thay vì dùng kiến thức tổng quát.
+•	Khi nào NÊN Fine-tune Frontier Model?
+1.	Style/Tone: Muốn mô hình nói chuyện theo giọng văn cụ thể (vd: cướp biển, luật sư).
+2.	Format: Bắt buộc output ra định dạng JSON/XML đặc thù.
+3.	Edge Cases: Xử lý các trường hợp ngoại lệ mà Prompting không giải quyết được.
+4.	New Skill: Một kỹ năng mới lạ chưa từng có trong dữ liệu huấn luyện gốc.
+B. Giới thiệu Deep Neural Network (DNN) với Residual Blocks
+Để kết thúc tuần học với kết quả tích cực, giảng viên giới thiệu file deep_neural_network.py. Đây không còn là mạng nơ-ron "nhập môn" (Vanilla) nữa mà là kiến trúc hiện đại:
+•	Deep: Mạng sâu hơn (có thể coi là 10 đến 50 lớp tùy cách đếm).
+•	Residual Connections (Skip Connections): Kỹ thuật cho phép tín hiệu đi tắt qua các lớp, giúp tránh vấn đề biến mất đạo hàm (vanishing gradient) khi mạng quá sâu.
+________________________________________
+3. Kiến trúc & Quy trình (Pipeline)
+Kiến trúc mạng DNN mới này được xây dựng dựa trên các khối Residual Block lặp lại:
+Đoạn mã
+graph TD
+    Input --> Linear1
+    Linear1 --> LayerNorm1
+    LayerNorm1 --> ReLU1
+    ReLU1 --> Dropout
+    Dropout --> Linear2
+    Linear2 --> LayerNorm2
+    LayerNorm2 --> Sum((+))
+    Input --> Sum
+    Sum --> ReLU_Out --> Output
+•	Giải thích: Dữ liệu đi qua các lớp xử lý (Linear, Norm...) nhưng đồng thời cũng có một đường "đi tắt" (Input --> Sum). Tại đầu ra, kết quả xử lý được cộng gộp với input ban đầu. Điều này giúp mô hình học được "sự thay đổi" (residual) thay vì phải học lại từ đầu, giúp hội tụ nhanh hơn và sâu hơn.
+________________________________________
+4. Phân tích Code (deep_neural_network.py)
+Đây là file code quan trọng nhất, thể hiện trình độ "Pro" của kỹ sư AI.
+A. Khối Residual Block (Trái tim của mạng)
+Python
+class ResidualBlock(nn.Module):
+    def __init__(self, hidden_size, dropout_prob):
+        super(ResidualBlock, self).__init__()
+        # Chuỗi các lớp xử lý liên tiếp
+        self.block = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size), # Lớp tuyến tính
+            nn.LayerNorm(hidden_size),           # Chuẩn hóa để ổn định training
+            nn.ReLU(),                           # Hàm kích hoạt
+            nn.Dropout(dropout_prob),            # Ngẫu nhiên tắt nơ-ron để tránh học vẹt (Overfitting)
+            nn.Linear(hidden_size, hidden_size),
+            nn.LayerNorm(hidden_size),
+        )
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        residual = x          # 1. Lưu lại giá trị input gốc (bản sao)
+        out = self.block(x)   # 2. Cho input đi qua các lớp xử lý
+        out += residual       # 3. KỸ THUẬT QUAN TRỌNG: Cộng input gốc vào kết quả (Skip Connection)
+        return self.relu(out) # 4. Kích hoạt lần cuối
+•	Ghi chú: Dòng out += residual chính là phép màu của ResNet (Microsoft Research), cho phép huấn luyện các mạng cực sâu mà không bị lỗi.
+B. Mạng Deep Neural Network (DNN)
+Python
+class DeepNeuralNetwork(nn.Module):
+    def __init__(self, input_size, num_layers=10, hidden_size=4096, dropout_prob=0.2):
+        super(DeepNeuralNetwork, self).__init__()
+
+        # Lớp đầu vào: Biến đổi vector đặc trưng thành vector ẩn (hidden size)
+        self.input_layer = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.LayerNorm(hidden_size),
+            nn.ReLU()
+        )
+        
+        # Tạo chồng (stack) các Residual Blocks
+        # ModuleList giúp PyTorch quản lý danh sách các layer này
+        self.residual_blocks = nn.ModuleList([
+            ResidualBlock(hidden_size, dropout_prob) for _ in range(num_layers)
+        ])
+        
+        # Lớp đầu ra: Nén về 1 con số duy nhất (Giá tiền)
+        self.output_layer = nn.Linear(hidden_size, 1)
+
+    def forward(self, x):
+        x = self.input_layer(x)
+        for block in self.residual_blocks: # Đi qua từng block
+            x = block(x)
+        return self.output_layer(x)
+C. Training Loop (Vòng lặp huấn luyện)
+Code trong class DeepNeuralNetworkRunner thực hiện đúng 4 bước lý thuyết đã học:
+Python
+# 1. Forward Pass
+outputs = self.model(batch_X)
+# 2. Loss Calculation
+loss = self.loss_function(outputs, batch_y)
+# 3. Backward Pass
+loss.backward()
+# 4. Optimization
+self.optimizer.step()
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+•	Tại sao lại cần Residual (Skip Connection)?
+o	Hãy tưởng tượng bạn chơi truyền tin (tam sao thất bản). Nếu hàng người quá dài (mạng quá sâu), thông tin từ người đầu đến người cuối sẽ bị sai lệch hoặc mất hẳn (vanishing gradient).
+o	Skip Connection giống như việc người đầu tiên hét to thông tin gốc cho người cuối cùng nghe thấy, đảm bảo thông tin không bị mất đi qua các lớp trung gian.
+•	Layer Normalization (LayerNorm): Kỹ thuật giúp chuẩn hóa dữ liệu đầu ra của từng lớp về dạng phân phối chuẩn, giúp mạng học ổn định hơn và cho phép dùng Learning Rate lớn hơn.
+•	Dropout: Kỹ thuật "tắt ngẫu nhiên" một số nơ-ron trong quá trình train. Giống như việc bạn học bài nhưng thỉnh thoảng bịt một mắt lại, bắt buộc não bộ phải dùng các nơ-ron khác để bù đắp, từ đó mô hình trở nên "khỏe" (robust) hơn và tránh học tủ (overfitting).
+Kết luận Tuần 6:
+Chúng ta đã đi từ Machine Learning cổ điển -> Vanilla Neural Network -> Frontier Models -> Fine-tuning (Thất bại) -> Deep Neural Network (ResNet).
+Tuần tới (Tuần 7), chúng ta sẽ bước vào lĩnh vực Fine-tuning Open Source Models (Llama, Mistral) bằng kỹ thuật LoRA - nơi chúng ta thực sự kiểm soát hoàn toàn quá trình huấn luyện để tạo ra các siêu mô hình nhỏ gọn!
+
+163. Day 5 - Deep Neural Network Redemption: 289M Parameters vs Frontier Models
+Chào Hieu, chúc mừng bạn đã chính thức hoàn thành Tuần 6! 🎉
+Chúng ta kết thúc tuần học bằng một cú "lội ngược dòng" (Redemption) ngoạn mục. Sau khi thất vọng vì Fine-tuning GPT-4o-mini không hiệu quả, giảng viên đã chứng minh rằng: Một mô hình Deep Learning được thiết kế chuyên biệt (Specialized) hoàn toàn có thể đánh bại các "gã khổng lồ" đa năng (Generalist) trên một tác vụ cụ thể.
+Dưới đây là tổng hợp nội dung bài học cuối cùng: Day 5 - Deep Neural Network Redemption.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Sự trở lại của Deep Learning: Thay vì dựa vào API của OpenAI, chúng ta quay lại tự huấn luyện một mạng nơ-ron sâu (Deep Neural Network - DNN) với quy mô lớn hơn nhiều so với Day 4.
+•	Thông số ấn tượng: Mô hình này có 289 triệu tham số (so với 600k của Vanilla NN). Dù nhỏ so với hàng tỷ tham số của LLM, nhưng nó là một "cỗ xe tăng" hạng nặng cho tác vụ cụ thể này.
+•	Kết quả chấn động: Với sai số **$46.49**, mô hình tự xây này đã đánh bại Claude 4.5 Opus ($47.10) và chỉ thua sát nút GPT-5.1 (trong bối cảnh giả định).
+•	Bài học: "Một nghề cho chín còn hơn chín nghề". Mô hình này thắng vì nó chỉ học duy nhất việc định giá trên 800.000 dữ liệu, không bị phân tâm bởi việc làm thơ hay viết code như LLM.
+________________________________________
+2. Nội dung chính
+A. Mô hình "Redemption" (289M Parameters)
+•	Kiến trúc: Sử dụng kiến trúc Deep Residual Network (như đã phân tích ở bài trước) nhưng với kích thước lớp ẩn (hidden size) lớn hơn và nhiều lớp hơn.
+•	Huấn luyện:
+o	Mất khoảng 40 phút/epoch trên GPU mạnh (tổng cộng ~4 giờ cho 5 epochs).
+o	Dữ liệu: Full dataset (800,000 mẫu).
+•	Triển khai: Giảng viên cung cấp sẵn file trọng số đã huấn luyện (deep_neural_network.pth ~2GB) để học viên có thể tải về chạy ngay (Inference) mà không cần chờ train.
+B. So sánh kết quả cuối cùng (The Final Showdown)
+Đây là bảng xếp hạng chung cuộc của Tuần 6 cho bài toán "The Price Is Right":
+Hạng	Mô hình	Loại	Sai số (MAE)	Nhận xét
+1 💎	GPT-5.1 (Giả định)	Frontier LLM	<$46	Vẫn là vua (King of Generalist)
+2 🥈	Deep Neural Network	Specialized DL	$46.49	Cú lội ngược dòng ngoạn mục!
+3 🥉	Claude 4.5 Opus	Frontier LLM	$47.10	Bị mô hình tự xây đánh bại
+4	Gemini 3 Pro	Frontier LLM	~$50.54	
+5	Grok / Gemini Flash	Fast LLM	~$57 - $58	
+6	GPT-4o-mini	Fast LLM	~$62.51	
+7	Vanilla Neural Net	Basic DL	~$64.00	
+8	XGBoost	ML	~$68.23	
+...	Human (Giảng viên)	Biology	~$87.62	
+C. Tổng kết Tuần 6 (75% Hành trình)
+Bạn đã hoàn thành 3/4 chặng đường trở thành LLM Engineer. Tuần này chúng ta đã đi qua một quy trình R&D chuẩn mực:
+1.	Data Curation: Xử lý dữ liệu thô, làm sạch, vector hóa.
+2.	Baselines: Thiết lập mốc chuẩn bằng Random, Constant, Linear Regression.
+3.	Advanced ML: Sử dụng XGBoost và Vanilla Neural Network.
+4.	Frontier Models: Đánh giá sức mạnh của GPT-4, Claude, Gemini.
+5.	Failure Analysis: Hiểu tại sao Fine-tuning Frontier Model thất bại (do bản chất bài toán kiến thức vs hành vi).
+6.	Redemption: Thành công rực rỡ với Deep Learning chuyên sâu.
+________________________________________
+3. Phân tích Code
+Trong bài học này, chúng ta có 2 notebook chính để xử lý mô hình lớn này:
+A. redemption_train.ipynb (Dành cho ai muốn tự train)
+Python
+# Khởi tạo Runner cho mạng nơ-ron sâu
+runner = DeepNeuralNetworkRunner(device=device)
+
+# Bắt đầu huấn luyện (Mất nhiều thời gian!)
+# Quá trình này sẽ chạy forward/backward pass trên 800k dữ liệu x 5 lần
+runner.train(epochs=5)
+
+# Lưu trọng số (Weights) ra file để dùng lại
+runner.save('deep_neural_network.pth')
+B. redemption_run.ipynb (Dành cho việc kiểm thử nhanh)
+Python
+# 1. Tải trọng số đã train sẵn (Pre-trained weights)
+# Giúp tiết kiệm 4 tiếng chờ đợi
+runner.load('deep_neural_network.pth')
+
+# 2. Định nghĩa hàm dự đoán
+def deep_neural_network(item):
+    # Hàm inference đã được tối ưu hóa trong class Runner
+    return runner.inference(item)
+
+# 3. Đánh giá
+evaluate(deep_neural_network, test)
+# Output: Error $46.49 -> WOW!
+________________________________________
+4. Teaser cho Tuần 7 (Next Week)
+Giảng viên kết thúc bằng một lời hứa hẹn cực kỳ hấp dẫn cho tuần sau:
+•	Mục tiêu: Liệu chúng ta có thể đạt được hiệu suất của Frontier Model (như GPT-4o-mini) nhưng lại sử dụng một mô hình Open Source nhỏ và miễn phí (như Llama 3.2) không?
+•	Công cụ: Chúng ta sẽ không dùng DNN tự xây nữa, mà sẽ dùng kỹ thuật Fine-tuning LLM thực thụ (với LoRA/QLoRA) để biến một mô hình ngôn ngữ nhỏ thành chuyên gia định giá.
+Bạn hãy nghỉ ngơi và chuẩn bị tinh thần cho Tuần 7 - tuần học về kỹ thuật Open Source Fine-tuning, kỹ năng "kiếm cơm" quan trọng bậc nhất của một AI Engineer hiện nay!
+

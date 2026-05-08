@@ -1,0 +1,391 @@
+140. Day 1 - Curating Amazon Data with Hugging Face for Price Prediction
+Chào Hieu, chúng ta chính thức bắt đầu hành trình "làm dơ tay" với dữ liệu (Data Curation) trong Tuần 6 - Day 1. Đây là nền móng quan trọng nhất cho dự án Capstone "The Price Is Right".
+Dưới đây là tổng hợp kiến thức và phân tích chi tiết dựa trên các file day1.ipynb, parser.py, items.py và nội dung bài giảng.
+________________________________________
+1. Chủ đề bài học
+140. Day 1 - Curating Amazon Data with Hugging Face for Price Prediction
+(Ngày 1 - Tuyển chọn dữ liệu Amazon với Hugging Face cho bài toán Dự đoán giá)
+________________________________________
+2. Tóm tắt cốt lõi
+•	Mục tiêu: Xây dựng bộ dữ liệu chất lượng cao từ nguồn dữ liệu thô khổng lồ (Amazon Reviews 2023) để huấn luyện mô hình dự đoán giá sản phẩm.
+•	Thông điệp chính: "Data Curation" (Tuyển chọn dữ liệu) không phải là việc nhàm chán mà là nơi "khoa học" thực sự diễn ra. Việc xử lý dữ liệu tốt có tác động lớn đến kết quả hơn là việc tối ưu siêu tham số sau này.
+•	Kết quả: Tạo ra các tập dữ liệu train, validation, test đã được làm sạch, chuẩn hóa và đẩy lên Hugging Face Hub.
+________________________________________
+3. Nội dung chính & Các bước thực hiện
+Quy trình trong day1.ipynb diễn ra theo các bước sau:
+1.	Thiết lập môi trường: Đăng nhập Hugging Face, tải các thư viện cần thiết.
+2.	Khám phá dữ liệu (Exploratory Data Analysis - EDA):
+o	Tải danh mục "Appliances" (Thiết bị gia dụng) để kiểm tra thử.
+o	Phát hiện các điểm dữ liệu lỗi (thiếu giá).
+o	Phát hiện ngoại lai (Outlier): Ví dụ chiếc lò vi sóng TurboChef giá $21,000 (giá trị thực, không phải lỗi, nhưng quá cao so với phổ thông).
+3.	Xây dựng bộ lọc (Parsing Logic):
+o	Loại bỏ sản phẩm thiếu giá hoặc mô tả quá ngắn.
+o	Giới hạn khung giá từ $0.5 đến $999.49 (quyết định kinh doanh để tập trung vào hàng tiêu dùng phổ thông).
+o	Chuẩn hóa văn bản (xóa khoảng trắng thừa, xóa mã sản phẩm vô nghĩa).
+4.	Mở rộng quy mô (Scaling Up):
+o	Áp dụng logic lọc cho nhiều danh mục: Automotive, Electronics, Office Products, v.v.
+o	Thực hiện Deduplication (Loại bỏ trùng lặp) dựa trên tiêu đề và nội dung mô tả để tránh rò rỉ dữ liệu (data leakage).
+5.	Phân tích & Trực quan hóa:
+o	Vẽ biểu đồ phân phối giá (Price distribution) và độ dài văn bản (Text length).
+o	Kiểm tra sự cân bằng giữa các danh mục sản phẩm (Category balance).
+6.	Đóng gói & Lưu trữ:
+o	Chia tập dữ liệu (Train/Val/Test).
+o	Đẩy lên Hugging Face Hub để dùng cho các ngày sau.
+________________________________________
+4. Phân tích Code
+Đây là phần quan trọng nhất, logic xử lý nằm ở 2 file parser.py và items.py.
+A. File parser.py - Bộ lọc và làm sạch dữ liệu
+File này chứa logic "biến dữ liệu thô thành dữ liệu tinh".
+Python
+from pricer.items import Item
+import json
+import re
+
+# --- CẤU HÌNH CÁC NGƯỠNG LỌC ---
+MIN_CHARS = 600       # Chỉ lấy mô tả dài hơn 600 ký tự (để đảm bảo đủ thông tin huấn luyện)
+MIN_PRICE = 0.5       # Loại bỏ rác hoặc phụ kiện quá rẻ
+MAX_PRICE = 999.49    # Loại bỏ hàng xa xỉ/công nghiệp để tránh làm nhiễu mô hình
+MAX_TEXT_EACH = 3000  # Giới hạn độ dài từng phần (mô tả, tính năng)
+MAX_TEXT_TOTAL = 4000 # Giới hạn tổng độ dài văn bản đầu vào
+
+# Các trường thông tin nhiễu cần loại bỏ
+REMOVALS = [
+    "Part Number",
+    "Best Sellers Rank",
+    "Batteries Included?",
+    "Batteries Required?",
+    "Item model number",
+]
+
+def simplify(text_list) -> str:
+    """
+    Hàm làm sạch chuỗi: xóa xuống dòng, tab, khoảng trắng thừa.
+    """
+    return (
+        str(text_list)
+        .replace("\n", " ")
+        .replace("\r", "")
+        .replace("\t", "")
+        .replace("  ", " ") # Xóa khoảng trắng kép
+        .strip()[:MAX_TEXT_EACH] # Cắt bớt nếu quá dài
+    )
+
+def scrub(title, description, features, details) -> bool:
+    """
+    Hàm kết hợp và làm sạch toàn bộ thông tin sản phẩm.
+    """
+    # 1. Loại bỏ các thông tin không quan trọng trong details
+    for remove in REMOVALS:
+        details.pop(remove, None)
+    
+    # 2. Ghép tiêu đề, mô tả, tính năng và chi tiết thành 1 chuỗi lớn
+    result = title + "\n"
+    if description:
+        result += simplify(description) + "\n"
+    if features:
+        result += simplify(features) + "\n"
+    if details:
+        result += json.dumps(details) + "\n"
+    
+    # 3. Sử dụng Regex để xóa các mã sản phẩm (Product ID) vô nghĩa
+    # Pattern tìm các chuỗi gồm chữ in hoa và số xen kẽ dài hơn 7 ký tự
+    pattern = r"\b(?=[A-Z0-9]{7,}\b)(?=.*\d)[A-Z0-9]+\b"
+    return re.sub(pattern, "", result).strip()[:MAX_TEXT_TOTAL]
+
+def get_weight(details):
+    """
+    Hàm chuẩn hóa trọng lượng về đơn vị Pounds (lbs).
+    Xử lý nhiều đơn vị khác nhau: ounces, grams, kg...
+    """
+    weight_str = details.get("Item Weight")
+    if weight_str:
+        parts = weight_str.split(" ")
+        amount = float(parts[0])
+        unit = parts[1].lower()
+        # Chuyển đổi tất cả về pounds
+        if unit == "pounds": return amount
+        elif unit == "ounces": return amount / 16
+        elif unit == "grams": return amount / 453.592
+        # ... (các đơn vị khác)
+    return 0
+
+def parse(datapoint, category):
+    """
+    Hàm chính: Quyết định xem một sản phẩm có được đưa vào tập dữ liệu hay không.
+    """
+    try:
+        price = float(datapoint["price"])
+    except ValueError:
+        return None # Bỏ qua nếu không có giá hợp lệ
+
+    # Chỉ lấy sản phẩm trong khung giá quy định
+    if MIN_PRICE <= price <= MAX_PRICE:
+        title = datapoint["title"]
+        description = datapoint["description"]
+        features = datapoint["features"]
+        details = json.loads(datapoint["details"])
+        
+        weight = get_weight(details)
+        full = scrub(title, description, features, details) # Làm sạch văn bản
+        
+        # Chỉ lấy nếu văn bản sau khi làm sạch đủ dài (đủ dữ liệu để học)
+        if len(full) >= MIN_CHARS:
+            return Item(
+                title=title,
+                category=category,
+                price=price,
+                full=full,
+                weight=weight,
+            )
+B. File items.py - Cấu trúc dữ liệu (Data Schema)
+File này định nghĩa đối tượng Item bằng Pydantic, giúp quản lý kiểu dữ liệu chặt chẽ và tương tác với Hugging Face.
+Python
+from pydantic import BaseModel
+from datasets import Dataset, DatasetDict, load_dataset
+from typing import Optional, Self
+
+PREFIX = "Price is $"
+QUESTION = "What does this cost to the nearest dollar?"
+
+class Item(BaseModel):
+    """
+    Định nghĩa cấu trúc một điểm dữ liệu (Data Point)
+    """
+    title: str
+    category: str
+    price: float
+    full: Optional[str] = None # Chuỗi văn bản đầy đủ đã làm sạch
+    weight: Optional[float] = None
+    # ... các trường khác
+
+    def make_prompt(self, text: str):
+        """Tạo prompt cho LLM: Câu hỏi + Nội dung + Giá (để training)"""
+        self.prompt = f"{QUESTION}\n\n{text}\n\n{PREFIX}{round(self.price)}.00"
+
+    @staticmethod
+    def push_to_hub(dataset_name: str, train: list[Self], val: list[Self], test: list[Self]):
+        """
+        Đẩy dữ liệu lên Hugging Face Hub.
+        Chuyển đổi list các object Item thành DatasetDict của Hugging Face.
+        """
+        DatasetDict(
+            {
+                "train": Dataset.from_list([item.model_dump() for item in train]),
+                "validation": Dataset.from_list([item.model_dump() for item in val]),
+                "test": Dataset.from_list([item.model_dump() for item in test]),
+            }
+        ).push_to_hub(dataset_name)
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao cần giới hạn giá ($0.5 - $999.49)?
+Đây là một quyết định Business/Modeling:
+•	Tránh nhiễu (Outliers): Những sản phẩm quá đắt (như thiết bị công nghiệp) hoặc quá rẻ (ốc vít, phụ kiện nhỏ) thường có quy luật định giá khác hẳn hàng tiêu dùng thông thường. Nếu đưa vào, mô hình sẽ khó hội tụ (converge).
+•	Tập trung mục tiêu: Dự án muốn xây dựng AI cho người tiêu dùng phổ thông (Consumer focus).
+B. Data Deduplication (Loại bỏ trùng lặp)
+Trong Notebook có đoạn code:
+Python
+seen = set()
+items = [x for x in tqdm(items) if not (x.title in seen or seen.add(x.title))]
+Đây là bước cực kỳ quan trọng. Nếu không làm bước này:
+•	Dữ liệu train và test có thể chứa cùng một sản phẩm.
+•	Mô hình sẽ "nhớ" đáp án thay vì học cách dự đoán (Data Leakage), dẫn đến điểm số ảo cao nhưng thực tế hoạt động kém.
+C. Quy trình EDA (Exploratory Data Analysis)
+Giảng viên sử dụng biểu đồ (Matplotlib) để kiểm tra:
+•	Histogram độ dài văn bản: Đảm bảo đầu vào không quá ngắn (thiếu thông tin) hoặc quá dài (tốn token).
+•	Histogram giá: Kiểm tra xem dữ liệu có bị lệch (skewed) hay không. Thường dữ liệu giá cả sẽ bị lệch phải (right-skewed), số lượng sản phẩm giá rẻ nhiều hơn giá đắt.
+•	Scatter Plot (Giá vs Độ dài/Cân nặng): Tìm kiếm các mối tương quan tuyến tính đơn giản. Nếu thấy tương quan rõ rệt, ML truyền thống sẽ hoạt động tốt.
+Đây là bước chuẩn bị hoàn hảo để ngày mai chúng ta bước vào Data Pre-processing (dùng LLM để viết lại dữ liệu).
+141. Day 1 - Exploring Amazon Dataset Distribution and Removing Duplicates
+Chào Hieu, đây là tổng hợp nội dung bài học số 141. Day 1 - Exploring Amazon Dataset Distribution and Removing Duplicates. Bài học này tập trung vào việc mở rộng quy mô dữ liệu, phân tích sự phân bố và xử lý một vấn đề chí tử trong Machine Learning: Dữ liệu trùng lặp (Duplicates).
+Dưới đây là chi tiết nội dung:
+________________________________________
+1. Chủ đề bài học
+141. Day 1 - Exploring Amazon Dataset Distribution and Removing Duplicates
+(Ngày 1 - Khám phá phân phối dữ liệu Amazon và Loại bỏ trùng lặp)
+________________________________________
+2. Tóm tắt cốt lõi
+•	Mở rộng quy mô: Tăng từ một danh mục (Appliances) lên toàn bộ các danh mục khác (Automotive, Electronics, v.v.), nâng tổng số lượng dữ liệu lên gần 3 triệu mẫu.
+•	Phát hiện vấn đề: Dữ liệu bị lệch (Skewed) nặng về các sản phẩm giá rẻ và danh mục phụ tùng ô tô.
+•	Xử lý rủi ro: Phát hiện và loại bỏ các bản ghi trùng lặp (Duplicates) để ngăn chặn hiện tượng Data Leakage (Rò rỉ dữ liệu) - nguyên nhân hàng đầu khiến mô hình đánh giá sai năng lực thực tế.
+________________________________________
+3. Nội dung chính
+A. Phân tích phân phối dữ liệu (EDA)
+Giảng viên thực hiện phân tích thống kê trên tập dữ liệu mở rộng:
+1.	Độ dài mô tả (Description Length):
+o	Trung bình khoảng 1400 ký tự.
+o	Bị cắt (truncate) ở mức tối đa 4000 ký tự.
+o	Ví dụ: Một bộ lọc máy sấy (dryer vent filter) có mô tả rất dài nhưng chứa nhiều thông tin lặp lại/thừa.
+2.	Phân phối giá (Price Distribution):
+o	Dữ liệu bị lệch hẳn về phía giá rẻ (Heavily skewed). Giá trung bình khoảng $56 - $59.
+o	Đỉnh của biểu đồ nằm ở vùng $30 - $40.
+o	Điều này gây khó khăn cho mô hình khi học cách dự đoán các sản phẩm đắt tiền hơn.
+3.	Phân phối danh mục (Category Distribution):
+o	Danh mục Automotive (Ô tô) chiếm đa số áp đảo (gần 1 triệu sản phẩm).
+o	Các danh mục khác như Electronics, Musical Instruments ít hơn nhiều.
+B. Vấn đề trùng lặp và Data Leakage
+•	Nguyên nhân: Cùng một sản phẩm có thể xuất hiện ở nhiều danh mục khác nhau trên Amazon hoặc bị cào (scraped) nhiều lần.
+•	Hậu quả (Data Leakage): Nếu không loại bỏ, một sản phẩm có thể xuất hiện vừa ở tập Train vừa ở tập Validation/Test.
+o	Kết quả Validation sẽ cao giả tạo (vì mô hình đã "nhìn thấy" đáp án trong lúc học).
+o	Dẫn đến Overfitting: Mô hình hoạt động tệ hại trên dữ liệu thực tế hoàn toàn mới.
+•	Giải pháp: Xáo trộn (Shuffle) dữ liệu và loại bỏ các mục có cùng Tiêu đề (Title) hoặc cùng Mô tả đầy đủ (Full description).
+________________________________________
+4. Phân tích Code: loaders.py
+File này chứa công cụ để tải và xử lý dữ liệu quy mô lớn một cách hiệu quả (Parallel Processing).
+Python
+from datetime import datetime
+from tqdm import tqdm
+from datasets import load_dataset
+from concurrent.futures import ProcessPoolExecutor
+from pricer.parser import parse
+import os
+
+CHUNK_SIZE = 1000
+# Tự động xác định số lượng CPU core để chạy song song
+cpu_count = os.cpu_count()
+WORKERS = max(cpu_count - 1, 1)
+
+class ItemLoader:
+    def __init__(self, category):
+        self.category = category
+        self.dataset = None
+
+    def from_datapoint(self, datapoint):
+        """
+        Chuyển đổi một dòng dữ liệu thô thành object Item.
+        Sử dụng hàm 'parse' (từ file parser.py đã học trước đó).
+        """
+        return parse(datapoint, self.category)
+
+    def chunk_generator(self):
+        """
+        Kỹ thuật Generator: Thay vì load hết vào RAM, hàm này 'nhả' ra từng cục (chunk)
+        dữ liệu (1000 dòng/lần) để xử lý dần.
+        """
+        size = len(self.dataset)
+        for i in range(0, size, CHUNK_SIZE):
+            yield self.dataset.select(range(i, min(i + CHUNK_SIZE, size)))
+
+    def load_in_parallel(self, workers):
+        """
+        Xử lý song song (Parallel Processing):
+        Đây là phần quan trọng nhất để xử lý 3 triệu dòng dữ liệu.
+        Sử dụng ProcessPoolExecutor để chia việc cho các nhân CPU.
+        """
+        results = []
+        chunk_count = (len(self.dataset) // CHUNK_SIZE) + 1
+        # Tạo một hồ bơi các tiến trình (pool of workers)
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            # Map công việc xử lý chunk cho các workers
+            for batch in tqdm(pool.map(self.from_chunk, self.chunk_generator()), total=chunk_count):
+                results.extend(batch)
+        return results
+
+    def load(self, workers=WORKERS):
+        """
+        Hàm chính để gọi từ bên ngoài.
+        1. Tải dataset thô từ Hugging Face.
+        2. Gọi hàm xử lý song song để làm sạch và parse dữ liệu.
+        """
+        # ... (code loading dataset)
+        results = self.load_in_parallel(workers)
+        # ...
+        return results
+Tại sao cần load_in_parallel?
+Vì việc xử lý chuỗi (string manipulation) trong Python tốn nhiều CPU. Với 3 triệu sản phẩm, nếu chạy tuần tự (vòng lặp for đơn thuần), bạn có thể mất hàng giờ. Kỹ thuật này tận dụng đa nhân CPU để giảm thời gian xuống còn vài phút.
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Data Leakage (Rò rỉ dữ liệu)
+Đây là khái niệm cực kỳ quan trọng trong thi đấu Kaggle và thực tế.
+•	Leakage do trùng lặp: Như bài học đã đề cập.
+•	Leakage do thời gian: Dùng dữ liệu tương lai để dự đoán quá khứ.
+•	Dấu hiệu nhận biết: Khi mô hình của bạn có chỉ số accuracy cao bất thường (ví dụ 99.9%) trên tập validation ngay từ đầu, khả năng cao là đã bị Leakage.
+B. Imbalanced Data (Dữ liệu mất cân bằng)
+Dữ liệu Amazon này bị mất cân bằng nặng:
+•	Về giá: Quá nhiều đồ rẻ.
+•	Về loại: Quá nhiều đồ ô tô.
+Hậu quả là mô hình sẽ có xu hướng đoán giá thấp cho mọi thứ (bias) vì làm vậy an toàn hơn. Để khắc phục, chúng ta cần kỹ thuật Sampling (lấy mẫu lại) - sẽ được đề cập trong phần tiếp theo của bài học (chọn lọc tập con dữ liệu để cân bằng lại phân phối).
+C. Python Generators & Multiprocessing
+•	Generators (yield): Giúp tiết kiệm RAM khi xử lý Big Data. Nó không tạo ra list 3 triệu phần tử ngay lập tức mà chỉ tạo khi cần.
+•	Multiprocessing: Python có cơ chế GIL (Global Interpreter Lock) hạn chế đa luồng (threading) thực sự trên CPU. Do đó, để tận dụng đa nhân cho các tác vụ nặng về tính toán (CPU-bound) như xử lý văn bản, ta phải dùng ProcessPoolExecutor (đa tiến trình) thay vì ThreadPoolExecutor.
+Bước tiếp theo cho Hieu
+Bạn đã có code parser, items, và loaders. Bước tiếp theo là chạy script này để tạo ra tập dữ liệu thô khổng lồ, sau đó áp dụng thuật toán Sampling để giải quyết vấn đề mất cân bằng dữ liệu (Imbalance) mà giảng viên vừa cảnh báo. Bạn có muốn tôi giải thích về đoạn code Sampling (dựa trên phân phối xác suất) thường dùng trong trường hợp này không?
+
+142. Day 1 - Weighted Sampling with NumPy and Uploading Datasets to Hugging Face
+Chào Hieu, đây là tổng hợp nội dung bài học số 142. Day 1 - Weighted Sampling with NumPy and Uploading Datasets to Hugging Face. Đây là bước cuối cùng của Ngày 1 để "chuốt" lại dữ liệu cho thật cân bằng trước khi bước vào huấn luyện.
+Dưới đây là chi tiết nội dung:
+________________________________________
+1. Chủ đề bài học
+142. Day 1 - Weighted Sampling with NumPy and Uploading Datasets to Hugging Face
+(Ngày 1 - Lấy mẫu có trọng số với NumPy và Tải dữ liệu lên Hugging Face)
+________________________________________
+2. Tóm tắt cốt lõi
+•	Vấn đề: Như đã phân tích ở bài trước, dữ liệu thô đang bị lệch (skewed) quá nhiều về các sản phẩm giá rẻ và danh mục phụ tùng ô tô (chiếm gần 1 triệu/3 triệu mẫu).
+•	Giải pháp: Sử dụng kỹ thuật Weighted Sampling (Lấy mẫu có trọng số) để chọn ra tập dữ liệu con (820,000 mẫu) sao cho phân phối giá và danh mục trở nên cân bằng hơn.
+•	Kết quả: Tạo ra bộ dữ liệu "Price is Right" hoàn chỉnh (gồm bản Full và bản Lite), chia tách train/val/test và lưu trữ trên đám mây.
+________________________________________
+3. Nội dung chính
+A. Kỹ thuật Weighted Sampling (Lấy mẫu có trọng số)
+Thay vì chọn ngẫu nhiên (random choice) đều nhau, chúng ta gán xác suất được chọn cho mỗi sản phẩm dựa trên đặc điểm của nó:
+1.	Ưu tiên hàng đắt tiền: Bình phương giá của sản phẩm (price^2) để làm trọng số. Điều này giúp các món hàng đắt tiền có cơ hội được chọn cao hơn, kéo mức giá trung bình của tập dữ liệu từ ~$59 lên ~$140.
+2.	Phạt (Penalize) các danh mục chiếm đa số:
+o	Danh mục Tools & Home Improvement: Giảm trọng số đi 50% (nhân 0.5).
+o	Danh mục Automotive: Giảm trọng số đi 95% (nhân 0.05) vì nó quá áp đảo.
+B. Random Seed 42
+•	Khi thực hiện xáo trộn (shuffle) lần cuối, giảng viên đặt random.seed(42).
+•	Mục đích kỹ thuật: Để đảm bảo tính tái lập (reproducibility). Bất kỳ ai chạy code này cũng sẽ ra kết quả giống hệt nhau, không phải là "cherry picking" (chọn lọc kết quả tốt nhất).
+•	Ý nghĩa văn hóa: Con số 42 là tham chiếu đến tác phẩm The Hitchhiker's Guide to the Galaxy - câu trả lời cho "Sự sống, Vũ trụ và Mọi thứ".
+C. Đóng gói và Tải lên (Uploading)
+Tập dữ liệu cuối cùng được chia thành 2 phiên bản và đẩy lên Hugging Face Hub:
+1.	Full Version (Bản đầy đủ):
+o	Tổng: 820,000 mẫu.
+o	Chia tách: 800k Train / 10k Validation / 10k Test.
+o	Dành cho ai muốn training nghiêm túc ("All in").
+2.	Lite Version (Bản rút gọn):
+o	Tổng: 22,000 mẫu.
+o	Chia tách: 20k Train / 1k Validation / 1k Test.
+o	Dành cho việc học tập nhanh, tiết kiệm thời gian và chi phí tính toán.
+________________________________________
+4. Phân tích Code (day1.ipynb)
+Đoạn code quan trọng nhất nằm ở bước lấy mẫu (Sampling):
+Python
+import numpy as np
+
+# 1. Chuẩn hóa giá về khoảng [0, 1]
+p = (prices - prices.min()) / (prices.max() - prices.min() + 1e-9)
+
+# 2. Tạo trọng số (weights) ban đầu bằng cách bình phương giá
+# Mục đích: Ưu tiên chọn các món hàng đắt tiền hơn (để cân bằng với số lượng hàng rẻ quá nhiều)
+w = p**2
+
+# 3. Điều chỉnh trọng số theo danh mục (Penalizing categories)
+# Giảm khả năng được chọn của các danh mục đang bị thừa dữ liệu
+w[categories == "Tools_and_Home_Improvement"] *= 0.5  # Giảm 50%
+w[categories == "Automotive"] *= 0.05                 # Giảm 95% (vì Automotive quá nhiều)
+
+# 4. Chuẩn hóa lại trọng số để tổng bằng 1 (yêu cầu của hàm numpy choice)
+w = w / w.sum()
+
+# 5. Thực hiện lấy mẫu dựa trên trọng số w
+idx = np.random.choice(len(items), size=SIZE, replace=False, p=w)
+sample = [items[i] for i in idx]
+Giải thích logic:
+•	p = w: Đây là phân phối xác suất. Món hàng nào có w cao thì khả năng hàm np.random.choice bốc trúng món đó càng cao.
+•	replace=False: Đảm bảo một món hàng không được chọn 2 lần (không trùng lặp).
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao cần Sampling?
+Trong thực tế, dữ liệu hiếm khi hoàn hảo.
+•	Nếu train model trên dữ liệu gốc (90% là phụ tùng ô tô giá rẻ), model sẽ học được kiểu "lười biếng": Cứ đoán giá thấp cho mọi thứ là khả năng đúng cao.
+•	Kỹ thuật Resampling (Undersampling nhóm đa số, Oversampling nhóm thiểu số) giúp model học được các đặc trưng (features) thực sự của sản phẩm thay vì học xác suất xuất hiện của danh mục.
+B. Batch Mode & Pre-processing (Preview Day 2)
+Giảng viên hé lộ nội dung ngày mai:
+•	Sử dụng LLM để viết lại (rewrite) dữ liệu, biến các mô tả lộn xộn thành văn bản chất lượng cao.
+•	Sử dụng Batch Mode của API: Gửi hàng loạt yêu cầu một lúc (không đồng bộ) để tiết kiệm 50% chi phí và tránh nghẽn mạng so với gọi từng cái (Synchronous).
+Tổng kết Ngày 1
+Bạn đã hoàn thành việc:
+1.	Hiểu quy trình dự án Capstone "The Price Is Right".
+2.	Tải và xử lý 3 triệu dòng dữ liệu thô.
+3.	Loại bỏ trùng lặp (Deduplication).
+4.	Cân bằng lại dữ liệu (Weighted Sampling).
+5.	Chuẩn bị sẵn sàng dataset trên Hugging Face.
+Ngày mai chúng ta sẽ bắt đầu dùng LLM để xử lý dữ liệu ("Pre-processing with LLMs"). Bạn đã sẵn sàng chưa?

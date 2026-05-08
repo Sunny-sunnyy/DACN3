@@ -1,0 +1,489 @@
+143. Day 2 - Five-Step Strategy for Selecting and Applying LLMs to Business Problems
+Chào Hieu, chúc mừng bạn đã hoàn thành buổi học thứ 2 của tuần Capstone! Đây là buổi học mang tính chiến lược cao, giúp bạn định hình tư duy của một "Lead AI Engineer" thực thụ thay vì chỉ là một người viết code đơn thuần.
+Dưới đây là tổng hợp chi tiết nội dung bài học Day 2 - Week 6, kết hợp phân tích code bạn đã cung cấp để bạn nắm vững cả lý thuyết và thực hành.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học này chuyển trọng tâm từ kỹ thuật thuần túy sang Tư duy Chiến lược (Strategic Thinking).
+•	Chiến lược 5 bước: Một khung làm việc (framework) chuẩn để giải quyết mọi bài toán AI thương mại: Từ việc hiểu vấn đề đến khi đưa mô hình ra thị trường.
+•	Training vs. Inference: Phân định rõ ràng khi nào nên dùng kỹ thuật ở thời gian chạy (RAG, Prompting) và khi nào cần can thiệp vào trọng số mô hình (Fine-tuning).
+•	Kỹ thuật Pre-processing nâng cao: Sử dụng chính LLM (thông qua Batch API) để làm sạch và viết lại dữ liệu, thay vì chỉ dùng regex hay code Python thông thường.
+________________________________________
+2. Nội dung chính: Chiến lược 5 Bước (The 5-Step Strategy)
+Giảng viên Ed Donner đưa ra quy trình chuẩn để không bị lạc lối trong "cơn bão hype" của AI:
+Bước 1: Understand (Hiểu vấn đề)
+•	Đừng bắt đầu bằng giải pháp: Đừng nói "Tôi cần xây dựng một AI Agent". Hãy hỏi "Vấn đề kinh doanh là gì?".
+•	Xác định Metrics (Chỉ số đo lường):
+o	Phân biệt rõ Technical Metrics (Loss, Accuracy) và Business Metrics (Doanh thu, Tỷ lệ giữ chân khách hàng).
+o	Với dự án "The Price Is Right", metric là Sai số giá tuyệt đối (Absolute Price Difference).
+•	Đánh giá dữ liệu: Số lượng, chất lượng, và các yêu cầu phi chức năng (độ trễ, chi phí).
+Bước 2: Prepare (Chuẩn bị) - Trọng tâm của code hôm nay
+•	Xây dựng Baseline (Mốc cơ sở): Trước khi dùng LLM xịn, hãy thử giải quyết bằng code Python thuần (Regex) hoặc Machine Learning cổ điển. Nếu AI không thắng được code thường thì không nên dùng AI.
+•	Data Curation: Tuyển chọn, làm sạch dữ liệu. Đây là bước quyết định thành bại của Fine-tuning.
+Bước 3: Select (Lựa chọn)
+•	Thực hiện R&D để chọn mô hình nền tảng (Base Model) phù hợp dựa trên các bảng xếp hạng (Leaderboards) và thử nghiệm thực tế.
+Bước 4: Customize (Tùy chỉnh/Áp dụng)
+Đây là lúc bạn quyết định kỹ thuật nào sẽ được sử dụng. Có 4 con đường chính:
+1.	Prompting (Inference Time): Few-shot, Chain-of-Thought. Rẻ và nhanh nhất.
+2.	RAG (Inference Time): Khi cần cung cấp Kiến thức (Knowledge) mới hoặc dữ liệu riêng tư mà mô hình chưa biết.
+3.	Agents (Inference Time): Khi cần thực hiện Quy trình (Workflow) phức tạp, sử dụng công cụ (Tools).
+4.	Fine-tuning (Training Time): Khi cần dạy cho mô hình một Kỹ năng (Skill) mới hoặc thay đổi hành vi/văn phong (Style).
+o	Dự án này chọn Fine-tuning vì ta muốn mô hình học "Kỹ năng định giá" (Generalization) chứ không phải học thuộc lòng giá của sản phẩm.
+Bước 5: Productionize (Triển khai)
+•	Xây dựng API, Hosting, Monitoring và đánh giá liên tục.
+________________________________________
+3. Phân tích Code (Code Analysis)
+Dựa trên các file bạn cung cấp (items.py, parser.py, loaders.py, day1.ipynb), đây là hạ tầng kỹ thuật phục vụ cho Bước 2 (Prepare) trong chiến lược trên.
+Hệ thống code này được thiết kế để xử lý lượng dữ liệu lớn (Big Data) một cách hiệu quả.
+A. File items.py - Định nghĩa Cấu trúc Dữ liệu
+File này sử dụng Pydantic để định nghĩa "hình hài" của một sản phẩm sạch.
+Python
+class Item(BaseModel):
+    # Các trường cơ bản
+    title: str
+    price: float
+    full: Optional[str] = None      # Nội dung text đầy đủ sau khi gộp
+    summary: Optional[str] = None   # <--- ĐIỂM QUAN TRỌNG CHO DAY 2
+    # ...
+    
+    def make_prompt(self, text: str):
+        """
+        Tạo prompt để Fine-tune sau này. 
+        Format: Câu hỏi + Mô tả sản phẩm -> Câu trả lời (Giá)
+        """
+        self.prompt = f"{QUESTION}\n\n{text}\n\n{PREFIX}{round(self.price)}.00"
+•	Giải thích: Trường summary đang để trống (None). Trong bài học Day 2 (phần Batch Mode), mục tiêu là dùng một LLM để đọc full text lộn xộn và viết lại thành một summary sạch đẹp, chất lượng cao. Đây chính là kỹ thuật "Pre-process using LLMs".
+B. File parser.py - Bộ lọc Rule-based (Tiền xử lý thô)
+Trước khi đưa cho AI, ta dùng code thường để lọc rác.
+Python
+# Cấu hình các ngưỡng lọc cứng
+MIN_CHARS = 600       # Quá ngắn -> Bỏ
+MIN_PRICE = 0.5       # Quá rẻ (phụ kiện rác) -> Bỏ
+MAX_PRICE = 999.49    # Quá đắt (hàng công nghiệp/lỗi) -> Bỏ
+
+def scrub(title, description, features, details) -> bool:
+    """
+    Hàm làm sạch chính:
+    1. Loại bỏ các trường rác (REMOVALS)
+    2. Gộp Title + Description + Features
+    3. Dùng Regex (Simplify) để xóa khoảng trắng thừa
+    """
+    # ...logic code...
+•	Logic: Đây là bước "Prepare" đầu tiên. Ta không muốn tốn tiền gửi dữ liệu rác (quá ngắn hoặc lỗi giá) vào LLM API. Code này đóng vai trò "người gác cổng" (Gatekeeper).
+C. File loaders.py - Xử lý song song (Parallel Processing)
+Để xử lý 800.000 dòng dữ liệu, chạy vòng lặp for bình thường sẽ mất cả ngày. File này giải quyết vấn đề hiệu năng.
+Python
+from concurrent.futures import ProcessPoolExecutor
+
+# Tự động nhận diện số nhân CPU của máy tính
+cpu_count = os.cpu_count()
+WORKERS = max(cpu_count - 1, 1) # Chừa lại 1 nhân để máy không bị đơ
+
+class ItemLoader:
+    def load_in_parallel(self, workers):
+        """
+        Chia dữ liệu thành các 'chunk' (miếng nhỏ) và giao cho các nhân CPU xử lý cùng lúc.
+        """
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            # map: Ánh xạ hàm xử lý vào từng chunk dữ liệu
+            for batch in tqdm(pool.map(self.from_chunk, self.chunk_generator()), ...):
+                results.extend(batch)
+•	Ý nghĩa: Kỹ thuật này rất quan trọng khi làm Data Engineer. Nó tận dụng tối đa sức mạnh phần cứng để giảm thời gian xử lý dữ liệu từ hàng giờ xuống hàng phút.
+________________________________________
+4. Kiến thức liên quan & Mở rộng (Extended Knowledge)
+A. Batch Mode (Chế độ hàng loạt) - Kỹ thuật "Pro"
+Trong bài học, giảng viên nhắc đến việc dùng Batch Mode của OpenAI/Anthropic để pre-process dữ liệu.
+•	Vấn đề: Gọi API từng cái một (Synchronous) rất chậm và đắt.
+•	Giải pháp Batch Mode:
+1.	Gom 10.000 yêu cầu (requests) vào 1 file .jsonl.
+2.	Gửi 1 lần lên server của OpenAI (Asynchronous).
+3.	Chờ kết quả trả về (thường trong vòng 24h).
+•	Lợi ích: Giảm 50% chi phí so với gọi API thông thường và không bị lỗi Rate Limit. Đây là cách các công ty lớn xử lý dữ liệu huấn luyện.
+B. Tại sao chọn Fine-tuning cho dự án "The Price Is Right"?
+Có sự phân biệt rõ ràng giữa RAG và Fine-tuning trong bài này:
+•	RAG (Retrieval Augmented Generation): Giống như cho học sinh đi thi được mang sách vào phòng thi. Học sinh không cần nhớ, chỉ cần biết tra cứu. Dùng khi cần độ chính xác về thông tin (facts).
+•	Fine-tuning: Giống như bắt học sinh ôn luyện giải 1000 bài toán mẫu trước khi thi. Học sinh học được tư duy/kỹ năng giải bài.
+o	Trong dự án này, ta muốn mô hình nhìn vào mô tả và "cảm nhận" được giá trị (kỹ năng định giá), chứ không phải tra cứu giá trong database (vì sản phẩm mới chưa có trong database). Do đó, Fine-tuning là lựa chọn chính xác.
+C. Lời khuyên thực hành
+Bạn đang có file day1.ipynb. Để thực hành nội dung Day 2:
+1.	Chạy hết code Day 1 để có danh sách items.
+2.	(Mở rộng) Viết một hàm sử dụng LLM (qua API) nhận vào item.full và trả về một đoạn tóm tắt ngắn gọn, hấp dẫn hơn.
+3.	Lưu kết quả đó vào item.summary. Đây sẽ là dữ liệu chất lượng cao ("Gold Data") để Fine-tune mô hình sau này.
+
+144. Day 2 - The Five-Step AI Process & Productionizing with MLOps
+Chào bạn, tôi đã nắm được toàn bộ nội dung phần tiếp theo của buổi học Day 2. Đây là phần giảng viên Ed Donner tổng kết lại bức tranh toàn cảnh (Big Picture) và nhấn mạnh vào bước quan trọng cuối cùng thường bị bỏ quên: Productionize (Triển khai thực tế), cũng như đặt ra thử thách cho học viên.
+Dưới đây là tổng hợp kiến thức chi tiết dựa trên phiên âm và các file code bạn đã cung cấp trước đó.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Bước thứ 5 (The Missing Step): Quy trình AI không kết thúc ở việc chọn mô hình (Step 4). Bước 5 là Productionize (Triển khai), đưa mô hình vào hạ tầng thực tế, bao gồm giám sát (monitoring), bảo mật và tuân thủ.
+•	MLOps & Model Drift: Khái niệm quan trọng là Model Drift (sự trôi dạt mô hình) - khi dữ liệu thực tế thay đổi theo thời gian khiến mô hình kém chính xác đi. Do đó, quy trình là một vòng lặp: Triển khai -> Đánh giá liên tục -> Đào tạo lại (Retrain).
+•	Batch Mode Strategy: Chiến lược kỹ thuật chính của hôm nay là dùng Batch API (gửi yêu cầu hàng loạt) để dùng một LLM "khôn" (Frontier Model) viết lại/tóm tắt dữ liệu cho sạch đẹp trước khi dùng dữ liệu đó để training mô hình nhỏ hơn.
+•	Thử thách (The Challenge): Giảng viên khuyến khích học viên chọn con đường "Hard mode" (dùng toàn bộ 800k dữ liệu) và thực hiện các thí nghiệm để đánh bại chỉ số dự đoán giá của giảng viên.
+________________________________________
+2. Nội dung chính
+A. Chiến lược 5 Bước (Hoàn thiện)
+Giảng viên nhắc lại 4 bước đầu và bổ sung chi tiết bước 5:
+1.	Understand: Hiểu bài toán kinh doanh và metrics (với dự án này là $|Price_{pred} - Price_{true}|$).
+2.	Prepare: Chuẩn bị dữ liệu (Data Curation) và Baseline model (sẽ làm vào Day 3).
+3.	Select: Chọn mô hình phù hợp (dựa trên Leaderboard, context length...).
+4.	Customize: Áp dụng kỹ thuật (RAG, Prompting, Fine-tuning).
+5.	Productionize (Trọng tâm hôm nay):
+o	Deployment: Chọn cloud (AWS/GCP/Azure).
+o	Observability: Đặc biệt quan trọng với AI Agents (theo dõi các LLM nói gì với nhau).
+o	Continuous Evaluation: Đánh giá mô hình trên dữ liệu thực (Real-world data).
+B. Lộ trình dự án Capstone "The Price Is Right"
+•	Mục tiêu: Input là mô tả sản phẩm -> Output là giá tiền.
+•	Metrics: Absolute Price Difference (Sai số tuyệt đối).
+•	Kế hoạch tuần này (Week 6):
+o	Day 1: Xử lý dữ liệu thô (Done).
+o	Day 2 (Today): Pre-processing (Tiền xử lý) dùng LLM qua Batch Mode.
+o	Day 3: Machine Learning truyền thống (Traditional ML) & Baselines.
+o	Day 4: Neural Networks.
+o	Day 5: Fine-tuning Frontier Model (qua API).
+•	Tuần sau (Week 7): Fine-tuning Open Source Model (Llama 3) - Đây mới là "real engineering".
+C. Ba con đường cho học viên
+1.	Just Listen: Hiểu tư duy (Intuition).
+2.	Lite Version: Dùng dataset nhỏ (20k dòng), bỏ qua bước clean dữ liệu nặng nhọc.
+3.	Go Big (Khuyên dùng): Dùng full dataset (800k dòng), tự chạy Batch processing, tự train và tìm cách đánh bại kết quả của giảng viên bằng thực nghiệm (trial & error).
+________________________________________
+3. Phân tích Code & Quy trình (Code & Pipeline Analysis)
+Dựa vào ngữ cảnh "Pre-processing using LLMs" và "Batch Mode" trong bài giảng, ta phân tích lại các file code để thấy sự chuẩn bị cho bước này.
+Mục tiêu: Dùng một LLM mạnh (ví dụ GPT-4o hoặc Claude 3.5 Sonnet) để đọc full text (lộn xộn) và viết lại thành summary (chất lượng cao). Sau đó dùng summary này để train model.
+File items.py - Chuẩn bị cấu trúc dữ liệu
+Python
+class Item(BaseModel):
+    title: str
+    price: float
+    full: Optional[str] = None      # Dữ liệu thô ban đầu (gộp từ title, desc...)
+    summary: Optional[str] = None   # <--- MỤC TIÊU CỦA DAY 2
+    
+    # ...
+    
+    def make_prompt(self, text: str):
+        """
+        Hàm này tạo ra chuỗi input để gửi vào LLM.
+        Trong context của Batch Mode hôm nay, ta sẽ sửa logic này một chút (hoặc dùng một hàm tương tự)
+        để yêu cầu LLM: "Hãy tóm tắt và làm sạch đoạn văn bản sau..."
+        """
+        # Logic hiện tại đang là prompt cho việc Training (Hỏi giá)
+        # self.prompt = f"{QUESTION}\n\n{text}\n\n{PREFIX}{round(self.price)}.00"
+        pass 
+Quy trình Batch Mode (Mô tả Logic Code sẽ thực hiện)
+Vì code cụ thể gọi Batch API chưa có trong các file cũ, tôi sẽ mô tả logic mà giảng viên sẽ hướng dẫn bạn viết trong phần thực hành tiếp theo (dựa trên loaders.py và kiến thức Batch API):
+1.	Tạo file JSONL: Duyệt qua danh sách items, lấy trường full.
+2.	Construct Request: Tạo object request cho từng item:
+JSON
+{"custom_id": "item_123", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Rewrite this product description..."}]}}
+3.	Upload & Execute: Gửi file này lên OpenAI/Anthropic Platform.
+4.	Retrieve: Chờ (khoảng 12-24h) và tải kết quả về.
+5.	Update: Ghi nội dung trả về vào trường item.summary.
+File loaders.py - Vai trò trong Pipeline
+File này vẫn giữ vai trò nạp dữ liệu thô để chuẩn bị cho quá trình tạo Batch request.
+Python
+# Đoạn code này đảm bảo chúng ta có thể load 800k dòng dữ liệu đủ nhanh
+# để sau đó tạo file batch request mà không bị treo máy.
+def load_in_parallel(self, workers):
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        # ... logic song song ...
+________________________________________
+4. Kiến thức liên quan & Mở rộng (Extended Knowledge)
+A. MLOps: Model Drift (Sự trôi dạt mô hình)
+Giảng viên nhắc đến "Model Drift". Đây là hiện tượng mô hình AI bị "lỗi thời" dù code không đổi.
+•	Data Drift: Dữ liệu đầu vào thay đổi. Ví dụ: Trước đây sản phẩm Amazon chỉ bán sách, giờ bán cả đồ điện tử. Mô hình chỉ học bán sách sẽ đoán sai giá đồ điện tử.
+•	Concept Drift: Mối quan hệ giữa Input và Output thay đổi. Ví dụ: Lạm phát làm giá cả tăng lên. Cùng một mô tả sản phẩm "Laptop 8GB RAM", năm 2020 giá $800, nhưng năm 2024 có thể giá khác.
+•	Giải pháp: Phải có hệ thống Monitoring để phát hiện khi sai số (Metric) tăng cao, từ đó kích hoạt quy trình Retraining.
+B. Batch API - Tại sao lại dùng cho Pre-processing?
+Tại sao không dùng code Python (regex) để làm sạch mà phải tốn tiền dùng LLM?
+•	Chất lượng: Regex không hiểu ngữ nghĩa. LLM có thể sửa lỗi chính tả, chuẩn hóa văn phong, loại bỏ câu marketing vô nghĩa ("Mua ngay kẻo lỡ") để giữ lại thông tin kỹ thuật thuần túy.
+•	Chi phí: Sử dụng Batch Mode (như giảng viên đề cập) rẻ hơn 50% so với gọi API trực tiếp (Synchronous). Đây là cách duy nhất để xử lý 800.000 dòng dữ liệu với chi phí chấp nhận được cho một dự án cá nhân/học tập.
+C. Chiến thuật "Distillation" (Chưng cất tri thức)
+Việc dùng LLM to (GPT-4) để viết lại dữ liệu, sau đó dùng dữ liệu đó train LLM nhỏ (Llama 3 8B) được gọi là Knowledge Distillation.
+•	Ta đang "chưng cất" sự thông minh của GPT-4 vào bộ dữ liệu sạch.
+•	Sau đó mô hình nhỏ học từ bộ dữ liệu sạch này sẽ hoạt động tốt hơn nhiều so với học từ dữ liệu rác ban đầu.
+Lời khuyên: Nếu bạn chọn con đường "Go Big" như giảng viên thách thức, hãy chuẩn bị sẵn thẻ tín dụng (chi phí API OpenAI khoảng vài chục USD cho dataset lớn) hoặc dùng các mô hình nhỏ hơn/free tier để chạy batch trên một phần dữ liệu.
+
+145. Day 2 - Data Pre-processing with LLMs and Groq Batch Mode
+Chào bạn, chúng ta đang đi vào phần kỹ thuật thú vị nhất của Day 2: Biến dữ liệu "rác" thành dữ liệu "vàng" bằng cách sử dụng chính LLM.
+Đây là bước phân biệt giữa một dự án nghiệp dư và một dự án chuyên nghiệp. Thay vì train model trên dữ liệu hỗn độn, chúng ta sẽ dùng một model thông minh để "dạy" lại dữ liệu trước khi đưa vào huấn luyện.
+Dưới đây là tổng hợp chi tiết bài học 145. Day 2 - Data Pre-processing with LLMs and Groq Batch Mode.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Mục tiêu: Chuyển đổi dữ liệu thô (Raw Data) hỗn loạn, chứa nhiều nhiễu (mã sản phẩm, quảng cáo) thành dữ liệu có cấu trúc (Structured), ngắn gọn và giàu thông tin (High Signal-to-Noise Ratio).
+•	Công cụ: Sử dụng Groq (nền tảng Inference siêu tốc) thông qua Batch API (tương thích chuẩn OpenAI).
+•	Chiến lược: Không gọi API từng cái (Synchronous) mà gửi hàng loạt (Asynchronous/Batch) để tiết kiệm 50% chi phí và không cần duy trì kết nối chờ đợi.
+•	Hiệu quả: Chi phí cực rẻ (~0.01 xu cho 1 item) nhưng nhân với 800.000 items thì vẫn là vấn đề lớn -> Cần cân nhắc giải pháp Local Model (bài sau).
+________________________________________
+2. Nội dung chính
+A. Tư duy Pre-processing bằng LLM
+Trước đây, để làm sạch dữ liệu văn bản, kỹ sư phải viết hàng tá quy tắc Regex phức tạp (nếu có chuỗi "Part No.", hãy xóa...). Tuy nhiên, với LLM, ta có thể giải quyết vấn đề này chỉ bằng một câu lệnh (Prompt).
+•	Input: "F59 Interior Knob... deadbolt... oil rubbed bronze... easy installation..." (Rất dài dòng, lộn xộn).
+•	Output mong muốn:
+o	Title: F59 Interior Knob
+o	Category: Hardware
+o	Description: Oil rubbed bronze knob...
+•	Lợi ích: Model sau này sẽ học được "tư duy định giá" tốt hơn vì nó không bị phân tâm bởi các từ ngữ vô nghĩa.
+B. Groq & Batch Mode
+•	Groq (không phải Grok của Elon Musk): Đây là công ty sản xuất chip LPU (Language Processing Unit) giúp chạy LLM (như Llama 3) với tốc độ cực nhanh.
+•	Batch Mode:
+o	Thay vì: Gửi request 1 -> Chờ -> Nhận kết quả 1 -> Gửi request 2...
+o	Ta làm: Gửi 1 file chứa 10.000 requests -> Đi ngủ -> Sáng mai tải kết quả về.
+o	Lợi ích: Rẻ hơn (thường giảm 50% giá), không lo timeout, phù hợp xử lý dữ liệu lớn (Big Data).
+________________________________________
+3. Phân tích Code (day2.ipynb)
+Dựa trên file notebook và nội dung giảng dạy, đây là logic code quan trọng:
+Bước 1: Chuẩn bị dữ liệu & Đánh Index
+Trước khi gửi đi xử lý hàng loạt, ta cần gán ID cho từng item để sau này khi nhận kết quả về (có thể không theo thứ tự), ta biết kết quả đó là của sản phẩm nào.
+Python
+# Load dataset (Light hoặc Full)
+ds = load_dataset(...)
+
+# Gán ID cho từng dòng dữ liệu (từ 0, 1, 2...)
+# Logic: ID giúp map lại kết quả sau khi Batch Processing trả về
+def add_id(example, idx):
+    example['id'] = idx
+    return example
+
+ds = ds.map(add_id, with_indices=True)
+Bước 2: System Prompt - "Bộ não" của quá trình
+Đây là đoạn code quan trọng nhất quyết định chất lượng dữ liệu đầu ra.
+Python
+system_prompt = """
+Create a concise description of a product. 
+Respond only in this format. Do not include part numbers.
+Title: ...
+Category: ...
+Brand: ...
+Description: ...
+Details: ...
+"""
+•	Giải thích:
+o	Concise description: Yêu cầu LLM tóm tắt, bỏ từ thừa.
+o	Do not include part numbers: Loại bỏ các mã số vô nghĩa (Noise) làm nhiễu mô hình định giá.
+o	Custom Format: Tại sao không dùng JSON?
+	JSON tốn nhiều token cho các dấu ngoặc {}, dấu ngoặc kép "".
+	Với 800.000 items, việc tiết kiệm vài token mỗi dòng giúp giảm đáng kể chi phí. Định dạng Key: Value đơn giản này vừa đủ dùng và tiết kiệm.
+Bước 3: Test thử nghiệm (Sanity Check)
+Trước khi chạy Batch cho cả ngàn item, giảng viên chạy thử 1 item để kiểm tra giá và chất lượng.
+Python
+# Giả lập gọi API (Code thực tế sẽ dùng client của Groq hoặc OpenAI)
+response = client.chat.completions.create(
+    model="Start-with-OSS-model", # Sử dụng model nguồn mở qua API
+    messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": item_0_full_text}
+    ]
+)
+•	Kết quả:
+o	Input: 446 tokens (Dài, lộn xộn).
+o	Output: 125 tokens (Ngắn gọn, sạch đẹp).
+o	Chi phí: ~0.011 cents ($0.00011).
+o	Nhận xét: Rất rẻ cho 1 item, nhưng nếu nhân lên 800k items -> ~$88. Đây là mức giá chấp nhận được cho doanh nghiệp, nhưng với sinh viên thì cần cân nhắc (đó là lý do phần sau sẽ nói về Local Model).
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+A. Groq vs. Traditional GPU
+•	Trong bài giảng, giảng viên nhấn mạnh dùng Groq. Groq sử dụng kiến trúc chip LPU (Language Processing Unit) chuyên biệt cho suy luận (Inference), giúp tốc độ token/s nhanh gấp 10 lần GPU thường. Điều này cực kỳ hữu ích khi bạn cần test nhanh prompt trên dữ liệu mẫu.
+B. Phân biệt Groq và Grok
+•	Groq: Công ty phần cứng (Chip LPU), cung cấp API chạy Llama 3, Mixtral cực nhanh. Đây là cái chúng ta dùng.
+•	Grok: Mô hình AI của xAI (Elon Musk) tích hợp trên X (Twitter).
+•	Lưu ý: Đừng nhầm lẫn khi viết code hoặc chọn API Key.
+C. Tại sao không dùng JSON Mode (Structured Outputs)?
+Giảng viên có nhắc đến Structured Outputs (JSON).
+•	Ưu điểm: Dễ dàng parse bằng code (json.loads()), đảm bảo không bao giờ sai format.
+•	Nhược điểm: Tốn token (chi phí cao hơn) và xử lý chậm hơn một chút.
+•	Quyết định: Trong bài toán Big Data này (800k items), sự đơn giản (Text Format) chiến thắng sự tiện lợi (JSON) để tối ưu chi phí. Tuy nhiên, trong môi trường Production cần độ tin cậy tuyệt đối, JSON Mode vẫn là lựa chọn số 1.
+D. Batch Processing Architecture
+Quy trình Batch thực tế mà bạn sẽ code (hoặc thấy trong các file sau):
+1.	Prepare: Tạo file .jsonl (mỗi dòng là một request JSON).
+2.	Upload: Upload file lên Server (Groq/OpenAI).
+3.	Create Batch: Gửi lệnh "Xử lý file này cho tôi".
+4.	Wait: Server xử lý (có thể mất 12-24h tùy nhà cung cấp, Groq thì nhanh hơn).
+5.	Retrieve: Tải file kết quả .jsonl về và merge vào dataset chính.
+Bước tiếp theo của bài học sẽ là giải pháp thay thế "0 đồng": Chạy model cục bộ (Local Model) cho những ai không muốn tốn tiền API.
+
+146. Day 2 - Batch Processing with Groq API and JSONL Files for LLM Workflows
+Chào bạn, chúng ta đang đi vào phần kỹ thuật cốt lõi của việc xử lý dữ liệu lớn (Big Data) trong AI. Phần này cực kỳ quan trọng vì trong thực tế, bạn sẽ không bao giờ gọi API từng dòng một cho hàng triệu sản phẩm – điều đó sẽ làm bạn "phá sản" và mất quá nhiều thời gian.
+Dưới đây là tổng hợp chi tiết nội dung bài học 146. Day 2 - Batch Processing with Groq API and JSONL Files.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thử nghiệm Local: Giảng viên thử dùng Llama 3.2 (Local/Free) để viết lại dữ liệu. Kết quả: Chạy được, miễn phí, nhưng chất lượng định dạng không tốt bằng model lớn và tốc độ chậm.
+•	Chuyển sang Groq Batch: Để xử lý 20.000 (Lite) hoặc 800.000 (Full) sản phẩm, giải pháp tối ưu là dùng Groq API ở chế độ Batch.
+•	JSONL là chìa khóa: Định dạng file tiêu chuẩn cho Batch Processing là JSONL (JSON Lines). Mỗi dòng là một request độc lập.
+•	Quy trình 3 bước: Upload File -> Create Batch (chờ xử lý) -> Retrieve Results (Tải kết quả).
+•	Xử lý bất đồng bộ: Kết quả trả về sẽ không theo thứ tự gửi đi, do đó bắt buộc phải dùng custom_id để map kết quả về đúng sản phẩm.
+________________________________________
+2. Nội dung chính
+A. So sánh nhanh: Local Llama 3.2 vs. API
+•	Llama 3.2 (Local):
+o	Ưu điểm: Miễn phí hoàn toàn.
+o	Nhược điểm: Output hơi "ngố" (thêm Markdown headers không cần thiết), ít chi tiết hơn. Token count thấp (48 tokens) do model ít "suy nghĩ" (reasoning) hơn so với model lớn.
+•	Groq API (Cloud):
+o	Ưu điểm: Tốc độ siêu nhanh, chất lượng cao, tuân thủ format tốt.
+o	Chi phí: Dùng Batch Mode giảm được 50% giá (vốn đã rẻ).
+B. Quy trình Batch Processing (Groq/OpenAI)
+Đây là quy trình chuẩn công nghiệp (Industry Standard) mà Groq đã sao chép y hệt từ OpenAI:
+1.	Chuẩn bị file (.jsonl): Đóng gói toàn bộ hàng ngàn prompt vào một file.
+2.	Upload: Gửi file lên server của nhà cung cấp.
+3.	Execute: Ra lệnh "Chạy lô này cho tôi". Nhà cung cấp cam kết xong trong 24h (thường Groq xong ngay lập tức vì tốc độ quá nhanh).
+4.	Download & Map: Tải về và ghép kết quả.
+ 
+Shutterstock
+________________________________________
+3. Phân tích Code & Pipeline
+Dựa trên transcript và logic lập trình, đây là cách code hoạt động chi tiết:
+Bước 1: Tạo file JSONL (make_jsonl)
+File JSONL khác JSON thường. Nó không có dấu phẩy giữa các dòng, không có ngoặc vuông [] bao quanh.
+Python
+# Cấu trúc một dòng trong file JSONL
+request_line = {
+    "custom_id": "item_123",  # QUAN TRỌNG: ID để định danh sản phẩm
+    "method": "POST",
+    "url": "/v1/chat/completions",
+    "body": {
+        "model": "llama-3.1-8b-instant", # Hoặc model bạn chọn trên Groq
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": item_full_text}
+        ]
+    }
+}
+•	Tại sao cần custom_id? Vì khi bạn gửi 1000 requests, server xử lý song song. Request số 10 có thể xong trước request số 1. Khi trả về, thứ tự bị xáo trộn. custom_id giúp bạn biết kết quả này là của sản phẩm nào.
+Bước 2: Gửi Batch Job (Code Python)
+Giảng viên sử dụng thư viện groq (tương tự openai).
+Python
+from groq import Groq
+
+client = Groq(api_key="...")
+
+# 1. Upload file input
+batch_file = client.files.create(
+    file=open("data/batch_input.jsonl", "rb"),
+    purpose="batch"
+)
+
+# 2. Tạo Batch Job
+batch_job = client.batches.create(
+    input_file_id=batch_file.id,
+    endpoint="/v1/chat/completions",
+    completion_window="24h", # Cam kết xong trong 24h (để được giảm giá)
+    metadata={"description": "Pre-processing data day 2"}
+)
+
+print(f"Batch ID: {batch_job.id}")
+Bước 3: Kiểm tra và Tải về (retrieve & content)
+Python
+# 3. Kiểm tra trạng thái
+import time
+while True:
+    batch_status = client.batches.retrieve(batch_job.id)
+    if batch_status.status == "completed":
+        break
+    time.sleep(10) # Đợi một chút
+
+# 4. Tải kết quả
+result_file_id = batch_status.output_file_id
+content = client.files.content(result_file_id).read()
+
+# Ghi ra file output
+with open("data/batch_results.jsonl", "wb") as f:
+    f.write(content)
+Bước 4: Xử lý kết quả (Mapping)
+Đây là đoạn code logic "thuần Python" cuối cùng mà giảng viên nhắc tới:
+Python
+# Đọc file kết quả và map ngược lại vào dataset
+results_map = {}
+with open("data/batch_results.jsonl", "r") as f:
+    for line in f:
+        data = json.loads(line)
+        custom_id = int(data['custom_id']) # Lấy lại ID
+        # Lấy nội dung text model trả về
+        summary = data['response']['body']['choices'][0]['message']['content']
+        results_map[custom_id] = summary
+
+# Cập nhật vào dataset chính
+for item in items:
+    if item.id in results_map:
+        item.summary = results_map[item.id]
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+A. JSON vs JSONL (JSON Lines)
+•	JSON (.json): Toàn bộ dữ liệu là một object lớn. Phải load hết vào RAM mới đọc được. Nếu file 10GB -> Crash máy.
+•	JSONL (.jsonl): Mỗi dòng là một object. Có thể đọc từng dòng (stream), xử lý xong dòng nào xóa dòng đó khỏi RAM. Đây là định dạng chuẩn cho Big Data và training LLM.
+B. "Reasoning Tokens" là gì?
+Trong bài, giảng viên thấy sự khác biệt về số lượng token output (48 vs 125).
+•	Các model lớn hoặc được tinh chỉnh tốt thường có xu hướng "suy nghĩ" (reasoning/chain-of-thought) ngầm hoặc diễn giải chi tiết hơn để đảm bảo độ chính xác trước khi đưa ra kết quả cuối cùng.
+•	Local model nhỏ (Llama 3.2) thường trả lời "cộc lốc" hoặc đi thẳng vào vấn đề (đôi khi sai format), dẫn đến số token ít hơn.
+C. Chiến lược tiết kiệm chi phí (Cost Efficiency)
+•	Batch Mode: Luôn giảm 50% chi phí so với gọi API trực tiếp.
+•	Tại sao rẻ? Các nhà cung cấp cloud (OpenAI/Groq) có những lúc server rảnh rỗi (ví dụ: 3 giờ sáng). Batch request cho phép họ lấp đầy khoảng thời gian rảnh đó bằng các job không gấp (chấp nhận chờ 24h). Đó là lý do bạn được giảm giá.
+Bài học tiếp theo sẽ là kiểm tra kết quả cuối cùng sau khi đã chạy xong Batch và chuẩn bị cho ngày 3: Machine Learning truyền thống.
+
+147. Day 2 - Batch Processing with Groq: Running 22K LLM Requests for Under $1
+Chào Hieu, chúc mừng bạn đã chính thức hoàn thành Day 2! Đây là một cột mốc rất lớn. Bạn vừa thực hiện một quy trình kỹ thuật thực tế mà các kỹ sư AI tại các công ty lớn làm hàng ngày: Biến đổi một lượng dữ liệu khổng lồ (Big Data) với chi phí cực thấp.
+Dưới đây là tổng kết phần cuối cùng của ngày học: Chạy thực nghiệm trên toàn bộ tập dữ liệu (Scaling Up).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Kết quả thực nghiệm:
+o	Lite Dataset (22,000 items): Chạy mất vài phút, chi phí < $1.
+o	Full Dataset (820,000 items): Chạy mất vài giờ, chi phí ~ $30.
+•	Hiệu quả kinh tế: Sử dụng Batch Mode giúp giảm 50% chi phí so với gọi API thông thường. Kết hợp với tốc độ của Groq, đây là giải pháp tối ưu cho xử lý dữ liệu lớn.
+•	Sản phẩm cuối cùng: Ta đã có một tập dữ liệu sạch (item.summary), loại bỏ hoàn toàn dữ liệu thô (item.full). Dữ liệu này đã được đẩy lên Hugging Face với tên items_light và items_full.
+________________________________________
+2. Nội dung chính & Quy trình mở rộng
+A. Quy trình tự động hóa (The Batch Module)
+Trong phần trước, ta làm thủ công cho 1 file (1000 items). Trong phần này, giảng viên giới thiệu module batch (file batch.py - dù không có trong danh sách upload nhưng logic được mô tả rất rõ) để tự động hóa vòng lặp:
+1.	Chunking: Chia 22,000 items thành 22 files nhỏ (mỗi file 1000 dòng JSONL).
+2.	Submission Loop: Vòng lặp gửi lần lượt các files lên Groq.
+3.	Polling: Liên tục hỏi Server: "Xong chưa?".
+4.	Retrieval & Merging: Khi xong, tải về và ghép 22 file kết quả lại vào dataset chính.
+B. Dọn dẹp dữ liệu (Data Hygiene)
+Sau khi có trường summary xịn xò do LLM viết lại, giảng viên thực hiện hành động quyết liệt:
+•	Xóa trường full: Dữ liệu gốc quá nhiễu, không cần thiết nữa.
+•	Xóa trường id tạm: Chỉ dùng để map kết quả batch, giờ không cần nữa.
+•	Kết quả: Dataset giảm dung lượng (250MB cho 800k dòng), mật độ thông tin (Signal density) cực cao.
+C. Chi phí và Thực tế (Reality Check)
+Giảng viên nhấn mạnh:
+•	Nếu làm thủ công (Synchronous API calls): Tốn $60 và có thể mất cả ngày để treo máy chờ.
+•	Làm Batch: Tốn $30, "Fire and forget" (Gửi đi rồi đi ngủ, sáng sau lấy về).
+________________________________________
+3. Phân tích Logic Code (Dựa trên day2.ipynb và mô tả)
+Dù file batch.py chưa được upload, nhưng dựa trên day2.ipynb và transcript, logic xử lý hàng loạt được gói gọn như sau:
+Python
+# Logic giả lập của module batch
+class BatchProcessor:
+    def create_batches(self, items, batch_size=1000):
+        # Chia nhỏ dataset thành nhiều file JSONL
+        pass
+        
+    def submit_all(self):
+        # Gửi 22 files lên Groq
+        # Hiển thị thanh tiến trình (tqdm)
+        pass
+        
+    def check_status(self):
+        # Kiểm tra xem bao nhiêu batch đã xong (ví dụ: 18/22)
+        pass
+        
+    def fetch_results(self):
+        # Tải kết quả về và map vào item.summary
+        pass
+
+# Thực thi
+batch.run(items, light_mode=True) # Chạy vèo cái xong 22k items
+•	tqdm: Giảng viên nhắc đến thanh tiến trình này rất nhiều. Khi xử lý data lớn, việc nhìn thấy thanh tiến trình chạy (ví dụ: Processed: 7/22 batches) cực kỳ quan trọng về mặt tâm lý để biết chương trình không bị treo.
+________________________________________
+4. Kiến thức liên quan & Mở rộng (Extended Knowledge)
+A. Prompt Caching (Bộ nhớ đệm lời nhắc)
+Giảng viên có nhắc đến "Prompt Caching" như một kỹ thuật giảm chi phí.
+•	Vấn đề: Trong 22,000 requests, cái System Prompt (hướng dẫn format, quy tắc...) được lặp lại y hệt 22,000 lần.
+•	Giải pháp: Các nhà cung cấp (như Anthropic, và sắp tới là Groq/OpenAI rộng rãi) cho phép "cache" phần đầu này. Bạn chỉ trả tiền 1 lần cho system prompt, các lần sau gọi lại rất rẻ.
+•	Lưu ý: Batch Mode kết hợp Prompt Caching là kỹ thuật "tiết kiệm tận xương tủy" cho AI Engineer.
+B. Tầm quan trọng của Signal-to-Noise Ratio (Tỷ lệ tín hiệu trên nhiễu)
+Tại sao chúng ta tốn $30 để viết lại dữ liệu?
+•	Dữ liệu gốc (full): "Mua ngay! Giảm giá 50%! Ship nhanh! Mã sản phẩm XJ-99..." -> Nhiễu (Noise) nhiều. Model học định giá sẽ bị rối (Liệu từ "Ship nhanh" có làm tăng giá không?).
+•	Dữ liệu mới (summary): "Tai nghe Bluetooth, chống ồn, pin 20h, màu đen." -> Tín hiệu (Signal) rõ ràng.
+•	Quy tắc: "Garbage In, Garbage Out". Dữ liệu sạch quyết định 80% thành công của việc Training sau này.
+C. Chuẩn bị cho Day 3: Baseline Models
+Giảng viên hé lộ ngày mai sẽ dùng Random Forest và XGBoost.
+•	Đây là các thuật toán Machine Learning cổ điển (không phải Deep Learning).
+•	Mục đích: Để làm Baseline (Mốc chuẩn). Nếu mô hình XGBoost chạy mất 5 giây, tốn $0 mà đoán giá sai số $5, thì mô hình LLM tốn $100 training phải đoán sai số < $3 mới đáng để đầu tư.
+Tổng kết ngày học Day 2
+Bạn đã đi từ lý thuyết chiến lược 5 bước, đến thực hành Batch Processing, và kết thúc bằng một dataset hoàn hảo. Bây giờ bạn đã sẵn sàng cho Day 3: Xây dựng các mô hình cơ sở. Hãy nghỉ ngơi, bạn đã tiết kiệm được $30 và rất nhiều thời gian so với việc tự mày mò!
