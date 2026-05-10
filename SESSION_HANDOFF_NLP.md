@@ -7,7 +7,7 @@
 > - `report_fine_tune_llm.md` — Fine-tune Llama 3.2 (Week 7)
 > - `report_system.md` — Xây dựng hệ thống (search_key + price_is_right)
 >
-> **Ngày cập nhật:** 2026-05-08 (session 2)
+> **Ngày cập nhật:** 2026-05-10 (session 3)
 > **Nhánh git hiện tại:** `claudedev`
 > **Working directory:** `/home/hieu0606sunny/price2026wsl/tech2ai`
 
@@ -57,13 +57,9 @@ w[Automotive] *= 0.05          # Penalize category chiếm đa số
 w[Tools_and_Home_Improvement] *= 0.5
 ```
 
-**Lý do cần weighted sampling:** Automotive chiếm ~33% raw data, phần lớn hàng giá rẻ → model sẽ bias đoán giá thấp nếu không cân bằng.
-
 ---
 
 ### PHASE 2: Data Pre-processing with LLM (Week 6 — Day 2)
-
-**Mục tiêu:** Biến raw text lộn xộn → summary sạch, chuẩn format
 
 **Công cụ:** Groq Batch API (model: `llama-3.1-8b-instant`)
 
@@ -77,171 +73,94 @@ Description: 1 sentence description
 Details: 1 sentence on features
 ```
 
-**Quy trình Batch:**
-1. Chia 820k items thành các chunks (1000 items/file JSONL)
-2. Upload lên Groq server
-3. Wait (Groq thường xong trong vài giờ)
-4. Retrieve results, map bằng `custom_id`
-5. Lưu vào `item.summary`, xóa `item.full`
-
-**Chi phí:**
-- Lite (22k items): <$1, vài phút
-- Full (820k items): ~$30, vài giờ
-- Tiết kiệm 50% so với gọi API synchronous (batch discount)
-
-**Kết quả:** Dataset lên Hugging Face: `SeanSunny/items_lite` (22k) và `SeanSunny/items_full` (820k)
+**Kết quả:** Dataset lên HuggingFace: `SeanSunny/items_lite` (22k) và `SeanSunny/items_full` (820k)
 
 ---
 
 ### PHASE 3: Baseline Models — Traditional ML (Week 6 — Day 3)
 
-**Kỹ thuật:** Bag of Words (CountVectorizer) + scikit-learn
-
-**Bảng kết quả baseline:**
-| Model | MAE (sai số) | Ghi chú |
-|-------|-------------|---------|
+| Model | MAE | Ghi chú |
+|-------|-----|---------|
 | Random Pricer | $382.08 | Đoán mò |
 | Constant Pricer | $106.18 | Đoán giá trung bình $140.56 |
-| Linear Regression (manual features) | $101.56 | Features: weight, text_length |
-| NLP Linear Regression (BoW) | **$76.81** | CountVectorizer 2000 từ |
-| Random Forest | $72.28 | 100 trees, 15k subset |
-| XGBoost | **$68.23** | 1000 trees, full dataset |
-
-**Code xử lý text:**
-```python
-vectorizer = CountVectorizer(max_features=2000, stop_words='english')
-X = vectorizer.fit_transform(documents)  # documents = [item.summary for item in train]
-```
-
-**Evaluator (evaluator.py):**
-- Chạy 200 mẫu test với ThreadPoolExecutor
-- Màu sắc: xanh (error<$40 hoặc <20%), cam (<$80 hoặc <40%), đỏ (còn lại)
-- Vẽ Scatter plot (Predicted vs Actual) + Error Trend Chart
+| Linear Regression (manual) | $101.56 | |
+| NLP Linear Regression (BoW) | $76.81 | CountVectorizer 2000 từ |
+| Random Forest | $72.28 | 100 trees |
+| XGBoost | $68.23 | 1000 trees, full dataset |
 
 ---
 
 ### PHASE 4: Neural Networks + Frontier Models (Week 6 — Day 4)
 
-**Cải tiến xử lý text:**
-```python
-# HashingVectorizer thay CountVectorizer (nhanh hơn, không cần từ điển)
-vectorizer = HashingVectorizer(n_features=5000, binary=True)
-```
+**Vanilla NN:** 8 lớp, 669k params → **MAE $63.97**
 
-**Vanilla Neural Network (PyTorch):**
-- 8 lớp Linear + ReLU
-- Input: 5000 features, Hidden: 128→64 (×6), Output: 1
-- Params: ~669,000
-- Loss: MSELoss, Optimizer: Adam(lr=0.001), Epochs: 2
-- **MAE: $63.97**
+**Frontier Models (zero-shot):**
+| Model | MAE |
+|-------|-----|
+| Human (giảng viên) | $87.62 |
+| GPT-4.1 Nano | $62.51 |
+| Gemini 2.5 Flash Lite | $58.68 |
+| Grok 4.1 Fast | $57.62 |
+| Gemini 3 Pro | $50.54 |
+| **Claude Opus 4.5** | **$47.10** |
 
-**So sánh Frontier Models (zero-shot, không fine-tune):**
-| Model | MAE | Ghi chú |
-|-------|-----|---------|
-| Human (giảng viên) | $87.62 | Baseline con người |
-| GPT-4.1 Nano (≈GPT-4o-mini) | $62.51 | Nhanh & rẻ |
-| Gemini 2.5 Flash Lite | $58.68 | Nhanh |
-| Grok 4.1 Fast | $57.62 | xAI |
-| Gemini 3 Pro | $50.54 | Google |
-| **Claude Opus 4.5** | **$47.10** | **🏆 Best** |
-
-**Bài học:** Zero-shot LLM (dùng world knowledge) đã đánh bại XGBoost trained trên 800k samples.
+**Bài học:** Zero-shot LLM đánh bại XGBoost trained 800k samples.
 
 ---
 
 ### PHASE 5: Deep Neural Network Redemption (Week 6 — Day 5)
 
-**Kiến trúc: DeepNeuralNetwork với Residual Blocks**
+**Kiến trúc:** HashingVectorizer(5000, binary=True) → Linear(5000→4096) + 8 ResidualBlocks(4096) + output
 
-```python
-class ResidualBlock(nn.Module):
-    def forward(self, x):
-        residual = x
-        out = self.block(x)   # Linear → LayerNorm → ReLU → Dropout → Linear → LayerNorm
-        out += residual        # Skip connection (tránh vanishing gradient)
-        return self.relu(out)
+**Lưu ý quan trọng:** Model dùng **HashingVectorizer**, không phải BoW (CountVectorizer). Khác biệt:
+- HashingVectorizer: hashing trick, stateless, không lưu vocabulary, không có OOV
+- BoW (CountVectorizer): lưu vocabulary, cần fit trước, OOV → bỏ qua
 
-class DeepNeuralNetwork(nn.Module):
-    def __init__(self, input_size=5000, num_layers=10, hidden_size=4096, dropout_prob=0.2):
-        self.input_layer = nn.Sequential(Linear(5000, 4096), LayerNorm, ReLU)
-        self.residual_blocks = ModuleList([ResidualBlock(4096) for _ in range(10)])
-        self.output_layer = nn.Linear(4096, 1)
-```
+**Thông số:** 289M params, 5 epochs, ~4h trên GPU  
+**Test MAE: $46.02** — Thắng Claude Opus 4.5 ($47.10)
 
-**Thông số:**
-- Parameters: **289 triệu** (so với 669k của Vanilla NN)
-- Training: ~40 phút/epoch, 5 epochs → ~4 giờ trên GPU mạnh
-- Data: Full 800k samples
-- **MAE: $46.49** → Đánh bại Claude Opus 4.5 ($47.10)!
-
-**File model đã train sẵn:** `segment4/deep_neural_network.pth`
-
-**Bài học:** Model chuyên biệt (specialized) cho 1 tác vụ trên dữ liệu đủ lớn có thể đánh bại Frontier LLM đa năng.
-
-**Lý do Fine-tuning GPT-4o-mini thất bại:**
-- LLM Frontier đã có world knowledge khổng lồ về giá cả
-- 820k samples chỉ như "muối bỏ bể", gây noise thay vì cải thiện
-- Nên fine-tune LLM khi muốn thay đổi: style, format, behavior — không phải knowledge
+**File model:** `segment4/deep_neural_network.pth`
 
 ---
 
 ### PHASE 6: Fine-tuning Llama 3.2 với QLoRA (Week 7)
 
-**Mục tiêu:** Tạo mô hình open-source nhỏ, rẻ có performance tương đương Frontier Model
+**Kỹ thuật:** QLoRA = 4-bit quantization + LoRA adapters (r=32, ~22M params, ~73MB)  
+**Base model:** `meta-llama/Llama-3.2-3B`  
+**Trained model:** `SeanSunny/price-2026-final` (HuggingFace)  
+**Deployment:** Modal serverless T4 GPU (`pricer_service2.py`)
 
-**Kỹ thuật: QLoRA = Quantization + LoRA**
+---
 
-**Quantization (nén model gốc):**
-| Precision | VRAM Llama 3.2 3B |
-|-----------|------------------|
-| 32-bit | ~13 GB |
-| 8-bit | ~3.6 GB |
-| 4-bit (QLoRA) | ~2.2 GB |
+### PHASE 7: DL Model Experiments (Session 3 — 2026-05-10)
 
-```python
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",        # Normal Float 4
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch.float16
-)
-```
+**Câu hỏi nghiên cứu:** Semantic representation (SentTrans, DistilBERT) có cải thiện HashingVec DNN không?
 
-**LoRA (chỉ train adapters nhỏ):**
-```python
-lora_config = LoraConfig(
-    r=32,                              # Rank
-    lora_alpha=64,                     # Alpha = 2 × r
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    lora_dropout=0.05,
-    task_type="CAUSAL_LM"
-)
-```
+**Kết quả đã train:**
 
-**Tính toán Adapter size (với r=32, hidden=3072, 4 modules, 28 layers):**
-- 1 module: (3072×32) + (32×3072) = 196,608 params
-- Total: 196,608 × 4 × 28 ≈ 22M params = **~73MB** (so với 2.2GB base)
+| Model | File | Epochs | Val MAE (best) | Test MAE |
+|-------|------|--------|---------------|----------|
+| HashingVec DNN (baseline) | `deep_neural_network.py` | 5 | $53.84 | **$46.02** |
+| SentTrans frozen (1024) | `sentence_transformer_model.py` | 15 | $56.24 | $47.56 |
+| SentTrans frozen (4096) | `sentence_transformer_model.py` | 15 | $49.99 | **$43.78** |
+| DistilBERT CLS V1 (batch=32) | `distilbert_model.py` | 5 | $47.42 | $44.19 |
 
-**Môi trường training:** Google Colab T4 GPU (miễn phí)
+**Nhận xét quan trọng:**
+- SentTrans 1024 tệ hơn DNN vì 13M params không đủ capacity so với 289M của DNN
+- SentTrans 4096 tốt hơn DNN — capacity lớn hơn là yếu tố quan trọng, không chỉ semantic
+- DistilBERT V1 val MAE vẫn giảm đều tại epoch 5 → chưa hội tụ, cần train thêm
+- HashingVec mạnh vì: dữ liệu đã LLM pre-process (brand/category explicit), price là keyword-driven
 
-**Base model:** `meta-llama/Llama-3.2-3B`
+**4 models mới được thiết kế + code (TODO train):**
 
-**Model đã fine-tune:** `SeanSunny/price-2026-final` (HuggingFace)
+| Model | File `.py` | Notebook | Thay đổi chính |
+|-------|------------|----------|---------------|
+| DistilBERT V2 | `distilbert_model_v2.py` | `model2_distilbert_train_v2.ipynb` | batch=64, 15 epochs |
+| DistilBERT V3 | `distilbert_model_v3.py` | `model2_distilbert_train_v3.ipynb` | Mean pooling thay CLS |
+| SentTrans E2E | `senttrans_e2e_model.py` | `model3_senttrans_e2e_train.ipynb` | Encoder fine-tuned, LR=5e-5 |
+| Feature Fusion | `fusion_model.py` | `model4_fusion_train.ipynb` | HashingVec(512) + SentTrans(512) → concat(1024) |
 
-**Deployment:** Modal serverless GPU (T4)
-```python
-# segment4/khong_su_dung/pricer_service2.py (đã deploy lên modal)
-@app.cls(gpu="T4", image=image, secrets=secrets)
-class Pricer:
-    @modal.enter()
-    def setup(self):  # Load Llama + LoRA weights
-    
-    @modal.method()
-    def price(self, description: str) -> float:
-        # Prompt: "What does this cost? {description} Price is $"
-```
-
-**Notebook:** `scraping_data_tv/Data_processing_for_English_data/Code_Fine_tune/Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb`
+**Design doc đầy đủ:** `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/2026-05-08-dl-models-design.md`
 
 ---
 
@@ -261,74 +180,20 @@ EnsembleAgent.price(description):
 ### 3.2 App 1: search_key.py (Pipeline 4 bước)
 
 ```
-User nhập keyword
-    ↓
-Step 1: search_and_scrape() [parallel, ThreadPoolExecutor]
-    ├── BestBuy: curl_cffi + internal APIs (searchpage + priceBlocks + v2)
-    └── Amazon:  curl_cffi + HTML parsing (CAPTCHA-aware, ZIP=96150)
-    ↓
-Step 2: combine() → List[UnifiedScrapedDeal]
-    ↓
-Step 3: select_top_deals() → GPT-5-nano Structured Outputs → DealSelection (top 3)
-    ↓
-Step 4: estimate_prices() → EnsembleAgent × 3 deals → List[Opportunity]
-    ↓
-Gradio HTML table (clickable URLs) + Real-time logs
-Auto-notify nếu discount > $100 (Pushover)
+User nhập keyword → search_and_scrape() [BestBuy + Amazon parallel, curl_cffi]
+→ combine() → List[UnifiedScrapedDeal]
+→ select_top_deals() [GPT-5-nano Structured Outputs] → DealSelection (top 3)
+→ estimate_prices() [EnsembleAgent × 3 deals] → List[Opportunity]
+→ Gradio HTML table + logs | Auto-notify discount > $100
 ```
 
 ### 3.3 App 2: price_is_right.py (Autonomous)
 
 ```
-[Khởi động] → Load ChromaDB + memory.json
-    ↓ (mỗi 5 phút)
-ScannerAgent: Fetch 5 RSS feeds DealNews → GPT-5-mini chọn top 5 → DealSelection
-    ↓
-EnsembleAgent: estimate × 5 deals
-    ↓
-Sort by discount → nếu best.discount > $50: MessagingAgent → Pushover
-    ↓
-Save to memory.json + update Gradio dashboard
-```
-
-### 3.4 Cấu trúc file quan trọng
-
-```
-tech2ai/
-├── segment4/                        # ← Toàn bộ production code
-│   ├── search_key.py                # Entry point App 1
-│   ├── price_is_right.py            # Entry point App 2
-│   ├── multi_source_framework.py    # Framework App 1
-│   ├── deal_agent_framework.py      # Framework App 2
-│   ├── plan.md                      # Kế hoạch cải thiện (mới tạo 2026-05-08)
-│   ├── memory.json                  # Persistent memory (deals đã xử lý)
-│   ├── deep_neural_network.pth      # Weights DNN 289M params
-│   ├── products_vectorstore/        # ChromaDB 800K+ products
-│   ├── price_agents/                # Tất cả agents
-│   │   ├── agent.py                 # Base class + ANSI logging
-│   │   ├── deals.py                 # Data models (Deal, Opportunity, DealSelection)
-│   │   ├── ensemble_agent.py        # Ensemble 3 models
-│   │   ├── frontier_agent.py        # GPT-5.1 + RAG
-│   │   ├── specialist_agent.py      # Llama Modal remote call
-│   │   ├── neural_network_agent.py  # PyTorch DNN wrapper
-│   │   ├── preprocessor.py          # LiteLLM text rewrite (có fallback khi API fail)
-│   │   ├── multi_source_planning_agent.py  # Pipeline 4 bước (App 1)
-│   │   ├── planning_agent.py        # Simple orchestrator (App 2)
-│   │   ├── autonomous_planning_agent.py    # GPT-5.1 controller (App 2 default)
-│   │   ├── scanner_agent.py         # RSS scanner (App 2)
-│   │   ├── messaging_agent.py       # Pushover notifications
-│   │   ├── bestbuy_deals.py         # BestBuy scraper
-│   │   └── amazon_deals.py          # Amazon scraper
-│   └── bestbuy_untils/              # Utilities (tên folder có typo, intentional)
-│       ├── multi_source_scanner_agent.py   # GPT-5-nano chọn top 3
-│       ├── unified_deal.py          # Normalize BestBuy + Amazon → UnifiedScrapedDeal
-│       └── gradio_helpers.py        # QueueHandler, HTML formatters
-├── scraping_data_tv/                # Data processing & fine-tune code (untracked)
-│   └── Data_processing_for_English_data/
-│       ├── Code_Data_processing/    # day1-4 notebooks + pricer/ utilities
-│       └── Code_Fine_tune/          # Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb
-└── w8/                              # Notebooks tuần 8
-    └── d1_specialist_agent.ipynb    # Notes về Modal warm-up
+[every 5 min] → Fetch 5 RSS DealNews → GPT-5-mini top 5
+→ EnsembleAgent estimate × 5 deals
+→ Sort by discount → if best > $50: Pushover notification
+→ Save memory.json + update Gradio dashboard
 ```
 
 ---
@@ -356,159 +221,131 @@ tech2ai/
 
 ```env
 OPENAI_API_KEY=sk-xxx              # Bắt buộc
-PUSHOVER_USER=xxx                  # Tùy chọn (notifications)
+PUSHOVER_USER=xxx                  # Tùy chọn
 PUSHOVER_TOKEN=xxx                 # Tùy chọn
-PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b   # Default nếu không đặt: ollama/llama3.2
-GROQ_API_KEY=xxx                   # Nếu dùng Groq cho preprocessor
-HF_TOKEN=hf_xxx                    # Cho Modal download Llama weights
+PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b
+GROQ_API_KEY=xxx
+HF_TOKEN=hf_xxx
 ```
 
 ---
 
 ## 6. Lỗi đã fix & Lessons learned
 
-### Fix đã thực hiện (2026-05-08)
-
-**`preprocessor.py` — Groq API 522 timeout:**
-- Lỗi: Groq server trả về 522 Connection Timeout → crash toàn bộ pipeline
-- Fix: Thêm try-except trong `preprocess()`, fallback trả về text gốc thay vì crash
-- File: `segment4/price_agents/preprocessor.py`
-
-### Lessons về reliability
-
-1. **Groq API không ổn định** — luôn cần fallback
-2. **Modal Llama cold start** — lần đầu chạy sau khi container ngủ: 30-60s
-3. **Amazon CAPTCHA** — curl_cffi + Chrome impersonation giảm thiểu nhưng không loại hoàn toàn
-4. **BestBuy product pages bị block từ WSL2** — dùng internal APIs thay vì scrape HTML
-5. **Preprocessor dùng Groq** — set `PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b`, cần GROQ_API_KEY
+- **`preprocessor.py` Groq 522 timeout** (2026-05-08): Thêm try-except, fallback trả về text gốc
+- **Groq API không ổn định** — luôn cần fallback
+- **Modal Llama cold start** — 30-60s lần đầu sau khi container ngủ
+- **BestBuy WSL2 block** — dùng internal APIs thay scrape HTML
 
 ---
 
-## 7. Kế hoạch cải thiện (plan.md)
-
-Chi tiết đầy đủ: `segment4/plan.md`
+## 7. Kế hoạch cải thiện (segment4/plan.md)
 
 | Thứ tự | Feature | Trạng thái |
 |--------|---------|------------|
-| 1 | **Pipeline Profiling** — Đo thời gian từng bước | Chưa làm |
-| 2 | **Modal Warm-up Button** — Thêm button Gradio gọi `pricer.update_autoscaler(scaledown_window=1200)` | Chưa làm |
-| 3 | **SQLite Deal History** — Lưu deals vào DB, hiển thị price history chart | Chưa làm |
-| 4 | **Review Sentiment Agent** — Scrape Amazon reviews + GPT-5-nano phân tích | Chưa làm |
-
-**Để warm up Modal thủ công (từ notebook d1_specialist_agent.ipynb):**
-```python
-import modal
-Pricer = modal.Cls.from_name("pricer-service", "Pricer")
-pricer = Pricer()
-pricer.update_autoscaler(scaledown_window=1200)  # Giữ warm 20 phút
-```
+| 1 | Pipeline Profiling — Đo thời gian từng bước | Chưa làm |
+| 2 | Modal Warm-up Button — Gradio button gọi `update_autoscaler` | Chưa làm |
+| 3 | SQLite Deal History — price history chart | Chưa làm |
+| 4 | Review Sentiment Agent — Amazon reviews + GPT | Chưa làm |
 
 ---
 
 ## 8. Hướng dẫn chạy
 
 ```bash
-# Cài dependencies
 cd tech2ai && uv sync
-
-# App 1: Search by keyword
-cd segment4 && uv run search_key.py
-# → http://127.0.0.1:7860
-
-# App 2: Autonomous RSS hunter
-cd segment4 && uv run price_is_right.py
-# → http://127.0.0.1:7860
-
-# Deploy Modal service (nếu cần)
-cd segment4 && uv run modal deploy -m khong_su_dung.pricer_service2
+cd segment4 && uv run search_key.py        # App 1 → http://127.0.0.1:7860
+cd segment4 && uv run price_is_right.py    # App 2 → http://127.0.0.1:7860
 ```
 
 ---
 
-## 9. Những gì đã làm — Session 2 (2026-05-08)
+## 9. Lịch sử sessions
 
-### Tài liệu đã tạo
+### Session 1 (2026-05-xx)
+- Xây dựng toàn bộ hệ thống production (search_key + price_is_right)
+- Fine-tune Llama 3.2 QLoRA, deploy Modal
 
-**`scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md`** (MỚI)
+### Session 2 (2026-05-08)
+- Fix `preprocessor.py` Groq 522 timeout
+- Tạo `Report_data_processing_v2.md` — tài liệu chi tiết Day 1-5 + Redemption DNN
 
-Report chi tiết toàn bộ quy trình Day 1–5 + Redemption DNN. Cover:
-- **Day 1:** `items.py`, `parser.py`, `loaders.py`, `day1.ipynb` — giải thích từng hàm + lý do kỹ thuật
-- **Day 2:** `preprocessor.py`, `batch.py` — Groq Batch API pipeline đầy đủ
-- **Day 3:** `evaluator.py`, `day3.ipynb` — 6 baseline models + bảng MAE
-- **Day 4:** `day4.ipynb` — Vanilla NN + Frontier LLMs so sánh
-- **Redemption:** `deep_neural_network.py`, `redemption_train.ipynb` — ResidualBlock, Skip Connection, Log-normalize, AdamW, CosineAnnealingLR
-- Style: Tiếng Việt + English thuật ngữ kỹ thuật có giải thích trong ngoặc
-
----
-
-## 10. Câu hỏi cần trả lời trong session tiếp theo
-
-Đây là các vấn đề chưa giải quyết / cần làm tiếp:
-
-1. **Demo cho giáo viên** — Nên search keyword nào để demo tốt nhất?
-   - Gợi ý tốt nhất: `wireless headphones`, `gaming monitor`, `acoustic guitar`, `air fryer`
-   - Sweet spot giá: $80–$400 (Electronics/Instruments/Appliances, không bị downsampled)
-   - Tránh: Automotive parts (95% downsampled, model ít data)
-
-2. **Báo cáo giáo viên còn thiếu** — Cần tạo thêm:
-   - `report_fine_tune_llm.md` — QLoRA Week 7 (fine-tune Llama 3.2)
-   - `report_system.md` — search_key + price_is_right architecture
-
-3. **Bắt đầu feature từ plan.md** — Pipeline Profiling trước (ưu tiên 1)
-
-4. **Kiểm tra file tài liệu còn thiếu:**
-   - `scraping_data_tv/Data_processing_for_English_data/Data_processing_for_English_data.txt` — File rất lớn (74k tokens), chưa đọc hết
-   - `fine_tune_LLM.txt` — File rất lớn (67k tokens), chưa đọc hết (mới đọc ~400 dòng đầu về QLoRA Week 7 Day 1)
+### Session 3 (2026-05-10) — Hiện tại
+- Phân tích kết quả Model 1 (SentTrans) và Model 2 V1 (DistilBERT)
+- Thảo luận tại sao HashingVec DNN mạnh (keyword-driven price, LLM pre-processed data)
+- Thiết kế và implement 4 models mới: DistilBERT V2/V3, SentTrans E2E, Feature Fusion
+- Cập nhật `2026-05-08-dl-models-design.md` với kết quả thực tế + design mới
+- Commit `56e4150` push lên `claudedev`
+- **Đang chờ:** Train 4 notebooks trên GPU thuê (RTX 5090 32GB)
 
 ---
 
-## 11. Prompt cho session tiếp theo
+## 10. Câu hỏi / việc cần làm trong session tiếp theo
 
-Dán đoạn sau vào đầu session mới:
+1. **[NGAY] Cập nhật kết quả train 4 models mới** — nhận kết quả test MAE từ 4 notebooks và cập nhật vào design doc + SESSION_HANDOFF + leaderboard
+
+2. **Báo cáo cho giáo viên còn thiếu:**
+   - `report_fine_tune_llm.md` — QLoRA Week 7
+   - `report_system.md` — kiến trúc 2 apps
+
+3. **Demo cho giáo viên** — keyword tốt nhất: `wireless headphones`, `gaming monitor`, `acoustic guitar`, `air fryer` (giá $80-$400, tránh Automotive)
+
+4. **Features từ plan.md** — Pipeline Profiling là ưu tiên 1
+
+---
+
+## 11. Prompt cho session tiếp theo (SAU KHI TRAIN XONG)
 
 ```
-Đọc các file sau để nắm ngữ cảnh (theo thứ tự):
-1. SESSION_HANDOFF_NLP.md — trạng thái tổng thể dự án
-2. segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md — kiến trúc App 1
-3. segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md — kiến trúc App 2
+Đọc file sau để nắm ngữ cảnh:
+SESSION_HANDOFF_NLP.md
+scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/2026-05-08-dl-models-design.md
 
-Dự án hiện tại: "The Price Is Right" — AI Price Intelligence System (DACN3)
+Dự án: "The Price Is Right" — AI Price Intelligence System (DACN3)
 Nhánh git: claudedev | Working dir: /home/hieu0606sunny/price2026wsl/tech2ai
 
-Những gì đã hoàn thành:
-- Report_data_processing_v2.md: tài liệu chi tiết Day 1-5 + Redemption DNN
-- Report_data_processing.md (v1): tài liệu tổng quan hành trình
-- Cả hai app (search_key.py, price_is_right.py) đang hoạt động production
+Kết quả train đã có (cần cập nhật vào doc):
+- Model 2 V2 (DistilBERT CLS, batch=64, 15 epochs): Test MAE = ???
+- Model 2 V3 (DistilBERT mean pooling, batch=64, 15 epochs): Test MAE = ???
+- Model 3 (SentTrans E2E fine-tuned, batch=128, 15 epochs): Test MAE = ???
+- Model 4 (Feature Fusion HashingVec+SentTrans, batch=256, 15 epochs): Test MAE = ???
 
-Việc cần làm tiếp (chọn 1):
-A) Viết report_fine_tune_llm.md — đọc fine_tune_LLM.txt + Code_Fine_tune/Fine_tune_Llama3_2_qlora_colab_fullcode.ipynb
-B) Viết report_system.md — mô tả kiến trúc 2 apps cho giáo viên
-C) Implement feature từ segment4/plan.md — Pipeline Profiling (đo thời gian từng bước)
-D) Chuẩn bị demo cho giáo viên — test app với các keywords tốt nhất
+Việc cần làm:
+1. Cập nhật kết quả vào 2026-05-08-dl-models-design.md (section 11 Implementation Status + section 13 Leaderboard)
+2. Cập nhật SESSION_HANDOFF_NLP.md leaderboard
+3. Commit + push
+4. Thảo luận: model nào tốt nhất? Có nên tích hợp vào EnsembleAgent không?
+5. Tùy kết quả: viết report DL models cho báo cáo giáo viên
 ```
 
 ---
 
-## 10. Bảng xếp hạng cuối — "The Price Is Right" Leaderboard
+## 12. Leaderboard — "The Price Is Right"
+
+*Metric: Mean Absolute Error (MAE) trên tập test 200 mẫu*
 
 | Hạng | Model | Loại | MAE | Ghi chú |
 |------|-------|------|-----|---------|
-| 1 | GPT-5.1 (giả định) | Frontier LLM | <$46 | Vua |
-| 2 🏅 | **Deep Neural Network** | Specialized DL | **$46.49** | Tự xây! 289M params |
-| 3 | Claude Opus 4.5 | Frontier LLM | $47.10 | Bị DNN đánh bại |
-| 4 | Gemini 3 Pro | Frontier LLM | $50.54 | |
-| 5 | Grok 4.1 Fast | Fast LLM | $57.62 | |
-| 6 | Gemini 2.5 Flash | Fast LLM | $58.68 | |
-| 7 | GPT-4.1 Nano | Fast LLM | $62.51 | ≈GPT-4o-mini |
-| 8 | Vanilla Neural Net | Basic DL | $63.97 | 8 lớp PyTorch |
-| 9 | XGBoost | ML | $68.23 | Best traditional ML |
-| 10 | NLP Linear Regression | ML | $76.81 | BoW + CountVectorizer |
-| 11 | Human | Bio | $87.62 | Giảng viên |
-| 12 | Random Forest | ML | $72.28 | |
-| 13 | Constant Pricer | Trivial | $106.18 | Đoán trung bình |
-| 14 | Random Pricer | Trivial | $382.08 | Đoán mò |
-
-*Metric: Mean Absolute Error (MAE) trên tập test 200 mẫu*
+| ? | DistilBERT V2 (15 epochs) | Fine-tuned LM | TBD | Chờ train |
+| ? | DistilBERT V3 (mean pool) | Fine-tuned LM | TBD | Chờ train |
+| ? | SentTrans E2E | Fine-tuned LM | TBD | Chờ train |
+| ? | Feature Fusion | Hybrid DL | TBD | Chờ train |
+| 1 | SentTrans frozen (4096) | Specialized DL | **$43.78** | Model 1 |
+| 2 | DistilBERT V1 (5 epochs) | Fine-tuned LM | $44.19 | Chưa hội tụ |
+| 3 | HashingVec DNN | Specialized DL | $46.02 | Baseline |
+| 4 | Claude Opus 4.5 | Frontier LLM | $47.10 | Zero-shot |
+| 5 | SentTrans frozen (1024) | Specialized DL | $47.56 | Capacity nhỏ |
+| 6 | Gemini 3 Pro | Frontier LLM | $50.54 | |
+| 7 | Grok 4.1 Fast | Fast LLM | $57.62 | |
+| 8 | Gemini 2.5 Flash | Fast LLM | $58.68 | |
+| 9 | GPT-4.1 Nano | Fast LLM | $62.51 | |
+| 10 | Vanilla Neural Net | Basic DL | $63.97 | 8 lớp, 669k params |
+| 11 | XGBoost | ML | $68.23 | Best traditional ML |
+| 12 | NLP Linear Regression | ML | $76.81 | BoW + CountVec |
+| 13 | Human (giảng viên) | Bio | $87.62 | |
+| 14 | Random Forest | ML | $72.28 | |
+| 15 | Constant Pricer | Trivial | $106.18 | |
+| 16 | Random Pricer | Trivial | $382.08 | |
 
 ---
 
