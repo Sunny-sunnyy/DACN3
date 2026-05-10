@@ -1,8 +1,9 @@
-# Design Doc: 2 New Deep Learning Models for Price Prediction
+# Design Doc: Deep Learning Models for Price Prediction
 
-**Ngày:** 2026-05-08  
+**Ngày tạo:** 2026-05-08  
+**Cập nhật lần cuối:** 2026-05-10  
 **Tác giả:** Sunny (hieu0606sunny)  
-**Phạm vi:** Bổ sung 2 kiến trúc DL mới cho bài toán dự đoán giá sản phẩm từ text description  
+**Phạm vi:** Các kiến trúc DL cho bài toán dự đoán giá sản phẩm từ text description  
 **Môi trường train:** RTX 3090 Ti 24GB VRAM (vast.ai)  
 **Dataset:** `SeanSunny/items_full` — 800k train / 10k val / 10k test  
 
@@ -10,23 +11,29 @@
 
 ## 1. Bối cảnh & Vấn đề
 
-### Baseline hiện tại
+### Baseline hiện tại (DNN với HashingVectorizer)
 
-Model DNN hiện tại (`deep_neural_network.py`) dùng **Bag of Words** làm input:
+Model DNN hiện tại (`deep_neural_network.py`) dùng **HashingVectorizer** làm input:
 
 ```
-item.summary → HashingVectorizer(5000, binary) → sparse vector
-             → Linear(5000→4096) + 8 ResidualBlocks + Linear(4096→1)
+item.summary → HashingVectorizer(5000, binary=True, stop_words="english") → sparse binary vector
+             → Linear(5000→4096) + 8 ResidualBlocks(4096) + Linear(4096→1)
              → price
 ```
 
-**Kết quả:** MAE **$46.49** — thắng Claude Opus 4.5 ($47.10).
+**Kết quả thực tế:** MAE **$46.02** — thắng Claude Opus 4.5 ($47.10).
+
+**Lưu ý kỹ thuật:** HashingVectorizer ≠ CountVectorizer (BoW truyền thống):
+- Dùng hashing trick để map từ → bucket index, không lưu vocabulary
+- `binary=True` → chỉ biết từ xuất hiện hay không (như BoW)
+- Không có OOV issue, stateless, memory-efficient
+- Nhược điểm: hash collision (2 từ khác nhau → cùng bucket)
 
 ### Vấn đề cốt lõi
 
 HashingVectorizer chỉ biết "từ này có xuất hiện không" — không có ngữ nghĩa:
-- "car" ≠ "automobile" với BoW, nhưng thực tế giá như nhau
-- "cheap plastic" ≠ "economy grade" với BoW, nhưng nghĩa giống nhau  
+- `"car"` ≠ `"automobile"` với hashing, nhưng thực tế giá như nhau
+- `"cheap plastic"` ≠ `"economy grade"` với hashing, nhưng nghĩa giống nhau
 - Không hiểu thứ tự từ, context, hoặc quan hệ giữa các khái niệm
 
 ### Câu hỏi nghiên cứu
@@ -37,279 +44,241 @@ HashingVectorizer chỉ biết "từ này có xuất hiện không" — không c
 
 ## 2. Câu chuyện học thuật (Academic Narrative)
 
-Ba mô hình tạo ra progression rõ ràng:
+Bốn mô hình tạo ra progression rõ ràng:
 
 ```
-Tầng 1 — BoW → ResNet ($46.49)
-    Đặc trưng: tần suất từ xuất hiện, binary, stateless
-    Vấn đề: mù về ngữ nghĩa
+Tầng 1 — HashingVec → ResNet DNN ($46.02)
+    Đặc trưng: keyword presence, stateless, no semantics
+    Vấn đề: "car" ≠ "automobile", không hiểu ngữ nghĩa
 
 Tầng 2 — SentenceTransformer (frozen) → DNN  [MODEL 1]
-    Đặc trưng: embedding ngữ nghĩa dày đặc 384-dim, pretrained
-    Tiến bộ: biết "car" ≈ "automobile", nhưng encoder không học từ dữ liệu giá
+    Đặc trưng: dense semantic embedding 384-dim, pretrained
+    Tiến bộ: "car" ≈ "automobile" — nhưng encoder không học từ dữ liệu giá
 
-Tầng 3 — Fine-tuned DistilBERT end-to-end  [MODEL 2]
-    Đặc trưng: encoder học lại representations tối ưu cho price prediction
-    Tiến bộ: attention học cái gì quan trọng với giá (brand, material, category)
+Tầng 3 — Fine-tuned DistilBERT / SentTrans E2E  [MODEL 2 & 3]
+    Đặc trưng: encoder học representations tối ưu cho price prediction
+    Tiến bộ: attention học cái gì quan trọng (brand, material, category)
+
+Tầng 4 — Feature Fusion: HashingVec + SentTrans  [MODEL 4]
+    Đặc trưng: kết hợp lexical signal + semantic signal
+    Hypothesis: 2 nguồn thông tin bổ sung cho nhau
 ```
+
+### Tại sao DNN (HashingVec) vẫn mạnh sau khi training ít epoch?
+
+1. **Dữ liệu đã được LLM pre-process** — Groq batch rewrite thành format chuẩn `Title / Category / Brand / Description / Details`. Brand và Category đã extract rõ → hashing capture được signal này trực tiếp.
+2. **Price prediction là keyword-driven**: brand tier (`"bose"`, `"anker"`), category, material (`"stainless steel"`, `"plastic"`) — HashingVec với 5000 features học statistical distribution này cực tốt trên 800k samples.
+3. **289M params overparametrized**: với sparse binary input, model có thể học phân phối giá theo từng keyword bucket rất chi tiết.
 
 ---
 
-## 3. Model 1: SentenceTransformer + Regression DNN
+## 3. Kết quả thực tế (Đã train)
 
-### 3.1 Lý do chọn kiến trúc này
+| Model | File | Epochs | Val MAE (best) | Test MAE | Ghi chú |
+|-------|------|--------|---------------|----------|---------|
+| HashingVec DNN | `deep_neural_network.py` | 5 | $53.84 | **$46.02** | Baseline |
+| SentTrans frozen (1024) | `sentence_transformer_model.py` | 15 | $56.24 | $47.56 | Tệ hơn DNN |
+| SentTrans frozen (4096) | `sentence_transformer_model.py` | 15 | $49.99 | **$43.78** | Tốt hơn DNN |
+| DistilBERT V1 (CLS, batch=32) | `distilbert_model.py` | 5 | $47.42 | **$44.19** | Chưa hội tụ |
 
-`sentence-transformers/all-MiniLM-L6-v2` đã là dependency trong project (dùng bởi `frontier_agent.py` cho ChromaDB). Model này tạo ra **dense semantic embeddings 384-dim**, trong đó:
-- Vector của "acoustic guitar" gần với "classical guitar"
-- Vector của "premium stainless steel" xa vector "cheap plastic"
+**Nhận xét:**
+- SentTrans 1024 tệ hơn DNN vì 13M params không đủ capacity so với 289M của DNN
+- SentTrans 4096 (203M params) tốt hơn DNN — improvement một phần đến từ model capacity lớn hơn, không chỉ từ semantic embedding
+- DistilBERT V1 val MAE vẫn giảm đều ($54.60 → $47.42) tại epoch 5, chưa plateau → cần train thêm
 
-Thay BoW (5000-dim sparse binary) bằng SentTrans (384-dim dense semantic) là bước nâng cấp rõ ràng về chất lượng input mà không cần fine-tune encoder.
+---
 
-**Key optimization:** Pre-compute toàn bộ 800k embeddings một lần trước training → encoder không chạy lại trong mỗi epoch → training head nhanh như DNN hiện tại.
+## 4. Model 1: SentenceTransformer + Regression DNN (Frozen)
 
-### 3.2 Kiến trúc
+### Kiến trúc
 
 ```
 item.summary
-    → all-MiniLM-L6-v2 (frozen, 22M params)
-    → 384-dim dense embedding  [pre-computed, lưu vào tensor]
-    → Linear(384 → 1024) + LayerNorm + ReLU + Dropout(0.2)
-    → 6 × ResidualBlock(1024 → 1024)
-    → Linear(1024 → 1)
+    → all-MiniLM-L6-v2 (frozen, 22M params) [pre-computed một lần]
+    → 384-dim dense embedding
+    → Linear(384 → hidden_size) + LayerNorm + ReLU + Dropout(0.2)
+    → 6 × ResidualBlock(hidden_size)
+    → Linear(hidden_size → 1)
     → price
 ```
 
-- **Encoder:** frozen hoàn toàn — chỉ dùng để encode, không update weights
-- **Regression head:** nhỏ hơn DNN hiện tại (1024 vs 4096) vì input semantic hơn
-- **Target transform:** giống DNN hiện tại — log(price+1) normalized
+**Hai variants đã train:**
+- `hidden_size=1024` → 13M trainable params → Test MAE **$47.56**
+- `hidden_size=4096` → 203M trainable params → Test MAE **$43.78** ✓
 
-### 3.3 Thông số ước tính
+**Key technique:** Pre-compute toàn bộ 800k embeddings một lần → encoder không chạy lại trong training loop → fast.
 
-| Thành phần | Parameters |
-|------------|-----------|
-| Encoder (frozen) | 22M |
-| Input proj (384→1024) | 393K |
-| 6 ResidualBlocks (1024→1024) | ~12.6M |
-| Output (1024→1) | 1K |
-| **Trainable total** | **~13M** |
-
-Memory (3090 Ti 24GB): thoải mái — có thể batch_size=256+
-
-### 3.4 Training config
+### Hyperparameters chốt
 
 ```python
-optimizer = AdamW(head.parameters(), lr=1e-3, weight_decay=0.01)
-scheduler = CosineAnnealingLR(T_max=10, eta_min=0)
-loss      = nn.L1Loss()  # giống DNN hiện tại
-epochs    = 10           # nhiều hơn vì model nhỏ, converge nhanh
-batch_size= 256          # lớn hơn vì model nhỏ
-grad_clip = 1.0
+hidden_size  = 4096       # Variant tốt hơn
+num_blocks   = 6
+dropout_prob = 0.2
+optimizer    = AdamW(lr=1e-3, weight_decay=0.01)
+scheduler    = CosineAnnealingLR(T_max=15, eta_min=0)
+loss         = L1Loss()
+batch_size   = 256
+epochs       = 15         # max, early stopping patience=3
 ```
-
-### 3.5 Ưu và Nhược điểm
-
-**Ưu điểm:**
-- Semantic understanding rõ ràng vs BoW
-- Zero dependency mới (SentTrans đã có)
-- Training nhanh (pre-computed embeddings)
-- Inference nhanh (~5ms/item)
-- Model nhỏ, dễ deploy
-
-**Nhược điểm:**
-- Encoder **frozen** — không học từ dữ liệu giá của chúng ta
-- Bị giới hạn bởi max_seq_len = 256 tokens
-- SentTrans được train cho sentence similarity, không phải price prediction → có thể không tối ưu
 
 ---
 
-## 4. Model 2: Fine-tuned DistilBERT (End-to-End)
+## 5. Model 2: Fine-tuned DistilBERT (End-to-End)
 
-### 4.1 Lý do chọn kiến trúc này
+### Tại sao DistilBERT
 
-Model 1 dùng **frozen** encoder. Model 2 **fine-tune toàn bộ** DistilBERT để học representations tối ưu cho price prediction.
+- 66M params (BERT-base: 110M) — nhanh 2x, giữ 97% performance
+- Fine-tuning encoder dạy attention heads học: brand names, materials, category context
+- DistilBERT production-ready, battle-tested
 
-Sau fine-tuning, attention heads của DistilBERT sẽ học:
-- Chú ý vào brand names (Fender, Samsung → tier giá khác nhau)
-- Nhận biết materials ("stainless steel", "ceramic" → cao hơn "plastic")
-- Hiểu category context ("wireless noise-cancelling" trong context headphone → $150+)
-
-**Tại sao DistilBERT thay vì BERT-base?**
-- 66M params (BERT-base: 110M) — nhanh 2x, nhỏ hơn
-- Giữ 97% performance của BERT-base
-- Fit thoải mái trên 3090 Ti 24GB với batch_size=32-64
-
-**Tại sao không dùng BERT-large hay RoBERTa-large?**
-- 800k samples là dataset lớn nhưng cho NLP task, fine-tuning model quá lớn có thể overfitting → DistilBERT là sweet spot cho dataset này
-
-### 4.2 Kiến trúc
+### Kiến trúc
 
 ```
 item.summary
-    → DistilBERT tokenizer (max_length=256, truncation=True)
+    → DistilBERT tokenizer (max_length=128, truncation=True)
     → DistilBERT encoder (6 layers, 768-dim, 66M params) [fine-tuned]
-    → [CLS] token embedding (768-dim)
-    → LayerNorm(768)
-    → Linear(768 → 256) + GELU + Dropout(0.1)
-    → Linear(256 → 1)
+    → pooling → 768-dim
+    → LayerNorm(768) → Linear(768→256) → GELU → Dropout(0.1) → Linear(256→1)
     → price
 ```
 
-- **[CLS] pooling:** token đặc biệt ở đầu sequence, sau fine-tuning chứa thông tin tổng hợp của cả câu
-- **GELU** thay ReLU vì BERT ecosystem dùng GELU — giữ consistency
-- **Target transform:** log(price+1) normalized — giống 2 model kia
+**Token length analysis:** 99.8% samples ≤ 128 tokens → max_length=128 optimal.
 
-### 4.3 Thông số
+### Ba variants
 
-| Thành phần | Parameters |
-|------------|-----------|
-| DistilBERT encoder | 66M |
-| Regression head | ~197K |
-| **Total** | **~66.2M** |
+**V1** (`distilbert_model.py`): CLS pooling, batch=32, 5 epochs → Test MAE **$44.19** (chưa hội tụ)
 
-Memory (3090 Ti 24GB):
-- Model weights: ~250MB (fp16) → ~500MB (fp32)
-- Batch 32 × seq 256: ~2GB activations
-- Tổng: ~8-10GB → thoải mái
+**V2** (`distilbert_model_v2.py`): CLS pooling, batch=64, 15 epochs, patience=3
+```python
+# Subclass của V1, thay đổi defaults
+def setup(self, batch_size=64)
+def train(self, epochs=15, patience=3, warmup_steps=500)
+```
 
-### 4.4 Training config
+**V3** (`distilbert_model_v3.py`): Mean pooling, batch=64, 15 epochs, patience=3
+```python
+# Mean pooling thay [CLS]
+mask = attention_mask.unsqueeze(-1).float()
+mean_emb = (outputs.last_hidden_state * mask).sum(1) / mask.sum(1)
+```
+
+**Tại sao thử mean pooling:**
+- CLS token được pretrain cho NSP (classification) — không optimal cho regression
+- Mean pooling = average tất cả token embeddings theo attention mask
+- SentTrans (all-MiniLM-L6-v2) dùng mean pooling và cho kết quả tốt
+- Nhiều paper BERT regression: mean pooling ≥ CLS
+
+### Hyperparameters chung (V2 và V3)
 
 ```python
-# Discriminative fine-tuning: encoder LR thấp, head LR cao
-optimizer = AdamW([
-    {"params": encoder.parameters(), "lr": 2e-5},
-    {"params": head.parameters(),    "lr": 1e-4},
+max_length   = 128
+optimizer    = AdamW([
+    {"params": encoder, "lr": 2e-5},   # Discriminative LR
+    {"params": head,    "lr": 1e-4},
 ], weight_decay=0.01)
-scheduler  = get_linear_schedule_with_warmup(warmup_steps=1000)
-loss       = nn.L1Loss()
-epochs     = 5           # Fine-tuning LLM không cần nhiều epoch
-batch_size = 32          # Nhỏ hơn vì model lớn hơn
-grad_clip  = 1.0
-precision  = fp16 (torch.cuda.amp)  # Mixed precision → 2x nhanh, ít VRAM
+scheduler    = linear_schedule_with_warmup(warmup_steps=500)
+loss         = L1Loss()
+batch_size   = 64
+epochs       = 15        # max, early stopping patience=3
+precision    = fp16 (torch.cuda.amp)
 ```
-
-**Discriminative fine-tuning:** LR khác nhau cho encoder và head. Tránh phá vỡ pretrained knowledge trong encoder với LR quá cao.
-
-**Warmup:** 1000 steps đầu tăng LR từ 0 → target → tránh unstable training ở đầu.
-
-### 4.5 Ưu và Nhược điểm
-
-**Ưu điểm:**
-- **Task-specific learned representations** — tốt nhất về chất lượng
-- Hiểu context, thứ tự từ, quan hệ giữa các khái niệm
-- Có thể đạt MAE tốt nhất trong cả 4 models
-- DistilBERT là production-ready, battle-tested
-
-**Nhược điểm:**
-- Training chậm hơn 3–5x so với Model 1 (nhưng khả thi trên 3090 Ti)
-- Inference chậm hơn (~30-50ms/item vs ~5ms) — cần đánh giá nếu tích hợp Ensemble
-- Cần thêm `transformers` library (HuggingFace)
-- Phức tạp hơn: tokenizer, attention masks, warmup schedule
 
 ---
 
-## 5. Kỳ vọng kết quả
+## 6. Model 3: SentenceTransformer End-to-End Fine-tuning
 
-| Hạng | Model | MAE (ước tính) | Lý do |
-|------|-------|----------------|-------|
-| ? | Fine-tuned DistilBERT | ~$38–44 | Task-specific end-to-end |
-| ? | SentenceTransformer DNN | ~$43–46 | Better repr, nhưng frozen |
-| 2 | Current DNN (BoW) | $46.49 | Baseline |
-| 3 | Claude Opus 4.5 | $47.10 | Reference |
+### Lý do
 
----
+Model 1 frozen encoder bị giới hạn: all-MiniLM-L6-v2 được train cho semantic similarity, không phải price prediction. Fine-tuning dạy encoder chú ý đến brand tier, material quality, category context.
 
-## 6. File Structure Output
+**Contrast:**
+- Model 1: pre-compute embeddings một lần → encoder không học → fast nhưng suboptimal
+- Model 3: encoder chạy trong mỗi batch, weights được update → học price-specific representation
+
+### Kiến trúc
 
 ```
-Code_Data_processing/
-├── pricer/
-│   ├── sentence_transformer_model.py    # SentTransRunner class (Model 1)
-│   └── distilbert_model.py              # DistilBERTRunner class (Model 2)
-│
-├── model1_senttrans_train.ipynb         # Train Model 1, visualize, evaluate
-├── model2_distilbert_train.ipynb        # Train Model 2, visualize, evaluate
-│
-└── [weights được lưu vào segment4/ để dùng trong EnsembleAgent]
-    # segment4/sentence_transformer_model.pth
-    # segment4/distilbert_model.pth
+item.summary
+    → all-MiniLM-L6-v2 tokenizer (max_length=128)
+    → all-MiniLM-L6-v2 encoder (22M params) [FINE-TUNED]
+    → mean pooling → 384-dim
+    → LayerNorm(384) → Linear(384→256) → GELU → Dropout(0.1) → Linear(256→1)
+    → price
 ```
 
-### Interface chuẩn (giống `DeepNeuralNetworkRunner`)
+**Implementation:** Dùng `transformers.AutoModel` thay vì `sentence_transformers.SentenceTransformer` để kiểm soát fine-tuning trực tiếp.
 
-Cả 2 Runner classes phải implement cùng interface để dễ plug vào EnsembleAgent:
+### Hyperparameters
 
 ```python
-class SentTransRunner:
-    def __init__(self, train, val): ...
-    def setup(self): ...          # Load model, vectorize/encode data
-    def train(self, epochs) -> dict: ...  # Return history dict
-    def save(self, path): ...
-    def load(self, path): ...
-    def inference(self, item) -> float: ...  # item.summary → price float
+model_name   = "sentence-transformers/all-MiniLM-L6-v2"
+max_length   = 128
+optimizer    = AdamW([
+    {"params": encoder, "lr": 5e-5},   # Nhỏ hơn DistilBERT vì model nhỏ hơn
+    {"params": head,    "lr": 1e-3},
+], weight_decay=0.01)
+scheduler    = linear_schedule_with_warmup(warmup_steps=500)
+loss         = L1Loss()
+batch_size   = 128       # Lớn hơn DistilBERT vì model nhỏ hơn (22M vs 66M)
+epochs       = 15        # max, early stopping patience=3
+precision    = fp16
 ```
+
+**Params:** 22M encoder + ~197K head = ~22.2M total
+
+---
+
+## 7. Model 4: Feature Fusion (HashingVec + SentTrans)
+
+### Hypothesis
+
+HashingVec và SentTrans capture hai loại thông tin khác nhau, bổ sung cho nhau:
+- **HashingVec**: lexical signal — brand names (`"samsung"`, `"bose"`), explicit keywords (`"wireless"`, `"4k"`, `"stainless steel"`)
+- **SentTrans**: semantic signal — quality context (`"premium"`, `"economy grade"`), conceptual similarity
+
+Kết hợp cả hai trong một model nên tốt hơn từng model riêng lẻ.
+
+### Kiến trúc
+
+```
+HashingVec(5000) → LayerNorm(5000) → Linear(5000→512) → ReLU ─┐
+                                                                  ├→ concat(1024) → 4×ResidualBlock(1024) → Linear(1) → price
+SentTrans(384) frozen → LayerNorm(384) → Linear(384→512) → ReLU ─┘
+```
+
+**Tại sao project riêng (không concat thẳng 5384):**
+- 5000-dim HashingVec sẽ dominate 384-dim SentTrans nếu concat trực tiếp
+- LayerNorm + projection riêng cho từng modality giải quyết scale mismatch
+- Mỗi tower học representation tối ưu cho modality của nó trước khi fusion
+
+### Hyperparameters
 
 ```python
-class DistilBERTRunner:
-    # Cùng interface với SentTransRunner
+hash_dim     = 5000
+sem_dim      = 384
+proj_dim     = 512        # Mỗi modality project về 512
+fused_dim    = 1024       # concat(512, 512)
+num_blocks   = 4          # ResidualBlocks sau fusion
+dropout_prob = 0.2
+optimizer    = AdamW(lr=1e-3, weight_decay=0.01)
+scheduler    = CosineAnnealingLR(T_max=15, eta_min=0)
+loss         = L1Loss()
+batch_size   = 256        # Lớn vì không có transformer overhead
+epochs       = 15         # max, early stopping patience=3
 ```
 
----
-
-## 7. Implementation Plan
-
-### Bước 1: Model 1 — SentenceTransformer DNN
-1. Tạo `pricer/sentence_transformer_model.py` — `SentTransRunner` class  
-   → verify: `runner.inference(item)` trả về float hợp lý
-2. Tạo `model1_senttrans_train.ipynb` — train 10 epochs, plot history, evaluate  
-   → verify: MAE < $46.49 (thắng BoW DNN)
-3. Lưu weights → `segment4/sentence_transformer_model.pth`  
-   → verify: load lại và inference đúng
-
-### Bước 2: Model 2 — Fine-tuned DistilBERT
-1. Tạo `pricer/distilbert_model.py` — `DistilBERTRunner` class với mixed precision  
-   → verify: training không OOM trên 3090 Ti với batch_size=32
-2. Tạo `model2_distilbert_train.ipynb` — train 5 epochs, plot history, evaluate  
-   → verify: MAE < Model 1
-3. Lưu weights → `segment4/distilbert_model.pth`  
-   → verify: load lại và inference đúng
-
-### Bước 3: So sánh & Báo cáo
-- Bảng kết quả 4 models trong cùng 1 cell của notebook
-- Dùng `evaluate()` và `plot_training_history()` từ `pricer/evaluator.py` (không viết lại)
+**Setup:** Pre-compute cả hai feature types một lần (SentTrans frozen) → training loop chỉ chạy FusionDNN.
 
 ---
 
-## 8. Constraints & Decisions (DA CHOT — 2026-05-10)
+## 8. Token Length Analysis (2026-05-10)
 
-| Quyết định | Lý do |
-|------------|-------|
-| Dùng `all-MiniLM-L6-v2` cho Model 1 | Đã có trong project, không thêm dependency |
-| Dùng DistilBERT (không phải BERT-base) | 97% performance, 2x nhanh, phù hợp 800k dataset |
-| Pre-compute embeddings cho Model 1 | Tách encoding khỏi training loop → nhanh hơn nhiều |
-| Mixed precision (fp16) cho Model 2 | 2x tốc độ, giảm VRAM, không ảnh hưởng kết quả |
-| Cùng target transform (log normalize) | Consistency với DNN hiện tại, dễ so sánh |
-| Cùng L1Loss | Giảm sensitivity với outliers (giá rất cao/thấp) |
-| **max_length=128** cho DistilBERT | **Verified:** 99.8% samples <= 128 tokens, power of 2 memory-aligned |
-| **hidden_size=1024** cho Model 1 | Input 384-dim dense, 4096 quá lớn gây overfitting. 1024 đủ capacity |
-| **6 ResidualBlocks** cho Model 1 | 384→1024 + 6 blocks = 8 layers, tương đương Vanilla NN depth |
-| Early stopping cho cả 2 models | Tránh overfitting, tự dừng khi val MAE không cải thiện |
-| Lưu .pth vào segment4/ | Dùng ngay trong EnsembleAgent mà không cần copy |
-
----
-
-## 9. Token Length Analysis (2026-05-10)
-
-Chạy `check_token_length.py` trên 10k random samples từ `SeanSunny/items_full` với DistilBERT tokenizer:
+Chạy trên 10k random samples từ `SeanSunny/items_full` với DistilBERT tokenizer:
 
 ```
---- Token Length Distribution (DistilBERT tokenizer) ---
-Min:    40
-Max:    163
-Mean:   81.9
-Median: 81
-P90:    99
-P95:    105
-P99:    118
+Min:    40  |  Max:    163
+Mean:   81.9 |  Median: 81
+P90:    99   |  P95:    105  |  P99:    118
 
 <= 64:  7.6%
 <= 128: 99.8%
@@ -317,88 +286,104 @@ P99:    118
 > 128:  25 samples (0.2%)
 ```
 
-**Kết luận:** `max_length=128` là lựa chọn tối ưu — cover 99.8% samples, power of 2 cho memory alignment, chỉ 25/10000 mẫu bị truncate.
+**Kết luận:** `max_length=128` cover 99.8% samples, power of 2 cho memory alignment, áp dụng cho cả DistilBERT và SentTrans E2E.
 
 ---
 
-## 10. Thảo luận: Skip Connection cho Model 1 & 2
+## 9. File Structure
 
-### Model 1 (SentTrans DNN) — Đã có Skip Connection
-
-`SentTransDNN` dùng 6 `ResidualBlock`, mỗi block có `out += residual` (skip connection). Cùng pattern với `deep_neural_network.py`. **Không cần bổ sung.**
-
-### Model 2 (DistilBERT) — Không cần thêm Skip Connection vào head
-
-**Lý do 1:** DistilBERT encoder đã có sẵn skip connections. Mỗi transformer layer có 2 residual connections (sau attention và sau FFN). 6 layers × 2 = **12 skip connections** trong encoder.
-
-**Lý do 2:** Regression head chỉ có 2 linear layers (768 → 256 → 1). Skip connection yêu cầu cùng hidden_size (768 ≠ 256 ≠ 1), và mạng 2 layers không bị vanishing gradient.
-
-**Lý do 3:** Các paper fine-tuning BERT cho regression (STS-B, sentiment) đều dùng head 1-2 layers. Head lớn thường không cải thiện kết quả vì encoder đã học representation tốt.
-
-**Kết luận:** Giữ nguyên thiết kế hiện tại. Nếu kết quả chưa đạt, ưu tiên điều chỉnh LR và epochs trước khi thêm complexity vào head.
-
----
-
-## 11. Hyperparameters chốt cuối cùng
-
-### Model 1: SentenceTransformer + DNN
-
-```python
-input_size   = 384        # all-MiniLM-L6-v2 output dim
-hidden_size  = 1024
-num_blocks   = 6          # ResidualBlocks
-dropout_prob = 0.2
-optimizer    = AdamW(lr=1e-3, weight_decay=0.01)
-scheduler    = CosineAnnealingLR(T_max=15, eta_min=0)
-loss         = L1Loss()
-batch_size   = 256
-epochs       = 15         # max, early stopping patience=3
-grad_clip    = 1.0
+```
+Code_Data_processing/
+│
+├── pricer/
+│   ├── deep_neural_network.py        # Baseline: HashingVec + ResNet DNN (289M params)
+│   ├── sentence_transformer_model.py # Model 1: SentTrans frozen + DNN head
+│   ├── distilbert_model.py           # Model 2 V1: DistilBERT CLS, batch=32, 5 epochs
+│   ├── distilbert_model_v2.py        # Model 2 V2: CLS, batch=64, 15 epochs
+│   ├── distilbert_model_v3.py        # Model 2 V3: Mean pooling, batch=64, 15 epochs
+│   ├── senttrans_e2e_model.py        # Model 3: SentTrans fine-tuned E2E
+│   ├── fusion_model.py               # Model 4: HashingVec + SentTrans fusion
+│   └── evaluator.py                  # evaluate() + plot_training_history()
+│
+├── redemption_train.ipynb            # Train Baseline DNN (5 epochs) → MAE $46.02
+├── model1_senttrans_train_1024.ipynb # Train Model 1 (hidden=1024) → MAE $47.56
+├── model1_senttrans_train_4096.ipynb # Train Model 1 (hidden=4096) → MAE $43.78
+├── model2_distilbert_train.ipynb     # Train Model 2 V1 (5 epochs) → MAE $44.19
+├── model2_distilbert_train_v2.ipynb  # Train Model 2 V2 (batch=64, 15 epochs) [TODO]
+├── model2_distilbert_train_v3.ipynb  # Train Model 2 V3 (mean pooling) [TODO]
+├── model3_senttrans_e2e_train.ipynb  # Train Model 3 (SentTrans E2E) [TODO]
+└── model4_fusion_train.ipynb         # Train Model 4 (Feature Fusion) [TODO]
 ```
 
-Trainable params: ~13M | Encoder (frozen): 22M
-
-### Model 2: Fine-tuned DistilBERT
-
-```python
-max_length     = 128
-encoder        = distilbert-base-uncased (66M params, fine-tuned)
-head           = LayerNorm(768) → Linear(768,256) → GELU → Dropout(0.1) → Linear(256,1)
-optimizer      = AdamW([
-    {"params": encoder, "lr": 2e-5},   # Discriminative LR
-    {"params": head,    "lr": 1e-4},
-], weight_decay=0.01)
-scheduler      = linear_schedule_with_warmup(warmup_steps=1000)
-loss           = L1Loss()
-batch_size     = 32
-epochs         = 5        # max, early stopping patience=2
-grad_clip      = 1.0
-precision      = fp16 (torch.cuda.amp)
-```
-
-Total params: ~66.2M (encoder: 66M, head: ~197K)
+**Weights (lưu vào `Code_Data_processing/`):**
+- `sentence_transformer_model.pth` — Model 1 (4096 variant)
+- `distilbert_model.pth` — Model 2 V1
+- `distilbert_model_v2.pth` — Model 2 V2 (sau khi train)
+- `distilbert_model_v3.pth` — Model 2 V3 (sau khi train)
+- `senttrans_e2e_model.pth` — Model 3 (sau khi train)
+- `fusion_model.pth` — Model 4 (sau khi train)
 
 ---
 
-## 12. Implementation Status (2026-05-10)
+## 10. Interface chuẩn
 
-| File | Trạng thái | Mô tả |
-|------|-----------|-------|
-| `pricer/sentence_transformer_model.py` | DONE | SentTransDNN + SentTransRunner class |
-| `pricer/distilbert_model.py` | DONE | DistilBERTRegressor + DistilBERTRunner class |
-| `model1_senttrans_train.ipynb` | DONE | Notebook: load → setup → train → plot_training_history → evaluate(200) → save |
-| `model2_distilbert_train.ipynb` | DONE | Notebook: load → setup → train → plot_training_history → evaluate(200) → save |
-| Train on GPU (vast.ai 3090 Ti) | CHUA LAM | Thuê máy khi code sẵn sàng |
-| Report kỹ thuật (mức A) | CHUA LAM | Viết sau khi có kết quả train |
+Tất cả Runner classes implement cùng interface:
 
-### Cả 2 model đều tuân thủ:
+```python
+class XxxRunner:
+    def setup(self, batch_size=...): ...   # Load model, prepare data
+    def train(self, epochs, patience) -> dict: ...  # Return history dict
+    def save(self, path): ...              # Save weights + y_mean + y_std
+    def load(self, path): ...              # Load weights + y_mean + y_std
+    def inference(self, item) -> float: ... # item.summary → price float
+```
 
-- Cùng interface với `DeepNeuralNetworkRunner` (setup / train / save / load / inference)
-- Dùng `evaluate()` từ `pricer/evaluator.py` cho 200 test samples
-- Dùng `plot_training_history()` để vẽ biểu đồ Train Loss / Val Loss / Val MAE / LR
-- Log-normalize target: `log(price+1)` → Z-score normalize
-- Early stopping trên validation MAE (restore best weights)
-- Gradient clipping max_norm=1.0
+`evaluate()` từ `pricer/evaluator.py` gọi `inference(item)` → tương thích với mọi runner.
+
+---
+
+## 11. Implementation Status
+
+| Model | `.py` | `.ipynb` | Train | Test MAE | Ghi chú |
+|-------|-------|----------|-------|----------|---------|
+| Baseline DNN (HashingVec) | `deep_neural_network.py` ✓ | `redemption_train.ipynb` ✓ | DONE | **$46.02** | 5 epochs |
+| Model 1 SentTrans frozen (1024) | `sentence_transformer_model.py` ✓ | `model1_senttrans_train_1024.ipynb` ✓ | DONE | $47.56 | 15 epochs |
+| Model 1 SentTrans frozen (4096) | `sentence_transformer_model.py` ✓ | `model1_senttrans_train_4096.ipynb` ✓ | DONE | **$43.78** | 15 epochs |
+| Model 2 V1 DistilBERT CLS | `distilbert_model.py` ✓ | `model2_distilbert_train.ipynb` ✓ | DONE | $44.19 | 5 epochs, chưa hội tụ |
+| Model 2 V2 DistilBERT CLS long | `distilbert_model_v2.py` ✓ | `model2_distilbert_train_v2.ipynb` ✓ | TODO | — | batch=64, 15 epochs |
+| Model 2 V3 DistilBERT mean pool | `distilbert_model_v3.py` ✓ | `model2_distilbert_train_v3.ipynb` ✓ | TODO | — | mean pooling |
+| Model 3 SentTrans E2E | `senttrans_e2e_model.py` ✓ | `model3_senttrans_e2e_train.ipynb` ✓ | TODO | — | encoder fine-tuned |
+| Model 4 Feature Fusion | `fusion_model.py` ✓ | `model4_fusion_train.ipynb` ✓ | TODO | — | HashingVec + SentTrans |
+
+---
+
+## 12. Thứ tự train (Priority hôm nay)
+
+Ưu tiên theo ROI và thời gian, với 3090 Ti 24GB:
+
+| Priority | Notebook | Ước tính | Lý do |
+|----------|----------|---------|-------|
+| 1 | `model2_distilbert_train_v2.ipynb` | ~2h | Val MAE v1 đang giảm mạnh, highest ROI |
+| 2 | `model2_distilbert_train_v3.ipynb` | ~2h | Chạy song song v2 (8GB+8GB < 24GB) |
+| 3 | `model3_senttrans_e2e_train.ipynb` | ~1.5h | Model nhỏ (22M), batch=128 |
+| 4 | `model4_fusion_train.ipynb` | ~1.5h | Setup lâu (pre-compute 2 features) |
+
+**Lưu ý v3:** Output sẽ in "DistilBERT Regressor: 66M" (từ V2 super().setup()) rồi in "DistilBERT V3 (mean pooling): 66M" — expected behavior, model đã được swap đúng.
+
+---
+
+## 13. Leaderboard hiện tại
+
+| Hạng | Model | MAE | Loại |
+|------|-------|-----|------|
+| ? | Model 2 V2/V3 | TBD | DistilBERT 15 epochs |
+| ? | Model 3 | TBD | SentTrans E2E |
+| ? | Model 4 | TBD | Feature Fusion |
+| 1 | SentTrans frozen (4096) | $43.78 | Model 1 |
+| 2 | DistilBERT V1 (5 epoch) | $44.19 | Model 2 V1 |
+| 3 | Baseline HashingVec DNN | $46.02 | DNN |
+| 4 | Claude Opus 4.5 | $47.10 | Frontier LLM |
+| 5 | SentTrans frozen (1024) | $47.56 | Model 1 |
 
 ---
 
