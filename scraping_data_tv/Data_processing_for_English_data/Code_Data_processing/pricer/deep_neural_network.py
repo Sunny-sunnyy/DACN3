@@ -79,6 +79,7 @@ class DeepNeuralNetworkRunner:
     def setup(self):
         self.vectorizer = HashingVectorizer(n_features=5000, stop_words="english", binary=True)
 
+        # Vectorize training data
         train_documents = [item.summary for item in self.train_data]
         X_train_np = self.vectorizer.fit_transform(train_documents)
         self.X_train = torch.FloatTensor(X_train_np.toarray())
@@ -90,7 +91,8 @@ class DeepNeuralNetworkRunner:
         self.X_val = torch.FloatTensor(X_val_np.toarray())
         y_val_np = np.array([float(item.price) for item in self.val_data])
         self.y_val = torch.FloatTensor(y_val_np).unsqueeze(1)
-
+        
+        # Log-normalize targets (chuẩn hóa giá theo log)
         y_train_log = torch.log(self.y_train + 1)
         y_val_log = torch.log(self.y_val + 1)
         self.y_mean = y_train_log.mean()

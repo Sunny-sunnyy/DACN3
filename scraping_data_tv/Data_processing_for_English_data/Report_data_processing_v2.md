@@ -43,7 +43,7 @@ Lấy dữ liệu thô từ Amazon (~3M sản phẩm), lọc bỏ rác, chuẩn 
 
 ### File: `pricer/items.py` — Cấu trúc dữ liệu trung tâm
 
-> **Vai trò:** Định nghĩa class `Item` — đơn vị dữ liệu xuyên suốt toàn dự án.
+> **Vai trò:** Định nghĩa class `Item` — đơn vị dữ liệu xuyên suốt toàn dự án. - An Item is a data-point of a Product with a Price
 
 ```python
 PREFIX = "Price is $"
@@ -154,6 +154,169 @@ def parse(datapoint, category):
             return Item(title=title, category=category, price=price, full=full, weight=weight)
 ```
 > **Lý do return `None` thay vì raise Exception:** Hàm này chạy song song cho hàng triệu records. Dùng None để bỏ qua datapoint lỗi mà không làm crash cả batch.
+
+---
+
+### File: `pricer/parser_v2.py` — Lọc và làm sạch từng sản phẩm (phiên bản nâng cao)
+
+> **Vai trò:** Phiên bản nâng cao của `parser.py` — giữ nguyên interface `parse() → Item` nhưng bổ sung pipeline làm sạch text sâu hơn: xóa HTML, emoji, URL, stopwords, marketing spam, chuẩn hóa Unicode, lowercase.
+
+**Dependencies bổ sung:** `beautifulsoup4` (xử lý HTML), `nltk` (stopwords tiếng Anh).
+
+**Cách sử dụng:** Swap trong `loaders.py` chỉ cần đổi `from pricer.parser_v2 import parse`.
+
+**Hằng số — Những thay đổi so với `parser.py`:**
+
+```python
+# Các trường cần xóa khỏi details (không cung cấp thông tin về giá)
+REMOVALS = ["Part Number", "Best Sellers Rank", "Batteries Included?",
+            "Batteries Required?", "Item model number"]
+
+# NLTK English stopwords — load 1 lần khi import module
+STOP_WORDS = set(stopwords.words("english"))
+```
+
+**Marketing Spam Patterns:**
+```python
+MARKETING_PHRASES = [
+    r"click add to cart", r"add to cart now", r"buy now", r"order now",
+    r"limited time offer", r"100% satisfaction guarantee",
+    r"satisfaction guaranteed", r"money back guarantee",
+    r"risk free", r"act now", r"best seller", r"free shipping",
+    r"as seen on tv", r"scroll up and click", r"don't miss out",
+    r"hurry up", r"what are you waiting for",
+    r"makes a great gift", r"perfect gift", r"gift idea",
+]
+```
+> **Tại sao xóa marketing spam?** Những cụm từ này xuất hiện ở mọi mức giá — sản phẩm $5 và $500 đều viết "Click Add to Cart". Để lại sẽ tạo false correlations trong BoW/TF-IDF, đặc biệt nếu một số seller spam nhiều hơn trong category nhất định.
+
+**Regex Patterns (compiled 1 lần khi import):**
+```python
+URL_PATTERN = re.compile(r"https?://\S+|www\.\S+", flags=re.IGNORECASE)
+EMAIL_PATTERN = re.compile(r"\S+@\S+\.\S+")
+PRODUCT_CODE_PATTERN = re.compile(r"\b(?=[A-Z0-9]{7,}\b)(?=.*[A-Z])(?=.*\d)[A-Z0-9]+\b")
+UPC_EAN_PATTERN = re.compile(r"\b\d{8,14}\b")           # Barcode UPC/EAN: 8-14 chữ số liên tiếp
+REPEATED_PUNCT_PATTERN = re.compile(r"([!?.]){2,}")      # !!! → !, ... → .
+EMPTY_BRACKETS_PATTERN = re.compile(r"\(\s*\)|\[\s*\]|\{\s*\}")  # (), [], {} rỗng
+MULTI_SPACE_PATTERN = re.compile(r"\s{2,}")               # Gộp khoảng trắng
+EMOJI_PATTERN = re.compile("[emoji unicode ranges]+")      # Emoticons, symbols, flags, dingbats
+MISC_SYMBOLS_PATTERN = re.compile(r"[►▶▷◀◁◆◇○●■□▪▫✓✔✗✘...]")  # Arrows, bullets, checkmarks
+```
+> **Tại sao compile regex 1 lần?** `re.compile()` biên dịch pattern thành bytecode. Nếu gọi `re.sub(pattern, ...)` trực tiếp, Python phải compile lại mỗi lần — với 800k items × 10 patterns = 8 triệu lần compile thừa.
+
+**Các hàm làm sạch (cleaning functions):**
+
+#### `strip_html(text) → str`
+**Mục đích:** Xóa toàn bộ HTML tags (`<br>`, `<p>`, `<b>`...) bằng BeautifulSoup, giải mã HTML entities (`&amp;` → `&`, `&#39;` → `'`, `&nbsp;` → space).
+```python
+def strip_html(text):
+    soup = BeautifulSoup(text, "html.parser")
+    clean = soup.get_text(separator=" ")      # Thay thế tags bằng space
+    return html.unescape(clean)               # Decode HTML entities
+```
+> **Tại sao dùng BeautifulSoup thay vì regex?** HTML có thể nested, self-closing, malformed. Regex `<[^>]+>` bỏ sót nhiều trường hợp (ví dụ: `<br/>`, `<!-- comment -->`, `<div class="x">`). BeautifulSoup parse DOM tree → chính xác 100%.
+
+#### `normalize_unicode(text) → str`
+**Mục đích:** Chuẩn hóa Unicode về dạng NFKD (phân tách ký tự tổ hợp) và xóa control characters vô hình.
+```python
+def normalize_unicode(text):
+    text = unicodedata.normalize("NFKD", text)  # "ﬁ" → "fi", "½" → "1/2"
+    return "".join(ch for ch in text if unicodedata.category(ch) != "Cc")
+```
+> **NFKD là gì?** Normalization Form Compatibility Decomposition — phân tách ký tự đặc biệt thành dạng tương đương ASCII. Ví dụ: ligature "ﬁ" thành "fi", fraction "½" thành chuỗi "1⁄2". Giúp tokenizer xử lý nhất quán.
+
+#### `remove_emojis_and_symbols(text) → str`
+**Mục đích:** Xóa toàn bộ emoji (😀, 🎉...) và misc symbols (★, ✓, ♥, →, ©, ™...) bằng Unicode range patterns.
+> **Tại sao xóa symbols?** Sellers dùng ★★★★★, ✔, ► để decorate mô tả. Trong BoW, mỗi symbol trở thành 1 feature riêng không mang ý nghĩa về giá — chỉ tạo noise.
+
+#### `remove_urls_and_emails(text) → str`
+**Mục đích:** Xóa URLs (`https://...`, `www.xxx`) và email addresses. Các thông tin liên hệ seller không liên quan đến giá sản phẩm.
+
+#### `remove_marketing_spam(text) → str`
+**Mục đích:** Xóa 20+ cụm từ marketing phổ biến bằng regex pattern đã compile, case-insensitive.
+
+#### `remove_codes(text) → str`
+**Mục đích:** Xóa product codes (kế thừa từ `parser.py`) và bổ sung xóa UPC/EAN barcodes (chuỗi 8-14 chữ số liên tiếp).
+> **Tại sao thêm UPC/EAN?** `parser.py` chỉ xóa mã có cả chữ và số (SKU). Nhưng nhiều listing còn chứa UPC (12 số) hoặc EAN (13 số) — đây là mã barcode, không mang ý nghĩa giá.
+
+#### `collapse_punctuation(text) → str`
+**Mục đích:** Gộp dấu câu lặp (`!!!` → `!`, `...` → `.`) và xóa ngoặc rỗng (`()`, `[]`, `{}`).
+
+#### `remove_stopwords(text) → str`
+**Mục đích:** Xóa stopwords tiếng Anh (the, is, at, which, on...) khỏi text đã lowercase.
+```python
+def remove_stopwords(text):
+    words = text.split()
+    return " ".join(w for w in words if w not in STOP_WORDS)
+```
+> **Trade-off khi xóa stopwords:** Giảm kích thước vocabulary → BoW/TF-IDF tập trung vào content words. Tuy nhiên, với transformer-based models (BERT, GPT), KHÔNG nên xóa stopwords vì model cần ngữ cảnh đầy đủ để hiểu ngữ nghĩa.
+
+#### `normalize_whitespace(text) → str`
+**Mục đích:** Gộp multiple spaces thành 1 space và strip đầu/cuối.
+
+#### `clean_text(text) → str` — Pipeline tổng hợp
+**Mục đích:** Gọi tuần tự tất cả cleaning functions theo đúng thứ tự — đây là hàm trung tâm được `simplify()` và `scrub()` sử dụng.
+```python
+def clean_text(text):
+    text = strip_html(text)              # 1. Xóa HTML tags + decode entities
+    text = normalize_unicode(text)        # 2. Chuẩn hóa Unicode NFKD
+    text = remove_emojis_and_symbols(text)# 3. Xóa emoji + misc symbols
+    text = remove_urls_and_emails(text)   # 4. Xóa URLs + emails
+    text = remove_marketing_spam(text)    # 5. Xóa cụm marketing
+    text = remove_codes(text)            # 6. Xóa mã sản phẩm + UPC/EAN
+    text = collapse_punctuation(text)     # 7. Gộp dấu câu lặp
+    text = text.lower()                  # 8. Lowercase
+    text = remove_stopwords(text)         # 9. Xóa stopwords
+    text = normalize_whitespace(text)     # 10. Gộp khoảng trắng
+    return text
+```
+> **Thứ tự quan trọng:** `strip_html` phải chạy trước `remove_codes` (vì HTML entities có thể chứa số). `text.lower()` phải chạy trước `remove_stopwords` (vì STOP_WORDS là lowercase). `normalize_whitespace` chạy cuối vì các bước trước có thể tạo ra spaces thừa.
+
+**Các hàm chính (kế thừa interface từ `parser.py`):**
+
+#### `simplify(text_list) → str`
+**Mục đích:** Giống `parser.py` nhưng gọi `clean_text()` thay vì chỉ xóa whitespace.
+
+#### `scrub(title, description, features, details) → str`
+**Mục đích:** Giống `parser.py` nhưng mỗi trường text đều đi qua `clean_text()` trước khi ghép.
+```python
+def scrub(title, description, features, details):
+    for remove in REMOVALS:
+        details.pop(remove, None)
+    result = clean_text(title) + "\n"                     # Title qua full pipeline
+    if description:
+        result += simplify(description) + "\n"            # Description qua full pipeline
+    if features:
+        result += simplify(features) + "\n"               # Features qua full pipeline
+    if details:
+        result += clean_text(json.dumps(details)) + "\n"  # Details qua full pipeline
+    return result.strip()[:MAX_TEXT_TOTAL]
+```
+
+#### `get_weight(details) → float` — Giữ nguyên logic từ `parser.py`
+
+#### `parse(datapoint, category) → Optional[Item]` — Giữ nguyên interface từ `parser.py`
+
+**So sánh tổng hợp `parser.py` vs `parser_v2.py`:**
+
+| Cleaning step | `parser.py` | `parser_v2.py` |
+|---|---|---|
+| Whitespace normalization | `\n`, `\r`, `\t`, double space | Regex collapse toàn bộ multi-space |
+| HTML tags | Không xử lý | BeautifulSoup strip toàn bộ |
+| HTML entities | Không xử lý | `html.unescape()` (`&amp;` → `&`) |
+| Unicode normalization | Không xử lý | NFKD + remove control chars |
+| Emoji / Icons | Không xử lý | Regex pattern cho emoji + misc symbols |
+| URL / Email | Không xử lý | Regex removal |
+| Marketing spam | Không xử lý | 20+ phrases case-insensitive |
+| Product codes | Regex 7+ alphanum | Giữ nguyên + thêm UPC/EAN (8-14 digits) |
+| Stopwords | Không xử lý | NLTK English stopwords |
+| Repeated punctuation | Không xử lý | `!!!` → `!`, `...` → `.`, xóa ngoặc rỗng |
+| Lowercase | Không xử lý | Có |
+| REMOVALS list | 5 fields | 10 fields |
+
+> **Khi nào dùng `parser.py` vs `parser_v2.py`?**
+> - `parser.py`: Khi muốn giữ text gần nguyên bản (cho LLM pre-processing ở Day 2 — LLM tự hiểu HTML, emoji).
+> - `parser_v2.py`: Khi dùng text trực tiếp cho BoW/TF-IDF models (Day 3+) — cần text cực sạch để giảm vocabulary size và noise.
 
 ---
 
@@ -284,7 +447,7 @@ Hàm bậc hai tăng trưởng nhanh hơn → phân biệt rõ hơn giữa sản
 ## Day 2 — Data Pre-processing (Tiền xử lý dữ liệu bằng LLM)
 
 ### Mục tiêu
-Dùng LLM mạnh để "chắt lọc" text thô (`item.full`) thành summary sạch, chuẩn format (`item.summary`). Kỹ thuật này gọi là Knowledge Distillation (chắt lọc kiến thức) — dùng model lớn để tạo data chất lượng cao cho model nhỏ hơn học.
+Dùng LLM mạnh để "chắt lọc" text thô (`item.full`) thành summary sạch, chuẩn format (`item.summary`), có cấu trúc (Structured), ngắn gọn và giàu thông tin (High Signal-to-Noise Ratio). Kỹ thuật này gọi là Knowledge Distillation (chắt lọc kiến thức) — dùng model lớn để tạo data chất lượng cao cho model nhỏ hơn học.
 
 ### Vấn đề với `item.full`
 ```
@@ -292,7 +455,23 @@ WD12X10327 Rack Roller and stud assembly Kit (4 Pack) by AMI PARTS...
 ['【PARTS NUMBER】The dishwasher top rack wheels...', '【REPLACES PART】1811003, AP4980629, WD12X0330...']
 {"Brand Name": "AMI PARTS", "Item Weight": "0.634 ounces"...}
 ```
-→ Chứa: mã sản phẩm còn sót, emoji, ngôn ngữ marketing, thông tin thừa.
+→ Chứa: văn bản thô, không có cấu trúc, có mã sản phẩm còn sót, ngôn ngữ marketing, thông tin thừa, dấu câu còn sót.
+
+→ Chứa các câu văn marketing như: 
+- "Số lượng có hạn, mua ngay kẻo lỡ!" (Limited quantity, buy now!)
+- "Chỉ còn vài sản phẩm trong kho." (Only a few left in stock.)
+- "Ưu đãi kết thúc sau 24h." (Offer ends in 24 hours.)
+- "Nhanh tay sở hữu ngay hôm nay." (Grab yours today.)
+- "Chất lượng tuyệt hảo/hàng đầu." (Top-notch quality / Premium quality.)
+- "Sản phẩm tốt nhất thị trường." (Best product on the market.)
+- "Đảm bảo bạn sẽ hài lòng 100%." (100% satisfaction guaranteed.)
+- "Hàng chính hãng, giá rẻ nhất." (Authentic goods, cheapest price.)
+- "Thêm vào giỏ hàng ngay." (Add to cart now.)
+- "Hãy nhấn nút mua để trải nghiệm sự khác biệt." (Click buy to experience the difference.)
+- "Đừng bỏ lỡ cơ hội ngàn năm có một này." (Don't miss this once-in-a-lifetime opportunity.)
+
+
+
 
 ### Kết quả sau LLM pre-processing (`item.summary`)
 ```
@@ -443,84 +622,354 @@ Mọi model phức tạp về sau phải đánh bại XGBoost. Nếu không qua 
 
 ### File: `pricer/evaluator.py` — Framework đánh giá
 
-> **Vai trò:** Chạy 200 mẫu test song song, tính MAE, vẽ charts.
+> **Vai trò:** Chạy 200 mẫu test song song, tính các metrics (MAE, MSE, r²), vẽ 2 biểu đồ phân tích kết quả.
 
 **Hằng số:**
 ```python
-WORKERS = 5        # 5 threads song song khi evaluate
+WORKERS = 5        # 5 threads song song khi evaluate (I/O-bound nên thread phù hợp)
 DEFAULT_SIZE = 200 # Đánh giá trên 200 mẫu test
 ```
+
+**ANSI Color codes (in màu real-time trên terminal):**
+```python
+GREEN  = "\033[92m"   # Dự đoán tốt
+YELLOW = "\033[93m"   # Dự đoán trung bình (hiển thị là "orange")
+RED    = "\033[91m"   # Dự đoán tệ
+RESET  = "\033[0m"
+COLOR_MAP = {"red": RED, "orange": YELLOW, "green": GREEN}
+```
+
+---
 
 **Class `Tester`:**
 
 #### `__init__(predictor, data, title, size, workers)`
+**Mục đích:** Khởi tạo Tester với model cần đánh giá và dữ liệu test. Chuẩn bị các list rỗng để thu thập kết quả trong quá trình chạy.
 ```python
-# predictor: hàm nhận Item, trả về giá đoán (float)
-# Lưu lists: titles, guesses, truths, errors, colors
+def __init__(self, predictor, data, title=None, size=DEFAULT_SIZE, workers=WORKERS):
+    self.predictor = predictor   # Hàm nhận Item → trả về giá đoán (float hoặc string)
+    self.data = data             # Test dataset (list of Item)
+    self.title = title or self.make_title(predictor)
+    self.size = size             # Số mẫu đánh giá (mặc định 200)
+    self.titles = []             # Tên sản phẩm (rút gọn ≤ 40 ký tự)
+    self.guesses = []            # Giá model đoán (float)
+    self.truths = []             # Giá thực tế (float)
+    self.errors = []             # |guess - truth| cho mỗi mẫu
+    self.colors = []             # "green" / "orange" / "red" cho mỗi mẫu
+    self.workers = workers
 ```
 
 #### `make_title(predictor) → str` (staticmethod)
 **Mục đích:** Tự động tạo tên hiển thị đẹp cho model từ tên hàm Python — tránh phải đặt tên thủ công cho từng model khi evaluate.
 ```python
-# predictor.__name__ = "gpt_4__1_nano" → "GPT 4.1 Nano"
+@staticmethod
+def make_title(predictor) -> str:
+    return predictor.__name__.replace("__", ".").replace("_", " ").title().replace("Gpt", "GPT")
+# Ví dụ: "gpt_4__1_nano" → "Gpt 4.1 Nano" → "GPT 4.1 Nano"
+# Ví dụ: "random_pricer"  → "Random Pricer"
+# Ví dụ: "xgb_model"      → "Xgb Model"
 ```
 
 #### `post_process(value) → float` (staticmethod)
-**Mục đích:** Chuẩn hóa output đa dạng của các models về kiểu float — LLM thường trả về string ("$180"), trong khi Neural Network trả về float. Hàm này xử lý cả hai trường hợp.
+**Mục đích:** Chuẩn hóa output đa dạng của các models về kiểu float — LLM thường trả về string ("$180" hoặc "The price is $180."), trong khi Neural Network và truyền thống trả về float. Hàm này xử lý cả hai trường hợp.
 ```python
-# Nếu là string: xóa "$", "," → tìm số bằng regex
-# Ví dụ: "$1,299.99" → 1299.99
+@staticmethod
+def post_process(value):
+    if isinstance(value, str):
+        value = value.replace("$", "").replace(",", "")
+        match = re.search(r"[-+]?\d*\.\d+|\d+", value)  # Tìm số đầu tiên trong chuỗi
+        return float(match.group()) if match else 0      # Trả về 0 nếu không tìm thấy số
+    else:
+        return value  # Neural Net / XGBoost đã là float, trả thẳng
+# Ví dụ: "$1,299.99"              → 1299.99
+# Ví dụ: "The price is $45.00."  → 45.0
+# Ví dụ: "Around $200 to $250"   → 200.0 (số đầu tiên)
 ```
 
 #### `color_for(error, truth) → str`
-**Mục đích:** Phân loại chất lượng dự đoán của 1 datapoint thành 3 mức màu (xanh/cam/đỏ) dựa trên cả sai số tuyệt đối lẫn sai số tương đối, để hiển thị trực quan khi chạy evaluate.
+**Mục đích:** Phân loại chất lượng dự đoán của 1 datapoint thành 3 mức màu dựa trên cả sai số tuyệt đối lẫn sai số tương đối — để hiển thị trực quan khi chạy và tô màu trên scatter plot.
 ```python
-if error < 40 or error / truth < 0.2:  return "green"   # Sai số < $40 hoặc < 20%
-elif error < 80 or error / truth < 0.4: return "orange"  # Sai số < $80 hoặc < 40%
-else:                                    return "red"     # Sai số lớn
+def color_for(self, error, truth):
+    if error < 40 or error / truth < 0.2:    return "green"   # Sai số < $40 HOẶC < 20%
+    elif error < 80 or error / truth < 0.4:  return "orange"  # Sai số < $80 HOẶC < 40%
+    else:                                     return "red"     # Sai số lớn
 ```
-> Ghi chú: Dùng cả giá trị tuyệt đối ($40) lẫn tỷ lệ (20%) vì $40 sai số với sản phẩm $50 rất khác với $40 sai số với sản phẩm $500.
+> **Tại sao dùng cả tuyệt đối lẫn tương đối (điều kiện OR)?**  
+> Một sản phẩm $500 có sai số $45 → tuyệt đối vượt $40 nhưng tương đối chỉ 9% → vẫn là dự đoán tốt → `green`.  
+> Một sản phẩm $50 có sai số $15 → tuyệt đối tốt nhưng tương đối 30% → nằm ở ngưỡng `orange`.  
+> Dùng OR để ưu tiên chiều có lợi hơn cho từng price range.
 
 #### `run_datapoint(i) → tuple`
-**Mục đích:** Xử lý toàn bộ pipeline cho 1 datapoint — gọi model dự đoán, chuẩn hóa output, tính sai số và phân loại màu. Đây là đơn vị công việc được gọi song song bởi `ThreadPoolExecutor`.
+**Mục đích:** Xử lý toàn bộ pipeline cho 1 datapoint — gọi model dự đoán, chuẩn hóa output, tính sai số và phân loại màu. Đây là đơn vị công việc được phân phối song song bởi `ThreadPoolExecutor`.
 ```python
-value = self.predictor(datapoint)
-guess = self.post_process(value)
-error = abs(guess - truth)
+def run_datapoint(self, i):
+    datapoint = self.data[i]
+    value = self.predictor(datapoint)           # Gọi model → float hoặc string
+    guess = self.post_process(value)            # Chuẩn hóa về float
+    truth = datapoint.price                     # Giá thực tế
+    error = abs(guess - truth)                  # Sai số tuyệt đối
+    color = self.color_for(error, truth)        # Phân loại màu
+    title = datapoint.title if len(datapoint.title) <= 40 else datapoint.title[:40] + "..."
+    return title, guess, truth, error, color
 ```
 
 #### `run()`
-**Mục đích:** Điều phối toàn bộ quá trình evaluate — chạy `run_datapoint()` song song cho `size` mẫu, in kết quả màu real-time, rồi gọi `report()` để vẽ charts tổng kết.
+**Mục đích:** Điều phối toàn bộ quá trình evaluate — chạy `run_datapoint()` song song cho `size` mẫu, thu thập kết quả vào các list, in màu real-time ra terminal, rồi gọi `report()` khi xong.
 ```python
-with ThreadPoolExecutor(max_workers=self.workers) as ex:
-    for title, guess, truth, error, color in tqdm(ex.map(self.run_datapoint, range(self.size))):
-        print(f"{COLOR_MAP[color]}${error:.0f} ", end="")  # In màu real-time
-self.report()
+def run(self):
+    with ThreadPoolExecutor(max_workers=self.workers) as ex:
+        for title, guess, truth, error, color in tqdm(
+            ex.map(self.run_datapoint, range(self.size)), total=self.size
+        ):
+            self.titles.append(title)
+            self.guesses.append(guess)
+            self.truths.append(truth)
+            self.errors.append(error)
+            self.colors.append(color)
+            print(f"{COLOR_MAP[color]}${error:.0f} ", end="")  # In màu real-time
+    self.report()
 ```
-> **Tại sao dùng `ThreadPoolExecutor`** (chứ không phải `ProcessPoolExecutor`)?  
-> Evaluate là I/O-bound (gọi API LLM, mỗi call đợi network). ThreadPoolExecutor phù hợp hơn vì GIL không ảnh hưởng khi thread đang chờ I/O.
+> **Tại sao dùng `ThreadPoolExecutor`** (không phải `ProcessPoolExecutor`)?  
+> Evaluate LLM là I/O-bound: mỗi call đợi mạng trả về response. Thread đang chờ I/O sẽ nhả GIL, cho thread khác chạy → 5 threads gọi song song = tăng tốc ~5×. Ngược lại với CPU-bound task (parsing), ProcessPoolExecutor mới hiệu quả hơn.
 
-#### `chart(title)` — Scatter Plot (Predicted vs Actual)
-**Mục đích:** Vẽ biểu đồ phân tán so sánh giá dự đoán vs giá thực tế — model tốt sẽ có các điểm nằm gần đường `y = x`. Màu sắc điểm phản ánh chất lượng từng dự đoán.
-- Trục X: Actual Price (giá thực), Trục Y: Predicted Price (giá đoán)
-- Màu điểm: xanh/cam/đỏ theo `color_for()`
-- Đường `y = x` (dashed): model hoàn hảo nằm trên đường này
-- Hover text: tên sản phẩm + giá đoán + giá thực
-
-#### `error_trend_chart()` — Running Average Error Chart
-**Mục đích:** Vẽ biểu đồ MAE tích lũy theo từng sample kèm 95% Confidence Interval (khoảng tin cậy) — giúp đánh giá liệu 200 samples có đủ để kết luận tin cậy chưa.
+#### `report()`
+**Mục đích:** Tính 3 metrics tổng kết (MAE, MSE, r²), tạo tiêu đề chart, rồi gọi lần lượt 2 hàm vẽ biểu đồ.
 ```python
-# Tính running mean và 95% Confidence Interval
-running_means = [sum/i for sum, i in ...]
-ci = [1.96 * (std / sqrt(i)) for ...]  # 1.96 = z-score cho 95% CI
+def report(self):
+    average_error = sum(self.errors) / self.size          # MAE
+    mse = mean_squared_error(self.truths, self.guesses)   # MSE
+    r2  = r2_score(self.truths, self.guesses) * 100       # R² (nhân 100 để thành %)
+    title = (
+        f"{self.title} results<br>"
+        f"<b>Error:</b> ${average_error:,.2f} "
+        f"<b>MSE:</b> {mse:,.0f} "
+        f"<b>r²:</b> {r2:.1f}%"
+    )
+    self.error_trend_chart()   # Biểu đồ 1
+    self.chart(title)          # Biểu đồ 2
 ```
-> Nếu đường running mean vẫn dao động mạnh ở cuối → cần tăng số mẫu test để có kết quả chắc chắn hơn.
 
-#### `plot_training_history(history)` — Training History Chart
+#### `evaluate(function, data, size, workers)` — Hàm tiện ích top-level
+**Mục đích:** Wrapper một dòng để gọi nhanh mà không cần khởi tạo `Tester` thủ công — đây là hàm được dùng trực tiếp trong notebooks.
+```python
+def evaluate(function, data, size=DEFAULT_SIZE, workers=WORKERS):
+    Tester(function, data, size=size, workers=workers).run()
+
+# Cách dùng trong notebook:
+evaluate(random_pricer, test)
+evaluate(xgb_predict,   test)
+evaluate(claude_opus,   test, workers=3)  # Ít thread hơn nếu API có rate limit
+```
+
+---
+
+### Giải thích chi tiết 2 biểu đồ
+
+Khi gọi `evaluate(random_pricer, test)`, sau khi chạy xong 200 samples, `report()` tự động vẽ 2 biểu đồ theo thứ tự: **Error Trend Chart trước**, **Scatter Plot sau**.
+
+---
+
+#### Biểu đồ 1 — Error Trend Chart (Running Average Error)
+
+**Ví dụ output với Random Pricer:**
+```
+Title: "Random Pricer Error: $382.08 ± $37.47"
+```
+
+**Cách tính và ý nghĩa từng con số:**
+
+**`$382.08` — MAE cuối cùng (Mean Absolute Error)**
+```python
+final_mean = running_means[-1]
+# = sum(tất cả 200 errors) / 200
+# = (|guess_1 - truth_1| + |guess_2 - truth_2| + ... + |guess_200 - truth_200|) / 200
+```
+Đây là giá trị MAE tích lũy tại n=200 — tức là trung bình sai số tuyệt đối trên toàn bộ 200 mẫu. Con số này cũng bằng `average_error` trong `report()`.
+
+**`$37.47` — 95% Confidence Interval (Khoảng tin cậy 95%)**
+```python
+final_ci = ci[-1]
+# ci[i] = 1.96 * (running_std[i] / sqrt(i+1))
+# Tại n=200: ci[-1] = 1.96 * std_of_200_errors / sqrt(200)
+```
+Ý nghĩa: "Với 95% xác suất, MAE thực sự của model (nếu test trên vô hạn mẫu) nằm trong khoảng:
+```
+[$382.08 - $37.47, $382.08 + $37.47] = [$344.61, $419.55]
+```
+- `1.96` là z-score tương ứng 95% theo phân phối chuẩn (standard normal distribution)
+- `std / sqrt(n)` là Standard Error of the Mean (SEM) — sai số chuẩn của ước lượng trung bình
+
+> **Ý nghĩa thực tế:** CI rộng ($37.47) = kết quả kém tin cậy (model quá ngẫu nhiên). CI hẹp = kết quả ổn định. Nếu CI giữa 2 model chồng lên nhau → chênh lệch MAE giữa chúng chưa có ý nghĩa thống kê.
+
+**Đường chính (màu đỏ đậm) — Running Mean Error:**
+```python
+running_sums = list(accumulate(self.errors))    # [e1, e1+e2, e1+e2+e3, ...]
+x = list(range(1, n + 1))                       # [1, 2, 3, ..., 200]
+running_means = [s / i for s, i in zip(running_sums, x)]
+# running_means[0] = e1 / 1  (chỉ có 1 mẫu)
+# running_means[7] = (e1+...+e8) / 8  (trung bình sau 8 mẫu)
+# running_means[199] = tổng / 200 = MAE cuối
+```
+Đường này cho thấy MAE ước lượng "hội tụ" dần theo số mẫu. Ban đầu dao động mạnh (ít mẫu), càng về cuối càng ổn định.
+
+**Vùng bóng xám (shaded band) — 95% CI band:**
+```python
+# Running standard deviation (tính thuần Python, không dùng numpy):
+running_squares = list(accumulate(e * e for e in self.errors))
+running_stds = [
+    math.sqrt((sq_sum / i) - (mean ** 2))  # Var = E[X²] - (E[X])²
+    for i, sq_sum, mean in zip(x, running_squares, running_means)
+]
+ci = [1.96 * (sd / math.sqrt(i)) for i, sd in zip(x, running_stds)]
+
+upper = [m + c for m, c in zip(running_means, ci)]  # Biên trên
+lower = [m - c for m, c in zip(running_means, ci)]  # Biên dưới
+
+# Kỹ thuật Plotly để vẽ vùng bóng kín:
+# x phải là [1,2,...,200, 200,199,...,1] → polygon đi qua upper rồi quay lại lower
+fig.add_trace(go.Scatter(
+    x = x + x[::-1],               # Đi từ trái sang phải (upper), rồi ngược lại (lower)
+    y = upper + lower[::-1],        # Biên trên → nối → biên dưới ngược
+    fill = "toself",                # Tô bên trong polygon
+    fillcolor = "rgba(128,128,128,0.2)",
+))
+```
+> `x[::-1]` là Python slice syntax để đảo ngược list — cần thiết để tạo polygon kín (closed polygon) mà Plotly điền màu bên trong.
+
+**Hover text khi di chuột vào điểm bất kỳ:**
+```
+n = 8
+Avg Error = $412.35
+±95% CI = $58.20
+```
+- **`n = 8`**: bạn đang xem tại thời điểm đã xử lý 8 samples đầu tiên
+- **`Avg Error = $412.35`**: `running_means[7]` = trung bình sai số của 8 mẫu đầu = `(e1+...+e8)/8`
+- **`±95% CI = $58.20`**: `ci[7]` = `1.96 * std_8_samples / sqrt(8)` — CI rộng hơn nhiều so với cuối vì ít mẫu hơn
+
+> **Quan sát:** CI thu hẹp dần khi n tăng (vì `sqrt(n)` ở mẫu số tăng). Đây là biểu hiện của Central Limit Theorem (định lý giới hạn trung tâm): ước lượng trung bình chính xác hơn khi có nhiều mẫu hơn.
+
+---
+
+#### Biểu đồ 2 — Scatter Plot (Predicted vs Actual)
+
+**Title của biểu đồ:**
+```
+"Random Pricer results
+Error: $382.08   MSE: 218,432   r²: -1.3%"
+```
+
+**Giải thích 3 metrics trong title:**
+
+**1. `Error: $382.08` — MAE (Mean Absolute Error)**
+```python
+average_error = sum(self.errors) / self.size
+# = sum(|guess_i - truth_i|) / 200
+```
+- Đơn vị: dollar ($) — dễ đọc, dễ hiểu
+- Ý nghĩa: trung bình model sai bao nhiêu dollar cho mỗi sản phẩm
+- Không phạt nặng outlier (sai $100 đóng góp đúng $100, không phải $10,000 như MSE)
+
+**2. `MSE: 218,432` — Mean Squared Error**
+```python
+mse = mean_squared_error(self.truths, self.guesses)
+# = sum((guess_i - truth_i)²) / 200
+```
+- Đơn vị: dollar² (bình phương dollar) — không có ý nghĩa trực tiếp về mặt đơn vị
+- Ý nghĩa: phạt nặng những dự đoán sai lớn (outlier). Sai $100 → đóng góp 10,000 vào MSE. Sai $200 → đóng góp 40,000 (gấp 4 lần).
+- `sqrt(MSE) = RMSE` (Root MSE) = $467 — gần với đơn vị dollar
+- MSE lớn hơn MAE² nếu errors không đồng đều (có outlier). Ở đây: $382² = $146,000 < $218,432 → có nhiều dự đoán sai lớn kéo MSE lên.
+
+**3. `r²: -1.3%` — Coefficient of Determination (Hệ số xác định)**
+
+$R^2$ (Coefficient of Determination) - Hệ số xác định
+- Ý nghĩa: Tỉ lệ % sự biến động của giá cả mà model giải thích được.
+
+```python
+r2 = r2_score(self.truths, self.guesses) * 100  # Nhân 100 để thành %
+# r2_score tính: R² = 1 - SS_res / SS_tot
+# SS_res = sum((truth_i - guess_i)²)     = tổng bình phương sai số của model
+# SS_tot = sum((truth_i - mean_truth)²)  = tổng bình phương sai số của "đoán trung bình"
+```
+
+| R² | Ý nghĩa |
+|----|---------|
+| 100% | Model hoàn hảo — đoán đúng 100% |
+| 50% | Model giải thích được 50% variance (phương sai) của giá |
+| 0% | Model chỉ đoán bằng giá trị trung bình (tệ). |
+| -1.3% | Model tệ hơn cả đoán trung bình (random pricer thì hiển nhiên) |
+
+> **Tại sao Random Pricer có r² âm?**  
+> Constant Pricer (luôn đoán $140.56) có r² = 0% vì `SS_res = SS_tot`.  
+> Random Pricer đoán random → `SS_res > SS_tot` → R² < 0.
+
+**Các thành phần của scatter plot:**
+
+**Trục X — Actual Price (Giá thực tế):**  
+Giá thực từ `datapoint.price` (float lấy từ Amazon dataset). Trục X và Y có cùng range `[0, max_val]` để đường y=x nằm chéo giữa.
+
+**Trục Y — Predicted Price (Giá dự đoán):**  
+Output từ `predictor(datapoint)` sau khi qua `post_process()`.
+
+**Đường y = x (màu deepskyblue, nét đứt):**
+```python
+fig.add_trace(go.Scatter(
+    x=[0, max_val],
+    y=[0, max_val],
+    mode="lines",
+    line=dict(width=2, dash="dash", color="deepskyblue"),
+    name="y = x",
+))
+```
+Đường này biểu diễn "perfect prediction": nếu model đoán đúng hoàn toàn, tất cả điểm nằm trên đường này. Điểm nằm **trên** đường → model overestimate (đoán cao hơn thực). Điểm nằm **dưới** → underestimate.
+
+**Màu sắc điểm (per `color_for()`):**
+- Xanh: sai số < $40 hoặc < 20% → dự đoán tốt
+- Cam: sai số < $80 hoặc < 40% → dự đoán trung bình
+- Đỏ: sai số lớn → dự đoán tệ
+
+**Hover text khi di chuột vào 1 điểm:**
+```
+Sony WH-1000XM5 Wireless Noise Cancel...
+Guess=$234.00 Actual=$348.99
+```
+```python
+df["hover"] = [
+    f"{t}\nGuess=${g:,.2f} Actual=${y:,.2f}"
+    for t, g, y in zip(df["title"], df["guess"], df["truth"])
+]
+# Gán customdata per trace (mỗi màu là 1 trace riêng trong Plotly):
+for tr in fig.data:
+    mask = df["color"] == tr.name
+    tr.customdata = df.loc[mask, ["hover"]].to_numpy()
+    tr.hovertemplate = "%{customdata[0]}<extra></extra>"
+```
+> `<extra></extra>` trong hovertemplate xóa phần "trace name" mặc định của Plotly — chỉ hiển thị đúng thông tin mình muốn.
+
+**Đọc scatter plot như thế nào:**
+```
+Điểm rải khắp nơi (random)  → model không học được gì → r² âm
+Điểm tập trung gần y=x      → model tốt → r² cao, MAE thấp
+Điểm tập trung ở y=140      → model đoán giá trung bình mọi lúc → Constant Pricer
+```
+
+---
+
+#### `plot_training_history(history)` — Training History Chart (dùng riêng cho DNN)
 **Mục đích:** Vẽ 3 biểu đồ quan sát quá trình training DNN qua từng epoch — giúp phát hiện overfitting (Train Loss giảm nhưng Val Loss tăng) và xem learning rate schedule hoạt động đúng không.
-- Row 1: Train Loss vs Val Loss qua từng epoch
-- Row 2: Validation MAE ($) qua từng epoch
-- Row 3: Learning Rate schedule (CosineAnnealing)
+
+```python
+# history là dict với 4 keys, mỗi key là list có len = số epochs:
+history = {
+    "train_loss": [0.5486, 0.3817, 0.3225, 0.2804, 0.2447],
+    "val_loss":   [0.4321, 0.4162, 0.4085, 0.3995, 0.3985],
+    "val_mae":    [58.36,  56.98,  55.35,  53.70,  53.84],
+    "lr":         [0.001, 0.000905, 0.000655, 0.000345, 0.0001],  # CosineAnnealing
+}
+```
+
+- **Row 1 — Train vs Val Loss (normalized space):** Nếu train loss tiếp tục giảm nhưng val loss tăng → overfitting. Ở DNN này, cả hai đều giảm → training ổn định.
+- **Row 2 — Validation MAE ($):** MAE thực tế trên val set (đơn vị dollar, sau de-normalize). Dùng để so sánh trực tiếp với models khác.
+- **Row 3 — Learning Rate Schedule:** CosineAnnealing giảm lr từ 0.001 xuống 0 theo đường cosine. Giúp model "tinh chỉnh" nhỏ dần ở cuối training thay vì dao động quanh minimum.
 
 ---
 
@@ -572,6 +1021,67 @@ regressor.fit(X, prices)
 ```
 > **Data Leakage (rò rỉ dữ liệu) cần tránh:** `vectorizer.fit()` chỉ được gọi trên `train`. Nếu fit trên toàn bộ data (train+test), model "biết trước" từ vựng của test set → MAE ảo thấp hơn thực tế.
 
+**Giải thích chi tiết: Bag of Words + CountVectorizer + Linear Regression**
+
+**Bag of Words (BoW) — Túi từ:**
+
+**Định nghĩa:** BoW là kỹ thuật biểu diễn văn bản dưới dạng vector số bằng cách đếm tần suất xuất hiện của từng từ trong một từ điển cố định. Mỗi văn bản trở thành một vector có kích thước bằng số từ trong từ điển, bỏ qua hoàn toàn thứ tự từ.
+
+**Ví dụ minh họa:**
+```
+Từ điển (vocabulary): ["guitar", "electric", "acoustic", "premium", "brand"]
+
+Văn bản A: "electric guitar brand"   → [1, 1, 0, 0, 1]
+Văn bản B: "acoustic guitar premium" → [1, 0, 1, 1, 0]
+Văn bản C: "guitar guitar electric"  → [2, 1, 0, 0, 0]  (đếm số lần xuất hiện)
+```
+
+**Ưu điểm BoW:**
+- Đơn giản, dễ implement, tính toán nhanh
+- Hoạt động tốt với Linear Regression (mỗi từ = 1 feature độc lập)
+- Interpretable: có thể xem hệ số (coefficient) của từng từ để biết từ nào ảnh hưởng giá
+
+**Nhược điểm BoW:**
+- Mất thứ tự từ: "guitar electric" = "electric guitar"
+- Sparse vector: phần lớn phần tử = 0 (1 văn bản chỉ chứa vài trăm từ trong 2000 từ)
+- Không hiểu ngữ nghĩa: "cheap" và "inexpensive" là 2 features hoàn toàn khác nhau
+
+**CountVectorizer — Cơ chế hoạt động:**
+
+| Tham số | Giá trị | Ý nghĩa |
+|---------|---------|----------|
+| `max_features` | 2000 | Chỉ giữ 2000 từ xuất hiện nhiều nhất — giảm chiều vector, loại từ hiếm |
+| `stop_words` | `'english'` | Loại bỏ stopwords (the, is, a, on...) vì không mang thông tin về giá |
+
+**Quy trình 2 bước:**
+1. `fit(train_documents)`: Học từ điển 2000 từ phổ biến nhất từ tập train
+2. `transform(documents)`: Biến mỗi văn bản thành vector 2000 chiều (sparse matrix)
+
+> **Tại sao chỉ 2000 từ?** Tập dữ liệu 800k items có hàng chục nghìn từ unique. Nhưng phần lớn là từ hiếm (xuất hiện <10 lần) — chúng không giúp model khái quát hóa. 2000 từ phổ biến nhất đã cover >90% thông tin hữu ích cho dự đoán giá.
+
+**Linear Regression cho NLP — Định nghĩa toán học:**
+
+Công thức: `y_hat = w1*x1 + w2*x2 + ... + w2000*x2000 + b`
+
+Trong đó:
+- `x_i` = số lần từ thứ `i` xuất hiện trong văn bản (hoặc 0/1 nếu binary)
+- `w_i` = trọng số (weight/coefficient) mà model học được cho từ thứ `i`
+- `b` = bias (hệ số tự do)
+- `y_hat` = giá dự đoán
+
+**Ý nghĩa trọng số:** Nếu `w["premium"] = +15.3` và `w["cheap"] = -8.7`, nghĩa là:
+- Văn bản chứa từ "premium" → giá tăng ~$15.3
+- Văn bản chứa từ "cheap" → giá giảm ~$8.7
+
+**Hàm Loss — Ordinary Least Squares (OLS):**
+
+`L = (1/n) * sum((y_i - y_hat_i)^2)` — tổng bình phương sai số.
+
+Model tìm bộ trọng số `w` sao cho L nhỏ nhất. Có nghiệm chính xác (closed-form): `w = (X^T * X)^(-1) * X^T * y`. Với 800k samples x 2000 features, scikit-learn giải trong vài giây.
+
+**Ưu điểm Linear Regression:** Nhanh, không cần iterative training. **Nhược điểm:** Chỉ học quan hệ tuyến tính — nếu "stainless steel kitchen" có giá khác "stainless steel watch", LR không bắt được interaction giữa các từ.
+
+
 #### 5. Random Forest
 ```python
 rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
@@ -580,6 +1090,53 @@ rf_model.fit(X[:15_000], prices[:15_000])  # Chỉ 15k subset vì chậm
 ```
 > Random Forest = nhiều Decision Tree (cây quyết định) chạy song song, mỗi cây train trên random subset của data và features, kết quả cuối = average của tất cả cây.
 
+**Giải thích chi tiết: Random Forest**
+
+**Định nghĩa:** Random Forest là thuật toán Ensemble Learning (học tập hợp) kết hợp nhiều Decision Tree độc lập để đưa ra dự đoán chính xác hơn bất kỳ cây đơn lẻ nào.
+
+**Thành phần cốt lõi — Decision Tree (Cây quyết định):**
+
+Một Decision Tree chia dữ liệu bằng cách đặt câu hỏi nhị phân tại mỗi nút:
+```
+Từ "stainless" có xuất hiện không?
+├── Có → Từ "professional" có không?
+│         ├── Có → Giá ≈ $250
+│         └── Không → Giá ≈ $120
+└── Không → Từ "plastic" có không?
+            ├── Có → Giá ≈ $25
+            └── Không → Giá ≈ $80
+```
+
+**Kỹ thuật Bagging (Bootstrap Aggregating) — Trái tim của Random Forest:**
+
+Random Forest kết hợp 2 kỹ thuật để giảm overfitting:
+
+1. **Bootstrap sampling:** Mỗi cây train trên một sample ngẫu nhiên (có hoàn lại) từ dataset gốc. Cây 1 thấy items A, B, C, A. Cây 2 thấy items B, D, E, D.
+2. **Random subspace:** Tại mỗi nút chia, cây chỉ xem xét một subset ngẫu nhiên của features (không phải toàn bộ 2000 từ). Đảm bảo các cây khác nhau → đa dạng hóa.
+3. **Aggregating:** Kết quả cuối = Average dự đoán của tất cả cây → giảm variance (phương sai), tăng ổn định.
+
+**Cấu hình và ý nghĩa tham số:**
+
+| Tham số | Giá trị | Ý nghĩa |
+|---------|---------|----------|
+| `n_estimators` | 100 | 100 cây quyết định — nhiều cây = ổn định hơn nhưng chậm hơn |
+| `random_state` | 42 | Cố định seed → chạy lại cho kết quả giống nhau (reproducibility) |
+| `n_jobs` | 4 | 4 CPU cores song song — RF song song tự nhiên vì các cây độc lập |
+
+**Tại sao chỉ train trên 15k samples thay vì 800k?**
+
+Random Forest lưu toàn bộ cấu trúc phân chia của mỗi cây trong bộ nhớ. Với 800k x 2000 features x 100 cây, thời gian training lên đến hàng giờ và RAM cần hàng chục GB. 15k subset là trade-off hợp lý giữa thời gian và kết quả.
+
+**Ưu và nhược điểm:**
+
+| Ưu điểm | Nhược điểm |
+|---------|------------|
+| Ít overfitting hơn single Decision Tree | Chậm với dataset lớn (800k) |
+| Không cần chuẩn hóa features | Sử dụng nhiều RAM |
+| Xử lý tốt non-linear relationships | Không hiệu quả với sparse, high-dimensional data (BoW 2000 chiều) |
+| Dễ song song hóa | Kết quả khó interpret hơn Linear Regression |
+
+
 #### 6. XGBoost (eXtreme Gradient Boosting — Tăng cường Gradient cực mạnh)
 ```python
 xgb_model = xgb.XGBRegressor(n_estimators=1000, random_state=42, n_jobs=4, learning_rate=0.1)
@@ -587,6 +1144,59 @@ xgb_model.fit(X, prices)  # Toàn bộ 800k samples
 # MAE = $68.23 — Best Traditional ML
 ```
 > **Điểm khác XGBoost với Random Forest:** RF xây cây song song độc lập. XGBoost xây cây tuần tự — mỗi cây tiếp theo tập trung sửa lỗi của cây trước (gradient descent trên tree space). Vì vậy XGBoost thường tốt hơn và nhanh hơn với dữ liệu tabular.
+
+**Giải thích chi tiết: XGBoost (eXtreme Gradient Boosting)**
+
+**Định nghĩa:** XGBoost là thuật toán Gradient Boosting — xây dựng cây quyết định tuần tự, mỗi cây mới tập trung sửa lỗi (residual) của tổng hợp các cây trước đó. Thuật toán thống trị các cuộc thi Kaggle từ 2015-2020 trước khi Deep Learning nổi lên.
+
+**Nguyên lý Boosting — Khác biệt cốt lõi với Random Forest:**
+```
+Random Forest (Bagging):           XGBoost (Boosting):
+Cây 1 ──┐                         Cây 1 → Sai số 1
+Cây 2 ──┼── Average → Dự đoán        ↓
+Cây 3 ──┘                         Cây 2 (sửa Sai số 1) → Sai số 2
+                                     ↓
+                                  Cây 3 (sửa Sai số 2) → ...
+                                     ↓
+                                  Tổng = Cây 1 + Cây 2 + Cây 3 + ...
+```
+
+**Cơ chế Gradient Boosting chi tiết:**
+
+Tại mỗi iteration `t`:
+1. Tính residual (phần sai): `r_i = y_i - y_hat_i(t-1)`
+2. Fit một cây mới `f_t` lên residuals `r_i`
+3. Cập nhật dự đoán: `y_hat_i(t) = y_hat_i(t-1) + eta * f_t(x_i)`
+
+Trong đó `eta` (learning_rate) kiểm soát "mỗi cây đóng góp bao nhiêu".
+
+**Cấu hình và ý nghĩa tham số:**
+
+| Tham số | Giá trị | Ý nghĩa |
+|---------|---------|----------|
+| `n_estimators` | 1000 | 1000 cây tuần tự — nhiều hơn RF vì mỗi cây nhỏ (weak learner) |
+| `learning_rate` | 0.1 | Mỗi cây chỉ đóng góp 10% — tránh overfitting, cải thiện từ từ |
+| `n_jobs` | 4 | Song song hóa ở mức feature selection trong mỗi cây |
+| `random_state` | 42 | Reproducibility |
+
+**Tại sao XGBoost train được trên 800k mà Random Forest chỉ 15k?**
+
+XGBoost sử dụng histogram-based splitting — gom giá trị features vào bins (256 mặc định) thay vì xét từng giá trị. Giảm complexity đáng kể, tiết kiệm cả RAM lẫn thời gian. Ngoài ra, mỗi cây XGBoost nhỏ (max_depth mặc định = 6) — ít tốn bộ nhớ hơn cây đầy đủ của RF.
+
+**Ưu và nhược điểm:**
+
+| Ưu điểm | Nhược điểm |
+|---------|------------|
+| Hiệu quả nhất trên tabular/structured data | Không hiểu ngữ nghĩa (semantic) |
+| Nhanh hơn RF trên dữ liệu lớn | Cần tuning nhiều hyperparameters |
+| Built-in regularization (L1, L2) | Overfitting nếu n_estimators quá lớn |
+| Xử lý missing values tự động | Tuần tự — không song song hoàn toàn |
+
+**Tại sao XGBoost thắng Random Forest ($68 vs $72)?**
+- XGBoost train trên toàn bộ 800k (RF chỉ 15k) → nhiều data = nhiều patterns.
+- Boosting sửa lỗi iteratively → tối ưu hóa tốt hơn cho regression.
+- XGBoost có regularization built-in mà RF không có ở mức tree level.
+
 
 **Bảng kết quả Day 3:**
 
@@ -624,6 +1234,27 @@ X = vectorizer.fit_transform(documents)
 
 > `binary=True`: Word "guitar" xuất hiện 1 lần hay 5 lần đều = 1. Phù hợp cho Neural Network hơn vì tránh bias với từ lặp nhiều.
 
+**Giải thích chi tiết: HashingVectorizer và Hashing Trick**
+
+**Hashing Trick (Kỹ thuật băm):**
+
+Thay vì xây từ điển (vocabulary) rồi ánh xạ mỗi từ vào vị trí cố định, HashingVectorizer dùng hàm hash để tính vị trí:
+```
+hash("guitar") % 5000 = 1247  → position 1247 = 1
+hash("premium") % 5000 = 3891 → position 3891 = 1
+```
+
+**Hash Collision (đụng độ):** Hai từ khác nhau có thể hash vào cùng vị trí: `hash("abc") % 5000 = hash("xyz") % 5000 = 42`. Xác suất collision thấp khi `n_features` đủ lớn (5000). Trade-off chấp nhận được để đổi lấy tốc độ và tiết kiệm RAM.
+
+**Tại sao `binary=True` phù hợp cho Neural Network?**
+
+Neural Network tự học trọng số (weights) cho mỗi feature. Nếu CountVectorizer đếm "guitar" xuất hiện 5 lần, giá trị 5 sẽ chiếm ưu thế so với các từ khác. Với `binary=True`, mọi từ đều bình đẳng (0 hoặc 1) — Neural Network tự quyết định từ nào quan trọng thông qua quá trình training weights.
+
+**Tại sao tăng từ 2000 lên 5000 features?**
+
+Neural Network có khả năng học non-linear relationships mạnh hơn Linear Regression. Nhiều features hơn = nhiều thông tin hơn cho NN khai thác. LR với 5000 features sparse dễ overfit, nhưng NN với hidden layers + ReLU xử lý tốt hơn.
+
+
 #### Vanilla Neural Network (Mạng Neural cơ bản)
 
 ```python
@@ -656,16 +1287,127 @@ for epoch in range(EPOCHS):
         optimizer.step()               # 5. Cập nhật weights
 ```
 
-**Kết quả: MAE = $63.97** — Đánh bại XGBoost ($68.23)!
+**Kết quả: MAE = $59.14** — Đánh bại XGBoost ($68.23)!
+
+**Giải thích chi tiết các thành phần của Vanilla Neural Network**
+
+**1. `nn.Linear(in_features, out_features)` — Lớp tuyến tính (Fully Connected Layer)**
+
+**Định nghĩa:** Phép biến đổi tuyến tính `y = x * W^T + b`, trong đó:
+- `W` là ma trận trọng số kích thước `(out_features, in_features)` — được khởi tạo ngẫu nhiên và cập nhật qua training
+- `b` là bias vector kích thước `(out_features)` — mỗi neuron có 1 bias riêng
+- Số parameters = `in_features * out_features + out_features`
+
+**Ví dụ:** `nn.Linear(5000, 128)` có `5000 * 128 + 128 = 640,128` parameters.
+
+**Ý nghĩa:** Mỗi neuron output nhận input từ tất cả neurons layer trước (fully connected), nhân với trọng số riêng, cộng bias → ra 1 giá trị. Layer này học "features nào quan trọng" và "kết hợp chúng như thế nào".
+
+**2. `nn.ReLU()` — Rectified Linear Unit (Hàm kích hoạt)**
+
+**Công thức:** `ReLU(x) = max(0, x)`
+- Nếu `x > 0` → giữ nguyên `x`
+- Nếu `x <= 0` → trả về `0`
+
+**Tại sao cần hàm kích hoạt?**
+
+Không có activation, nhiều lớp Linear xếp chồng vẫn chỉ là 1 phép biến đổi tuyến tính (Linear * Linear = Linear). ReLU phá vỡ tính tuyến tính → cho phép mạng học quan hệ phi tuyến phức tạp (ví dụ: "stainless steel" + "professional" → giá cao hơn nhiều so với tổng riêng lẻ).
+
+**Tại sao ReLU thay vì Sigmoid/Tanh?**
+- **Sigmoid** `1/(1+exp(-x))`: Output trong [0,1]. Vấn đề: gradient gần 0 khi `x` rất lớn/nhỏ → Vanishing Gradient → các lớp sâu không học được.
+- **Tanh** `(exp(x)-exp(-x))/(exp(x)+exp(-x))`: Output trong [-1,1]. Cùng vấn đề Vanishing Gradient.
+- **ReLU**: Gradient = 1 khi `x > 0` → không bao giờ biến mất. Tính toán cực nhanh (chỉ so sánh). Nhược điểm: "Dead ReLU" — neuron có `x < 0` mọi lúc sẽ gradient = 0 vĩnh viễn.
+
+**3. `nn.MSELoss()` — Mean Squared Error Loss (Hàm mất mát)**
+
+**Công thức:** `MSE = (1/n) * sum((y_pred_i - y_actual_i)^2)`
+
+**Ý nghĩa:** Đo trung bình bình phương sai số giữa giá dự đoán và giá thực.
+
+**Đặc điểm:**
+- Phạt nặng outlier: sai $100 đóng góp 10,000, sai $200 đóng góp 40,000 (gấp 4 lần)
+- Gradient luôn != 0 (khả vi mọi nơi) → thuận tiện cho gradient descent
+- Phù hợp khi muốn model tránh sai lớn
+
+**So sánh với L1Loss (MAE Loss):**
+- L1Loss = `(1/n) * sum(|y_pred - y_actual|)` — robust hơn với outlier
+- MSELoss phạt nặng outlier hơn — Vanilla NN dùng MSE, DNN Redemption chuyển sang L1 vì dữ liệu giá có nhiều outlier tự nhiên
+
+**4. `optim.Adam(model.parameters(), lr=0.001)` — Optimizer (Thuật toán tối ưu)**
+
+**Adam = Adaptive Moment Estimation** — kết hợp 2 ý tưởng:
+1. **Momentum:** Giữ "quán tính" — nếu gradient liên tục cùng hướng, tăng tốc. Giống quả bóng lăn xuống dốc, càng lăn càng nhanh.
+2. **Adaptive learning rate:** Mỗi parameter có learning rate riêng. Parameter ít cập nhật → lr lớn hơn. Parameter cập nhật nhiều → lr nhỏ hơn.
+
+**Tham số `lr=0.001`:** Learning rate mặc định, kiểm soát kích thước bước nhảy mỗi lần cập nhật weights. Quá lớn → dao động không hội tụ. Quá nhỏ → hội tụ rất chậm.
+
+**So sánh với SGD (Stochastic Gradient Descent):**
+- SGD: `w = w - lr * gradient` — đơn giản nhưng cần tuning lr cẩn thận
+- Adam: tự điều chỉnh lr cho từng parameter → ít cần tuning hơn, hội tụ nhanh hơn
+- Adam là lựa chọn mặc định phổ biến nhất hiện nay cho Deep Learning
+
+**5. Sơ đồ kiến trúc layer-by-layer:**
+```
+Input: Sparse Binary Vector [5000]
+    │
+    ▼ Layer 1: nn.Linear(5000, 128) + ReLU
+[128]  ← Nén 5000 features xuống 128 chiều
+    │
+    ▼ Layer 2: nn.Linear(128, 64) + ReLU
+[64]   ← Nén tiếp xuống 64 chiều
+    │
+    ▼ Layer 3-7: nn.Linear(64, 64) + ReLU  (×5 lớp giống nhau)
+[64]   ← Giữ nguyên kích thước, học biểu diễn sâu hơn
+    │
+    ▼ Layer 8: nn.Linear(64, 1)  (KHÔNG có ReLU)
+[1]    ← Output: giá dự đoán (regression → không giới hạn range)
+```
+
+**Tại sao layer cuối không có ReLU?**
+
+ReLU ép output >= 0. Trong regression, model cần tự do dự đoán bất kỳ giá trị nào. Thêm activation ở output layer sẽ giới hạn range dự đoán — chỉ nên dùng ở hidden layers.
+
+**Tổng số parameters: 669,249**
+```
+Layer 1: 5000 * 128 + 128 = 640,128
+Layer 2: 128 * 64 + 64   = 8,256
+Layer 3-7: (64*64+64) * 5 = 20,480
+Layer 8: 64 * 1 + 1      = 65
+Cộng: 669,249 (khớp với notebook)
+```
+
+**6. So sánh Vanilla NN vs Deep Neural Network (Redemption):**
+
+| Đặc điểm | Vanilla NN (Day 4) | DNN Redemption |
+|----------|-------------------|----------------|
+| Số lớp | 8 (tất cả Linear + ReLU) | 10+ (Input + 8 ResidualBlocks + Output) |
+| Hidden size | 128 → 64 (thu nhỏ dần) | 4096 (giữ nguyên xuyên suốt) |
+| Parameters | 669,249 (~669K) | 289,128,449 (~289M) — gấp 432 lần |
+| Skip Connection | Không có | Có — giải quyết Vanishing Gradient |
+| LayerNorm | Không có | Có — ổn định phân phối activation |
+| Dropout | Không có | 20% — chống overfitting |
+| Loss | MSELoss | L1Loss — robust hơn với outlier |
+| Optimizer | Adam (lr=0.001) | AdamW (lr=0.001, weight_decay=0.01) |
+| LR Schedule | Không có | CosineAnnealingLR — giảm lr theo cosine |
+| Gradient Clipping | Không có | max_norm=1.0 — ngăn gradient explosion |
+| Target Transform | Raw price | Log-normalize — xử lý skewed distribution |
+| Training data | 800k (raw) | 800k (normalized) |
+| **MAE** | **$63.97** | **$46.49** |
+
+**Tại sao DNN thắng Vanilla NN ($46 vs $64)?**
+- **Skip Connection** cho phép train mạng sâu hơn mà không bị Vanishing Gradient
+- **Log-normalize target** giúp model học đồng đều cho mọi price range (không bị dominated bởi sản phẩm đắt)
+- **289M parameters** (gấp 432 lần) cho phép học patterns phức tạp hơn nhiều
+- **L1Loss + AdamW + Gradient Clipping** = training ổn định và robust hơn
 
 **Nhân vật đặc biệt: Human Baseline**
 ```python
-# Giảng viên tự đoán giá 100 sản phẩm → lưu vào human_out.csv
+human_predictions = []  # Đọc từ file human_out.csv
 def human_pricer(item):
     idx = test.index(item)
     return human_predictions[idx]
 # MAE = $87.62 — Model NLP cổ điển đã đánh bại con người!
 ```
+
 
 #### Frontier LLMs (Mô hình ngôn ngữ lớn) — Zero-shot
 
@@ -693,6 +1435,46 @@ def gpt_4__1_nano(item):
 
 **Tại sao LLM Zero-shot đánh bại XGBoost trained trên 800k?**  
 LLM có world knowledge từ pre-training trên internet — biết "Fender guitar" có giá khoảng bao nhiêu, "iPhone 15" khoảng bao nhiêu. XGBoost chỉ học từ pattern từ ngữ, không có semantic understanding (hiểu nghĩa ngữ nghĩa).
+
+**Giải thích chi tiết: GPT-4.1 Nano và GPT-5.1**
+
+**GPT-4.1 Nano (tương ứng GPT-4o-mini) — Mô hình nhanh, rẻ:**
+
+```python
+def gpt_4__1_nano(item):
+    response = completion(model="openai/gpt-4.1-nano", messages=messages_for(item))
+    return response.choices[0].message.content
+```
+
+**Đặc điểm:** Model nhỏ, tối ưu cho tốc độ và chi phí. MAE = $62.51 — đánh bại cả Vanilla NN ($63.97) và Human ($87.62) chỉ bằng world knowledge.
+
+**GPT-5.1 — Mô hình mạnh nhất của OpenAI:**
+
+```python
+def gpt_5__1(item):
+    response = completion(model="gpt-5.1", messages=messages_for(item), reasoning_effort='high', seed=42)
+    return response.choices[0].message.content
+```
+
+**Đặc điểm:** Reasoning model mạnh nhất. Tham số `reasoning_effort='high'` bắt model suy nghĩ kỹ (chain-of-thought). Tuy nhiên, cho bài toán đoán giá, reasoning quá nhiều đôi khi gây "overthinking" — kết quả không nhất thiết tốt hơn.
+
+**Kỹ thuật Zero-shot Inference:**
+
+Không cần fine-tuning hay training. Chỉ cần 1 prompt đơn giản:
+```python
+def messages_for(item):
+    message = f"Estimate the price of this product. Respond with the price, no explanation\n\n{item.summary}"
+    return [{"role": "user", "content": message}]
+```
+
+LLM sử dụng kiến thức đã học trong quá trình pre-training (hàng trăm tỷ tokens từ internet) để ước lượng giá. Đây là sức mạnh của Transfer Learning — kiến thức học từ task A (đọc internet) chuyển sang task B (đoán giá).
+
+**Công cụ: LiteLLM — Giao diện API thống nhất:**
+
+Thư viện `litellm` cho phép gọi nhiều providers khác nhau (OpenAI, Anthropic, Google, xAI) bằng cùng 1 API. Chỉ cần đổi tham số `model` để chuyển từ GPT sang Claude sang Gemini mà không sửa code.
+
+**Tham số `seed=42`:** Cố định output cho reproducibility (không phải tất cả providers đều hỗ trợ).
+
 
 ---
 
@@ -735,6 +1517,52 @@ class ResidualBlock(nn.Module):
 
 **Skip Connection (kết nối tắt) — Tại sao quan trọng?**  
 Mạng sâu (nhiều lớp) bị "Vanishing Gradient (gradient biến mất)": khi lan truyền ngược (backprop), gradient nhân với nhiều số nhỏ → tiến gần về 0 → các lớp đầu không học được. Skip Connection tạo "đường tắt" cho gradient: `gradient = gradient_through_block + gradient_through_skip`. Phần skip luôn = 1, đảm bảo gradient không bao giờ = 0. Đây là ý tưởng cốt lõi của ResNet (2015).
+
+**Giải thích chi tiết các thành phần trong ResidualBlock:**
+
+**`nn.LayerNorm(hidden_size)` — Layer Normalization (Chuẩn hóa lớp):**
+
+**Công thức:** `output = (x - mean(x)) / sqrt(var(x) + eps) * gamma + beta`
+- `mean(x)` và `var(x)` tính trên tất cả features của 1 sample (1 hàng)
+- `gamma` và `beta` là learnable parameters (được học qua training)
+- `eps = 1e-5` tránh chia cho 0
+
+**Tại sao cần LayerNorm?**
+
+Không có normalization, activation values có thể trở nên rất lớn hoặc rất nhỏ khi đi qua nhiều lớp (Internal Covariate Shift). LayerNorm giữ phân phối activation ổn định quanh mean=0, std=1 → training nhanh hơn và ổn định hơn.
+
+**LayerNorm vs BatchNorm:**
+- **BatchNorm** chuẩn hóa theo batch (nhiều samples) — phụ thuộc batch size, không ổn định với batch nhỏ
+- **LayerNorm** chuẩn hóa theo features (1 sample) — độc lập với batch size, phù hợp hơn cho NLP và mạng sâu
+
+**`nn.Dropout(dropout_prob=0.2)` — Regularization:**
+
+**Cơ chế:** Trong mỗi lần forward pass khi training, ngẫu nhiên tắt 20% neurons (set output = 0). Mỗi lần tắt những neurons khác nhau.
+
+**Tại sao giúp chống overfitting?**
+- Buộc mạng không được phụ thuộc vào bất kỳ neuron đơn lẻ nào
+- Tương đương với training nhiều mạng con khác nhau và lấy trung bình (ensemble effect)
+- **Khi inference** (`model.eval()`): Dropout tắt hoàn toàn — dùng toàn bộ neurons, nhân output với `(1 - dropout_prob)` để bù lại
+
+**Luồng dữ liệu bên trong 1 ResidualBlock:**
+```
+Input x [4096]
+    │
+    ├─────────────────────────── (skip path: giữ nguyên x)
+    │                                │
+    ▼ Linear(4096, 4096)             │
+    ▼ LayerNorm(4096)                │
+    ▼ ReLU                           │
+    ▼ Dropout(0.2)                   │
+    ▼ Linear(4096, 4096)             │
+    ▼ LayerNorm(4096)                │
+    │                                │
+    └──────────── (+) ───────────┘
+                    │
+                    ▼ ReLU
+            Output [4096]
+```
+
 
 #### Class `DeepNeuralNetwork` — Kiến trúc tổng thể
 
@@ -782,6 +1610,21 @@ Input (5000 features)
 - 289,128,449 parameters (~289 triệu)
 - Vanilla NN: 669,249 params → DNN gấp **432 lần**
 
+**Ý nghĩa các tham số constructor:**
+
+| Tham số | Mặc định | Ý nghĩa |
+|---------|-----------|----------|
+| `input_size` | 5000 | Số features từ HashingVectorizer |
+| `num_layers` | 10 | Tổng số lớp: 1 input + 8 residual blocks + 1 output |
+| `hidden_size` | 4096 | Kích thước ẩn xuyên suốt mạng — lớn hơn = nhiều parameters = học tốt hơn nhưng chậm hơn |
+| `dropout_prob` | 0.2 | Tắt 20% neurons ngẫu nhiên mỗi forward pass |
+
+**Tại sao `num_layers - 2`?** Từ `num_layers=10`, trừ 1 input layer và 1 output layer → còn 8 ResidualBlocks.
+
+**`nn.ModuleList` vs Python list thường:**
+
+`nn.ModuleList` đăng ký các sub-modules với PyTorch → `model.parameters()` bao gồm parameters của tất cả blocks. Python list thường không đăng ký → optimizer không cập nhật được weights của blocks.
+
 #### Class `DeepNeuralNetworkRunner` — Training và Inference
 
 **`setup()` — Chuẩn bị dữ liệu và model:**  
@@ -808,6 +1651,77 @@ def setup(self):
 
 **Tại sao Log-normalize giá?**  
 Phân phối giá rất skewed (lệch phải): nhiều sản phẩm $10-100, ít sản phẩm $500-1000. MSE/L1 Loss trên raw price sẽ bị dominated bởi sản phẩm đắt. Log transform kéo phân phối về gần Gaussian → loss đồng đều hơn giữa các price ranges.
+
+**Giải thích chi tiết: AdamW Optimizer**
+
+```python
+self.optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=0.01)
+```
+
+**AdamW = Adam + Decoupled Weight Decay:**
+- Giống Adam (Momentum + Adaptive LR) nhưng thêm **weight decay** đúng cách
+- `weight_decay=0.01`: Mỗi step, weights được nhân với `(1 - lr * weight_decay)` → co nhỏ dần về 0
+- Tác dụng: Regularization — ngăn weights trở nên quá lớn (overfitting)
+
+**AdamW vs Adam:**
+- **Adam** với L2 regularization: weight decay bị scale bởi adaptive learning rate → regularization không đều
+- **AdamW**: weight decay độc lập với adaptive lr → regularization đồng đều hơn, kết quả tốt hơn
+- AdamW được khuyến nghị là mặc định cho Deep Learning hiện đại (thay thế Adam)
+
+**Giải thích chi tiết: CosineAnnealingLR**
+
+```python
+self.scheduler = CosineAnnealingLR(self.optimizer, T_max=10, eta_min=0)
+```
+
+**Cơ chế:** Giảm learning rate theo đường cosine từ giá trị ban đầu (0.001) xuống `eta_min` (0) trong `T_max` (10) epochs:
+```
+lr(t) = eta_min + 0.5 * (lr_init - eta_min) * (1 + cos(pi * t / T_max))
+
+Epoch 1:  lr = 0.001000  (bước lớn — khám phá)
+Epoch 3:  lr = 0.000655  (giảm dần)
+Epoch 5:  lr = 0.000345  (bước nhỏ — tinh chỉnh)
+Epoch 8:  lr = 0.000095  (gần minimum)
+Epoch 10: lr = 0.000000  (dừng)
+```
+
+**Tại sao cosine thay vì giảm tuyến tính?**
+- Cosine giảm nhanh lúc đầu (khi còn xa optimum), chậm lại cuối (tinh chỉnh gần optimum)
+- Smooth hơn step decay (giảm đột ngột) → training ổn định hơn
+
+**Giải thích chi tiết: Log-Normalization và De-normalization**
+
+**Bước 1 — Log transform:** `y_log = log(price + 1)`
+- `+1` để tránh `log(0)` (nếu giá = 0)
+- Biến phân phối lệch phải (giá thường $10-100, ít $500+) thành gần Gaussian
+
+**Bước 2 — Z-score normalize:** `y_norm = (y_log - mean) / std`
+- Đưa về mean=0, std=1 → loss function hoạt động tốt hơn
+
+**Khi inference — De-normalize:** `price = exp(pred * std + mean) - 1`
+- Ngược lại quá trình normalize để ra giá thực tế ($)
+
+**`model.train()` vs `model.eval()` — 2 chế độ của PyTorch:**
+
+| Chế độ | Dropout | LayerNorm | Gradient |
+|---------|---------|-----------|----------|
+| `model.train()` | Bật (tắt 20% neurons ngẫu nhiên) | Dùng batch statistics | Tính gradient (cần cho backprop) |
+| `model.eval()` | Tắt (dùng toàn bộ neurons) | Dùng running statistics | Thường kết hợp với `torch.no_grad()` |
+
+`torch.no_grad()`: Tắt tính gradient hoàn toàn → tiết kiệm RAM và tăng tốc (không cần lưu computation graph).
+
+**`DataLoader` và `TensorDataset` — Đóng gói dữ liệu:**
+
+```python
+self.train_dataset = TensorDataset(self.X_train, self.y_train_norm)
+self.train_loader = DataLoader(self.train_dataset, batch_size=64, shuffle=True)
+```
+
+- `TensorDataset`: Ghép X (features) và y (target) thành cặp (x_i, y_i)
+- `DataLoader`: Chia dataset thành batches, shuffle mỗi epoch
+- `batch_size=64`: Mỗi lần forward pass xử lý 64 samples cùng lúc → tận dụng GPU parallelism
+- `shuffle=True`: Xáo trộn thứ tự samples mỗi epoch → model không học thứ tự dữ liệu
+
 
 **`train(epochs=5)` — Vòng lặp training nâng cao:**  
 **Mục đích:** Chạy toàn bộ vòng lặp training — mỗi epoch duyệt qua toàn bộ train set theo batch, tính loss, backpropagation với gradient clipping, rồi đánh giá trên validation set và ghi lại lịch sử metrics để vẽ training chart sau.
@@ -839,6 +1753,22 @@ for epoch in range(1, epochs + 1):
 
 **Tại sao dùng L1Loss thay vì MSELoss?**  
 MSELoss phạt nặng các outlier (sai số lớn bình phương). Dữ liệu giá có nhiều outlier tự nhiên. L1Loss (absolute error) robust hơn — không bị outlier "kéo" training quá mạnh.
+
+**Giải thích chi tiết: Gradient Clipping**
+
+```python
+torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+```
+
+**Vấn đề Gradient Explosion:** Với mạng 289M params và 10+ lớp, gradient có thể nhân lên rất lớn khi backprop qua nhiều lớp → weights cập nhật quá mạnh → training bất ổn (loss bất ngờ tăng vọt, NaN).
+
+**Cơ chế clipping:**
+1. Tính L2 norm của toàn bộ gradient: `total_norm = sqrt(sum(g_i^2))`
+2. Nếu `total_norm > max_norm` (1.0): scale gradient xuống `g = g * (max_norm / total_norm)`
+3. Nếu `total_norm <= max_norm`: giữ nguyên
+
+Giống "giới hạn tốc độ" — bước cập nhật weights không bao giờ quá lớn, bất kể gradient tính ra bao nhiêu.
+
 
 **`inference(item) → float`:**  
 **Mục đích:** Dự đoán giá cho 1 sản phẩm mới — vectorize text summary, chạy forward pass qua model (không gradient), de-normalize kết quả về giá thực tế, đảm bảo giá không âm.
