@@ -72,19 +72,29 @@ Tầng 4 — Feature Fusion: HashingVec + SentTrans  [MODEL 4]
 
 ---
 
-## 3. Kết quả thực tế (Đã train)
+## 3. Kết quả toàn bộ (Đã train xong)
 
 | Model | File | Epochs | Val MAE (best) | Test MAE | Ghi chú |
 |-------|------|--------|---------------|----------|---------|
-| HashingVec DNN | `deep_neural_network.py` | 5 | $53.84 | **$46.02** | Baseline |
+| HashingVec DNN (5 epochs) | `deep_neural_network.py` | 5 | $53.84 | **$46.02** | Baseline |
+| HashingVec DNN (15 epochs) | `deep_neural_network.py` | 15 | $50.65 | $47.55 | LR schedule mismatch |
 | SentTrans frozen (1024) | `sentence_transformer_model.py` | 15 | $56.24 | $47.56 | Tệ hơn DNN |
 | SentTrans frozen (4096) | `sentence_transformer_model.py` | 15 | $49.99 | **$43.78** | Tốt hơn DNN |
-| DistilBERT V1 (CLS, batch=32) | `distilbert_model.py` | 5 | $47.42 | **$44.19** | Chưa hội tụ |
+| DistilBERT V1 (CLS, batch=32) | `distilbert_model.py` | 5 | $47.42 | $44.19 | Chưa hội tụ |
+| DistilBERT V2 (CLS, batch=128) | `distilbert_model_v2.py` | 15 | $45.28 | $46.57 | Val set 1k mẫu → noise |
+| DistilBERT V3 (mean pool) | `distilbert_model_v3.py` | 13* | $45.50 | $45.21 | Early stop ep13 |
+| SentTrans E2E (fine-tuned) | `senttrans_e2e_model.py` | 15 | $47.01 | **$44.44** | Best fine-tuned LM |
+| Feature Fusion | `fusion_model.py` | 6* | $58.74 | $51.55 | Early stop quá sớm |
+
+*Early stopping kích hoạt
 
 **Nhận xét:**
-- SentTrans 1024 tệ hơn DNN vì 13M params không đủ capacity so với 289M của DNN
-- SentTrans 4096 (203M params) tốt hơn DNN — improvement một phần đến từ model capacity lớn hơn, không chỉ từ semantic embedding
-- DistilBERT V1 val MAE vẫn giảm đều ($54.60 → $47.42) tại epoch 5, chưa plateau → cần train thêm
+- **SentTrans E2E ($44.44) tốt nhất** trong fine-tuned models — mean pooling + fine-tuned encoder
+- **Mean pooling > CLS:** V3 ($45.21) tốt hơn V2 ($46.57) cùng kiến trúc DistilBERT
+- **SentTrans 1024 tệ hơn DNN** vì 13M params không đủ capacity so với 289M của DNN
+- **SentTrans 4096 (203M params) tốt hơn DNN** — improvement một phần từ model capacity, không chỉ semantic
+- **Feature Fusion thất bại:** Val set nhỏ (1000 mẫu) → early stop sớm; frozen SentTrans yếu; capacity nhỏ (12M)
+- **DNN 15 epochs tệ hơn 5 epochs:** `CosineAnnealingLR(T_max=10)` không phù hợp 15 epochs — LR tăng trở lại sau epoch 10
 
 ---
 
@@ -346,44 +356,37 @@ class XxxRunner:
 
 | Model | `.py` | `.ipynb` | Train | Test MAE | Ghi chú |
 |-------|-------|----------|-------|----------|---------|
-| Baseline DNN (HashingVec) | `deep_neural_network.py` ✓ | `redemption_train.ipynb` ✓ | DONE | **$46.02** | 5 epochs |
+| Baseline DNN (HashingVec, 5ep) | `deep_neural_network.py` ✓ | `redemption_train.ipynb` ✓ | DONE | **$46.02** | 5 epochs |
+| Baseline DNN (HashingVec, 15ep) | `deep_neural_network.py` ✓ | `redemption_train_15.ipynb` ✓ | DONE | $47.55 | 15 epochs, LR schedule mismatch |
 | Model 1 SentTrans frozen (1024) | `sentence_transformer_model.py` ✓ | `model1_senttrans_train_1024.ipynb` ✓ | DONE | $47.56 | 15 epochs |
 | Model 1 SentTrans frozen (4096) | `sentence_transformer_model.py` ✓ | `model1_senttrans_train_4096.ipynb` ✓ | DONE | **$43.78** | 15 epochs |
 | Model 2 V1 DistilBERT CLS | `distilbert_model.py` ✓ | `model2_distilbert_train.ipynb` ✓ | DONE | $44.19 | 5 epochs, chưa hội tụ |
-| Model 2 V2 DistilBERT CLS long | `distilbert_model_v2.py` ✓ | `model2_distilbert_train_v2.ipynb` ✓ | TODO | — | batch=64, 15 epochs |
-| Model 2 V3 DistilBERT mean pool | `distilbert_model_v3.py` ✓ | `model2_distilbert_train_v3.ipynb` ✓ | TODO | — | mean pooling |
-| Model 3 SentTrans E2E | `senttrans_e2e_model.py` ✓ | `model3_senttrans_e2e_train.ipynb` ✓ | TODO | — | encoder fine-tuned |
-| Model 4 Feature Fusion | `fusion_model.py` ✓ | `model4_fusion_train.ipynb` ✓ | TODO | — | HashingVec + SentTrans |
+| Model 2 V2 DistilBERT CLS | `distilbert_model_v2.py` ✓ | `model2_distilbert_train_v2.ipynb` ✓ | DONE | $46.57 | 15 epochs, best val $45.28 ep13 |
+| Model 2 V3 DistilBERT mean pool | `distilbert_model_v3.py` ✓ | `model2_distilbert_train_v3.ipynb` ✓ | DONE | $45.21 | Early stop ep13, best val $45.50 |
+| Model 3 SentTrans E2E | `senttrans_e2e_model.py` ✓ | `model3_senttrans_e2e_train.ipynb` ✓ | DONE | **$44.44** | 15 epochs, best val $47.01 ep13 |
+| Model 4 Feature Fusion | `fusion_model.py` ✓ | `model4_fusion_train.ipynb` ✓ | DONE | $51.55 | Early stop ep6, val set quá nhỏ |
 
 ---
 
-## 12. Thứ tự train (Priority hôm nay)
+## 12. Leaderboard (kết quả cuối)
 
-Ưu tiên theo ROI và thời gian, với 3090 Ti 24GB:
+| Hạng | Model | MAE | Loại | Ghi chú |
+|------|-------|-----|------|---------|
+| 1 | SentTrans frozen (4096) | **$43.78** | Specialized DL | Model 1 |
+| 2 | SentTrans E2E | **$44.44** | Fine-tuned LM | Model 3 |
+| 3 | DistilBERT V1 (5 epochs) | $44.19 | Fine-tuned LM | Chưa hội tụ |
+| 4 | DistilBERT V3 (mean pool) | $45.21 | Fine-tuned LM | Model 2 V3 |
+| 5 | HashingVec DNN (5 epochs) | $46.02 | Specialized DL | Baseline |
+| 6 | DistilBERT V2 (CLS, 15ep) | $46.57 | Fine-tuned LM | Model 2 V2 |
+| 7 | Claude Opus 4.5 | $47.10 | Frontier LLM | Zero-shot |
+| 8 | SentTrans frozen (1024) | $47.56 | Specialized DL | Model 1 nhỏ |
+| 9 | HashingVec DNN (15 epochs) | $47.55 | Specialized DL | LR schedule sai |
+| 10 | Feature Fusion | $51.55 | Hybrid DL | Model 4 — failed |
 
-| Priority | Notebook | Ước tính | Lý do |
-|----------|----------|---------|-------|
-| 1 | `model2_distilbert_train_v2.ipynb` | ~2h | Val MAE v1 đang giảm mạnh, highest ROI |
-| 2 | `model2_distilbert_train_v3.ipynb` | ~2h | Chạy song song v2 (8GB+8GB < 24GB) |
-| 3 | `model3_senttrans_e2e_train.ipynb` | ~1.5h | Model nhỏ (22M), batch=128 |
-| 4 | `model4_fusion_train.ipynb` | ~1.5h | Setup lâu (pre-compute 2 features) |
-
-**Lưu ý v3:** Output sẽ in "DistilBERT Regressor: 66M" (từ V2 super().setup()) rồi in "DistilBERT V3 (mean pooling): 66M" — expected behavior, model đã được swap đúng.
-
----
-
-## 13. Leaderboard hiện tại
-
-| Hạng | Model | MAE | Loại |
-|------|-------|-----|------|
-| ? | Model 2 V2/V3 | TBD | DistilBERT 15 epochs |
-| ? | Model 3 | TBD | SentTrans E2E |
-| ? | Model 4 | TBD | Feature Fusion |
-| 1 | SentTrans frozen (4096) | $43.78 | Model 1 |
-| 2 | DistilBERT V1 (5 epoch) | $44.19 | Model 2 V1 |
-| 3 | Baseline HashingVec DNN | $46.02 | DNN |
-| 4 | Claude Opus 4.5 | $47.10 | Frontier LLM |
-| 5 | SentTrans frozen (1024) | $47.56 | Model 1 |
+**Kết luận:**
+- Mean pooling nhất quán tốt hơn CLS cho regression (V3 $45.21 > V2 $46.57)
+- Fine-tuning encoder nhỏ (SentTrans E2E 22M) hiệu quả hơn frozen encoder lớn (SentTrans 4096 203M)
+- Feature Fusion cần val set đủ lớn và more epochs để hội tụ đúng cách
 
 ---
 

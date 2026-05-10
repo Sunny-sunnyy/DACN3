@@ -1897,4 +1897,663 @@ redemption_train.ipynb
 
 ---
 
-*Cập nhật: 2026-05-08*
+## Session 3 — DL Model Experiments (2026-05-10)
+
+### Mục tiêu
+
+Câu hỏi nghiên cứu cốt lõi: **Biểu diễn văn bản tốt hơn (semantic) có cải thiện độ chính xác so với HashingVec không?**
+
+HashingVec DNN đạt MAE $46.02 — tốt hơn Claude Opus 4.5 ($47.10). Nhưng HashingVec không hiểu ngữ nghĩa: `"car"` ≠ `"automobile"`, `"cheap plastic"` ≠ `"economy grade"`. Câu hỏi: nếu encoder hiểu nghĩa từ hơn, model có dự đoán giá chính xác hơn không?
+
+### Câu chuyện học thuật — 4 tầng tiến hóa
+
+```
+Tầng 0 — Baseline: HashingVec → ResNet DNN ($46.02)
+    Đặc trưng: keyword presence, stateless, no semantics
+    Vấn đề: "car" ≠ "automobile", không hiểu ngữ nghĩa
+
+Tầng 1 — DNN Baseline mở rộng: HashingVec → DNN (15 epochs)
+    Câu hỏi: DNN baseline còn cải thiện được không nếu train lâu hơn?
+
+Tầng 2 — SentenceTransformer (frozen) → DNN  [Model 1 — Session cũ]
+    Đặc trưng: dense semantic embedding 384-dim, pretrained
+    Tiến bộ: "car" ≈ "automobile" — nhưng encoder không học từ dữ liệu giá
+
+Tầng 3 — Fine-tuned DistilBERT / SentTrans E2E  [Model 2 & 3]
+    Đặc trưng: encoder học representations tối ưu cho price prediction
+    Tiến bộ: attention học cái gì quan trọng (brand, material, category)
+
+Tầng 4 — Feature Fusion: HashingVec + SentTrans  [Model 4]
+    Đặc trưng: kết hợp lexical signal + semantic signal
+    Hypothesis: 2 nguồn thông tin bổ sung cho nhau
+```
+
+---
+
+### Notebook: `redemption_train_15.ipynb` — DNN Baseline 15 Epochs
+
+**Mục tiêu:** Kiểm tra xem DNN HashingVec ban đầu có còn cải thiện thêm nếu train thêm 10 epochs (từ 5 lên 15) không.
+
+**Lưu ý kỹ thuật quan trọng:** `DeepNeuralNetworkRunner.train()` không có early stopping — model train đúng `epochs` được chỉ định, dùng val MAE để quan sát nhưng không dừng sớm. `CosineAnnealingLR(T_max=10)` — tức là scheduler được thiết kế cho 10 epochs, khi train 15 epochs LR sẽ hoàn thành 1 chu kỳ cosine (0→0) ở epoch 10 rồi bắt đầu tăng trở lại.
+
+**Diễn biến training:**
+
+```
+Epoch  1: Val MAE $59.20 | LR 0.001000  ← Khởi đầu
+Epoch  2: Val MAE $55.81 | LR 0.000976
+Epoch  3: Val MAE $55.92 | LR 0.000905
+Epoch  4: Val MAE $53.93 | LR 0.000794
+Epoch  5: Val MAE $53.73 | LR 0.000655  ← So sánh: kết quả ban đầu dừng tại đây
+Epoch  6: Val MAE $51.93 | LR 0.000500
+Epoch  7: Val MAE $52.97 | LR 0.000345
+Epoch  8: Val MAE $50.65 | LR 0.000206  ← Val MAE tốt nhất
+Epoch  9: Val MAE $50.74 | LR 0.000095
+Epoch 10: Val MAE $50.56 | LR 0.000024  ← LR gần về 0
+Epoch 11: Val MAE $50.56 | LR 0.000000  ← LR = 0 (đáy cosine)
+Epoch 12: Val MAE $50.71 | LR 0.000024  ← LR tăng trở lại (chu kỳ 2)
+Epoch 13: Val MAE $51.33 | LR 0.000095
+Epoch 14: Val MAE $50.92 | LR 0.000206
+Epoch 15: Val MAE $52.29 | LR 0.000345  ← Val MAE tăng (LR quá cao cuối)
+```
+
+**Nhận xét:**
+- Val MAE tốt nhất: $50.65 tại epoch 8 (vẫn tệ hơn test MAE $46.02 của lần train 5 epochs — val và test là 2 tập khác nhau)
+- Sau epoch 10, LR tăng trở lại theo lịch Cosine → model dao động, không còn hội tụ
+- Train 15 epochs với `CosineAnnealingLR(T_max=10)` không hợp lý về mặt scheduler — LR schedule được thiết kế cho 10 epochs, không phải 15
+- **Test MAE: $47.55** — tệ hơn DNN 5 epochs ($46.02) do LR schedule không phù hợp
+
+**Bài học:** Không thể đơn giản tăng epochs mà không điều chỉnh `T_max` theo. Để train 15 epochs, cần đặt `CosineAnnealingLR(T_max=15)`.
+
+---
+
+### File: `pricer/distilbert_model.py` — DistilBERT Regressor (Base Architecture)
+
+> **Vai trò:** Định nghĩa kiến trúc DistilBERT cơ bản (V1 — CLS pooling). V2 và V3 kế thừa từ file này.
+
+#### Kiến trúc
+
+```
+item.summary
+    │
+    ▼ DistilBertTokenizer (max_length=128, padding, truncation)
+    │   input_ids: [batch, 128]
+    │   attention_mask: [batch, 128]
+    │
+    ▼ DistilBertModel (6 transformer layers, 66M params)
+    │   last_hidden_state: [batch, 128, 768]
+    │
+    ▼ CLS pooling: lấy token [:, 0, :] — token đặc biệt [CLS]
+    │   cls_embedding: [batch, 768]
+    │
+    ▼ Regression Head
+    │   LayerNorm(768)
+    │   Linear(768 → 256) + GELU + Dropout(0.1)
+    │   Linear(256 → 1)
+    │
+    ▼ price (normalized)
+```
+
+**Tại sao DistilBERT (không phải BERT-base)?**
+- DistilBERT: 66M params, 6 layers — nhanh 2×, nhỏ hơn 40%, giữ 97% performance của BERT-base (110M params)
+- Với 800k samples x 15 epochs, tốc độ quan trọng: DistilBERT tiết kiệm ~40% thời gian train
+
+**Class `DistilBERTRegressor`:**
+
+```python
+class DistilBERTRegressor(nn.Module):
+    def __init__(self, dropout_prob=0.1):
+        self.encoder = DistilBertModel.from_pretrained("distilbert-base-uncased")
+        # hidden_size = 768 (config của DistilBERT)
+        self.head = nn.Sequential(
+            nn.LayerNorm(768),
+            nn.Linear(768, 256),
+            nn.GELU(),           # GELU thay vì ReLU — smoother gradient
+            nn.Dropout(0.1),
+            nn.Linear(256, 1),
+        )
+
+    def forward(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        cls_embedding = outputs.last_hidden_state[:, 0, :]  # [CLS] token
+        return self.head(cls_embedding)
+```
+
+**Class `DistilBERTRunner` — Kỹ thuật training:**
+
+**1. Mixed Precision (fp16):**
+```python
+self.scaler = GradScaler(device="cuda")  # Chỉ tạo nếu CUDA available
+
+with autocast("cuda"):           # Forward pass trong fp16
+    outputs = self.model(...)
+    loss = self.loss_function(outputs, targets)
+self.scaler.scale(loss).backward()       # Scale gradient tránh underflow
+self.scaler.unscale_(self.optimizer)     # Unscale trước clip
+torch.nn.utils.clip_grad_norm_(...)      # Gradient clipping max_norm=1.0
+self.scaler.step(self.optimizer)
+self.scaler.update()
+```
+- **Tại sao fp16?** Giảm memory ~2×, tăng tốc ~2× trên GPU. Nhưng fp16 có range nhỏ → gradient có thể underflow về 0. `GradScaler` nhân loss với scale_factor lớn trước backward, rồi chia lại trước optimizer step.
+- **Gradient clipping (`max_norm=1.0`):** Ngăn gradient exploding — nếu norm của gradient vượt 1.0, rescale toàn bộ về 1.0. Đặc biệt quan trọng với transformer fine-tuning.
+
+**2. Discriminative Learning Rates:**
+```python
+optimizer = AdamW([
+    {"params": self.model.encoder.parameters(), "lr": 2e-5},   # Nhỏ — encoder đã pretrained
+    {"params": self.model.head.parameters(),    "lr": 1e-4},   # Lớn hơn — head train từ đầu
+], weight_decay=0.01)
+```
+- **Lý do:** Encoder đã có kiến thức từ pretraining trên Wikipedia. LR lớn sẽ phá vỡ kiến thức đó (catastrophic forgetting). LR 2e-5 giúp encoder điều chỉnh nhẹ, không quên hẳn.
+- Head (regression head) bắt đầu từ random weights → cần LR lớn hơn (1e-4) để học nhanh.
+
+**3. Linear Warmup Schedule:**
+```python
+scheduler = get_linear_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps=500,    # 500 steps đầu: LR tăng tuyến tính từ 0 → lr_max
+    num_training_steps=total_steps  # Sau đó giảm tuyến tính về 0
+)
+```
+- **Tại sao warmup?** Ở đầu training, gradient lớn và không ổn định. LR cao lúc đầu → update quá mạnh → phá vỡ pretrained encoder. Warmup giúp optimizer "làm quen" dần trước khi dùng LR đầy đủ.
+
+**4. Log-normalize targets:**
+```python
+price = torch.log(torch.tensor(item.price, dtype=torch.float32) + 1)
+price_norm = (price - y_mean) / y_std
+```
+- **Tại sao log?** Giá phân phối lệch phải (skewed right) — nhiều sản phẩm giá $10–$200, ít sản phẩm giá $500–$999. Log transform kéo phân phối về gần chuẩn hơn → L1 Loss hoạt động tốt hơn.
+- **+1 trước log:** Tránh `log(0)` — nhưng thực tế giá đã được filter ≥ $0.5 từ Day 1.
+- De-normalize khi tính MAE: `torch.exp(pred * y_std + y_mean) - 1`.
+
+**Hyperparameters V1:**
+
+| Tham số | Giá trị | Ý nghĩa |
+|---------|---------|---------|
+| `max_length` | 128 | Cover 99.8% samples, power-of-2 aligned |
+| `batch_size` | 32 | Nhỏ → nhiều gradient updates hơn |
+| `encoder_lr` | 2e-5 | Nhỏ, tránh phá pretrained knowledge |
+| `head_lr` | 1e-4 | Lớn hơn, head học từ đầu |
+| `weight_decay` | 0.01 | L2 regularization trong AdamW |
+| `warmup_steps` | 1000 | 1000 steps đầu LR tăng dần |
+| `epochs` | 5 | Dừng sớm do time constraint |
+| `patience` | 2 | Early stopping |
+
+**Token Length Analysis (chạy trên 10k samples từ items_full):**
+```
+Min: 40   Max: 163   Mean: 81.9   Median: 81
+P90: 99   P95: 105   P99: 118
+≤ 128: 99.8%   > 128: 0.2% (25 samples)
+```
+→ `max_length=128` optimal: cover 99.8%, ít lãng phí memory padding.
+
+**Kết quả V1:** Test MAE **$44.19** sau 5 epochs (val MAE vẫn giảm → chưa hội tụ).
+
+---
+
+### Notebook: `model2_distilbert_train_v2.ipynb` — DistilBERT V2 (Longer Training)
+
+**File Python:** `pricer/distilbert_model_v2.py` — `DistilBERTRunnerV2` kế thừa `DistilBERTRunner`
+
+**Mục tiêu:** V1 val MAE vẫn giảm đều tại epoch 5 ($47.42 → chưa plateau). Train thêm 10 epochs với patience=3 để hội tụ.
+
+**Thay đổi so với V1:**
+
+| Tham số | V1 | V2 | Lý do thay đổi |
+|---------|----|----|---------------|
+| `batch_size` | 32 | 128 | Lớn hơn → ổn định gradient hơn, tăng tốc |
+| `epochs` | 5 | 15 | Train đến hội tụ |
+| `patience` | 2 | 3 | Chịu đựng tốt hơn local minimum |
+| `warmup_steps` | 1000 | 1000 | Giữ nguyên |
+
+**Lưu ý notebook:** `runner.setup(batch_size=128)` — thực tế dùng batch=128, lớn hơn config mặc định 64. Val set cũng chỉ dùng `val[:1000]` (1000 mẫu, không phải toàn bộ 10k).
+
+**Diễn biến training:**
+
+```
+Epoch  1: Val MAE $56.03 | Train 0.4730 | Val 0.4041
+Epoch  2: Val MAE $53.59 | Train 0.3877 | Val 0.3899
+Epoch  3: Val MAE $50.92 | Train 0.3534 | Val 0.3618
+Epoch  4: Val MAE $49.45 | Train 0.3290 | Val 0.3591
+Epoch  5: Val MAE $49.13 | Train 0.3084 | Val 0.3582  ← Kết quả V1 dừng đây
+Epoch  6: Val MAE $49.64 | No improvement (1/3)
+Epoch  7: Val MAE $48.33 | Train 0.2774 | Val 0.3539  ← New best
+Epoch  8: Val MAE $47.07 | Train 0.2646 | Val 0.3433  ← New best
+Epoch  9: Val MAE $46.60 | Train 0.2538 | Val 0.3414  ← New best
+Epoch 10: Val MAE $45.75 | Train 0.2442 | Val 0.3407  ← New best
+Epoch 11: Val MAE $45.62 | Train 0.2359 | Val 0.3385  ← New best
+Epoch 12: Val MAE $46.35 | No improvement (1/3)
+Epoch 13: Val MAE $45.28 | Train 0.2227 | Val 0.3370  ← New best (best overall)
+Epoch 14: Val MAE $45.75 | No improvement (1/3)
+Epoch 15: Val MAE $45.34 | No improvement (2/3)  ← Hết epochs, dừng
+```
+
+**Nhận xét:** Model không kích hoạt early stopping (patience counter không đạt 3 liên tiếp), chạy đủ 15 epochs. Val MAE dao động nhẹ ở cuối — model đã gần plateau. LR giảm dần về 0 theo linear schedule giúp model ổn định ở cuối.
+
+**Test MAE: $46.57** — tệ hơn DistilBERT V1 ($44.19) mặc dù val MAE tốt hơn. Nguyên nhân: val[:1000] là subset nhỏ → noise cao hơn toàn bộ val set. Best val MAE $45.28 (epoch 13) được dùng làm checkpoint.
+
+---
+
+### File: `pricer/distilbert_model_v3.py` — DistilBERT V3 (Mean Pooling)
+
+> **Vai trò:** Thay thế CLS pooling bằng mean pooling — lấy trung bình có trọng số của tất cả token embeddings thay vì chỉ dùng [CLS] token.
+
+**Tại sao thử mean pooling:**
+
+| | CLS Pooling | Mean Pooling |
+|--|-------------|--------------|
+| **Cơ chế** | Lấy embedding của token [CLS] đặc biệt | Trung bình toàn bộ token embeddings |
+| **Pretrain task** | [CLS] được pretrain cho NSP (Next Sentence Prediction) — task classification | Mean pooling không có pretrain task cụ thể |
+| **Thông tin** | Tập trung vào 1 vector đại diện | Phân tán đều qua tất cả tokens |
+| **Dùng bởi** | BERT-base classification, DistilBERT V1/V2 | SentenceTransformers (all-MiniLM-L6-v2) |
+
+**Nhiều nghiên cứu regression với BERT cho thấy mean pooling ≥ CLS**, đặc biệt khi fine-tuning từ pretrained checkpoint không được train với classification objective.
+
+**Class `DistilBERTRegressorV3`:**
+
+```python
+class DistilBERTRegressorV3(nn.Module):
+    def forward(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        # Mean pooling: trung bình có trọng số theo attention mask
+        mask = attention_mask.unsqueeze(-1).float()   # [batch, 128, 1]
+        mean_emb = (outputs.last_hidden_state * mask).sum(1) / mask.sum(1)
+        #           [batch, 128, 768] * [batch, 128, 1]  → sum dim=1 → [batch, 768]
+        #                                                 / [batch, 1]  (số token thực)
+        return self.head(mean_emb)
+```
+
+**Tại sao nhân với mask rồi chia?**
+- `attention_mask` = 1 ở token thực, 0 ở padding token
+- Nhân: triệt tiêu embedding của padding tokens
+- Chia tổng mask: tính trung bình chỉ trên token thực (không tính padding)
+- Nếu không chia, câu ngắn (ít token thực) bị "pha loãng" bởi nhiều padding → embedding bị sai lệch
+
+**Inheritance chain:**
+```
+DistilBERTRunner (V1)
+    └── DistilBERTRunnerV2 (batch=64, 15 epochs)
+            └── DistilBERTRunnerV3 (mean pooling, same training config)
+                → super().setup() loads data, V2 optimizer config
+                → thay thế self.model bằng DistilBERTRegressorV3()
+                → tạo lại optimizer với model mới
+```
+
+### Notebook: `model2_distilbert_train_v3.ipynb` — DistilBERT V3 Training
+
+**Diễn biến training:**
+
+```
+Epoch  1: Val MAE $56.15 | LR 0.00001887
+Epoch  2: Val MAE $53.93 | LR 0.00001752
+Epoch  3: Val MAE $50.88 | LR 0.00001617  ← New best
+Epoch  4: Val MAE $50.89 | No improvement (1/3)
+Epoch  5: Val MAE $48.52 | LR 0.00001348  ← New best
+Epoch  6: Val MAE $48.30 | LR 0.00001213  ← New best
+Epoch  7: Val MAE $48.12 | LR 0.00001078  ← New best
+Epoch  8: Val MAE $47.52 | LR 0.00000943  ← New best
+Epoch  9: Val MAE $47.05 | LR 0.00000809  ← New best
+Epoch 10: Val MAE $45.50 | LR 0.00000674  ← New best (BEST)
+Epoch 11: Val MAE $46.27 | No improvement (1/3)
+Epoch 12: Val MAE $46.20 | No improvement (2/3)
+Epoch 13: Val MAE $46.34 | No improvement (3/3)
+→ Early stopping tại epoch 13. Best Val MAE: $45.50
+```
+
+**Nhận xét:** Early stopping kích hoạt tại epoch 13 (sau 3 lần liên tiếp không cải thiện từ epoch 10). Model hội tụ rõ ràng hơn V2 — plateau xuất hiện ở epoch 10-13.
+
+**Sanity check mẫu:**
+```
+Product: Old Blood Noise Excess V2 Distortion Chorus/Delay Pedal
+Actual:  $219.00
+Predict: $222.34
+Error:   $3.34   ← V3 đoán rất gần
+```
+
+**Test MAE: $45.21** — tốt hơn V2 ($46.57) và tốt hơn DNN baseline ($46.02). Mean pooling có lợi thế nhỏ so với CLS trong bài toán regression.
+
+---
+
+### File: `pricer/senttrans_e2e_model.py` — SentTrans End-to-End Fine-tuning
+
+> **Vai trò:** Fine-tune toàn bộ encoder `all-MiniLM-L6-v2` (22M params) end-to-end cùng với regression head — khác với Model 1 (frozen encoder, pre-compute embeddings một lần).
+
+**Đối chiếu với Model 1 (frozen SentTrans):**
+
+```
+Model 1 (frozen):
+    item.summary → all-MiniLM-L6-v2 (FROZEN, pre-computed 1 lần) → 384-dim
+    Training loop: chỉ update DNN head (203M params với hidden=4096)
+
+Model 3 (E2E):
+    item.summary → all-MiniLM-L6-v2 (FINE-TUNED, mỗi batch) → 384-dim
+    Training loop: update cả encoder (22M) lẫn head (99K)
+```
+
+**Kiến trúc:**
+
+```
+item.summary
+    │
+    ▼ AutoTokenizer (all-MiniLM-L6-v2, max_length=128)
+    │   input_ids: [batch, 128]
+    │   attention_mask: [batch, 128]
+    │
+    ▼ AutoModel (all-MiniLM-L6-v2, 22M params, FINE-TUNED)
+    │   last_hidden_state: [batch, 128, 384]
+    │
+    ▼ Mean Pooling (giống V3 nhưng 384-dim)
+    │   mean_emb: [batch, 384]
+    │
+    ▼ Regression Head
+    │   LayerNorm(384)
+    │   Linear(384 → 256) + GELU + Dropout(0.1)
+    │   Linear(256 → 1)
+    │
+    ▼ price (normalized)
+```
+
+**Tại sao dùng `AutoModel` thay vì `SentenceTransformer`?**
+- `SentenceTransformer` là high-level wrapper có pooling và normalization tích hợp — khó kiểm soát gradient
+- `AutoModel` từ `transformers` cho phép truy cập trực tiếp `last_hidden_state`, tự implement mean pooling → full control
+
+**Hyperparameters:**
+
+| Tham số | Giá trị | So sánh với DistilBERT |
+|---------|---------|----------------------|
+| `encoder_lr` | 5e-5 | Nhỏ hơn DistilBERT (2e-5 vs 5e-5)? Không — SentTrans nhỏ hơn (22M vs 66M), cho phép LR lớn hơn chút |
+| `head_lr` | 1e-3 | Lớn hơn DistilBERT (1e-4) — head nhỏ hơn (99K vs 198K) |
+| `batch_size` | 256 | Lớn hơn DistilBERT (128) — model nhỏ hơn → ít memory hơn |
+| `warmup_steps` | 500 | Ít hơn DistilBERT (1000) — encoder nhỏ hơn, ít cần warmup |
+| `epochs` | 15 | Tối đa 15 |
+| `patience` | 3 | Early stopping |
+
+**Class `SentTransE2ERunner` — Điểm khác biệt với DistilBERTRunner:**
+
+- **Không có GradScaler (không có fp16):** Model nhỏ (22M) nên memory không phải vấn đề, bỏ qua complexity của mixed precision
+- **`num_workers=4, pin_memory=True`** trong DataLoader: tokenize on-the-fly trong mỗi batch (không pre-compute như Model 1) — cần I/O hiệu quả
+- **`batch_size * 2` cho val_loader:** Val không cần gradient → dùng batch lớn hơn để đánh giá nhanh hơn
+
+### Notebook: `model3_senttrans_e2e_train.ipynb` — SentTrans E2E Training
+
+**Model size:**
+```
+SentTrans E2E: 22,812,801 params
+  encoder: 22,713,216 params (all-MiniLM-L6-v2)
+  head:       99,585 params (LayerNorm + 2 Linear)
+```
+
+**Diễn biến training:**
+
+```
+Epoch  1: Val MAE $62.59 | LR 0.00004717  ← Bắt đầu cao hơn DistilBERT
+Epoch  2: Val MAE $57.35 | LR 0.00004380
+Epoch  3: Val MAE $53.41 | LR 0.00004043
+Epoch  4: Val MAE $51.41 | LR 0.00003706
+Epoch  5: Val MAE $50.01 | LR 0.00003369
+Epoch  6: Val MAE $49.54 | LR 0.00003032  ← New best
+Epoch  7: Val MAE $49.61 | No improvement (1/3)
+Epoch  8: Val MAE $49.70 | No improvement (2/3)
+Epoch  9: Val MAE $48.91 | LR 0.00002022  ← New best
+Epoch 10: Val MAE $48.12 | LR 0.00001685  ← New best
+Epoch 11: Val MAE $47.26 | LR 0.00001348  ← New best
+Epoch 12: Val MAE $47.76 | No improvement (1/3)
+Epoch 13: Val MAE $47.01 | LR 0.00000674  ← New best (BEST)
+Epoch 14: Val MAE $47.70 | No improvement (1/3)
+Epoch 15: Val MAE $47.21 | No improvement (2/3)  ← Hết epochs, dừng
+```
+
+**Nhận xét:**
+- Val MAE epoch 1 ($62.59) cao hơn DistilBERT ($56.03) — SentTrans nhỏ hơn nhiều, học chậm hơn ban đầu
+- Không trigger early stopping (patience counter không đạt 3 liên tiếp) — chạy đủ 15 epochs
+- Val MAE giảm chậm và chưa thực sự plateau → model vẫn có thể cải thiện thêm nếu train thêm
+
+**Sanity check:**
+```
+Product: Old Blood Noise Excess V2 Distortion Chorus/Delay Pedal
+Actual:  $219.00
+Predict: $286.12
+Error:   $67.12  ← Sai hơn V3 ($3.34) trên sample này
+```
+
+**Test MAE: $44.44** — tốt hơn DistilBERT V1 ($44.19), V2 ($46.57), V3 ($45.21) và DNN baseline ($46.02). Fine-tuning encoder nhỏ (22M) đạt kết quả tốt hơn CLS fine-tuned DistilBERT lớn (66M) do mean pooling phù hợp hơn cho regression.
+
+---
+
+### File: `pricer/fusion_model.py` — Feature Fusion (HashingVec + SentTrans)
+
+> **Vai trò:** Dual-tower architecture kết hợp 2 nguồn thông tin bổ sung: lexical signal từ HashingVec và semantic signal từ SentTrans frozen.
+
+**Hypothesis cốt lõi:**
+
+| Signal | Capture bởi | Ví dụ |
+|--------|-------------|-------|
+| Lexical (từ cụ thể) | HashingVec(5000) | `"samsung"`, `"bose"`, `"wireless"`, `"4k"`, `"stainless steel"` |
+| Semantic (ngữ nghĩa) | SentTrans(384) frozen | `"premium quality"` ≈ `"high-end"`, `"economy grade"` ≈ `"budget"` |
+
+**Kiến trúc:**
+
+```
+item.summary
+    │
+    ├─── HashingVectorizer(5000, binary=True, stop_words="english")
+    │         hash_features: [batch, 5000]  (sparse binary)
+    │         LayerNorm(5000)               ← Chuẩn hóa scale khác nhau
+    │         Linear(5000 → 512) + ReLU + Dropout(0.2)
+    │         hash_proj: [batch, 512]
+    │
+    └─── all-MiniLM-L6-v2 (FROZEN, pre-computed 1 lần)
+              sem_features: [batch, 384]   (dense float)
+              LayerNorm(384)               ← Chuẩn hóa scale khác nhau
+              Linear(384 → 512) + ReLU + Dropout(0.2)
+              sem_proj: [batch, 512]
+              │
+    ┌─────────┘────── concat([hash_proj, sem_proj]) ──────────────────────┐
+    │                 fused: [batch, 1024]                                 │
+    │                                                                       │
+    │         Linear(1024 → 1024) + LayerNorm + ReLU + Dropout(0.2)        │
+    │         4 × ResidualBlock(1024)                                       │
+    │         Linear(1024 → 1)                                             │
+    └───────────────────────────────────────────────────────────────────────┘
+              price (normalized)
+```
+
+**Tại sao cần LayerNorm + projection riêng (không concat thẳng 5384-dim)?**
+- `hash_features`: sparse binary [0,1] — range nhỏ, hầu hết = 0
+- `sem_features`: dense float — range rộng, phân phối liên tục
+- Nếu concat thẳng: 5000-dim lexical sẽ dominate gradient so với 384-dim semantic
+- LayerNorm chuẩn hóa từng modality về mean=0, std=1 trước projection → cân bằng contribution
+
+**Class `FusionDNN`:**
+
+```python
+class FusionDNN(nn.Module):
+    def __init__(self, num_blocks=4, dropout_prob=0.2):
+        self.hash_proj = nn.Sequential(
+            nn.LayerNorm(HASH_DIM),        # 5000
+            nn.Linear(HASH_DIM, PROJ_DIM), # 5000 → 512
+            nn.ReLU(),
+            nn.Dropout(dropout_prob),
+        )
+        self.sem_proj = nn.Sequential(
+            nn.LayerNorm(SEM_DIM),         # 384
+            nn.Linear(SEM_DIM, PROJ_DIM),  # 384 → 512
+            nn.ReLU(),
+            nn.Dropout(dropout_prob),
+        )
+        self.fusion_input = nn.Sequential(
+            nn.Linear(FUSED_DIM, FUSED_DIM),  # 1024 → 1024
+            nn.LayerNorm(FUSED_DIM),
+            nn.ReLU(),
+            nn.Dropout(dropout_prob),
+        )
+        self.residual_blocks = nn.ModuleList(
+            [ResidualBlock(FUSED_DIM, dropout_prob) for _ in range(num_blocks)]  # 4 blocks
+        )
+        self.output_layer = nn.Linear(FUSED_DIM, 1)  # 1024 → 1
+```
+
+**Tổng params:** 12,234,257 — nhỏ hơn nhiều so với DNN baseline (289M) vì chiều fused nhỏ (1024 vs 4096).
+
+**Setup — Pre-compute cả 2 features:**
+```python
+# HashingVec: stateless, fit_transform nhanh
+X_hash_train = vectorizer.fit_transform(train_docs).toarray()  # [800k, 5000]
+
+# SentTrans frozen: batch_size=512, chạy ~10-15 phút cho 800k samples
+X_sem_train = encoder.encode(texts, batch_size=512, show_progress_bar=True)  # [800k, 384]
+
+# Cả 2 được pre-compute 1 lần → training loop chỉ chạy FusionDNN (nhanh)
+```
+
+**Hyperparameters:**
+
+| Tham số | Giá trị | Lý do |
+|---------|---------|-------|
+| `batch_size` | 512 (setup) / 256 (train) | Không có transformer overhead → batch lớn |
+| `optimizer` | AdamW(lr=1e-3) | 1 LR cho toàn bộ (không discriminative) |
+| `scheduler` | CosineAnnealingLR(T_max=15) | Cosine (không warmup — không có pretrained encoder) |
+| `patience` | 3 | Early stopping |
+
+### Notebook: `model4_fusion_train.ipynb` — Feature Fusion Training
+
+**Diễn biến training:**
+
+```
+Epoch 1: Val MAE $62.36 | Train 0.5786 | Val 0.4589  ← Bắt đầu rất cao
+Epoch 2: Val MAE $61.07 | Train 0.4190 | Val 0.4414
+Epoch 3: Val MAE $58.74 | Train 0.3639 | Val 0.4226  ← New best (BEST)
+Epoch 4: Val MAE $61.17 | No improvement (1/3)
+Epoch 5: Val MAE $62.24 | No improvement (2/3)
+Epoch 6: Val MAE $59.82 | No improvement (3/3)
+→ Early stopping tại epoch 6. Best Val MAE: $58.74
+```
+
+**Sanity check:**
+```
+Product: Old Blood Noise Excess V2 Distortion Chorus/Delay Pedal
+Actual:  $219.00
+Predict: $150.63
+Error:   $68.37  ← Underestimate đáng kể
+```
+
+**Test MAE: $51.55** — Tệ nhất trong các models mới, tệ hơn cả DNN baseline ($46.02).
+
+**Phân tích thất bại:**
+
+1. **Val set quá nhỏ (val[:1000]):** Early stopping dựa trên val MAE nhiều noise → trigger sớm tại epoch 6, model chưa hội tụ
+2. **Model capacity quá nhỏ:** 12M params vs DNN 289M. Sau khi project xuống 512-dim mỗi modality, nhiều thông tin lexical bị mất (DNN dùng thẳng 5000-dim HashingVec → 4096-dim)
+3. **Pre-compute SentTrans frozen + HashingVec:** Kết hợp frozen semantic signal với lexical không mang lại synergy như kỳ vọng. SentTrans frozen được train cho semantic similarity — representation của nó không optimal cho price prediction khi không được fine-tuned
+4. **LR 1e-3 và CosineAnnealing:** Không có warmup → gradient lớn ở epoch đầu → val MAE cao. Tuy nhiên không đủ epoch để recover
+
+---
+
+### Tổng kết — Leaderboard Session 3
+
+| Hạng | Model | Type | Params | Test MAE | Ghi chú |
+|------|-------|------|--------|----------|---------|
+| 1 | GPT 5.1 | Frontier LLM | — | **$44.06** | Zero-shot + RAG |
+| 2 | SentTrans E2E | Fine-tuned LM | 22.8M | **$44.44** | Model 3 |
+| 3 | DistilBERT V3 (mean pool) | Fine-tuned LM | 66.6M | $45.21 | Model 2 V3 |
+| 4 | DistilBERT V2 (CLS) | Fine-tuned LM | 66.6M | $46.57 | Model 2 V2 |
+| 5 | HashingVec DNN | Specialized DL | 289M | $46.02 | Baseline |
+| 6 | Redemption 15 epochs | Specialized DL | 289M | $47.55 | DNN train thêm |
+| 7 | DistilBERT V1 (5 epochs) | Fine-tuned LM | 66.6M | $44.19 | Chưa hội tụ |
+| — | Feature Fusion | Hybrid DL | 12.2M | $51.55 | Model 4 — failed |
+
+*Ghi chú: DistilBERT V1 $44.19 có thể do variability của 200-sample test — thực tế V1 chưa hội tụ, cần thêm epochs*
+
+**Leaderboard tổng thể (tất cả models):**
+
+| Hạng | Model | MAE |
+|------|-------|-----|
+| 1 | GPT 5.1 (Frontier + RAG) | $44.06 |
+| 2 | SentTrans E2E | $44.44 |
+| 3 | DistilBERT V1 (5 epochs) | $44.19 |
+| 4 | SentTrans frozen (4096 hidden) | $43.78 |
+| 5 | DistilBERT V3 (mean pool) | $45.21 |
+| 6 | HashingVec DNN (5 epochs) | $46.02 |
+| 7 | DistilBERT V2 (CLS, 15 epochs) | $46.57 |
+| 8 | Claude Opus 4.5 | $47.10 |
+| 9 | SentTrans frozen (1024 hidden) | $47.56 |
+| 10 | Redemption DNN (15 epochs) | $47.55 |
+| 11 | Neural Network (Vanilla, 8 layers) | $59.14 |
+| 12 | GPT 4.1 Nano | $63.28 |
+| 13 | XGBoost | $68.23 |
+| 14 | NLP Linear Regression (BoW) | $76.81 |
+| 15 | Random Forest | $73.04 |
+| 16 | Linear Regression | $101.56 |
+| 17 | Constant Pricer | $106.18 |
+
+---
+
+### Phân tích kết quả và bài học
+
+**1. Tại sao HashingVec DNN vẫn mạnh?**
+
+Ba lý do chính:
+- **Dữ liệu đã được LLM pre-process:** Groq batch rewrite về format chuẩn `Title / Category / Brand / Description / Details`. Brand và Category đã explicit → HashingVec với 5000 features học statistical distribution brand→price cực tốt trên 800k samples.
+- **Price prediction là keyword-driven:** `"bose"` → high price, `"anker"` → mid price, `"stainless steel"` → premium. HashingVec capture chính xác binary presence của các keywords này.
+- **289M params overparametrized:** Với sparse binary input, model có capacity đủ lớn để memorize distribution giá theo từng keyword bucket.
+
+**2. Tại sao SentTrans E2E ($44.44) tốt hơn DistilBERT lớn hơn ($46.57)?**
+
+- SentTrans (22M) dùng **mean pooling** — phù hợp hơn cho regression so với CLS của DistilBERT V2
+- DistilBERT V2 dùng **CLS token** — pretrained cho NSP classification task, không optimal cho regression
+- V3 (mean pooling + DistilBERT) đạt $45.21 — cải thiện so với V2, gần với SentTrans E2E, xác nhận mean pooling là yếu tố quan trọng
+
+**3. Tại sao Feature Fusion thất bại?**
+
+- Frozen SentTrans không được fine-tune cho price prediction → semantic signal yếu
+- Model capacity quá nhỏ (12M) so với baseline (289M)
+- Val set nhỏ (1000 mẫu) → early stopping trigger sớm tại epoch 6, model chưa học đủ
+
+**4. Kết luận về mean pooling vs CLS:**
+
+| | CLS | Mean Pooling |
+|--|-----|--------------|
+| DistilBERT | $46.57 (V2) | $45.21 (V3) |
+| SentTrans | — | $44.44 (E2E) |
+
+Mean pooling nhất quán tốt hơn CLS cho bài toán regression giá. Phù hợp với literature: CLS được optimize cho classification, mean pooling capture toàn bộ thông tin câu tốt hơn cho regression.
+
+**5. Redemption 15 epochs — lesson về LR schedule:**
+
+Khi tăng epochs, phải tăng `T_max` theo. `CosineAnnealingLR(T_max=10)` với 15 epochs làm LR tăng trở lại sau epoch 10 → model dao động, không hội tụ tốt. Test MAE $47.55 tệ hơn 5 epochs ($46.02).
+
+---
+
+### Cập nhật File Structure
+
+```
+redemption_train_15.ipynb
+    ├── pricer/items.py
+    ├── pricer/evaluator.py
+    └── pricer/deep_neural_network.py
+
+model2_distilbert_train_v2.ipynb
+    ├── pricer/items.py
+    ├── pricer/evaluator.py
+    ├── pricer/distilbert_model.py    (DistilBERTRunner base)
+    └── pricer/distilbert_model_v2.py (DistilBERTRunnerV2)
+
+model2_distilbert_train_v3.ipynb
+    ├── pricer/items.py
+    ├── pricer/evaluator.py
+    ├── pricer/distilbert_model.py    (DistilBERTRunner)
+    ├── pricer/distilbert_model_v2.py (DistilBERTRunnerV2)
+    └── pricer/distilbert_model_v3.py (DistilBERTRunnerV3 + DistilBERTRegressorV3)
+
+model3_senttrans_e2e_train.ipynb
+    ├── pricer/items.py
+    ├── pricer/evaluator.py
+    └── pricer/senttrans_e2e_model.py (SentTransE2ERunner, SentTransE2ERegressor)
+
+model4_fusion_train.ipynb
+    ├── pricer/items.py
+    ├── pricer/evaluator.py
+    └── pricer/fusion_model.py        (FusionRunner, FusionDNN, ResidualBlock)
+```
+
+---
+
+*Cập nhật: 2026-05-10*

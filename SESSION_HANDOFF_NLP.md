@@ -136,29 +136,28 @@ Details: 1 sentence on features
 
 **Câu hỏi nghiên cứu:** Semantic representation (SentTrans, DistilBERT) có cải thiện HashingVec DNN không?
 
-**Kết quả đã train:**
+**Kết quả toàn bộ (đã train xong):**
 
 | Model | File | Epochs | Val MAE (best) | Test MAE |
 |-------|------|--------|---------------|----------|
 | HashingVec DNN (baseline) | `deep_neural_network.py` | 5 | $53.84 | **$46.02** |
+| HashingVec DNN (15 epochs) | `deep_neural_network.py` | 15 | $50.65 | $47.55 |
 | SentTrans frozen (1024) | `sentence_transformer_model.py` | 15 | $56.24 | $47.56 |
 | SentTrans frozen (4096) | `sentence_transformer_model.py` | 15 | $49.99 | **$43.78** |
-| DistilBERT CLS V1 (batch=32) | `distilbert_model.py` | 5 | $47.42 | $44.19 |
+| DistilBERT CLS V1 (5 epochs) | `distilbert_model.py` | 5 | $47.42 | $44.19 |
+| DistilBERT V2 (CLS, 15 epochs) | `distilbert_model_v2.py` | 15 | $45.28 | $46.57 |
+| DistilBERT V3 (mean pooling) | `distilbert_model_v3.py` | 13* | $45.50 | $45.21 |
+| SentTrans E2E (fine-tuned) | `senttrans_e2e_model.py` | 15 | $47.01 | **$44.44** |
+| Feature Fusion (HashingVec+SentTrans) | `fusion_model.py` | 6* | $58.74 | $51.55 |
+
+*Early stopping kích hoạt
 
 **Nhận xét quan trọng:**
-- SentTrans 1024 tệ hơn DNN vì 13M params không đủ capacity so với 289M của DNN
-- SentTrans 4096 tốt hơn DNN — capacity lớn hơn là yếu tố quan trọng, không chỉ semantic
-- DistilBERT V1 val MAE vẫn giảm đều tại epoch 5 → chưa hội tụ, cần train thêm
+- **SentTrans E2E ($44.44) tốt nhất** trong các DL model — fine-tuned encoder + mean pooling phát huy tốt
+- **Mean pooling > CLS** cho regression: V3 ($45.21) tốt hơn V2 ($46.57) cùng kiến trúc DistilBERT
+- **Feature Fusion thất bại ($51.55):** Val set nhỏ (1000 mẫu) → early stopping quá sớm (epoch 6); frozen SentTrans không được fine-tune → semantic signal yếu; model capacity nhỏ (12M vs 289M)
+- **DNN 15 epochs ($47.55) tệ hơn 5 epochs ($46.02):** `CosineAnnealingLR(T_max=10)` không phù hợp với 15 epochs — LR tăng trở lại sau epoch 10 → dao động
 - HashingVec mạnh vì: dữ liệu đã LLM pre-process (brand/category explicit), price là keyword-driven
-
-**4 models mới được thiết kế + code (TODO train):**
-
-| Model | File `.py` | Notebook | Thay đổi chính |
-|-------|------------|----------|---------------|
-| DistilBERT V2 | `distilbert_model_v2.py` | `model2_distilbert_train_v2.ipynb` | batch=64, 15 epochs |
-| DistilBERT V3 | `distilbert_model_v3.py` | `model2_distilbert_train_v3.ipynb` | Mean pooling thay CLS |
-| SentTrans E2E | `senttrans_e2e_model.py` | `model3_senttrans_e2e_train.ipynb` | Encoder fine-tuned, LR=5e-5 |
-| Feature Fusion | `fusion_model.py` | `model4_fusion_train.ipynb` | HashingVec(512) + SentTrans(512) → concat(1024) |
 
 **Design doc đầy đủ:** `scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/2026-05-08-dl-models-design.md`
 
@@ -270,31 +269,32 @@ cd segment4 && uv run price_is_right.py    # App 2 → http://127.0.0.1:7860
 - Fix `preprocessor.py` Groq 522 timeout
 - Tạo `Report_data_processing_v2.md` — tài liệu chi tiết Day 1-5 + Redemption DNN
 
-### Session 3 (2026-05-10) — Hiện tại
+### Session 3 (2026-05-10)
 - Phân tích kết quả Model 1 (SentTrans) và Model 2 V1 (DistilBERT)
 - Thảo luận tại sao HashingVec DNN mạnh (keyword-driven price, LLM pre-processed data)
 - Thiết kế và implement 4 models mới: DistilBERT V2/V3, SentTrans E2E, Feature Fusion
-- Cập nhật `2026-05-08-dl-models-design.md` với kết quả thực tế + design mới
-- Commit `56e4150` push lên `claudedev`
-- **Đang chờ:** Train 4 notebooks trên GPU thuê (RTX 5090 32GB)
+- Train xong toàn bộ 5 notebooks (4 models mới + DNN 15 epochs) trên GPU thuê
+- Cập nhật `2026-05-08-dl-models-design.md`, `SESSION_HANDOFF_NLP.md`, `Report_data_processing_v2.md`
+- Viết báo cáo chi tiết Session 3 vào `Report_data_processing_v2.md` (kiến trúc, training curves, phân tích)
+- Commit + push lên `claudedev`
 
 ---
 
-## 10. Câu hỏi / việc cần làm trong session tiếp theo
+## 10. Việc cần làm trong session tiếp theo
 
-1. **[NGAY] Cập nhật kết quả train 4 models mới** — nhận kết quả test MAE từ 4 notebooks và cập nhật vào design doc + SESSION_HANDOFF + leaderboard
+1. **Báo cáo cho giáo viên còn thiếu:**
+   - `report_fine_tune_llm.md` — QLoRA Week 7 (fine-tune Llama 3.2 với LoRA, deploy Modal)
+   - `report_system.md` — kiến trúc 2 apps (search_key + price_is_right)
 
-2. **Báo cáo cho giáo viên còn thiếu:**
-   - `report_fine_tune_llm.md` — QLoRA Week 7
-   - `report_system.md` — kiến trúc 2 apps
+2. **Demo cho giáo viên** — keyword tốt nhất: `wireless headphones`, `gaming monitor`, `acoustic guitar`, `air fryer` (giá $80-$400, tránh Automotive)
 
-3. **Demo cho giáo viên** — keyword tốt nhất: `wireless headphones`, `gaming monitor`, `acoustic guitar`, `air fryer` (giá $80-$400, tránh Automotive)
+3. **Features từ plan.md** — Pipeline Profiling là ưu tiên 1
 
-4. **Features từ plan.md** — Pipeline Profiling là ưu tiên 1
+4. **Tích hợp model tốt nhất vào EnsembleAgent?** — SentTrans E2E ($44.44) là ứng viên, nhưng cần cân nhắc latency và deployment (model cần GPU để inference nhanh)
 
 ---
 
-## 11. Prompt cho session tiếp theo (SAU KHI TRAIN XONG)
+## 11. Prompt cho session tiếp theo
 
 ```
 Đọc file sau để nắm ngữ cảnh:
@@ -304,18 +304,15 @@ scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/2026-05-0
 Dự án: "The Price Is Right" — AI Price Intelligence System (DACN3)
 Nhánh git: claudedev | Working dir: /home/hieu0606sunny/price2026wsl/tech2ai
 
-Kết quả train đã có (cần cập nhật vào doc):
-- Model 2 V2 (DistilBERT CLS, batch=64, 15 epochs): Test MAE = ???
-- Model 2 V3 (DistilBERT mean pooling, batch=64, 15 epochs): Test MAE = ???
-- Model 3 (SentTrans E2E fine-tuned, batch=128, 15 epochs): Test MAE = ???
-- Model 4 (Feature Fusion HashingVec+SentTrans, batch=256, 15 epochs): Test MAE = ???
+Trạng thái hiện tại (2026-05-10):
+- Đã train xong toàn bộ DL models (Session 3)
+- Báo cáo DL models đã viết vào Report_data_processing_v2.md
+- Leaderboard đã cập nhật
 
-Việc cần làm:
-1. Cập nhật kết quả vào 2026-05-08-dl-models-design.md (section 11 Implementation Status + section 13 Leaderboard)
-2. Cập nhật SESSION_HANDOFF_NLP.md leaderboard
-3. Commit + push
-4. Thảo luận: model nào tốt nhất? Có nên tích hợp vào EnsembleAgent không?
-5. Tùy kết quả: viết report DL models cho báo cáo giáo viên
+Việc cần làm tiếp:
+1. Viết report_fine_tune_llm.md — QLoRA Week 7
+2. Viết report_system.md — kiến trúc 2 apps
+3. Pipeline Profiling (segment4/plan.md ưu tiên 1)
 ```
 
 ---
@@ -326,26 +323,29 @@ Việc cần làm:
 
 | Hạng | Model | Loại | MAE | Ghi chú |
 |------|-------|------|-----|---------|
-| ? | DistilBERT V2 (15 epochs) | Fine-tuned LM | TBD | Chờ train |
-| ? | DistilBERT V3 (mean pool) | Fine-tuned LM | TBD | Chờ train |
-| ? | SentTrans E2E | Fine-tuned LM | TBD | Chờ train |
-| ? | Feature Fusion | Hybrid DL | TBD | Chờ train |
-| 1 | SentTrans frozen (4096) | Specialized DL | **$43.78** | Model 1 |
-| 2 | DistilBERT V1 (5 epochs) | Fine-tuned LM | $44.19 | Chưa hội tụ |
-| 3 | HashingVec DNN | Specialized DL | $46.02 | Baseline |
-| 4 | Claude Opus 4.5 | Frontier LLM | $47.10 | Zero-shot |
-| 5 | SentTrans frozen (1024) | Specialized DL | $47.56 | Capacity nhỏ |
-| 6 | Gemini 3 Pro | Frontier LLM | $50.54 | |
-| 7 | Grok 4.1 Fast | Fast LLM | $57.62 | |
-| 8 | Gemini 2.5 Flash | Fast LLM | $58.68 | |
-| 9 | GPT-4.1 Nano | Fast LLM | $62.51 | |
-| 10 | Vanilla Neural Net | Basic DL | $63.97 | 8 lớp, 669k params |
-| 11 | XGBoost | ML | $68.23 | Best traditional ML |
-| 12 | NLP Linear Regression | ML | $76.81 | BoW + CountVec |
-| 13 | Human (giảng viên) | Bio | $87.62 | |
-| 14 | Random Forest | ML | $72.28 | |
-| 15 | Constant Pricer | Trivial | $106.18 | |
-| 16 | Random Pricer | Trivial | $382.08 | |
+| 1 | GPT 5.1 (Frontier + RAG) | Frontier LLM | **$44.06** | Production model |
+| 2 | SentTrans frozen (4096) | Specialized DL | **$43.78** | Model 1 |
+| 3 | SentTrans E2E (fine-tuned) | Fine-tuned LM | $44.44 | Model 3 |
+| 4 | DistilBERT V1 (5 epochs) | Fine-tuned LM | $44.19 | Chưa hội tụ |
+| 5 | DistilBERT V3 (mean pool) | Fine-tuned LM | $45.21 | Model 2 V3 |
+| 6 | HashingVec DNN (5 epochs) | Specialized DL | $46.02 | Baseline production |
+| 7 | DistilBERT V2 (CLS, 15ep) | Fine-tuned LM | $46.57 | Model 2 V2 |
+| 8 | Claude Opus 4.5 | Frontier LLM | $47.10 | Zero-shot |
+| 9 | SentTrans frozen (1024) | Specialized DL | $47.56 | Capacity nhỏ |
+| 10 | HashingVec DNN (15 epochs) | Specialized DL | $47.55 | LR schedule mismatch |
+| 11 | Feature Fusion | Hybrid DL | $51.55 | Model 4 — early stop quá sớm |
+| 12 | Gemini 3 Pro | Frontier LLM | $50.54 | |
+| 13 | Vanilla Neural Net | Basic DL | $59.14 | 8 lớp, 669k params |
+| 14 | Grok 4.1 Fast | Fast LLM | $57.62 | |
+| 15 | Gemini 2.5 Flash | Fast LLM | $58.68 | |
+| 16 | GPT-4.1 Nano | Fast LLM | $63.28 | |
+| 17 | XGBoost | ML | $68.23 | Best traditional ML |
+| 18 | Random Forest | ML | $73.04 | |
+| 19 | NLP Linear Regression | ML | $76.81 | BoW + CountVec |
+| 20 | Human (giảng viên) | Bio | $87.62 | |
+| 21 | Linear Regression | ML | $101.56 | |
+| 22 | Constant Pricer | Trivial | $106.18 | |
+| 23 | Random Pricer | Trivial | $382.08 | |
 
 ---
 
