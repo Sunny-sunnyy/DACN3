@@ -7,7 +7,7 @@
 > - `report_fine_tune_llm.md` — Fine-tune Llama 3.2 (Week 7)
 > - `report_system.md` — Xây dựng hệ thống (search_key + price_is_right)
 >
-> **Ngày cập nhật:** 2026-05-10 (session 3)
+> **Ngày cập nhật:** 2026-05-11 (session 4)
 > **Nhánh git hiện tại:** `claudedev`
 > **Working directory:** `/home/hieu0606sunny/price2026wsl/tech2ai`
 
@@ -278,17 +278,27 @@ cd segment4 && uv run price_is_right.py    # App 2 → http://127.0.0.1:7860
 - Viết báo cáo chi tiết Session 3 vào `Report_data_processing_v2.md` (kiến trúc, training curves, phân tích)
 - Commit + push lên `claudedev`
 
+### Session 4 (2026-05-11)
+- Đánh giá `report_system.md` hiện tại: 1223 dòng, còn thiếu so với `Report_data_processing_v2.md` (2559 dòng)
+- Bổ sung vào `report_system.md` (1223 → 1533 dòng):
+  - Phần mới: "Chi tiết từng ngày học — Week 8 Day 1–5" — ghi lại experiments, kết quả thực tế, vấn đề gặp phải từ 5 w8 notebooks
+  - Phần 16: Chi tiết các file chưa được giải thích (`log_utils.py`, `gradio_helpers.py`, `deals.py` method-level, `unified_deal.py`)
+  - Phần 17: Leaderboard và kết quả thực nghiệm (Ensemble $29.9, so sánh BestBuy/Amazon scraping)
+- `report_fine_tune_llm.md` đã có đầy đủ nội dung (570 dòng) từ session trước, không cần thêm
+- Commit + push lên `claudedev`
+
 ---
 
 ## 10. Việc cần làm trong session tiếp theo
 
-1. **Báo cáo cho giáo viên còn thiếu:**
-   - `report_fine_tune_llm.md` — QLoRA Week 7 (fine-tune Llama 3.2 với LoRA, deploy Modal)
-   - `report_system.md` — kiến trúc 2 apps (search_key + price_is_right)
+1. **Báo cáo — trạng thái hiện tại:**
+   - `Report_data_processing_v2.md` — HOÀN THÀNH (2559 dòng, Week 6 Day 1-5 + DL models)
+   - `report_fine_tune_llm.md` — HOÀN THÀNH (570 dòng, QLoRA Week 7)
+   - `report_system.md` — HOÀN THÀNH (1533 dòng, Week 8 Day 1-5 + 2 apps production)
 
 2. **Demo cho giáo viên** — keyword tốt nhất: `wireless headphones`, `gaming monitor`, `acoustic guitar`, `air fryer` (giá $80-$400, tránh Automotive)
 
-3. **Features từ plan.md** — Pipeline Profiling là ưu tiên 1
+3. **Features từ plan.md** — Pipeline Profiling là ưu tiên 1 (đo thời gian từng bước pipeline)
 
 4. **Tích hợp model tốt nhất vào EnsembleAgent?** — SentTrans E2E ($44.44) là ứng viên, nhưng cần cân nhắc latency và deployment (model cần GPU để inference nhanh)
 
@@ -299,20 +309,20 @@ cd segment4 && uv run price_is_right.py    # App 2 → http://127.0.0.1:7860
 ```
 Đọc file sau để nắm ngữ cảnh:
 SESSION_HANDOFF_NLP.md
-scraping_data_tv/Data_processing_for_English_data/Code_Data_processing/2026-05-08-dl-models-design.md
 
 Dự án: "The Price Is Right" — AI Price Intelligence System (DACN3)
 Nhánh git: claudedev | Working dir: /home/hieu0606sunny/price2026wsl/tech2ai
 
-Trạng thái hiện tại (2026-05-10):
-- Đã train xong toàn bộ DL models (Session 3)
-- Báo cáo DL models đã viết vào Report_data_processing_v2.md
-- Leaderboard đã cập nhật
+Trạng thái hiện tại (2026-05-11):
+- Tất cả 3 báo cáo đã hoàn thành:
+  * Report_data_processing_v2.md (Week 6)
+  * report_fine_tune_llm.md (Week 7 QLoRA)
+  * report_system.md (Week 8 production system)
 
 Việc cần làm tiếp:
-1. Viết report_fine_tune_llm.md — QLoRA Week 7
-2. Viết report_system.md — kiến trúc 2 apps
-3. Pipeline Profiling (segment4/plan.md ưu tiên 1)
+1. Pipeline Profiling — đo thời gian từng bước trong pipeline (segment4/plan.md ưu tiên 1)
+2. Demo cho giáo viên với keywords: wireless headphones, gaming monitor, acoustic guitar, air fryer
+3. Cân nhắc tích hợp SentTrans E2E ($44.44 MAE) vào EnsembleAgent thay HashingVec DNN
 ```
 
 ---

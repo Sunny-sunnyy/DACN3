@@ -1,0 +1,2141 @@
+DAY 1
+188. Day 1 - Intro to Agentic AI & Serverless Deployment on Modal
+Chào bạn, chúc mừng bạn đã đi đến tuần cuối cùng (Tuần 8) của khóa học! Đây là chặng "về đích" nơi mọi mảnh ghép kiến thức từ 7 tuần trước (Prompting, RAG, Fine-tuning, v.v.) được kết hợp lại để tạo nên một hệ thống Agentic AI hoàn chỉnh.
+Dựa trên bản phiên âm và tài liệu slide (Copy of LLMs Week 8 Day 1.pdf) bạn cung cấp, kết hợp với ngữ cảnh từ các tuần trước (file fine_tune_LLM.docx), tôi xin tổng hợp nội dung bài học Day 1 - Intro to Agentic AI & Serverless Deployment on Modal như sau:
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Chủ đề: Khởi động dự án Capstone cuối khóa ("The Price Is Right") và triển khai mô hình lên Cloud.
+•	Điểm nhấn công nghệ: Chuyển từ môi trường notebook (Colab) sang môi trường Production bằng cách sử dụng Modal (nền tảng Serverless AI).
+•	Mục tiêu chính: Triển khai mô hình Open-Source đã Fine-tune (ở Tuần 7) lên internet để nó có thể hoạt động như một dịch vụ (API) độc lập, sẵn sàng tích hợp vào hệ thống Agent.
+•	Lý thuyết: Định nghĩa rõ ràng về Agentic AI (AI tác nhân) và sự khác biệt giữa Agent và Workflow.
+________________________________________
+2. Nội dung chính
+A. Tổng quan hành trình & Dự án Capstone "The Price Is Right"
+Giảng viên giới thiệu dự án cuối khóa là một hệ thống Autonomous Agentic AI (AI tác nhân tự chủ) với luồng hoạt động như sau:
+1.	Scanner Agent: Tự động quét các nguồn cấp dữ liệu (RSS Feeds) để tìm các sản phẩm đang giảm giá online.
+2.	Pricing Engine (Ensemble): Định giá thực tế của sản phẩm để xem đó có phải là món hời không. Hệ thống này kết hợp sức mạnh của 2 mô hình:
+o	Fine-tuned Open Source Model: Mô hình Llama 3.2 3B đã được train về giá (kết quả của Tuần 7).
+o	Frontier Model + RAG: Sử dụng mô hình lớn (như GPT-4) kết hợp với RAG để tham chiếu chéo.
+3.	Messaging Agent: Gửi thông báo đẩy (Push Notification) đến điện thoại người dùng nếu tìm thấy "kèo thơm" (bargain).
+B. Định nghĩa về AI Agents (Tác nhân AI)
+Bài học đưa ra 3 góc nhìn định nghĩa về Agent đang thịnh hành năm 2025:
+1.	Góc nhìn OpenAI (Độc lập): Agent là hệ thống AI có thể thực hiện công việc thay bạn một cách độc lập (như một nhân viên ảo).
+2.	Góc nhìn Anthropic (Kiểm soát quy trình): Agent là hệ thống mà LLM kiểm soát quy trình làm việc (Workflow). Thay vì code cứng nhắc (A -> B -> C), LLM tự quyết định làm A, B hay C dựa trên mục tiêu.
+3.	Góc nhìn Tool Use & Loop (Vòng lặp công cụ): Agent là một LLM chạy trong một vòng lặp (loop), liên tục gọi các công cụ (Tools) cho đến khi đạt được mục tiêu đề ra.
+C. Triển khai Serverless với Modal
+•	Vấn đề: Các mô hình chạy trên Colab rất khó để tích hợp vào một ứng dụng thực tế chạy 24/7.
+•	Giải pháp: Sử dụng Modal (modal.com). Đây là nền tảng Serverless cho AI, cho phép bạn chạy code Python trên cloud, tự động cấp phát GPU khi cần và tắt khi không dùng (tiết kiệm chi phí), không cần quản lý server vật lý.
+•	Nhiệm vụ hôm nay: Đưa mô hình đã Fine-tune ở Tuần 7 lên Modal.
+________________________________________
+3. Kiến trúc & Quy trình (Capstone Pipeline)
+Dựa trên Slide (Trang 8 & 10) và mô tả, Pipeline của hệ thống "The Price Is Right" sẽ hoạt động như sau:
+1.	Input: RSS Feeds (Dữ liệu giao dịch online).
+2.	Agents Orchestration (Sự phối hợp):
+o	Scanner Agent: Lọc dữ liệu thô.
+o	Ensemble Agent: Chứa logic so sánh giá (Fine-tuned Model vs Frontier Model).
+o	Planning Agent: Điều phối xem khi nào thì chạy agent nào.
+3.	Deployment Platform: Modal (Chứa toàn bộ logic backend và Model serving).
+4.	Output: Notification gửi tới điện thoại người dùng.
+________________________________________
+4. Phân tích Code (Dựa trên Slide)
+Lưu ý: Bạn chưa cung cấp file code .py chi tiết của buổi này, nhưng trong file PDF Copy of LLMs Week 8 Day 1.pdf (Trang 9) có đoạn code mẫu quan trọng giới thiệu về Modal. Tôi sẽ phân tích đoạn này vì đây là công nghệ cốt lõi của bài học.
+Code Snippet: Giới thiệu Modal (Trang 9 Slide)
+Python
+import modal
+
+# 1. Khởi tạo ứng dụng Modal
+# Đây là đối tượng đại diện cho ứng dụng của bạn trên Cloud
+app = modal.App()
+
+# 2. Định nghĩa hàm chạy trên Cloud (Serverless Function)
+# Decorator @app.function() biến hàm Python thường thành hàm chạy trên hạ tầng của Modal
+@app.function()
+def hello():
+    # Khi gọi hàm này, dòng print sẽ chạy trên máy chủ của Modal, không phải máy local
+    print("Running remotely")
+Giải thích logic:
+1.	import modal: Thư viện Python để giao tiếp với nền tảng Modal.
+2.	app = modal.App(): Tạo một namespace cho ứng dụng. Mọi container, image, và function sẽ được gắn vào app này.
+3.	@app.function(): Đây là "phép thuật" của Modal. Bất kỳ hàm nào đặt dưới decorator này sẽ được đóng gói, đẩy lên cloud, chạy trong một container (có thể cấu hình RAM, CPU, GPU) và trả kết quả về máy bạn. Bạn không cần Dockerfile hay cấu hình Kubernetes phức tạp.
+Mở rộng cho bài học hôm nay (Contextual Code):
+Trong thực tế bài học, đoạn code sẽ phức tạp hơn để load mô hình Fine-tuned. Logic sẽ đại loại như sau (Mô phỏng):
+Python
+# (Code mô phỏng logic bài học)
+image = modal.Image.debian_slim().pip_install("torch", "transformers") # Cài thư viện
+
+@app.function(image=image, gpu="T4") # Yêu cầu GPU T4
+def predict_price(description):
+    # Load mô hình đã fine-tune từ Tuần 7
+    model = load_model("path/to/fine_tuned_weights") 
+    # Dự đoán giá
+    price = model.generate(description)
+    return price
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Serverless AI vs. Traditional Server
+•	Traditional (EC2, VPS): Bạn thuê 1 máy chủ GPU, trả tiền 24/7 dù có chạy hay không. Rất tốn kém cho các dự án cá nhân hoặc startup nhỏ.
+•	Serverless (Modal, Lambda): Bạn chỉ trả tiền cho thời gian code thực sự chạy (tính theo giây). Với LLM, điều này cực kỳ lợi vì bạn chỉ tốn tiền GPU khi có người hỏi hoặc khi Agent cần xử lý tác vụ.
+B. Agentic Workflow vs. Autonomous Agent
+•	Agentic Workflow: Vẫn có sự tham gia của LLM, nhưng các bước được code cứng (Hard-coded orchestration). Ví dụ: Dùng LLM tóm tắt -> Dùng LLM dịch -> Lưu file.
+•	Autonomous Agent: LLM tự quyết định các bước. Ví dụ: Prompt: "Hãy viết báo cáo thị trường". Agent tự nghĩ: "Mình cần search Google trước -> Đọc 3 bài báo -> Tóm tắt -> Viết báo cáo".
+C. Ensemble Modeling (Mô hình tổ hợp)
+Trong dự án này, giảng viên áp dụng kỹ thuật Ensemble: kết hợp kết quả của nhiều mô hình (Open Source Fine-tuned + Frontier Model) để đưa ra quyết định chính xác hơn. Đây là kỹ thuật thường thấy trong Machine Learning thi đấu (Kaggle) để tăng độ chính xác.
+Kết luận: Bài học này là bước chuyển mình quan trọng từ việc "Biết train mô hình" (Tuần 7) sang "Biết biến mô hình thành sản phẩm thực tế" (Tuần 8) bằng cách sử dụng công nghệ Cloud hiện đại (Modal) và tư duy Agent.
+
+189. Day 1 - Designing Agent Architectures & Modal Platform Setup
+Chào bạn, tiếp nối phần giới thiệu tổng quan, bài học này đi sâu vào tư duy thiết kế hệ thống (Architecture Design) và thiết lập môi trường thực tế trên Modal.
+Dưới đây là tổng hợp chi tiết dựa trên nội dung phiên âm và tài liệu bạn cung cấp cho bài học 189. Day 1 - Designing Agent Architectures & Modal Platform Setup.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Triết lý thiết kế: Đừng vội vã xây dựng một hệ thống Agent phức tạp ngay từ đầu. Hãy bắt đầu từ bài toán kinh doanh (Business Objective) -> Giải pháp đơn giản (1 LLM call) -> Chỉ tách thành nhiều Agents khi thực sự cần thiết để giải quyết vấn đề hiệu quả hơn.
+•	Kiến trúc Capstone: Hệ thống sẽ bao gồm các "Sub-agents" (thực chất là các LLM calls chuyên biệt) được điều phối bởi một Planner.
+•	Công cụ triển khai: Sử dụng Modal.com (Serverless AI Platform).
+•	Phương pháp học: Không sử dụng các Framework có sẵn (như LangChain, CrewAI) ngay lập tức. Chúng ta sẽ xây dựng từ First Principles (nguyên lý cơ bản: tự viết code Python gọi LLM và Tools) để hiểu sâu bản chất vấn đề.
+________________________________________
+2. Nội dung chính
+A. Tư duy đúng về "Agent Architecture"
+Giảng viên cảnh báo về một cái "bẫy" mà dân kỹ thuật hay gặp phải: Nhân hóa quá mức (Anthropomorphizing).
+•	Sai lầm: Cố gắng tạo ra các Agent giống con người (Ví dụ: "Tôi cần một Agent Kế toán, một Agent Sales...") ngay cả khi không cần thiết.
+•	Đúng đắn: Tập trung vào mục tiêu. Nếu việc chia nhỏ tác vụ thành các bước riêng biệt (Scanner, Pricing, Messaging) giúp giải quyết vấn đề tốt hơn thì hãy làm, và gọi chúng là Agent hoặc Sub-agent.
+B. Thiết lập nền tảng Modal (Modal.com)
+•	Tại sao chọn Modal?
+o	Serverless: Chỉ trả tiền cho thời gian code chạy (Compute time). Khi không chạy, chi phí bằng 0.
+o	Miễn phí (hiện tại): Cấp $30 credit/tháng, quá đủ cho khóa học này.
+o	Dễ dùng: Định nghĩa hạ tầng (GPU, RAM) trực tiếp bằng Python code (@app.function).
+•	Thực hành: Đăng ký tài khoản Modal (dùng GitHub), kiểm tra Dashboard để chuẩn bị deploy code.
+________________________________________
+3. Kiến trúc & Quy trình (Agent Architecture)
+Dù giảng viên nói đùa về con số "7 agents", nhưng kiến trúc thực tế được chốt lại gồm 4 thành phần chính (hoạt động từ phải sang trái theo quy trình ngược):
+1.	Scanner Agent:
+o	Nhiệm vụ: Đăng ký và quét các nguồn RSS feeds.
+o	Mục tiêu: Tìm các giao dịch/sản phẩm tiềm năng (appetizing bargains).
+2.	Ensemble Agent (Pricing Engine):
+o	Nhiệm vụ: Định giá thực tế của sản phẩm.
+o	Cơ chế: Kết hợp (Ensemble) nhiều mô hình: Mô hình Open Source đã Fine-tune (Llama 3.2) + Mô hình Frontier (GPT-4/Claude) + RAG để đưa ra dự đoán chính xác nhất.
+3.	Messaging Agent:
+o	Nhiệm vụ: Gửi thông báo (Push notification) tới người dùng.
+o	Đặc điểm: Sử dụng LLM để viết lại nội dung thông báo sao cho hấp dẫn, "thổi phồng" (hype) sự nhiệt tình để kích thích người dùng click vào.
+4.	Planning Agent (The Orchestrator):
+o	Nhiệm vụ: Nhạc trưởng điều phối toàn bộ hoạt động.
+o	Chức năng: Quản lý bộ nhớ (Memory) để không báo trùng lặp, ghi log (Logging) để quan sát hệ thống. Đây là thành phần duy nhất thực sự chạy trong một vòng lặp (Loop).
+________________________________________
+4. Phân tích Code (Thiết lập Modal)
+Dựa trên nội dung phiên âm, phần này chưa đi vào code Python cụ thể của Agent mà dừng lại ở việc thiết lập tài khoản Modal và mở trình soạn thảo Cursor. Tuy nhiên, dựa trên slide và ngữ cảnh, tôi giải thích cơ chế hoạt động của Modal mà bạn sắp code:
+Cơ chế "Infrastructure as Code" của Modal:
+Thay vì phải tạo file Docker, cấu hình Kubernetes, hay vào AWS Console bấm nút thuê máy chủ, Modal cho phép bạn làm điều đó ngay trong file Python:
+Python
+# (Code minh họa cơ chế hoạt động sắp tới)
+import modal
+
+# 1. Định nghĩa "App" - Đơn vị quản lý ứng dụng trên Cloud
+app = modal.App("pricing-project")
+
+# 2. Định nghĩa môi trường (Image) - Tương tự Dockerfile nhưng viết bằng Python
+# Cài đặt sẵn các thư viện cần thiết
+image = modal.Image.debian_slim().pip_install("torch", "transformers")
+
+# 3. Định nghĩa Hàm Serverless
+# @app.function: Biến hàm Python thường thành hàm chạy trên Cloud của Modal
+# gpu="T4": Yêu cầu cấp GPU T4 khi chạy hàm này
+@app.function(image=image, gpu="T4") 
+def run_inference(data):
+    # Code này chạy trên máy chủ Modal, tận dụng GPU
+    print("Đang chạy trên Cloud...")
+    return model.generate(data)
+
+# 4. Chạy hàm từ máy local (local_entrypoint)
+@app.local_entrypoint()
+def main():
+    # Gọi hàm trên cloud như gọi hàm thường
+    result = run_inference.remote("Input data")
+    print(result)
+Ghi chú:
+•	@app.function: Đây là decorator quan trọng nhất. Nó đóng gói code của bạn và đẩy lên server Modal.
+•	.remote(): Lệnh để kích hoạt hàm chạy trên cloud từ máy tính cá nhân của bạn.
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+A. Tại sao "Build from Scratch" (Tự xây dựng) mà không dùng Framework?
+Giảng viên nhắc đến Anthropic's Blog Post: "Building Effective Agents". Bài viết này khuyên rằng:
+•	Các Framework (LangChain, CrewAI) rất mạnh mẽ nhưng chúng "giấu" đi quá nhiều chi tiết kỹ thuật (Abstraction).
+•	Khi mới học hoặc làm các dự án cụ thể, việc tự viết code gọi API (glue code) giúp bạn kiểm soát hoàn toàn luồng đi của dữ liệu, dễ debug và hiểu rõ "tại sao nó hoạt động".
+B. Khái niệm "Ensemble" trong LLM
+Trong Machine Learning cổ điển (như Random Forest), Ensemble là việc gộp kết quả của nhiều cây quyết định để có kết quả tốt hơn một cây lẻ.
+Trong bài này, Ensemble Agent áp dụng tư duy tương tự:
+•	Mô hình A (Fine-tuned): Giỏi về kiến thức tên miền hẹp (giá cả).
+•	Mô hình B (Frontier + RAG): Giỏi về kiến thức tổng quát và tra cứu.
+•	Kết hợp A + B = Độ tin cậy cao hơn.
+C. Quy trình triển khai thực tế
+Quy trình bạn sắp làm phản ánh đúng môi trường Production hiện đại:
+1.	Dev trên máy local (VS Code/Cursor).
+2.	Deploy logic xử lý nặng (AI Model) lên Serverless (Modal).
+3.	Logic điều phối (Agent) gọi tới các endpoint Serverless đó.
+Bước tiếp theo: Bạn đã sẵn sàng tài khoản Modal và Cursor chưa? Bài học tiếp theo sẽ bắt đầu viết những dòng code đầu tiên để đưa mô hình lên mây!
+190. Day 1 - Running Python Locally and in the Cloud with Modal Remote Execution 
+Chào bạn, chúng ta chính thức bắt tay vào bài thực hành đầu tiên của Tuần 8. Bài học này đóng vai trò nền tảng kỹ thuật (Infrastructure Foundation) cho toàn bộ hệ thống Agent mà bạn sẽ xây dựng trong tuần này.
+Thay vì chỉ chạy code trên máy tính cá nhân (vốn hạn chế về sức mạnh) hay Google Colab (vốn khó tích hợp thành app), chúng ta sẽ làm quen với Modal – giải pháp giúp code Python của bạn "nhảy" từ máy local lên Cloud chỉ bằng một decorator.
+Dưới đây là tổng hợp chi tiết bài học 190. Day 1 - Running Python Locally and in the Cloud with Modal Remote Execution.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Mục tiêu: Thiết lập môi trường Modal và chạy thành công chương trình "Hello World" trên hạ tầng Serverless.
+•	Khái niệm mới: Remote Execution (Thực thi từ xa). Bạn viết code trên VS Code/Cursor, nhưng code thực sự chạy trên máy chủ của Modal.
+•	Kỹ thuật chính:
+o	Cấu hình xác thực (Authentication) với Modal bằng uv.
+o	Sử dụng decorator @app.function để định nghĩa hàm chạy trên Cloud.
+o	Chuyển đổi linh hoạt giữa chạy local() (trên máy bạn) và remote() (trên Cloud).
+________________________________________
+2. Nội dung chính
+A. Chuẩn bị môi trường (Setup)
+Có 2 lưu ý quan trọng giảng viên nhắc đến trước khi code:
+1.	Vấn đề Encoding trên Windows: Modal thích in ra các emoji (🚀, 📦) trong log. Một số máy Windows cũ có thể bị lỗi font.
+o	Giải pháp: Chạy lệnh set encoding UTF-8 hoặc khởi động lại kernel nếu gặp lỗi hiển thị.
+2.	Cấu hình Token (Quan trọng nhất):
+o	Bạn cần vào modal.com -> Settings -> API Tokens -> Create New Token.
+o	Copy lệnh config. Lưu ý: Vì bạn dùng uv, hãy thêm uv run vào trước câu lệnh.
+o	Lệnh chuẩn: uv run modal token set --token-id <ID> --token-secret <SECRET>
+B. Cơ chế hoạt động của Modal
+Modal giúp bạn định nghĩa Infrastructure as Code (Cơ sở hạ tầng bằng Mã).
+•	Thay vì tạo Dockerfile phức tạp, bạn chỉ cần khai báo image trong Python.
+•	Thay vì thuê server AWS, bạn khai báo hàm nào cần chạy remote, Modal tự cấp máy, chạy xong tự tắt.
+C. Chọn vùng địa lý (Region Selection)
+•	Mặc định Modal sẽ chọn vùng gần nhất hoặc rảnh nhất (ví dụ: US).
+•	Bạn có thể ép buộc code chạy tại khu vực cụ thể (ví dụ: region="eu" cho Châu Âu) để tuân thủ luật dữ liệu (GDPR) hoặc giảm độ trễ nếu khách hàng ở đó.
+________________________________________
+3. Phân tích Code
+Dưới đây là phân tích sự kết hợp giữa file hello.py (định nghĩa logic) và day1.ipynb (nơi thực thi).
+File: hello.py - Định nghĩa Hàm & Hạ tầng
+Python
+import modal
+from modal import Image
+
+# 1. Định nghĩa App: Tên ứng dụng trên Dashboard Modal
+app = modal.App("hello")
+
+# 2. Định nghĩa Môi trường (Environment/Image)
+# Tương đương với Docker: Dùng Linux Debian Slim, cài thêm thư viện 'requests'
+image = Image.debian_slim().pip_install("requests")
+
+# 3. Định nghĩa Hàm Serverless Cơ bản
+# @app.function: Biến hàm Python thường thành hàm Modal
+# image=image: Báo cho Modal biết hàm này cần môi trường nào để chạy
+@app.function(image=image)
+def hello() -> str:
+    import requests
+    # Gọi API để xem IP hiện tại của máy đang chạy code này là ở đâu
+    response = requests.get("https://ipinfo.io/json")
+    data = response.json()
+    city, region, country = data["city"], data["region"], data["country"]
+    return f"Hello from {city}, {region}, {country}!!"
+
+# 4. Định nghĩa Hàm Serverless tại Châu Âu (EU)
+# region="eu": Ép buộc hàm này phải chạy trên máy chủ đặt tại Châu Âu
+@app.function(image=image, region="eu")
+def hello_europe() -> str:
+    import requests
+    response = requests.get("https://ipinfo.io/json")
+    data = response.json()
+    city, region, country = data["city"], data["region"], data["country"]
+    return f"Hello from {city}, {region}, {country}!!"
+File: day1.ipynb - Thực thi (Execution)
+Trong Notebook, bạn sẽ thấy cách gọi hàm này rất linh hoạt:
+Python
+# Import hàm từ file .py
+from hello import app, hello, hello_europe
+
+# Context Manager để khởi tạo session với Modal
+with app.run():
+    
+    # Kịch bản 1: Chạy Local (Trên máy tính của bạn)
+    # Hàm này sẽ trả về địa điểm nơi bạn đang ngồi (ví dụ: Vietnam)
+    print(hello.local()) 
+    
+    # Kịch bản 2: Chạy Remote (Trên Cloud của Modal)
+    # Hàm này sẽ gửi code lên server Modal, chạy ở đó và trả kết quả về.
+    # Kết quả sẽ là một địa điểm ở Mỹ (ví dụ: Phoenix, Arizona)
+    print(hello.remote())
+    
+    # Kịch bản 3: Chạy Remote tại Châu Âu
+    # Kết quả sẽ là một địa điểm ở Châu Âu (ví dụ: Frankfurt, Germany)
+    print(hello_europe.remote())
+Logic quan trọng:
+•	Khi gọi .local(): Code chạy ngay trên CPU máy bạn.
+•	Khi gọi .remote(): Code + Environment được đóng gói -> Đẩy lên Modal -> Modal cấp máy (Container) -> Chạy code -> Trả về string kết quả. Quá trình này hoàn toàn trong suốt với người dùng.
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+1. Tại sao cần pip_install bên trong image?
+Khi code chạy trên Cloud (Remote), nó chạy trên một máy tính hoàn toàn mới (sạch trơn). Nếu code của bạn cần thư viện requests hay torch, bạn phải khai báo trong image để Modal cài đặt nó vào Container trước khi chạy hàm. Nếu không, bạn sẽ gặp lỗi ModuleNotFound.
+2. Vòng đời của một hàm Serverless (Cold Start)
+•	Lần đầu bạn gọi .remote(): Modal mất vài giây để tải Image và khởi động Container (gọi là Cold Start).
+•	Các lần gọi tiếp theo: Nếu gọi liên tục, Container vẫn còn đó nên chạy rất nhanh (Warm Start).
+•	Sau một thời gian không dùng: Modal tự tắt Container để bạn không tốn tiền.
+3. Ứng dụng thực tế cho Project "The Price Is Right"
+Trong các bài tới, chúng ta sẽ thay requests bằng torch và transformers. Thay vì in ra "Hello from...", hàm sẽ load Model Llama 3.2 3B và trả về giá dự đoán. Đó là cách chúng ta đưa AI vào sản phẩm thực tế mà không cần mua server GPU đắt tiền.
+Bước tiếp theo cho bạn
+Bạn đã thực hiện lệnh uv run modal token set ... trong terminal để kết nối tài khoản chưa? Nếu chưa, hãy làm ngay bước này vì toàn bộ các bài học sau của tuần này đều phụ thuộc vào nó.
+Nếu đã xong, bạn có muốn tôi tiếp tục sang bài thiết lập Specialist Agent không?
+191. Day 1 - Setting Up Modal Secrets and Deploying LLaMA Models to the Cloud 
+Chào bạn, chúng ta đang bước vào giai đoạn thú vị nhất: đưa mô hình AI từ máy tính cá nhân (hoặc Colab) lên môi trường Cloud thực tế.
+Bài học này giải quyết vấn đề cốt lõi: Làm sao để code trên Cloud (Modal) có thể truy cập vào tài khoản Hugging Face của bạn để tải các mô hình Private hoặc Gated (như Llama 3)?
+Dưới đây là tổng hợp chi tiết bài học 191. Day 1 - Setting Up Modal Secrets and Deploying LLaMA Models to the Cloud.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Vấn đề bảo mật: Không bao giờ hard-code (viết cứng) API Token vào trong file code. Thay vào đó, sử dụng cơ chế Secrets của Modal.
+•	Triển khai Base Model: Chạy thử nghiệm mô hình Llama-3.2-3B gốc trên Cloud để đảm bảo môi trường hoạt động ổn định.
+•	Triển khai Fine-tuned Model: Chạy mô hình "Price Is Right" (đã train ở Tuần 7) bằng cách kết hợp Adapter (LoRA) với Base Model ngay trên Cloud.
+•	Khái niệm "Ephemeral" (Phù du): Các hàm serverless chúng ta viết hôm nay có tính chất "dùng xong là tắt". Nó chưa phải là một Web Server chạy 24/7 (chúng ta sẽ làm việc đó sau).
+________________________________________
+2. Nội dung chính & Quy trình
+Bước 1: Cấu hình "Bí mật" (Secrets Management)
+Để Modal tải được model từ Hugging Face (HF), bạn cần cấp quyền truy cập.
+•	Trên Hugging Face: Tạo Access Token (dạng Write/Read).
+•	Trên Modal Dashboard:
+1.	Vào mục Secrets -> Create New Secret.
+2.	Chọn template Hugging Face.
+3.	Quan trọng:
+	Secret Name: Đặt là huggingface-secret (để khớp với code mẫu).
+	Key: HF_TOKEN (Mặc định, không đổi).
+	Value: Dán token thật từ Hugging Face của bạn vào.
+Bước 2: Chạy thử nghiệm llama.py
+Mục tiêu là "Rickroll" AI: Đưa vào đoạn text "Never gonna give you up" và xem Llama 3.2 hoàn thiện lời bài hát. Đây là bước kiểm tra xem Modal có thể tải model nặng hàng GB về và chạy GPU thành công không.
+Bước 3: Chạy mô hình đã Fine-tune (pricer_ephemeral.py)
+Đây là mô hình "Price Is Right". Code sẽ làm 2 việc:
+1.	Tải Base Model (Llama 3.2).
+2.	Tải Adapter (file .safetensors nhỏ) từ repo của bạn (hoặc của giảng viên) và gộp chúng lại để dự đoán giá.
+________________________________________
+3. Phân tích Code
+A. File llama.py (Mô hình cơ sở)
+Python
+import modal
+from modal import Image
+
+# 1. Định nghĩa App
+app = modal.App("llama")
+
+# 2. Định nghĩa Môi trường (Image)
+# Cài đặt các thư viện Deep Learning cần thiết
+image = Image.debian_slim().pip_install("torch", "transformers", "accelerate")
+
+# 3. Kết nối với Secret đã tạo trên Dashboard
+# Dòng này cực kỳ quan trọng: Nó giúp container có quyền truy cập HF_TOKEN
+secrets = [modal.Secret.from_name("huggingface-secret")]
+
+GPU = "T4" # Sử dụng GPU T4 (Giá rẻ, đủ dùng cho model 3B)
+MODEL_NAME = "meta-llama/Llama-3.2-3B"
+
+# 4. Hàm Inference
+@app.function(image=image, secrets=secrets, gpu=GPU, timeout=1800)
+def generate(prompt: str) -> str:
+    from transformers import AutoTokenizer, AutoModelForCausalLM, set_seed
+
+    # Load Tokenizer & Model từ Hugging Face
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    # ... cấu hình padding ...
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, device_map="auto")
+
+    set_seed(42) # Cố định seed để kết quả nhất quán
+    inputs = tokenizer.encode(prompt, return_tensors="pt").to("cuda")
+    
+    # Sinh văn bản (Inference)
+    outputs = model.generate(inputs, max_new_tokens=5)
+    return tokenizer.decode(outputs[0])
+B. File pricer_ephemeral.py (Mô hình Fine-tuned)
+Đây là file quan trọng nhất, tái hiện lại kết quả của Tuần 7 trên môi trường Cloud.
+Python
+import modal
+from modal import Image
+
+app = modal.App("pricer")
+
+# Cài thêm 'bitsandbytes' (để chạy 4-bit) và 'peft' (để load LoRA)
+image = Image.debian_slim().pip_install(
+    "torch", "transformers", "bitsandbytes", "accelerate", "peft"
+)
+secrets = [modal.Secret.from_name("huggingface-secret")]
+
+# Cấu hình đường dẫn tới Model đã Fine-tune trên Hugging Face
+# Bạn nên thay HF_USER bằng tên của bạn nếu bạn đã push model ở Tuần 7
+HF_USER = "ed-donner" 
+RUN_NAME = "2025-11-28_18.47.07"
+PROJECT_RUN_NAME = f"price-{RUN_NAME}"
+FINETUNED_MODEL = f"{HF_USER}/{PROJECT_RUN_NAME}" 
+
+@app.function(image=image, secrets=secrets, gpu="T4", timeout=1800)
+def price(description: str) -> float:
+    import re
+    import torch
+    from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+    from peft import PeftModel # Thư viện để quản lý Adapter
+
+    # ... Thiết lập Prompt Template giống hệt lúc Train ...
+
+    # 1. Cấu hình Quantization (Nén 4-bit để chạy nhẹ hơn)
+    quant_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        # ...
+    )
+
+    # 2. Load Base Model trước
+    base_model = AutoModelForCausalLM.from_pretrained(
+        "meta-llama/Llama-3.2-3B", 
+        quantization_config=quant_config, 
+        device_map="auto"
+    )
+
+    # 3. Load Fine-tuned Adapter và gắn vào Base Model
+    # Đây là bước biến model thường thành "Chuyên gia định giá"
+    fine_tuned_model = PeftModel.from_pretrained(base_model, FINETUNED_MODEL)
+
+    # 4. Chạy dự đoán (Inference)
+    # ... Code tokenization ...
+    outputs = fine_tuned_model.generate(**inputs, max_new_tokens=10)
+    decoded_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    # 5. Trích xuất con số từ văn bản trả về (Regex)
+    # Ví dụ: Model trả về "Price is $25.00", ta chỉ lấy 25.0
+    match = re.search(r"Price is \$(\d+(?:\.\d+)?)", decoded_text)
+    return float(match.group(1)) if match else 0.0
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+1. Ephemeral vs. Persistent (Phù du vs. Bền vững)
+•	Trong bài này, hàm price() là Ephemeral.
+•	Quy trình: Khi bạn gọi hàm -> Modal bật máy -> Tải Model (Mất 2-3 phút) -> Dự đoán -> Tắt máy.
+•	Vấn đề: "Cold Start" (Khởi động lạnh) rất chậm vì phải tải model 3GB mỗi lần chạy lại từ đầu sau khi container chết.
+•	Giải pháp (Bài sau): Sử dụng Class-based structure với __enter__ hoặc @app.cls để giữ model trong RAM, giúp các lần gọi sau phản hồi tức thì.
+2. Tại sao phải dùng secrets?
+Nếu bạn hard-code token vào file .py và đẩy lên GitHub, hacker có thể dùng token của bạn để huấn luyện model tiêu tốn hàng nghìn đô la, và bạn là người trả tiền. Sử dụng modal.Secret giúp biến (variable) chỉ tồn tại trong môi trường thực thi, an toàn tuyệt đối.
+3. Debugging trên Cloud
+Khi chạy lệnh uv run modal run pricer_ephemeral.py, terminal của bạn sẽ hiện log trực tiếp từ Cloud (Streaming Logs). Nếu thấy lỗi Out of Memory hoặc HuggingFace Token Invalid, hãy đọc kỹ log này vì nó là manh mối duy nhất (bạn không thể remote desktop vào máy serverless để xem được).
+Bước tiếp theo cho bạn:
+Hãy đảm bảo bạn đã cấu hình Secret trên Modal Dashboard thành công. Sau đó chạy thử llama.py. Nếu nó in ra lời bài hát của Rick Astley, bạn đã sẵn sàng để triển khai "bộ não" của dự án Capstone!
+192. Day 1 - Deploying Fine-Tuned Models to Modal Cloud with Persistent Storage 
+Chào bạn, chúng ta vừa hoàn thành một bước tiến lớn: từ việc chạy code "dùng một lần" (ephemeral) sang việc xây dựng một Dịch vụ (Service) thực thụ có khả năng chạy nhanh hơn, ổn định hơn và lưu trữ được trạng thái.
+Dưới đây là tổng hợp nội dung bài học 192. Day 1 - Deploying Fine-Tuned Models to Modal Cloud with Persistent Storage.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Vấn đề của bài trước: Chạy ephemeral (phù du) rất tốn thời gian (mất ~1 phút 20 giây) vì mỗi lần chạy, Modal phải khởi tạo lại container và tải lại Model (3GB+) từ Hugging Face.
+•	Tầm quan trọng của Preprocessing: Dữ liệu đầu vào khi suy luận (Inference) phải có định dạng giống hệt dữ liệu lúc huấn luyện (Training). Nếu lúc train có tiêu đề, danh mục, thì lúc hỏi cũng nên format lại y hệt để mô hình hiểu rõ nhất.
+•	Giải pháp nâng cấp:
+1.	Deployment: Thay vì dùng modal run, ta dùng modal deploy để biến hàm thành một endpoint cố định trên cloud.
+2.	Class-based Service: Chuyển từ viết hàm đơn lẻ sang viết Class. Điều này giúp tận dụng việc khởi tạo một lần (load model) và dùng lại nhiều lần.
+3.	Persistent Storage (Volume): Sử dụng ổ cứng mạng (Volume) của Modal để lưu (cache) trọng số model. Lần sau khởi động lại, máy chỉ cần đọc từ ổ cứng (mất ~30s) thay vì tải từ mạng (mất >1 phút).
+________________________________________
+2. Nội dung chính & Quy trình tối ưu
+A. Preprocessing (Tiền xử lý)
+Giảng viên nhấn mạnh: "Treat your data at inference time the same way at training time".
+•	Trước khi gửi text vào mô hình dự đoán giá, hãy chạy nó qua một hàm tiền xử lý (pre-processor) để thêm ngữ cảnh (Category, Title...) giống như cách bạn đã làm sạch dữ liệu ở Tuần 6.
+•	Điều này giúp tăng độ ổn định và chính xác của kết quả.
+B. Từ Ephemeral (Phù du) sang Deployment (Triển khai)
+•	Ephemeral (modal run): Code chạy xong -> Container tắt -> Dữ liệu mất sạch. Lần sau chạy lại từ đầu.
+•	Deployment (modal deploy):
+o	Tạo ra một định danh (handle) trên Dashboard Modal.
+o	Cho phép gọi từ xa thông qua tên ứng dụng (ví dụ: Pricer.remote("input")).
+o	Container sẽ giữ trạng thái "Warm" (nóng) trong khoảng 2 phút. Nếu gọi lại trong thời gian này, kết quả trả về tức thì.
+C. Khái niệm "Cold Start" và "Warm Start"
+•	Cold Start (Khởi động lạnh): Khi không ai dùng, Modal tắt container. Khi có request mới, nó phải bật máy, cài thư viện, tải model -> Tốn thời gian.
+•	Warm Start (Khởi động nóng): Container đang chạy sẵn, request đến là xử lý ngay -> Tức thì.
+•	Volume Cache (Giải pháp trung gian): Nếu bị Cold Start, thay vì tải model từ Internet (chậm), ta gắn một ổ cứng ảo (modal.Volume) chứa sẵn model vào container -> Nhanh hơn đáng kể.
+________________________________________
+3. Phân tích Code: Sự tiến hóa của Service
+Chúng ta có 2 phiên bản service, sự khác biệt nằm ở Class và Volume.
+A. pricer_service.py (Phiên bản cơ bản)
+Đây là bước chuyển từ hàm sang deployment, nhưng chưa tối ưu bộ nhớ đệm.
+Python
+# Vẫn dùng Function decorator đơn giản
+@app.function(image=image, secrets=secrets, gpu=GPU, timeout=1800)
+def price(description: str) -> float:
+    # Logic: Load model -> Inference
+    # Vấn đề: Mỗi lần container khởi động lại (Cold Start), nó phải tải lại model từ Hugging Face.
+    pass
+•	Cách chạy: uv run modal deploy pricer_service.py
+•	Ưu điểm: Có thể gọi từ xa qua tên.
+•	Nhược điểm: Cold start vẫn chậm.
+B. pricer_service2.py (Phiên bản tối ưu - Class based)
+Đây là phiên bản "Pro" sử dụng Class và Volume.
+Python
+import modal
+
+# 1. Định nghĩa Volume (Ổ cứng mạng) để lưu Cache
+# Ổ cứng này tên là "hf-hub-cache", sẽ tồn tại vĩnh viễn trên tài khoản Modal của bạn
+cache_volume = modal.Volume.from_name("hf-hub-cache", create_if_missing=True)
+
+@app.cls(  # Sử dụng @app.cls thay vì @app.function
+    image=image, 
+    secrets=secrets, 
+    gpu=GPU, 
+    timeout=1800,
+    # Gắn ổ cứng vào thư mục /cache trong container
+    volumes={"/cache": cache_volume} 
+)
+class Pricer:
+    # 2. Hàm __enter__ (hoặc __init__): Chạy 1 lần khi container khởi động
+    @modal.enter()
+    def enter(self):
+        # Load Model và lưu vào biến self (RAM)
+        # Nhờ có Volume mounted tại /cache, Hugging Face sẽ tìm model ở đây trước khi tải từ mạng.
+        self.tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, cache_dir="/cache")
+        self.fine_tuned_model = PeftModel.from_pretrained(..., cache_dir="/cache")
+
+    # 3. Hàm gọi thực thi
+    @modal.method()
+    def price(self, description: str) -> float:
+        # Lúc này Model đã có sẵn trong RAM (self.fine_tuned_model), chỉ việc chạy
+        outputs = self.fine_tuned_model.generate(...)
+        return price
+Tại sao pricer_service2.py tốt hơn?
+1.	Cấu trúc Class: Tách biệt phần Load Model (nặng) và phần Inference (nhẹ). Model được load 1 lần và giữ trong RAM của self.
+2.	Modal Volume:
+o	Lần đầu tiên chạy: Tải model từ Internet -> Lưu vào /cache (Volume).
+o	Lần thứ 2 trở đi (kể cả khi Cold Start): Đọc model từ /cache (Local disk speed) -> Nhanh hơn nhiều.
+________________________________________
+4. Kiến thức thực tế (Pro Tips)
+1. Cơ chế ngủ đông (Idle Timeout)
+•	Mặc định, nếu không có request trong 2 phút, Modal sẽ tắt container (thu hồi GPU) để tiết kiệm tiền cho bạn.
+•	Khi bạn gọi lại sau 5 phút, bạn sẽ gặp Cold Start (mất ~30s với phiên bản có Volume).
+2. Giữ Container luôn sống (Keep Warm) - Tốn tiền hơn
+Nếu bạn muốn ứng dụng phản hồi tức thì 24/7 (như hệ thống production), bạn có thể cấu hình:
+Python
+# Giữ ít nhất 1 container luôn chạy
+@app.cls(keep_warm=1) 
+Hoặc cấu hình thời gian chờ lâu hơn trước khi tắt:
+Python
+@app.cls(container_idle_timeout=1200) # Giữ sống 20 phút
+Kết luận: Bạn đã hoàn thành việc xây dựng "bộ não" cho hệ thống Agent. Bây giờ, bạn có một API (Pricer) trên mây, có thể định giá sản phẩm bất kỳ lúc nào chỉ trong vài giây. Bước tiếp theo sẽ là xây dựng các Agent (Scanner, Messaging) để sử dụng bộ não này!
+
+193. Day 1 - Building Your First Agent with Modal Serverless AI 
+Chào bạn, chúng ta đã đi đến mảnh ghép cuối cùng của Ngày 1!
+
+Nếu như ở bài trước, bạn đã tạo ra một "bộ não" (Model đã Fine-tune) và đặt nó lên "cơ thể" (Modal Cloud), thì bài học này chính là việc tạo ra **nhân cách** cho nó. Chúng ta sẽ xây dựng **Specialist Agent** (Tác nhân chuyên gia) – thành phần đầu tiên trong đội ngũ Agent của dự án Capstone.
+
+Dưới đây là tổng hợp chi tiết bài học **193. Day 1 - Building Your First Agent with Modal Serverless AI**.
+
+---
+
+### 1. Tóm tắt cốt lõi (Core Summary)
+
+* **Mục tiêu:** Xây dựng Agent đầu tiên (`SpecialistAgent`) chạy trên máy local (hoặc môi trường điều phối) nhưng có khả năng gọi tới mô hình AI đang chạy trên Modal Cloud.
+* **Triết lý:** Agent không phải là ma thuật. Bản chất của Agent trong bài này là một **Wrapper (Lớp bao bọc)** xung quanh một lời gọi LLM (LLM Call), giúp che giấu các chi tiết kỹ thuật phức tạp (như kết nối server, authentication).
+* **Kỹ thuật:**
+* Sử dụng **Inheritance (Kế thừa)** để tạo khung làm việc (Framework) đơn giản cho các Agent.
+* Sử dụng `modal.Cls.from_name` để kết nối với dịch vụ đã deploy mà không cần chạy lại code deploy.
+* **Observability (Khả năng quan sát):** Gán màu sắc riêng biệt cho log của từng Agent để dễ dàng theo dõi luồng hoạt động sau này.
+
+
+
+---
+
+### 2. Kiến trúc & Quy trình
+
+1. **Local Environment (Máy bạn/Cursor):**
+* Chạy class `SpecialistAgent`.
+* Nhận yêu cầu: "Định giá iPhone 14 Pro Max".
+
+
+2. **Modal Cloud (Serverless):**
+* `SpecialistAgent` tìm kiếm dịch vụ có tên `pricer-service` trên Modal.
+* Gửi request thông qua hàm `.remote()`.
+
+
+3. **Inference:**
+* Container trên Cloud (đã gắn Volume chứa model) thực hiện dự đoán.
+* Trả kết quả (ví dụ: $700) về lại cho Agent ở Local.
+
+
+
+---
+
+### 3. Phân tích Code
+
+Dựa trên 2 file bạn cung cấp: `agent.py` và `specialist_agent.py`.
+
+#### A. `agent.py` - Bộ khung (The Framework)
+
+Đây là lớp cha (Base Class). Tuy đơn giản nhưng nó giải quyết vấn đề **Logging** – cực kỳ quan trọng khi bạn có 7-8 con agent chạy cùng lúc vào ngày mai.
+
+```python
+import logging
+
+class Agent:
+    """
+    Lớp trừu tượng (Abstract superclass) cho tất cả các Agent.
+    Mục đích chính: Ghi log có màu sắc để nhận diện ai đang nói gì.
+    """
+
+    # Định nghĩa mã màu ANSI (để in ra terminal đẹp mắt)
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    # ... (các màu khác)
+    RESET = '\033[0m'
+
+    name: str = ""          # Tên của Agent
+    color: str = '\033[37m' # Màu mặc định (Trắng)
+
+    def log(self, message):
+        """
+        Hàm log thông minh: Tự động thêm Tên Agent và tô màu cho dòng log.
+        Ví dụ: [Specialist Agent] Đang tính giá... (Màu Đỏ)
+        """
+        color_code = self.BG_BLACK + self.color
+        message = f"[{self.name}] {message}"
+        logging.info(color_code + message + self.RESET)
+
+```
+
+#### B. `specialist_agent.py` - Tác nhân chuyên gia
+
+Đây là nơi "ma thuật" kết nối giữa Local và Cloud diễn ra.
+
+```python
+import modal
+from agents.agent import Agent
+
+# Kế thừa từ lớp Agent để có tính năng log màu
+class SpecialistAgent(Agent):
+    """
+    Agent này chịu trách nhiệm chạy mô hình Fine-tuned của chúng ta trên Modal.
+    """
+
+    name = "Specialist Agent"
+    color = Agent.RED  # Gán màu ĐỎ đặc trưng cho chuyên gia này
+
+    def __init__(self):
+        """
+        Khởi tạo kết nối tới Modal.
+        """
+        self.log("Specialist Agent is initializing - connecting to modal")
+        
+        # QUAN TRỌNG: Kết nối tới Service đã Deploy ở bài trước.
+        # "pricer-service": Tên App trên Modal Dashboard.
+        # "Pricer": Tên Class trong code service (pricer_service2.py).
+        Pricer = modal.Cls.from_name("pricer-service", "Pricer")
+        
+        # Tạo một instance (đối tượng) đại diện cho dịch vụ trên mây
+        self.pricer = Pricer()
+
+    def price(self, description: str) -> float:
+        """
+        Thực hiện cuộc gọi từ xa (Remote Call)
+        """
+        self.log("Specialist Agent is calling remote fine-tuned model")
+        
+        # .remote(): Lệnh này gửi data lên cloud, chạy hàm price() ở đó, và đợi kết quả trả về.
+        # Đây là cơ chế RPC (Remote Procedure Call).
+        result = self.pricer.price.remote(description)
+        
+        self.log(f"Specialist Agent completed - predicting ${result:.2f}")
+        return result
+
+```
+
+**Logic hoạt động:**
+
+1. Khi bạn gọi `agent = SpecialistAgent()`, nó không tải Model về máy bạn (Model nặng 3GB+). Nó chỉ tạo một "cái điều khiển từ xa" (`self.pricer`) trỏ tới Modal.
+2. Khi bạn gọi `agent.price("iPhone")`, nó bấm nút trên điều khiển -> Tín hiệu bay lên Modal -> Modal xử lý -> Trả số tiền về.
+
+---
+
+### 4. Kiến thức liên quan & Mở rộng
+
+#### 1. Proxy / Facade Pattern
+
+Cách thiết kế `SpecialistAgent` này là một ví dụ của mẫu thiết kế **Facade** (Mặt tiền) hoặc **Proxy**.
+
+* **Người dùng (User/Main Loop):** Chỉ cần biết `agent.price()`. Không cần biết bên dưới là Modal, AWS, hay chạy local.
+* **Lợi ích:** Sau này nếu bạn muốn chuyển từ Modal sang chạy trên máy server riêng, bạn chỉ cần sửa code trong `SpecialistAgent`, các phần khác của hệ thống không bị ảnh hưởng.
+
+#### 2. Latency (Độ trễ) trong hệ thống Agent
+
+* Trong demo, lần đầu chạy mất ~30s (Cold Start), lần sau mất <1s (Warm Start).
+* Khi thiết kế hệ thống nhiều Agent (Multi-Agent System), **độ trễ cộng dồn** là vấn đề lớn. Nếu Agent A chờ Agent B, Agent B lại bị Cold Start, cả hệ thống sẽ bị chậm.
+* *Lưu ý:* Việc dùng `keep_warm` (như đã học bài trước) là cần thiết cho Production.
+
+#### 3. Tại sao cần Class `Agent` đơn giản vậy?
+
+Bạn có thể thắc mắc sao không dùng `print()` cho nhanh?
+
+* Khi hệ thống chạy 4-5 Agent song song (Scanner quét, Planner lập kế hoạch, Messenger gửi tin...), terminal sẽ loạn xạ.
+* Việc định danh `[Tên Agent]` và màu sắc giúp bạn debug nhanh hơn gấp 10 lần: "À, dòng màu đỏ bị lỗi -> Lỗi do ông Specialist, không phải ông Planner".
+
+---
+
+### 5. Tổng kết Ngày 1
+
+Chúc mừng bạn! Bạn đã hoàn thành Ngày 1 của tuần "về đích". Những gì bạn đang có trong tay:
+
+1. **Mô hình Llama 3.2 Fine-tuned** (Tuần 7).
+2. **Hạ tầng Serverless trên Modal** có khả năng cache model (Tuần 8 - Bài 192).
+3. **Specialist Agent** biết cách giao tiếp với hạ tầng đó (Tuần 8 - Bài 193).
+
+**Bước tiếp theo (Ngày 2):**
+Chúng ta sẽ xây dựng các Agent tiếp theo để hỗ trợ "Chuyên gia" này, bao gồm **RAG Agent** (sử dụng Frontier Model để tra cứu kiến thức) và **Ensemble Agent** (kết hợp các kết quả lại).
+
+Bạn có muốn tôi tiếp tục sang nội dung **Ngày 2: RAG, FrontierAgent & Ensemble Agent** không?
+
+DAY 2
+194. Day 2 - Building Advanced RAG with ChromaDB and Vector Stores (No LangChain) 
+Chào bạn, chúc mừng bạn đã đi đến Ngày 2 của Tuần 8! Đây là một bước ngoặt quan trọng trong dự án Capstone "The Price Is Right".
+Dựa trên bản phiên âm bạn cung cấp, cùng với nội dung từ các file day2.ipynb, Copy of LLM Week 8 Day 2.pdf và ngữ cảnh từ Xây_dựng_hệ_thống.docx, tôi xin tổng hợp lại toàn bộ nội dung buổi học "Building Advanced RAG with ChromaDB and Vector Stores (No LangChain)" như sau:
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học tập trung vào việc xây dựng Frontier Agent sử dụng kỹ thuật RAG (Retrieval Augmented Generation) để định giá sản phẩm, thay thế phương pháp Fine-tuning (đã làm ở Day 1). Điểm nhấn là việc tự xây dựng hệ thống RAG "thuần" (Native) sử dụng ChromaDB và Sentence Transformers mà không phụ thuộc vào framework LangChain, giúp kiểm soát hoàn toàn luồng dữ liệu. Cuối cùng, bài học hướng dẫn kết hợp các Agent (Specialist, Frontier, Neural Network) thành một Ensemble Agent để đưa ra dự đoán chính xác nhất.
+________________________________________
+2. Nội dung chính
+Mục tiêu của buổi học là hoàn thiện các mảnh ghép còn lại của bộ 3 Agent định giá và kết hợp chúng lại.
+1.	Chuyển đổi chiến lược: So sánh giữa kỹ thuật Training time (Fine-tuning - đã làm với Specialist Agent) và Inference time (RAG - áp dụng cho Frontier Agent).
+2.	Chuẩn bị dữ liệu cho RAG:
+o	Sử dụng bộ dữ liệu 800,000 sản phẩm Amazon (đã dùng để train model trước đó).
+o	Mục tiêu: Tìm các sản phẩm tương tự để làm ngữ cảnh (context) cho mô hình GPT-5.1 (hoặc GPT-4) tham khảo giá.
+3.	Xây dựng Vector Store (ChromaDB):
+o	Sử dụng mô hình Embeddings nguồn mở: sentence-transformers/all-MiniLM-L6-v2 (nhỏ gọn, hiệu quả, miễn phí).
+o	Lưu trữ vectors vào ChromaDB (Persistent Client) để không phải tính toán lại.
+4.	Xây dựng Frontier Agent:
+o	Agent này không học từ trước, mà khi nhận câu hỏi, nó sẽ tra cứu (Lookup) các sản phẩm tương tự trong DB.
+o	Gửi thông tin sản phẩm cần định giá + thông tin các sản phẩm tương tự (kèm giá thật) vào Prompt để LLM suy luận.
+5.	Xây dựng Ensemble Agent:
+o	Tập hợp kết quả từ 3 nguồn: Specialist Agent (Llama 3.2 Fine-tuned), Frontier Agent (RAG + GPT), và Neural Network Agent (Simple NN).
+o	Kết hợp các kết quả này (ví dụ: lấy trung bình) để giảm sai số.
+________________________________________
+3. Kiến trúc & Quy trình (RAG Pipeline)
+Trong bài này, Pipeline RAG được thiết kế thủ công (Native pipeline) như sau:
+1.	Ingestion (Nạp dữ liệu):
+o	Input: 800k sản phẩm (Mô tả sản phẩm).
+o	Encoder: all-MiniLM-L6-v2 chuyển văn bản thành Vector (384 chiều).
+o	Storage: Lưu vào ChromaDB (trên ổ đĩa).
+2.	Retrieval (Truy xuất - Khi Agent hoạt động):
+o	Query: Mô tả sản phẩm cần định giá.
+o	Search: ChromaDB tìm $k$ sản phẩm có vector gần nhất (Similar items).
+o	Context: Lấy giá và mô tả của $k$ sản phẩm đó.
+3.	Generation (Sinh câu trả lời):
+o	Prompt: "Hãy định giá sản phẩm X này, biết rằng các sản phẩm tương tự A, B, C có giá là $10, $12, $11..."
+o	Model: Gửi Prompt đến Frontier Model (GPT).
+o	Output: Giá dự đoán.
+________________________________________
+4. Phân tích Code (Dựa trên day2.ipynb và ngữ cảnh)
+Dưới đây là phân tích các đoạn code quan trọng để xây dựng RAG và Ensemble Agent.
+A. Khởi tạo ChromaDB và Embeddings (Native Implementation)
+Đây là phần thay thế LangChain, giúp bạn hiểu rõ cách dữ liệu đi vào Vector DB.
+Python
+import chromadb
+from chromadb.utils import embedding_functions
+
+# 1. Định nghĩa nơi lưu trữ dữ liệu (Persistent Storage)
+# Mục đích: Dữ liệu không bị mất khi tắt code, lưu thẳng vào thư mục folder_path
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+
+# 2. Định nghĩa Embedding Function
+# Mục đích: Dùng model 'all-MiniLM-L6-v2' để chuyển text thành số (vector).
+# Đây là model nhẹ, chạy tốt trên CPU.
+sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="all-MiniLM-L6-v2"
+)
+
+# 3. Tạo hoặc lấy Collection (giống như Table trong SQL)
+collection = chroma_client.get_or_create_collection(
+    name="amazon_products",
+    embedding_function=sentence_transformer_ef
+)
+
+# Ghi chú: Trong thực tế, bước nạp 800k items sẽ tốn nhiều thời gian (khoảng 30p-1h với GPU).
+# Code trong bài học thường có đoạn kiểm tra: if collection.count() == 0 thì mới nạp.
+B. Frontier Agent (Logic RAG)
+Đoạn code này mô phỏng cách FrontierAgent hoạt động (thường nằm trong file class riêng hoặc cell định nghĩa class).
+Python
+class FrontierAgent(Agent):
+    def price(self, product_description):
+        # Bước 1: RAG Retrieval - Tìm 5 sản phẩm giống nhất trong DB
+        results = collection.query(
+            query_texts=[product_description],
+            n_results=5
+        )
+        
+        # Bước 2: Xây dựng Context cho Prompt
+        # Lấy thông tin giá và mô tả của các sản phẩm tìm được để "mớm" cho LLM
+        context_str = ""
+        for i, doc in enumerate(results['documents'][0]):
+            price = results['metadatas'][0][i]['price'] # Giả sử giá lưu trong metadata
+            context_str += f"- Sản phẩm tương tự: {doc} có giá ${price}\n"
+
+        # Bước 3: Gọi LLM (GPT-4/GPT-5.1) với context
+        prompt = f"""
+        Hãy định giá sản phẩm sau: {product_description}
+        
+        Tham khảo các sản phẩm tương tự dưới đây để đưa ra ước tính chính xác:
+        {context_str}
+        
+        Trả về duy nhất con số giá tiền.
+        """
+        
+        # ... Code gọi OpenAI API ...
+        return predicted_price
+C. Ensemble Agent (Kết hợp sức mạnh)
+Đây là "trùm cuối" của ngày hôm nay, kết hợp 3 luồng tư duy.
+Python
+class EnsembleAgent(Agent):
+    def __init__(self, collection):
+        # Khởi tạo 3 "nhân viên" dưới quyền
+        self.specialist = SpecialistAgent()      # Fine-tuned Model (Day 1)
+        self.frontier = FrontierAgent(collection) # RAG Model (Day 2)
+        self.neural = NeuralNetworkAgent()       # Simple NN (Week 6)
+
+    def price(self, description):
+        # Hỏi ý kiến cả 3 chuyên gia
+        price1 = self.specialist.price(description)
+        price2 = self.frontier.price(description)
+        price3 = self.neural.price(description)
+        
+        # Logic tập hợp (Ensemble Logic)
+        # Cách đơn giản nhất: Lấy trung bình cộng
+        avg_price = (price1 + price2 + price3) / 3
+        
+        self.log(f"Ensemble Result: {avg_price} (Avg of {price1}, {price2}, {price3})")
+        return avg_price
+________________________________________
+5. Kiến thức liên quan & mở rộng
+1.	Inference Time vs. Training Time:
+o	Training Time (Specialist Agent): Nạp kiến thức vào trọng số (weights) của model. Tốt cho việc học "phong cách" hoặc các pattern cụ thể, nhưng tốn kém để cập nhật kiến thức mới.
+o	Inference Time (Frontier Agent + RAG): Cung cấp kiến thức ngay lúc hỏi. Tốt cho việc cập nhật dữ liệu liên tục (chỉ cần update vector DB) và giảm ảo giác (hallucination) nhờ có context thực tế.
+2.	Tại sao lại dùng Ensemble?
+o	Trong Machine Learning, "Ensemble" là kỹ thuật kết hợp nhiều model yếu (hoặc khác nhau) để tạo ra một model mạnh hơn.
+o	Model Fine-tuned có thể giỏi về cấu trúc dữ liệu Amazon.
+o	Model Frontier (RAG) giỏi về hiểu ngữ nghĩa và suy luận logic chung.
+o	Neural Network giỏi về các con số thống kê thuần túy.
+o	Kết hợp lại giúp "bù trừ" điểm yếu của từng model.
+3.	Lựa chọn Vector Database:
+o	Bài học dùng Chroma: Vì nó là Open Source, dễ chạy local (trong file), tích hợp tốt với Python, phù hợp cho prototyping và production quy mô vừa.
+o	Các lựa chọn khác: Pinecone (Serverless, dễ scale), Weaviate, Milvus (cho quy mô cực lớn).
+4.	Lưu ý về tài nguyên (GPU/CPU):
+o	Việc embedding (mã hóa) 800.000 dòng dữ liệu là tác vụ nặng. Giáo viên nhắc nhở có thể dùng tập nhỏ (20k) hoặc chạy qua đêm nếu dùng CPU. Nếu có GPU (như user đang dùng RTX 3090 Ti trên Vast.ai ở các bài trước), việc này sẽ nhanh hơn rất nhiều (tầm 30 phút).
+Bạn đã hoàn thành việc xây dựng "bộ não" tính toán giá của hệ thống. Ngày tiếp theo (Day 3) sẽ là lúc xây dựng "mắt" và "miệng" (Scanner & Messenger) cho hệ thống này!
+
+195. Day 2 - Visualizing Chroma Vectors with t-SNE and Building a RAG Pipeline
+Chào bạn, chúng ta đang bước vào một phần cực kỳ thú vị của bài học: Biến những con số vô tri (Vectors) thành hình ảnh trực quan và Xây dựng luồng xử lý RAG thủ công.
+Giảng viên nhấn mạnh rằng việc "tin tưởng mù quáng" vào dữ liệu trong ChromaDB là không đủ. Chúng ta cần nhìn thấy chúng để hiểu cách mô hình "tư duy". Dưới đây là phân tích chi tiết kết hợp với các minh họa để bạn dễ hình dung.
+________________________________________
+1. Trực quan hóa Vectors với t-SNE (Visualizing with t-SNE)
+Chúng ta có 800.000 sản phẩm đã được chuyển thành vectors 384 chiều (dimensions). Con người không thể nhìn thấy không gian 384 chiều. Vì vậy, chúng ta dùng thuật toán t-SNE để "ép" không gian đó xuống còn 2 chiều (2D) hoặc 3 chiều (3D) để vẽ lên biểu đồ.
+Quy trình thực hiện:
+1.	Lấy mẫu (Sampling): Chỉ lấy 10.000 điểm dữ liệu (vì vẽ hết 800k điểm sẽ làm treo máy tính).
+2.	Giảm chiều dữ liệu: Dùng t-SNE chuyển đổi từ $R^{384} \rightarrow R^2$ (hoặc $R^3$).
+3.	Tô màu (Coloring): Dựa trên danh mục sản phẩm (ví dụ: Đồ chơi, Phụ tùng ô tô...) để xem chúng phân bố thế nào.
+Phân tích biểu đồ (Insight từ Transcript):
+•	Sự phân cụm tự nhiên: Các điểm dữ liệu tự động tụ lại thành các nhóm (clusters) dựa trên ý nghĩa của chúng, không phải chỉ dựa trên từ khóa.
+•	Ví dụ màu sắc:
+o	Màu xanh (Blue): Phụ tùng ô tô (Car parts).
+o	Màu đỏ (Red): Đồ chơi & Trò chơi (Toys & Games).
+•	Vùng giao thoa thú vị: Bạn sẽ thấy một số điểm màu đỏ "lạc" vào vùng màu xanh.
+o	Lý do: Đó là "Toy car parts" (Phụ tùng cho xe đồ chơi).
+o	Ý nghĩa: Model all-MiniLM-L6-v2 hiểu ngữ nghĩa rất sâu. Nó hiểu rằng "phụ tùng xe đồ chơi" có tính chất kỹ thuật giống "phụ tùng xe thật" nên đặt chúng gần nhau, dù danh mục gốc là "Đồ chơi".
+________________________________________
+2. Xây dựng RAG Pipeline (Native - Không dùng LangChain)
+Sau khi đã tin tưởng vào dữ liệu vector, chúng ta xây dựng quy trình RAG để giúp Frontier Agent định giá. Quy trình này không dùng LangChain mà viết code thuần (Native Python) để dễ kiểm soát.
+Quy trình gồm 3 bước code chính như sau:
+Bước 1: Hàm vector() - Mã hóa đầu vào
+Chuyển đổi một sản phẩm bất kỳ thành vector số học để máy tính hiểu.
+•	Input: "Old Blood Noise Distortion Pedal" (Văn bản).
+•	Process: Gọi encoder.encode().
+•	Output: Một mảng số (vector 384 chiều).
+Bước 2: Hàm find_similars() - Truy xuất (Retrieval)
+Đây là trái tim của RAG. Chúng ta tìm kiếm trong ChromaDB những món hàng có vector "gần" với món hàng cần định giá nhất.
+•	Logic:
+1.	Tạo vector cho món hàng cần hỏi.
+2.	Gửi vector đó vào collection.query().
+3.	Lấy về top 5 kết quả (Similar Items) kèm theo giá của chúng.
+•	Kết quả thực tế: Khi tìm "Distortion Pedal" (Bàn đạp méo tiếng guitar), hệ thống trả về:
+o	Một bàn đạp Reverb cùng hãng (Old Blood Noise).
+o	Một bàn đạp Boss Mega Distortion (Hãng khác nhưng cùng chức năng).
+o	Một bàn đạp Delay.
+-> Nhận xét: Kết quả rất liên quan về mặt ngữ nghĩa (đều là thiết bị âm thanh guitar), chứng tỏ Vector Search hoạt động tốt.
+Bước 3: Hàm make_context() - Tạo ngữ cảnh (Augmentation)
+LLM không tự biết giá thị trường. Chúng ta phải "mớm" thông tin cho nó bằng cách ghép các kết quả tìm được ở Bước 2 vào câu prompt.
+•	Cấu trúc Prompt được tạo ra:
+Plaintext
+USER: Hãy định giá sản phẩm này [Mô tả sản phẩm X]. Trả lời bằng giá tiền.
+
+CONTEXT (Được chèn ngầm):
+Dưới đây là một số sản phẩm tương tự để tham khảo:
+1. Sản phẩm A - Giá $150
+2. Sản phẩm B - Giá $145
+3. Sản phẩm C - Giá $160
+...
+Tổng kết bài học
+Chúng ta đã đi từ việc nhìn thấy dữ liệu (qua t-SNE) đến việc sử dụng dữ liệu (qua RAG Pipeline).
+•	Bạn đã chứng minh được rằng Vector Store thực sự "hiểu" ý nghĩa sản phẩm (qua biểu đồ).
+•	Bạn đã xây dựng xong một "cỗ máy" tự động: Nhận tên sản phẩm -> Tìm hàng tương tự -> Cung cấp cho GPT -> Để GPT đưa ra mức giá chính xác dựa trên bằng chứng thực tế.
+Đây chính là nền tảng để Frontier Agent hoạt động thông minh hơn so với việc chỉ hỏi GPT một cách vu vơ!
+196. Day 2 - RAG with GPT-4o vs Fine-Tuned Models: Building an Ensemble 
+Dựa vào bản phiên âm và ngữ cảnh được cung cấp, dưới đây là tổng hợp nội dung bài học "Day 2 - RAG with GPT-4o vs Fine-Tuned Models: Building an Ensemble" (trong ngữ cảnh bản ghi âm có thể đề cập GPT-5.1 hoặc GPT-4o tùy phiên bản khóa học, nhưng nguyên lý là không đổi).
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học là "trận chiến của các Titan" giữa ba phương pháp định giá:
+1.	Specialist Model (Fine-tuned Llama 3B): Đã làm ở Day 1.
+2.	Frontier Model + RAG (GPT + ChromaDB): Phương pháp mới của Day 2.
+3.	Neural Network (Deep NN): Mô hình thuần số học từ Week 6.
+Kết quả bất ngờ: Mô hình Frontier + RAG (với kỹ thuật tìm kiếm vector) đã chiến thắng áp đảo mô hình Fine-tuned, đạt sai số trung bình cực thấp (~$30). Tuy nhiên, để tối ưu hơn nữa, bài học hướng dẫn xây dựng Ensemble Model - kết hợp cả 3 mô hình lại để đạt độ chính xác cao nhất (vượt qua từng mô hình đơn lẻ).
+________________________________________
+2. Nội dung chính & Quy trình thực nghiệm
+A. Cuộc thử nghiệm: RAG vs. Fine-tuned
+•	Thí nghiệm: Chạy thử với sản phẩm "Distortion Pedal" (Giá thật $219).
+o	Mô hình RAG dự đoán: $229 (Sai số $10).
+•	Đánh giá trên tập dữ liệu lớn (30-50 items):
+o	Hệ thống chạy tự động so sánh.
+o	Kết quả: Sai số trung bình (MAE) của RAG chỉ khoảng $30.19.
+o	Kết luận: RAG + Frontier Model (mô hình lớn nhất hành tinh + kiến thức thực tế từ vector DB) đã "nghiền nát" (crushed) mô hình Fine-tuned nhỏ gọn.
+o	Lý do: RAG cung cấp ngữ cảnh giá thực tế của các sản phẩm tương tự ngay tại thời điểm hỏi (Inference time), giúp LLM có căn cứ để suy luận chính xác hơn là chỉ dựa vào "trực giác" đã học (Training time).
+B. Xây dựng Ensemble Model (Mô hình hợp xướng)
+Tại sao đã có mô hình RAG tốt nhất rồi mà vẫn cần Ensemble?
+•	Lý thuyết Ensemble: Nếu các mô hình có sai số theo các hướng khác nhau (người đoán cao, người đoán thấp), việc kết hợp chúng sẽ triệt tiêu nhiễu (noise) và đưa ra kết quả trung bình chính xác hơn.
+•	Ví dụ trực quan:
+o	Model A luôn đoán cao hơn $10.
+o	Model B luôn đoán thấp hơn $10.
+o	Trung bình cộng (Ensemble) sẽ cho ra giá đúng tuyệt đối (Sai số = 0).
+C. Quy trình thực hiện (Code logic)
+1.	Tải trọng số (Weights) Neural Network: Tải file deep_neural_network_pytorch (1GB) từ Google Drive (mô hình đã train ở Tuần 6).
+2.	Chuẩn bị 3 luồng dự đoán:
+o	Price 1 (Frontier RAG): GPT + ChromaDB.
+o	Price 2 (Specialist): Gọi API lên Modal (Llama 3.2 Fine-tuned).
+o	Price 3 (Deep NN): Chạy local PyTorch model.
+3.	Công thức kết hợp (Weighted Ensemble):
+Thay vì dùng Hồi quy tuyến tính (Linear Regression) phức tạp để tìm trọng số tối ưu (mất thời gian), giảng viên đề xuất công thức "thô" (rough heuristics) dựa trên hiệu năng đã quan sát:
+o	80% tin vào RAG (Vì nó chính xác nhất).
+o	10% tin vào Specialist.
+o	10% tin vào Neural Network.
+$$Price_{Ensemble} = 0.8 \times P_{RAG} + 0.1 \times P_{Specialist} + 0.1 \times P_{NN}$$
+________________________________________
+3. Phân tích Code (Minh họa logic)
+Dưới đây là cách EnsembleAgent được hiện thực hóa trong tư duy lập trình (dựa trên ngữ cảnh và file agent.py):
+Python
+class EnsembleAgent(Agent):
+    def __init__(self, collection):
+        # 1. Khởi tạo các chuyên gia con
+        self.frontier_rag = FrontierAgent(collection) # RAG Model
+        self.specialist = SpecialistAgent()           # Fine-tuned Model (Remote)
+        # self.neural_net = NeuralNetworkAgent()      # (Tuỳ chọn nếu có file weights)
+
+    def price(self, description):
+        # 2. Lấy ý kiến từ các chuyên gia
+        # Giá từ RAG (Mạnh nhất)
+        p1 = self.frontier_rag.price(description) 
+        
+        # Giá từ Specialist (Dự phòng)
+        p2 = self.specialist.price(description)
+        
+        # Giá từ NN (Tham khảo thêm)
+        # p3 = self.neural_net.price(description) 
+        # Giả sử trong bài học rút gọn, ta chỉ demo với p3 giả lập hoặc bỏ qua nếu file quá nặng
+        
+        # 3. Tính toán kết quả hợp nhất (Weighted Average)
+        # Công thức: 80% RAG + 10% Specialist + 10% NN
+        # Nếu chỉ có 2 model, có thể điều chỉnh: 90% RAG + 10% Specialist
+        
+        final_price = (0.8 * p1) + (0.2 * p2) 
+        
+        self.log(f"Ensemble Logic: 0.8*{p1} + 0.2*{p2} = {final_price}")
+        return final_price
+4. Kiến thức mở rộng & Lưu ý
+•	Moment of Truth (Khoảnh khắc sự thật): Đây là thuật ngữ chỉ thời điểm kiểm chứng xem hệ thống AI có thực sự hoạt động trong thực tế hay không. Kết quả ~$30 sai số cho thấy hệ thống đã sẵn sàng cho Production.
+•	Linear Regression trong Ensemble: Trong các hệ thống chuyên nghiệp (như giải Netflix Prize), người ta dùng Machine Learning để học ra trọng số (ví dụ: 0.76 cho RAG, 0.14 cho NN...). Ở đây chúng ta dùng "kinh nghiệm" (Heuristics) để đơn giản hóa.
+•	Outliers (Ngoại lai): Ensemble giúp giảm thiểu tác động của ngoại lai. Nếu mô hình RAG bị ảo giác (hallucination) đoán giá $1000 cho một cái bút chì, thì mô hình Neural Network (vốn dựa trên thống kê chặt chẽ) sẽ kéo giá xuống, ngăn chặn sai sót thảm họa.
+Tóm lại, bạn đã hoàn thành việc xây dựng "bộ não" tính giá cực mạnh. Bước tiếp theo sẽ là tích hợp nó vào hệ thống tự động hoàn chỉnh!
+
+197. Day 2 - Ensemble Model Success: Combining RAG, Neural Networks & Modal 
+Chào bạn, đây là phần tổng hợp kiến thức cho bài học "Day 2 - Ensemble Model Success". Đây là thời khắc "kết sổ" cho phần định giá (Pricing), nơi chúng ta chứng kiến sức mạnh của việc kết hợp các mô hình lại với nhau.
+Dưới đây là chi tiết nội dung dựa trên phiên âm và các file code ensemble_agent.py, frontier_agent.py, neural_network_agent.py mà bạn đã cung cấp.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học đánh dấu cột mốc quan trọng khi hệ thống Ensemble Agent (Tác nhân hợp xướng) phá vỡ mọi kỷ lục trước đó, đạt sai số trung bình chỉ còn $29.9. Đây là kết quả của việc kết hợp sức mạnh từ:
+1.	Frontier Agent (RAG): Hiểu biết sâu rộng + Dữ liệu thực tế.
+2.	Specialist Agent (Fine-tuned): Chuyên gia về cấu trúc dữ liệu Amazon.
+3.	Neural Network Agent: Tính toán thống kê thuần túy.
+Đồng thời, bài học chuyển đổi từ mã lệnh thử nghiệm (Notebook) sang mã nguồn chuẩn Production (Python Modules/Classes).
+________________________________________
+2. Nội dung chính
+A. Bảng xếp hạng hiệu năng (The Leaderboard)
+Giảng viên tổng kết hành trình giảm sai số (Error Rate) qua các phương pháp:
+•	Machine Learning cổ điển (Random Forest): Sai số ~$87.6 (Tệ nhất).
+•	Neural Network (Ban đầu): ~$63.
+•	GPT-4o/5.1 (Stand-alone): ~$44.74.
+•	Fine-tuned Llama 3.2 (Specialist): ~$39.85 (Từng là quán quân).
+•	Frontier Model + RAG: ~$30.19 (Kỷ lục mới).
+•	Ensemble Model (Kết hợp cả 3): ~$29.90 (VÔ ĐỊCH).
+=> Bài học: Không có mô hình nào hoàn hảo, nhưng sự kết hợp (Ensemble) các mô hình có điểm mạnh/yếu khác nhau sẽ tạo ra kết quả tốt nhất.
+B. Chiến lược Ensemble (Weighted Average)
+Thay vì dùng Hồi quy tuyến tính (Linear Regression) phức tạp để tìm trọng số, giảng viên áp dụng quy tắc kinh nghiệm (Heuristics) dựa trên độ tin cậy của từng model:
+•	80% tin vào Frontier RAG (Vì nó thông minh nhất và có dữ liệu tham khảo).
+•	10% tin vào Specialist Model.
+•	10% tin vào Neural Network.
+C. Chuyển đổi sang "Production-Ready Code"
+Code không còn nằm rải rác trong Jupyter Notebook nữa mà được đóng gói vào các class kế thừa từ Agent (trong thư mục agents/).
+•	Có Docstrings (chú thích chuẩn).
+•	Có Type Hinting (gợi ý kiểu dữ liệu).
+•	Có Logging (ghi log có màu sắc để dễ debug).
+________________________________________
+3. Kiến trúc & Quy trình (Ensemble Pipeline)
+Đây là một Agent Workflow (Quy trình tác nhân) điển hình:
+1.	Input: Nhận mô tả sản phẩm (ví dụ: "Shure MV7+ microphone").
+2.	Preprocessing: Dùng Preprocessor để viết lại/chuẩn hóa văn bản đầu vào.
+3.	Parallel Execution (Thực thi song song):
+o	Gọi FrontierAgent (OpenAI + ChromaDB).
+o	Gọi SpecialistAgent (Modal Serverless).
+o	Gọi NeuralNetworkAgent (Local PyTorch).
+4.	Aggregation (Tổng hợp): Áp dụng công thức trọng số.
+5.	Output: Giá dự đoán cuối cùng ($29.9 error).
+________________________________________
+4. Phân tích Code (Code Analysis)
+Dựa trên các file ensemble_agent.py, frontier_agent.py, và neural_network_agent.py, tôi sẽ phân tích logic kết hợp này.
+File: agents/ensemble_agent.py
+Đây là "nhạc trưởng" điều phối các mô hình con.
+Python
+from agents.agent import Agent
+from agents.specialist_agent import SpecialistAgent
+from agents.frontier_agent import FrontierAgent
+from agents.neural_network_agent import NeuralNetworkAgent
+from agents.preprocessor import Preprocessor
+
+class EnsembleAgent(Agent):
+    name = "Ensemble Agent"
+    color = Agent.YELLOW  # Màu vàng để dễ nhận diện trong log
+
+    def __init__(self, collection):
+        """
+        Khởi tạo Ensemble Agent bằng cách tạo ra các instance của 3 mô hình con.
+        Lưu ý: Nếu máy yếu hoặc lỗi kỹ thuật, bạn có thể comment bớt các dòng khởi tạo ở đây.
+        """
+        self.log("Initializing Ensemble Agent")
+        
+        # 1. Khởi tạo Specialist (Fine-tuned Model trên Cloud)
+        self.specialist = SpecialistAgent()
+        
+        # 2. Khởi tạo Frontier (RAG Model - Cần truyền collection ChromaDB vào)
+        self.frontier = FrontierAgent(collection)
+        
+        # 3. Khởi tạo Neural Network (Model chạy local - Khá nặng)
+        self.neural_network = NeuralNetworkAgent()
+        
+        # 4. Bộ tiền xử lý văn bản
+        self.preprocessor = Preprocessor()
+        self.log("Ensemble Agent is ready")
+
+    def price(self, description: str) -> float:
+        """
+        Hàm thực thi chính:
+        1. Tiền xử lý văn bản.
+        2. Hỏi giá từ 3 chuyên gia.
+        3. Tính trung bình có trọng số (Weighted Average).
+        """
+        self.log("Running Ensemble Agent - preprocessing text")
+        
+        # Bước 1: Chuẩn hóa đầu vào (quan trọng để các model hiểu giống nhau)
+        rewrite = self.preprocessor.preprocess(description)
+        self.log(f"Pre-processed text using {self.preprocessor.model_name}")
+
+        # Bước 2: Gọi các Agent con (Agent Workflow)
+        specialist = self.specialist.price(rewrite)      # Giá từ Fine-tuned
+        frontier = self.frontier.price(rewrite)          # Giá từ RAG
+        neural_network = self.neural_network.price(rewrite) # Giá từ NN
+
+        # Bước 3: Áp dụng công thức Ensemble
+        # 80% RAG + 10% Fine-tuned + 10% NN
+        combined = frontier * 0.8 + specialist * 0.1 + neural_network * 0.1
+        
+        self.log(f"Ensemble Agent complete - returning ${combined:.2f}")
+        return combined
+File: agents/neural_network_agent.py
+Minh họa cách đóng gói một model phức tạp vào một class Agent đơn giản.
+Python
+class NeuralNetworkAgent(Agent):
+    name = "Neural Network Agent"
+    color = Agent.MAGENTA
+
+    def __init__(self):
+        # Load model nặng (PyTorch weights) vào bộ nhớ ngay khi khởi tạo
+        # File 'deep_neural_network.pth' phải có sẵn trong thư mục
+        self.log("Neural Network Agent is initializing")
+        self.neural_network = DeepNeuralNetworkInference()
+        self.neural_network.setup()
+        self.neural_network.load("deep_neural_network.pth")
+        
+    def price(self, description: str) -> float:
+        # Chỉ đơn giản là gọi hàm inference
+        result = self.neural_network.inference(description)
+        return result
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+Tại sao dùng "Fixed Workflow" thay vì "Autonomous Agent" ở bước này?
+Trong EnsembleAgent, quy trình là cố định (Code cứng): Luôn luôn gọi 3 model, luôn luôn nhân trọng số 0.8/0.1/0.1.
+•	Workflow: Đảm bảo độ ổn định cao, dễ kiểm soát (như dây chuyền sản xuất).
+•	Autonomous Agent (sẽ học sau): Agent tự quyết định xem có cần gọi Neural Network hay không (ví dụ: chỉ gọi nếu 2 model kia chênh lệch giá quá lớn). Hiện tại chúng ta chưa cần mức độ tự chủ đó.
+Mẹo xử lý khi gặp lỗi kỹ thuật (Troubleshooting)
+Giảng viên nhắc nhở rằng DeepNeuralNetwork khá nặng (hơn 1GB weights). Nếu máy tính của bạn gặp khó khăn:
+1.	Vào ensemble_agent.py.
+2.	Comment out (Vô hiệu hóa) các dòng liên quan đến self.neural_network.
+3.	Sửa công thức tính combined: Ví dụ combined = frontier * 0.9 + specialist * 0.1.
+4.	Hệ thống vẫn hoạt động tốt (chỉ kém chính xác hơn một chút xíu).
+Latency (Độ trễ)
+Khi chạy lần đầu, Modal (Specialist Agent) sẽ mất khoảng 30s để khởi động (Cold Start). Nhưng các lần sau sẽ rất nhanh. EnsembleAgent phải chờ cả 3 model trả về kết quả mới tính toán xong, nên tốc độ sẽ bị phụ thuộc vào model chậm nhất.
+Bạn đã hoàn thành việc xây dựng "Bộ não định giá tối thượng". Bước tiếp theo trong khóa học sẽ là xây dựng các Agent ngoại vi: Scanner (để tìm deal) và Messenger (để thông báo).
+198. Day 2 - Building and Testing an Ensemble Agent with Multiple LLM Calls
+Chào bạn, đây là phần tổng kết cuối cùng cho Day 2: Xây dựng và Kiểm thử Ensemble Agent.
+Trong bài này, chúng ta không học thêm lý thuyết mới mà tập trung vào việc chạy thực tế (Live Test) toàn bộ hệ thống "hợp xướng" (Ensemble) mà chúng ta đã xây dựng, quan sát cách các Agent phối hợp với nhau qua Log.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học minh họa quy trình hoạt động thực tế của Ensemble Agent khi xử lý một yêu cầu định giá. Hệ thống kích hoạt chuỗi 5 mô hình AI khác nhau (bao gồm cả LLM và Neural Network) để cùng đưa ra một con số dự đoán cuối cùng. Kết quả thử nghiệm trên sản phẩm thật (Microphone Shure MV7+) cho thấy sự hiệu quả và tính "bù trừ" giữa các mô hình.
+________________________________________
+2. Nội dung chính
+A. Quy trình chạy thực tế (Live Execution Flow)
+Khi bạn gọi ensemble_agent.price("Shure MV7+..."), hệ thống sẽ thực hiện các bước sau (quan sát được qua Log):
+1.	Initialization (Khởi tạo): Ensemble Agent đánh thức Specialist, Frontier, và Neural Network.
+2.	Preprocessing (Tiền xử lý - Model 1): Dùng Grok (hoặc một LLM nhỏ) để chuẩn hóa văn bản đầu vào.
+3.	Specialist Agent (Model 2 - Llama 3.2):
+o	Trạng thái: Gọi lên Modal.
+o	Cold Start: Mất ~30s để khởi động server nếu server đang ngủ (bài học nhắc nhở về độ trễ).
+o	Kết quả: Dự đoán chính xác $299 (Spot on!).
+4.	Frontier Agent (Model 3 & 4):
+o	Vectorization (Model 3): Dùng Encoder chuyển văn bản thành vector.
+o	RAG & Inference (Model 4): Tìm sản phẩm tương tự và hỏi GPT.
+o	Kết quả: Lệch $10.
+5.	Neural Network (Model 5): Chạy mô hình số học local.
+6.	Combination: Ensemble Agent tổng hợp kết quả.
+B. Phân tích kết quả (Case Study: Shure MV7+)
+•	Giá thực tế: $299.
+•	Specialist Agent dự đoán: $299 (Chính xác tuyệt đối).
+•	Frontier Agent dự đoán: ~$289 (Lệch $10).
+•	Ensemble (Kết hợp): ~$295.
+=> Nhận xét: Trong trường hợp cụ thể này, Specialist Agent giỏi hơn Ensemble. Tuy nhiên, trên tập dữ liệu lớn (như đã test ở bài trước), Ensemble vẫn là người chiến thắng chung cuộc vì tính ổn định (tránh được những sai số lớn bất thường).
+________________________________________
+3. Tổng kết Day 2 & Hướng tới Day 3
+Bạn đã hoàn thành 92.5% hành trình!
+•	Thành tựu hôm nay: Xây dựng hệ thống RAG thủ công (Native), so sánh Fine-tuning vs RAG, và tạo ra Ensemble Agent đạt kỷ lục sai số thấp nhất ($29.9).
+•	Con số ấn tượng: Một lần định giá đơn giản huy động sức mạnh của 5 mô hình AI phối hợp nhịp nhàng.
+Kế hoạch ngày mai (Day 3):
+•	Xây dựng Scanner Agent: "Đôi mắt" của hệ thống, chuyên quét tin tức/RSS để tìm deal.
+•	Học kỹ thuật Structured Outputs (Đầu ra có cấu trúc): Mảnh ghép quan trọng cuối cùng để đảm bảo AI trả về dữ liệu chuẩn JSON/Code thay vì văn bản tự do.
+Hẹn gặp lại bạn ở Day 3 để tiếp tục hoàn thiện hệ thống "The Price Is Right"!
+DAY 3
+199. Day 3 - Structured Outputs with Pydantic and Constrained Decoding 
+Chào mừng bạn đến với ngày thứ 3 của tuần cuối cùng! Hôm nay chúng ta sẽ khám phá Structured Outputs (Đầu ra có cấu trúc) - một kỹ năng thiết yếu để biến các mô hình ngôn ngữ (vốn mơ hồ) thành các thành phần phần mềm đáng tin cậy.
+Dựa vào bản phiên âm và slide Copy of LLMs Week 8 Day 3.pdf bạn cung cấp, đây là nội dung chi tiết:
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học tập trung vào việc sử dụng Structured Outputs (thông qua thư viện Pydantic) để buộc LLM trả về dữ liệu có định dạng chuẩn (thường là JSON) thay vì văn bản tự do. Điểm nhấn đặc biệt là kỹ thuật Constrained Decoding (Giải mã có ràng buộc) giúp đảm bảo 100% kết quả đầu ra tuân thủ đúng cấu trúc đã định nghĩa, loại bỏ hoàn toàn việc "hallucinations" về cú pháp.
+2. Nội dung chính
+A. Tại sao cần Structured Outputs?
+•	Vấn đề: Khi bạn hỏi LLM "Giá của iPhone 16 là bao nhiêu?", nó có thể trả lời "Giá là $1000", hoặc "$1000 nhé", hoặc "Khoảng một ngàn đô". Việc viết code (Regex) để trích xuất số $1000 từ các câu trả lời này rất mệt mỏi và dễ lỗi.
+•	Giải pháp: Structured Outputs buộc LLM trả về một đối tượng (Object) duy nhất, ví dụ: {"price": 1000, "currency": "USD"}. Điều này giúp tích hợp LLM vào hệ thống phần mềm dễ dàng như gọi một hàm Python bình thường.
+•	Ứng dụng trong bài học: Chúng ta sẽ dùng kỹ thuật này cho Scanner Agent để phân tích (parse) dữ liệu thô từ RSS feed thành các đối tượng Deal có cấu trúc rõ ràng.
+B. Cơ chế hoạt động (The "Magic" behind)
+Giảng viên giải thích hai lớp cơ chế:
+1.	Lớp "Cảm giác" (Developer Experience):
+o	Bạn định nghĩa một class Python kế thừa từ Pydantic BaseModel.
+o	Bạn yêu cầu OpenAI trả về instance của class đó.
+o	Bạn nhận lại một object Python hoàn chỉnh.
+2.	Lớp "Thực tế" (Under the Hood):
+*
+o	Class Pydantic được chuyển đổi thành JSON Schema.
+o	Schema này được đưa vào System Prompt của LLM.
+o	LLM sinh ra chuỗi JSON khớp với Schema.
+o	Thư viện OpenAI tự động parse chuỗi JSON đó ngược lại thành object Python.
+C. Kỹ thuật Constrained Decoding (Giải mã ràng buộc)
+Đây là "bí thuật" giúp OpenAI đảm bảo độ chính xác 100%:
+•	Khi LLM dự đoán token tiếp theo, thay vì chọn tự do trong hàng ngàn từ vựng, hệ thống sẽ loại bỏ (masking) tất cả các token không hợp lệ theo Schema.
+•	Ví dụ: Nếu Schema yêu cầu trường price là số (Integer), thì sau khi sinh token "price": , hệ thống sẽ chặn tất cả các token là chữ cái, chỉ cho phép sinh các token số (0-9).
+•	Kết quả: LLM không thể sinh ra sai cú pháp dù nó muốn.
+3. Kiến trúc & Quy trình thực hiện
+Quy trình Scanner Agent với Structured Outputs:
+1.	Define (Định nghĩa):
+Python
+from pydantic import BaseModel
+
+class ProductDeal(BaseModel):
+    product_name: str
+    price: float
+    currency: str
+    merchant: str
+2.	Prompting:
+Gửi văn bản thô (Unstructured Text) từ RSS Feed + Yêu cầu response_format=ProductDeal.
+3.	Parsing (Tự động):
+OpenAI trả về object ProductDeal(product_name="iPhone 16", price=999.0, ...) thay vì chuỗi string.
+4. Kiến thức mở rộng
+•	Pydantic: Thư viện validation dữ liệu phổ biến nhất trong Python hiện nay.
+•	Inference Time Constrained Decoding: Kỹ thuật này không chỉ dùng cho JSON mà còn dùng cho Code Generation (đảm bảo code đúng cú pháp) hoặc Grammar Constrained Generation (trong các thư viện như llama-cpp-python).
+Bài học này là bước chuẩn bị quan trọng để xây dựng Scanner Agent - thành phần đầu tiên trong chuỗi xử lý tự động của hệ thống "The Price Is Right". Chúng ta sẽ áp dụng ngay kỹ thuật này trong phần thực hành tiếp theo!
+
+200. Day 3 - Building a Deal Scanner with Structured Outputs and Pydantic 
+Chào bạn, chúng ta tiếp tục với Ngày 3 của Tuần 8. Sau khi đã có "bộ não" định giá (Ensemble Agent), hôm nay chúng ta sẽ xây dựng "đôi mắt" cho hệ thống: Scanner Agent.
+Dựa trên phiên âm và các file code (day3.ipynb, deals.py), tôi xin tổng hợp nội dung buổi học "Building a Deal Scanner with Structured Outputs and Pydantic" như sau:
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học tập trung vào việc giải quyết bài toán kinh điển trong xử lý dữ liệu: Biến dữ liệu phi cấu trúc (Unstructured Data - HTML, RSS) thành dữ liệu có cấu trúc (Structured Data - Python Objects/JSON).
+Thay vì viết các đoạn mã Regex phức tạp và dễ lỗi để cào dữ liệu web, chúng ta sử dụng LLM kết hợp với Structured Outputs (thông qua Pydantic). LLM sẽ đọc nội dung thô từ RSS Feed và trích xuất ra danh sách các "Deal" (món hời) chính xác theo định dạng chúng ta yêu cầu, sẵn sàng để đưa vào quy trình xử lý tiếp theo.
+________________________________________
+2. Nội dung chính
+A. Mục tiêu: Xây dựng Scanner Agent
+Scanner Agent có nhiệm vụ:
+1.	Quét các nguồn cấp tin tức (RSS Feeds) về khuyến mãi (ví dụ: Dealnews.com).
+2.	Lọc rác và lấy nội dung chính.
+3.	Dùng LLM để phân tích và chọn ra 5 deal hứa hẹn nhất.
+4.	Trả về kết quả dưới dạng đối tượng Python (Deal objects) chứ không phải văn bản tự do.
+B. Các bước thực hiện
+1.	Thu thập dữ liệu (Ingestion): Sử dụng thư viện feedparser để đọc RSS và BeautifulSoup để làm sạch HTML, lấy văn bản thô.
+2.	Định nghĩa Schema (The Blueprint): Dùng thư viện Pydantic để định nghĩa khuôn mẫu dữ liệu mong muốn (Product Name, Price, URL...).
+3.	Prompt Engineering: Hướng dẫn LLM cách chọn deal (ví dụ: cẩn thận với giá "giảm $100" vs giá "còn $100").
+4.	Parsing (The Magic): Sử dụng tính năng beta.parse của OpenAI để ép buộc mô hình trả về dữ liệu tuân thủ tuyệt đối theo Schema đã định nghĩa ở bước 2.
+________________________________________
+3. Kiến trúc & Quy trình (Scanner Pipeline)
+Quy trình xử lý dữ liệu (ETL Pipeline) sử dụng LLM:
+1.	Input:
+o	RSS Feeds (Electronics, Computers, Smart Home).
+o	Công cụ: feedparser, requests.
+2.	Raw Data Processing:
+o	Lấy 10 tin mới nhất từ mỗi feed -> Tổng ~30 tin.
+o	Dùng BeautifulSoup loại bỏ thẻ HTML (<div>, <span>...), chỉ giữ lại text.
+3.	LLM Processing (GPT-4o/5.1):
+o	Input Prompt: Danh sách 30 tin lộn xộn + Schema DealSelection.
+o	Cơ chế: Inference Time Constrained Decoding (Mô hình bị ép buộc chỉ sinh ra token hợp lệ theo JSON Schema).
+4.	Output:
+o	Object DealSelection chứa list các Deal.
+o	Mỗi Deal có: product_description, price (số thực), url.
+________________________________________
+4. Phân tích Code (Code Analysis)
+A. File deals.py: Định nghĩa Cấu trúc & Thu thập dữ liệu
+Đây là file quan trọng nhất định nghĩa "hình hài" của dữ liệu đầu ra.
+Python
+from pydantic import BaseModel, Field
+from typing import List
+from bs4 import BeautifulSoup
+import feedparser
+
+# 1. Định nghĩa Data Model bằng Pydantic
+# Đây là cách chúng ta giao tiếp với LLM về format dữ liệu mong muốn.
+class Deal(BaseModel):
+    """Đại diện cho một món hàng giảm giá"""
+    product_description: str = Field(
+        description="Tóm tắt sản phẩm rõ ràng trong 3-4 câu. Quan trọng là thông số, bỏ qua các lời quảng cáo."
+    )
+    price: float = Field(
+        description="Giá thực tế cuối cùng. Ví dụ: 'Giảm $100 từ giá gốc $300' thì giá trị phải là 200."
+    )
+    url: str = Field(description="Đường dẫn gốc đến deal đó")
+
+class DealSelection(BaseModel):
+    """Danh sách các deal được chọn"""
+    deals: List[Deal] = Field(
+        description="Chọn ra đúng 5 deal tốt nhất, có mô tả chi tiết và giá rõ ràng nhất."
+    )
+
+# 2. Hàm làm sạch HTML (Trích xuất Text)
+def extract(html_snippet: str) -> str:
+    soup = BeautifulSoup(html_snippet, "html.parser")
+    # ... logic tìm thẻ div và get_text() ...
+    return cleaned_text
+
+# 3. Class dùng để cào RSS (Scraping logic)
+class ScrapedDeal:
+    def __init__(self, rss_entry):
+        # Lấy dữ liệu từ RSS entry
+        self.summary = extract(rss_entry.summary + rss_entry.title)
+        self.link = rss_entry.link
+        # ...
+B. File day3.ipynb: Thực thi Scanner Agent
+Đoạn code kết nối dữ liệu thô với LLM để nhận về kết quả có cấu trúc.
+Python
+from openai import OpenAI
+from deals import DealSelection, get_deals
+
+client = OpenAI()
+
+# 1. Lấy dữ liệu thô (Unstructured Data)
+# Hàm này gọi feedparser, lấy về text lộn xộn của 30 bài viết
+raw_deals_text = get_deals() 
+
+# 2. Xây dựng Prompt
+system_prompt = "Bạn là một chuyên gia săn deal. Hãy xác định và tóm tắt 5 deal tốt nhất..."
+user_prompt = f"Đây là danh sách các bài viết thô: \n\n {raw_deals_text}"
+
+# 3. Gọi LLM với Structured Outputs (The Key Part)
+completion = client.beta.chat.completions.parse( # Lưu ý: dùng .parse thay vì .create
+    model="gpt-4o-2024-08-06", # Hoặc gpt-5.1 tùy ngữ cảnh
+    messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ],
+    # TRỌNG TÂM: Ép buộc mô hình trả về theo class DealSelection
+    response_format=DealSelection, 
+)
+
+# 4. Nhận kết quả là Python Object (không cần parse JSON thủ công)
+results = completion.choices[0].message.parsed 
+
+# 5. Sử dụng kết quả
+for deal in results.deals:
+    print(f"Sản phẩm: {deal.product_description}")
+    print(f"Giá: ${deal.price}") # Đây là kiểu float/int thật, không phải string "$15"
+    print(f"Link: {deal.url}")
+    print("-" * 10)
+________________________________________
+5. Kiến thức liên quan & Mở rộng
+1.	Pydantic Field description là một phần của Prompt:
+o	Bạn sẽ thấy trong deals.py, phần description="..." rất dài.
+o	LLM thực sự đọc phần này. Ví dụ, hướng dẫn "nếu deal là giảm $100 từ $500 thì giá là $400" được viết ngay trong code định nghĩa biến. Đây là kỹ thuật đưa Business Logic vào Data Schema.
+2.	Parse vs Create (OpenAI SDK):
+o	Trước đây: Dùng .create() -> nhận về String JSON -> dùng json.loads() -> try/catch lỗi cú pháp.
+o	Bây giờ: Dùng .parse() -> OpenAI đảm bảo JSON đúng 100% -> SDK tự convert thành Object DealSelection.
+3.	Khả năng "Hiểu" của LLM:
+o	Trong ví dụ, có một thiết bị theo dõi sức khỏe giá $15 (rất rẻ) và một Laptop Dell giá $550.
+o	LLM đọc đoạn văn bản lộn xộn, tự hiểu ngữ cảnh "giá rẻ bất ngờ" hoặc "giá máy tính cao cấp" để điền vào trường price chính xác, dù định dạng gốc trên web có thể rất khác nhau (lúc thì viết tắt, lúc thì ẩn trong nút bấm).
+4.	Tại sao không dùng Regex?
+o	HTML thay đổi liên tục. Nếu Dealnews đổi tên class <div>, Regex sẽ chết.
+o	LLM hiểu ngữ nghĩa (semantic). Nó tìm "giá tiền" dựa trên ý nghĩa đoạn văn, nên bền vững hơn trước các thay đổi giao diện web.
+Bạn đã hoàn thành việc xây dựng Scanner Agent. Bây giờ hệ thống đã có "Mắt" (Scanner) và "Não" (Ensemble Pricer). Bước tiếp theo sẽ là tích hợp chúng lại để hệ thống tự động tìm deal -> định giá -> thông báo!
+
+201. Day 3 - Structured Outputs for Parsing & Building a Pushover Notification Agent 
+Chào bạn, dựa trên bản phiên âm và các file code (scanner_agent.py, messaging_agent.py, day3.ipynb, deals.py) bạn cung cấp, đây là phần tổng hợp kiến thức cho bài học "Structured Outputs for Parsing & Building a Pushover Notification Agent".
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học này nhấn mạnh sự đột phá về mặt thương mại của việc sử dụng LLM để phân tích dữ liệu phi cấu trúc (Unstructured Data Parsing), biến một vấn đề "hóc búa" trong quá khứ thành một giải pháp đơn giản và hiệu quả.
+Sau khi Scanner Agent hoàn thành việc lọc deal, chúng ta xây dựng mảnh ghép tiếp theo: Messaging Agent. Agent này không chỉ gửi tin nhắn thông báo (qua Pushover) mà còn sử dụng Claude 3.5 Sonnet để viết lại nội dung sao cho hấp dẫn, "kích thích" người dùng mua hàng.
+________________________________________
+2. Nội dung chính
+A. Sự đột phá của Intelligent Parsing (Phân tích cú pháp thông minh)
+•	Vấn đề cũ: Trước đây, viết code để hiểu câu "Thường giá $200, nhưng tuần này giảm $50" là cực khó. Nếu định dạng thay đổi một chút, code sẽ lỗi (brittle parsers).
+•	Giải pháp LLM: LLM hiểu ngữ nghĩa. Nó biết "giảm $50 từ $200" nghĩa là giá cuối cùng là $150.
+•	Giá trị: Structured Outputs biến LLM thành một công cụ ETL (Extract - Transform - Load) cực mạnh, có thể ứng dụng ngay vào việc phân tích hồ sơ (CV), hóa đơn, hoặc tin tức thị trường với độ chính xác cao.
+B. Scanner Agent: Hoàn thiện
+Code trong scanner_agent.py đã chuyển từ bản nháp (notebook) sang dạng Class chuẩn Agent.
+•	Sử dụng response_format=DealSelection để ép OpenAI trả về JSON.
+•	Kết quả: Một danh sách các object Deal sạch sẽ (có giá, mô tả, URL) sẵn sàng để xử lý tiếp.
+C. Messaging Agent: "Cái miệng" của hệ thống
+Để hệ thống không chỉ "biết" mà còn "nói" được, chúng ta tích hợp dịch vụ Pushover (miễn phí, dễ dùng hơn Twilio) để gửi thông báo đẩy (Push Notification) xuống điện thoại.
+•	Chức năng:
+1.	Nhận thông tin deal từ Scanner/Pricer.
+2.	Dùng LLM (Claude/GPT) để viết một tin nhắn "giật gân" (Hype Message).
+3.	Gửi tin nhắn đó kèm âm thanh "Ka-ching" (tiếng máy tính tiền) tới điện thoại người dùng.
+________________________________________
+3. Kiến trúc & Quy trình (Notification Pipeline)
+1.	Input: Dữ liệu Deal (Sản phẩm: TV Samsung, Giá: $300, Giá trị thực: $1000).
+2.	Creative Rewriting (Viết lại sáng tạo):
+o	Prompt: "Hãy tóm tắt deal này trong 2-3 câu thật hấp dẫn để người dùng muốn mua ngay."
+o	Model: Claude 3.5 Sonnet (hoặc GPT-4o).
+o	Output: "🔥 DEAL KHỦNG! TV Samsung 60 inch giá chỉ $300 (Giá trị thực $1000). Món hời không thể bỏ lỡ, mua ngay kẻo hết!"
+3.	Delivery (Gửi đi):
+o	Gọi API requests.post("https://api.pushover.net/...").
+o	Tham số: token, user, message, sound="cashregister".
+4.	End User: Điện thoại rung + Tiếng "Ka-ching" + Tin nhắn hiện lên màn hình khóa.
+________________________________________
+4. Phân tích Code (Messaging Agent)
+File messaging_agent.py
+Đây là Agent chịu trách nhiệm giao tiếp.
+Python
+import os
+import requests
+from litellm import completion # Dùng litellm để gọi Claude dễ dàng
+from agents.agent import Agent
+
+class MessagingAgent(Agent):
+    name = "Messaging Agent"
+    color = Agent.WHITE
+    MODEL = "claude-sonnet-4-5" # Dùng model ngôn ngữ tự nhiên tốt để viết văn hay
+
+    def __init__(self):
+        # Lấy Key từ biến môi trường (File .env)
+        self.pushover_user = os.getenv("PUSHOVER_USER")
+        self.pushover_token = os.getenv("PUSHOVER_TOKEN")
+
+    def craft_message(self, description, deal_price, estimated_true_value):
+        """Dùng LLM để biến thông số khô khan thành lời quảng cáo hấp dẫn"""
+        user_prompt = f"""
+        Hãy tóm tắt deal này thành 2-3 câu thông báo đẩy hấp dẫn:
+        Mô tả: {description}
+        Giá bán: {deal_price}
+        Giá trị thực ước tính: {estimated_true_value}
+        """
+        response = completion(model=self.MODEL, messages=[{"role": "user", "content": user_prompt}])
+        return response.choices[0].message.content
+
+    def push(self, text):
+        """Gửi tin nhắn qua Pushover API"""
+        payload = {
+            "user": self.pushover_user,
+            "token": self.pushover_token,
+            "message": text,
+            "sound": "cashregister", # Âm thanh tiền rơi!
+        }
+        requests.post("https://api.pushover.net/1/messages.json", data=payload)
+
+    def notify(self, description, deal_price, estimated_true_value, url):
+        # 1. Soạn tin nhắn
+        hype_msg = self.craft_message(description, deal_price, estimated_true_value)
+        # 2. Gửi đi
+        final_msg = f"{hype_msg}\nLink: {url}"
+        self.push(final_msg)
+5. Hướng dẫn thiết lập Pushover (Quick Setup)
+Để chạy được Agent này, bạn cần:
+1.	Tải app Pushover trên điện thoại (iOS/Android).
+2.	Đăng ký tài khoản tại pushover.net.
+3.	Lấy User Key (Bắt đầu bằng chữ u...).
+4.	Tạo một Application mới (tên ví dụ: "AI Agent"), lấy API Token (Bắt đầu bằng chữ a...).
+5.	Điền 2 key này vào file .env:
+Đoạn mã
+PUSHOVER_USER=u...
+PUSHOVER_TOKEN=a...
+Tổng kết Day 3
+Bạn đã hoàn thành 95% khóa học!
+•	Chúng ta đã có:
+1.	Specialist Agent (Định giá chuyên sâu).
+2.	Ensemble Agent (Định giá chính xác cao).
+3.	Scanner Agent (Tìm kiếm & Phân tích dữ liệu thô).
+4.	Messaging Agent (Thông báo & Marketing).
+Ngày mai (Day 4), chúng ta sẽ lắp ghép tất cả các mảnh này lại bằng một Autonomous Planner Agent (Tác nhân lập kế hoạch tự trị) - bộ não điều phối để hệ thống tự chạy vòng lặp: Quét -> Định giá -> So sánh -> Thông báo mà không cần con người can thiệp!
+
+DAY 4
+202. Day 4 - Building Agentic AI: Planning Agents with Tool Orchestration 
+Chào bạn, chúc mừng bạn đã đi đến chặng đường quan trọng nhất của khoá học "Become an LLM Engineer". Dựa trên bản phiên âm bài giảng Day 4 và các file mã nguồn bạn cung cấp (đại diện cho các thành phần của hệ thống), tôi xin tổng hợp lại kiến thức của buổi học về Building Agentic AI: Planning Agents with Tool Orchestration.
+Đây là buổi học mang tính chất kết nối (orchestration), nơi các "mảnh ghép" rời rạc (Scanner, Pricing, Messaging) được một "bộ não" trung tâm điều phối để tạo thành một hệ thống AI tự chủ hoàn chỉnh.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học tập trung vào việc xây dựng Planning Agent (Tác nhân lập kế hoạch). Đây là thành phần cao cấp nhất trong hệ thống Agentic AI, đóng vai trò như một "người nhạc trưởng". Thay vì chạy các tác nhân (Scanner, Ensemble, Messaging) một cách thủ công hoặc theo kịch bản cứng nhắc, Planning Agent sử dụng LLM để tự ra quyết định (reasoning) xem khi nào cần gọi tác nhân nào. Trong kiến trúc này, các tác nhân con (Sub-agents) được Planning Agent coi là các Tools (Công cụ) để thực hiện mục tiêu cuối cùng: Tìm deal hời, định giá và thông báo cho người dùng.
+________________________________________
+2. Nội dung chính
+A. Định nghĩa và Đặc điểm của Agentic AI (AI Tác nhân)
+Giáo viên nhấn mạnh 5 "dấu hiệu nhận biết" (hallmarks) của một hệ thống Agentic AI thực thụ:
+1.	Phân rã vấn đề (Problem Decomposition): Chia một vấn đề lớn thành các bước nhỏ hơn, mỗi bước được thực hiện bởi một lời gọi LLM riêng biệt.
+2.	Sử dụng Công cụ (Tool Use): LLM được trang bị khả năng gọi hàm (function calling) hoặc gọi các LLM khác để thực hiện hành động.
+3.	Điều phối quy trình & Đầu ra có cấu trúc (Workflow & Structured Outputs): Kiểm soát luồng đi của dữ liệu và bắt buộc LLM trả về định dạng chuẩn (JSON/Pydantic) để các phần mềm khác có thể hiểu được.
+4.	Môi trường tác nhân (Agent Environment): Một cấu trúc hạ tầng cho phép các tác nhân giao tiếp, chia sẻ trạng thái và bộ nhớ với nhau.
+5.	Tính tự chủ & Bộ nhớ (Autonomy & Memory): Hệ thống không chỉ là một chatbot "hỏi-đáp". Nó có khả năng duy trì trạng thái, chạy nền (background), ghi nhớ ngữ cảnh và chủ động liên hệ với người dùng (ví dụ: gửi thông báo đẩy) thay vì chờ lệnh.
+B. Chiến lược xây dựng "The Price Is Right" Agent
+Hệ thống Capstone Project được ghép nối như sau:
+•	Planning Agent (Bộ não): Nhận mục tiêu tổng quát.
+•	Các Công cụ (Tools) dành cho Planning Agent:
+1.	Scanner Agent (đã xây dựng Day 3): Tìm kiếm các giao dịch (deals) từ RSS/Web.
+2.	Ensemble Agent (đã xây dựng Day 2): Định giá sản phẩm (kết hợp Specialist, Frontier/RAG, Neural Network).
+3.	Messaging Agent (đã xây dựng Day 3): Viết nội dung quảng cáo và gửi thông báo.
+Quy trình hoạt động: Planning Agent gọi Scanner để lấy danh sách -> Với mỗi sản phẩm, gọi Ensemble để xem giá trị thực -> Nếu giá bán < giá trị thực -> Gọi Messaging để thông báo. Planning Agent không biết bên trong Ensemble phức tạp thế nào, nó chỉ coi đó là một hàm get_price().
+________________________________________
+3. Kiến trúc & Quy trình (Architecture & Pipeline)
+Dựa trên nội dung file code và bài giảng, luồng dữ liệu (Pipeline) của hệ thống hoàn chỉnh như sau:
+1.	Input: Nguồn dữ liệu từ RSS Feeds (DealNews...).
+2.	Scanner Agent:
+o	Dùng gpt-5-mini đọc dữ liệu thô.
+o	Trích xuất ra DealSelection (JSON Structured Output).
+3.	Planning Agent Logic (Vòng lặp điều phối):
+o	Lặp qua từng Deal được Scanner tìm thấy.
+o	Decision Node: Có nên định giá món này không?
+o	-> Gọi Ensemble Agent:
+	Tiền xử lý văn bản (Preprocessor).
+	Chạy song song: Specialist (Fine-tuned), Frontier (RAG + GPT-5), Neural Network.
+	Tổng hợp ra một mức giá dự đoán (Predicted Price).
+o	Comparison: So sánh Deal Price (giá bán) vs Predicted Price (giá trị thực).
+o	Nếu Deal Price thấp hơn đáng kể -> Gọi Messaging Agent.
+4.	Output: Tin nhắn thông báo (Push Notification) gửi đến điện thoại người dùng qua Pushover.
+________________________________________
+4. Phân tích các file code (Code Analysis)
+Dưới đây là phân tích các file code quan trọng bạn đã cung cấp. Đây chính là các thành phần "Tools" mà Planning Agent sẽ sử dụng.
+A. File scanner_agent.py (Tác nhân Quét & Lọc)
+Đây là công cụ đầu vào, chịu trách nhiệm chuyển đổi dữ liệu HTML hỗn độn thành dữ liệu có cấu trúc.
+Python
+from typing import Optional, List
+from openai import OpenAI
+from agents.deals import ScrapedDeal, DealSelection
+from agents.agent import Agent
+
+class ScannerAgent(Agent):
+    MODEL = "gpt-5-mini" # Sử dụng model nhỏ/nhanh cho tác vụ đọc hiểu đơn giản
+
+    # Prompt hướng dẫn LLM trả về JSON đúng định dạng và loại bỏ các deal không rõ ràng
+    SYSTEM_PROMPT = """You identify and summarize the 5 most detailed deals from a list...
+    Respond strictly in JSON with no explanation...
+    **CRITICAL PRICING RULES:**... (Các quy tắc lọc giá khắt khe)
+    """
+
+    def scan(self, inputs: List[str]) -> List[ScrapedDeal]:
+        """
+        Hàm chính để quét deals.
+        Planning Agent sẽ gọi hàm này như một công cụ.
+        """
+        # Logic gọi OpenAI API với Structured Outputs (thông qua Pydantic models)
+        # ...
+B. File ensemble_agent.py (Tác nhân Định giá tổng hợp)
+Đây là công cụ logic phức tạp nhất, được đóng gói gọn gàng để Planning Agent dễ dàng sử dụng.
+Python
+from agents.agent import Agent
+from agents.specialist_agent import SpecialistAgent
+from agents.frontier_agent import FrontierAgent
+from agents.neural_network_agent import NeuralNetworkAgent
+from agents.preprocessor import Preprocessor
+
+class EnsembleAgent(Agent):
+    name = "Ensemble Agent"
+
+    def __init__(self, collection):
+        """
+        Khởi tạo 'Hội đồng chuyên gia'.
+        Planning Agent không cần biết việc này, chỉ cần khởi tạo EnsembleAgent.
+        """
+        self.log("Initializing Ensemble Agent")
+        self.specialist = SpecialistAgent() # Model nguồn mở đã fine-tune
+        self.frontier = FrontierAgent(collection) # Model mạnh nhất (GPT-5) + RAG
+        self.neural_network = NeuralNetworkAgent() # Mạng nơ-ron thuần túy
+        self.preprocessor = Preprocessor() # Làm sạch dữ liệu đầu vào
+
+    def price(self, description: str) -> float:
+        """
+        Hàm 'price' là interface chính (Tool) mà Planning Agent sẽ gọi.
+        Mục đích: Trả về mức giá ước tính trung bình.
+        """
+        self.log("Running Ensemble Agent - preprocessing text")
+        rewrite = self.preprocessor.preprocess(description)
+        
+        # Gọi song song 3 chuyên gia
+        specialist = self.specialist.price(rewrite)
+        frontier = self.frontier.price(rewrite)
+        neural_network = self.neural_network.price(rewrite)
+        
+        # Công thức tính giá trung bình có trọng số (Weighted Average)
+        # Frontier (RAG) chiếm 80% trọng số vì độ tin cậy cao
+        combined = frontier * 0.8 + specialist * 0.1 + neural_network * 0.1
+        self.log(f"Ensemble Agent complete - returning ${combined}")
+        return combined
+C. File frontier_agent.py (Tác nhân RAG)
+Thành phần quan trọng nhất trong việc định giá, sử dụng RAG để tìm sản phẩm tương tự.
+Python
+class FrontierAgent(Agent):
+    MODEL = "gpt-5.1" # Model mạnh nhất
+
+    def make_context(self, similars: List[str], prices: List[float]) -> str:
+        """
+        Tạo ngữ cảnh (Context) từ các sản phẩm tương tự tìm thấy trong Vector DB.
+        Giúp LLM định giá chính xác hơn dựa trên tham chiếu.
+        """
+        message = "To provide some context, here are some other items..."
+        # ... code ghép chuỗi ...
+        return message
+
+    def price(self, description: str) -> float:
+        """
+        Quy trình RAG:
+        1. Tìm 5 sản phẩm tương tự (find_similars)
+        2. Tạo prompt chứa thông tin các sản phẩm đó
+        3. Hỏi GPT-5.1 giá của sản phẩm hiện tại
+        """
+        documents, prices = self.find_similars(description)
+        # ... gọi OpenAI ...
+        return self.get_price(reply)
+D. File deals.py (Định nghĩa dữ liệu)
+Sử dụng Pydantic để định nghĩa cấu trúc dữ liệu (Structured Outputs), đảm bảo các Agent giao tiếp chính xác.
+Python
+class Deal(BaseModel):
+    """
+    Khuôn mẫu cho một Deal.
+    Bắt buộc LLM phải trả về đúng 3 trường: mô tả, giá, và url.
+    """
+    product_description: str = Field(description="Summary of the product...")
+    price: float = Field(description="The actual price...")
+    url: str = Field(description="The URL of the deal...")
+
+class DealSelection(BaseModel):
+    """
+    Danh sách các Deals.
+    Đây là format đầu ra của Scanner Agent và đầu vào cho Planning Agent.
+    """
+    deals: List[Deal] = Field(...)
+________________________________________
+5. Kiến thức liên quan & mở rộng
+•	Abstraction (Tính trừu tượng hóa): Một kỹ thuật quan trọng trong bài này là sự trừu tượng hóa. EnsembleAgent bên trong rất phức tạp (có RAG, Neural Network, Preprocessor), nhưng đối với PlanningAgent, nó chỉ là một dòng lệnh ensemble.price(item). Đây là nguyên tắc cốt lõi để xây dựng các hệ thống phần mềm lớn: che giấu sự phức tạp (hide complexity).
+•	Agentic Orchestration Frameworks: Trong bài học, chúng ta tự xây dựng logic điều phối (Homegrown framework). Tuy nhiên, trong thực tế sản xuất, bạn có thể gặp các Framework hỗ trợ việc này như:
+o	LangGraph: Cho phép định nghĩa luồng đi của Agent bằng đồ thị (Graph).
+o	CrewAI: Tập trung vào việc phân vai (Role-playing) cho các Agent hợp tác.
+o	Microsoft AutoGen: Cho phép nhiều Agent trò chuyện với nhau để giải quyết vấn đề.
+•	Serverless Deployment (Modal): Mặc dù bài này tập trung vào logic Agent, nhưng toàn bộ hệ thống này được thiết kế để chạy trên Modal. Điều này cho phép Scanner chạy định kỳ (cron job) trên đám mây, tự động tìm deal và gửi thông báo mà không cần bạn bật máy tính cá nhân.
+Tổng kết: Bài học Day 4 Week 8 là bước chuyển mình từ việc tạo ra các mô hình thông minh đơn lẻ sang việc xây dựng một Hệ thống AI (AI System) có khả năng tự động hóa quy trình nghiệp vụ phức tạp thông qua việc lập kế hoạch và sử dụng công cụ.
+
+203. Day 4 - Building an Autonomous Planner Agent with Tool Calling and GPT-4 
+Chào bạn, chúng ta đang bước vào ngày áp chót (Day 4) của chuỗi hành trình 8 tuần. Nội dung hôm nay mang tính chất kỹ thuật cốt lõi: "Kết nối mọi thứ lại với nhau".
+Dựa trên phiên âm và nội dung file day4.ipynb, bài học này tập trung vào việc xây dựng Autonomous Planner Agent (Tác nhân lập kế hoạch tự trị). Thay vì lập trình cứng nhắc từng bước, chúng ta sẽ dạy LLM cách sử dụng các "Công cụ" (Tools) để tự điều phối quy trình.
+Dưới đây là tổng hợp chi tiết nội dung bài học:
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học này giải mã cơ chế hoạt động bên trong của một Planning Agent. Điểm mấu chốt là kỹ thuật Tool Calling (Gọi công cụ).
+•	Mục tiêu: Xây dựng một "bộ não" trung tâm biết cách sử dụng các chức năng (Scanner, Pricing, Messaging) như những công cụ rời rạc.
+•	Phương pháp: Sử dụng các hàm giả lập (Fake Functions) để kiểm tra logic điều phối trước khi tích hợp các Agent thực sự.
+•	Kỹ thuật: Định nghĩa JSON Schema cho công cụ và sử dụng Python dynamic execution (globals()) để gọi hàm tự động.
+2. Kiến trúc & Quy trình (Workflow)
+Quy trình hoạt động của Planning Agent trong bài này tuân theo vòng lặp Reasoning -> Action -> Observation:
+1.	Định nghĩa Công cụ: Chúng ta mô tả cho LLM biết nó có những công cụ gì (Quét deal, Định giá, Thông báo) thông qua JSON.
+2.	LLM Suy luận (Reasoning): Dựa trên mục tiêu người dùng, LLM quyết định cần gọi công cụ nào (ví dụ: "Cần quét deal trước").
+3.	Thực thi (Execution): Hệ thống Python nhận lệnh từ LLM, chạy hàm tương ứng (ở bài này là hàm giả), và lấy kết quả.
+4.	Phản hồi (Feedback): Kết quả từ hàm được đưa ngược lại vào LLM để nó quyết định bước tiếp theo (ví dụ: "Đã có deal, giờ cần định giá").
+3. Phân tích Code (Code Analysis)
+Giảng viên sử dụng cách tiếp cận "Fake it until you make it" (Làm giả trước khi làm thật) để người học hiểu rõ luồng dữ liệu mà không bị rối bởi logic phức tạp của các model con.
+A. Tạo các hàm giả lập (Mock Functions)
+Mục đích: Giả lập các hành động của Agent thực tế để test luồng điều phối.
+Python
+# 1. Giả lập Scanner Agent
+def scan_internet_for_bargains():
+    print("fake function to scan the internet")
+    # Trả về dữ liệu cứng (hard-coded) để test
+    return json.dumps(test_results) 
+
+# 2. Giả lập Ensemble Agent (Định giá)
+def estimate_true_value(description):
+    print(f"fake function to estimate true value of {description}")
+    return "$300" # Luôn trả về 300$ bất kể sản phẩm là gì
+
+# 3. Giả lập Messaging Agent (Thông báo)
+def notify_user_of_deal(description, deal_price, estimated_value, url):
+    print("fake function to notify user...")
+    return "Notification sent"
+•	Ghi chú: Các hàm này đóng vai trò "placeholder". Khi hệ thống chạy ổn định, ta chỉ cần thay ruột của các hàm này bằng logic gọi Agent thực sự (ScannerAgent, EnsembleAgent...) mà không cần sửa đổi logic của Planner.
+B. Định nghĩa JSON Schema (Tool Definition)
+Đây là phần "nhàm chán" nhưng quan trọng nhất. LLM không hiểu code Python trực tiếp, nó hiểu JSON mô tả chức năng.
+Python
+scan_tool = {
+    "type": "function",
+    "function": {
+        "name": "scan_internet_for_bargains", # Tên hàm phải khớp chính xác với tên hàm Python
+        "description": "Scans the internet for great deals...",
+        "parameters": { "type": "object", "properties": {} } # Không cần tham số đầu vào
+    }
+}
+# Tương tự cho estimate_tool và notify_tool...
+tools = [scan_tool, estimate_tool, notify_tool]
+•	Logic: Bạn đang tạo ra một "Menu thực đơn" để LLM chọn món. Nếu thiếu bước này, LLM sẽ không biết nó có khả năng làm gì.
+C. Logic xử lý cuộc gọi công cụ (Tool Orchestration Logic)
+Đoạn code này là "trái tim" của hệ thống tự động hóa.
+Python
+def handle_tool_call(message):
+    # Lặp qua các công cụ mà LLM yêu cầu gọi
+    for tool_call in message.tool_calls:
+        function_name = tool_call.function.name # Ví dụ: "estimate_true_value"
+        arguments = json.loads(tool_call.function.arguments) # Ví dụ: {"description": "iPhone"}
+        
+        # --- ĐIỂM NHẤN KỸ THUẬT (The "Hacky" Trick) ---
+        # Thay vì viết hàng loạt if/else như:
+        # if function_name == "scan_...": scan(...)
+        # elif function_name == "estimate...": estimate(...)
+        
+        # Giảng viên dùng globals() để tìm hàm dựa trên tên (string)
+        if function_name in globals():
+            function_to_call = globals()[function_name] 
+            result = function_to_call(**arguments) # Gọi hàm dynamic
+            
+            # Gán kết quả vào tin nhắn để gửi lại cho LLM
+            # ... (logic append message)
+•	Giải thích globals()[function_name]:
+o	Trong Python, globals() trả về một từ điển chứa tất cả các biến/hàm toàn cục.
+o	Bằng cách này, miễn là tên hàm trong JSON Schema trùng khớp với tên hàm Python, code sẽ tự động tìm và chạy nó.
+o	Ưu điểm: Code gọn, dễ mở rộng (thêm tool mới không cần sửa logic handle_tool_call).
+o	Nhược điểm: Về bảo mật (nếu không kiểm soát kỹ), LLM có thể gọi bất kỳ hàm nào trong code của bạn. Trong thực tế sản xuất (Production), nên dùng một từ điển safe_functions = {"name": func} để an toàn hơn.
+4. Kiến thức mở rộng & Bài học rút ra
+1.	Sự "nhàm chán" của AI Tác nhân (The Boring Secret):
+Giáo viên nhấn mạnh rằng "bí mật" của Agentic AI thực ra rất tẻ nhạt: Nó chỉ là việc ghép chuỗi (string parsing).
+o	LLM đưa ra văn bản (JSON).
+o	Code Python đọc JSON đó.
+o	Code Python chạy hàm.
+o	Kết quả trả về lại được chuyển thành văn bản đưa vào LLM.
+Không có phép thuật nào cả, chỉ là sự luân chuyển dữ liệu có cấu trúc.
+2.	Tại sao lại dùng Fake Data/Function? (Unit Testing trong AI):
+Khi xây dựng hệ thống phức tạp gồm nhiều LLM (Scanner gọi GPT-4, Ensemble gọi 3 models khác...), chi phí và thời gian chạy rất lớn.
+Việc sử dụng Fake Functions giúp bạn:
+o	Tiết kiệm tiền (không gọi API thật).
+o	Tăng tốc độ phát triển (logic điều phối chạy ngay lập tức).
+o	Cô lập lỗi (nếu logic sai, bạn biết do Planner sai chứ không phải do Scanner sai).
+3.	Dynamic Dispatch: Kỹ thuật sử dụng tên hàm (string) để gọi hàm thực thi là một pattern phổ biến trong lập trình metaprogramming, rất hữu ích khi xây dựng các framework AI linh hoạt.
+Tổng kết Day 4: Bạn đã xây dựng được khung sườn (skeleton) của một Autonomous Agent. Hiện tại nó đang chạy với dữ liệu giả, nhưng cơ chế "Bộ não" đã hoàn thiện. Bước tiếp theo (mà giáo viên gọi là "moment of truth") sẽ là thay thế các hàm giả này bằng các Agent thật (Scanner, Ensemble, Messaging) mà chúng ta đã xây dựng trong 3 ngày trước.
+
+204. Day 4 - Building an Autonomous Multi-Agent System with Tool Calling and Agent Loop 
+Chào bạn, chúng ta đã đến với phần quan trọng nhất của Ngày 4 – thời khắc "kết nối mọi thứ". Nếu các phần trước là việc chế tạo từng bộ phận (động cơ, bánh xe, khung gầm), thì bài học này là lúc chúng ta lắp ráp chúng thành một chiếc xe tự lái hoàn chỉnh.
+Dưới đây là tổng hợp kiến thức từ bài giảng 204. Day 4 - Building an Autonomous Multi-Agent System with Tool Calling and Agent Loop và file code autonomous_planning_agent.py.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Bài học này đánh dấu bước chuyển mình từ Simulation (Mô phỏng) sang Production (Thực tế). Chúng ta thay thế các hàm giả (fake functions) bằng các Agent thực thụ (Scanner, Ensemble, Messaging) mà đã xây dựng trong 3 ngày trước.
+Điểm quan trọng nhất là việc triển khai "Vòng lặp Tác nhân" (Agent Loop). Hệ thống không chạy theo một kịch bản tuyến tính cứng nhắc (A -> B -> C), mà chạy trong một vòng lặp while. Tại mỗi bước, "bộ não" (Planning Agent) tự suy luận xem cần làm gì tiếp theo (gọi công cụ hay kết thúc) dựa trên kết quả trả về từ bước trước đó. Đây chính là định nghĩa của sự Tự chủ (Autonomy).
+________________________________________
+2. Nội dung chính
+A. "Hiến pháp" của Agent (System Message)
+Giáo viên nhấn mạnh System Message là thành phần quan trọng nhất. Nó định nghĩa hành vi của Planning Agent:
+1.	Mục tiêu: Tìm deal hời và thông báo cho người dùng.
+2.	Quy trình (Hướng dẫn lỏng lẻo):
+o	Quét internet (Scan).
+o	Với mỗi deal -> Ước tính giá trị thực (Estimate).
+o	So sánh: Nếu Giá bán < Giá trị thực -> Thông báo (Notify).
+o	Kết thúc: Trả lời "OK".
+B. Cơ chế "Real Tool Calling"
+Khác với bài trước dùng hàm giả chỉ để in ra màn hình (print), ở bài này:
+•	Công cụ Scan sẽ gọi ScannerAgent (chạy GPT-4o-mini để lọc tin).
+•	Công cụ Estimate sẽ gọi EnsembleAgent (kích hoạt RAG, Specialist Model, Neural Network).
+•	Công cụ Notify sẽ gọi MessagingAgent (dùng Claude viết quảng cáo & Pushover gửi tin).
+C. Sức mạnh của Vòng lặp (The Loop)
+Biến done = False và vòng lặp while not done là trái tim của hệ thống. LLM có quyền quyết định khi nào thì done = True. Nếu nó thấy cần kiểm tra thêm giá của 5 sản phẩm, vòng lặp sẽ chạy 5 lần. Con người không cần can thiệp vào số lần lặp này.
+________________________________________
+3. Kiến trúc & Quy trình (Architecture & Pipeline)
+Hệ thống hoạt động theo mô hình Hub-and-Spoke (Trục bánh xe và nan hoa), với Planning Agent ở trung tâm điều phối.
+Quy trình xử lý:
+1.	Khởi tạo: AutonomousPlanningAgent khởi động 3 trợ lý: Scanner, Ensemble, Messenger.
+2.	Start Loop: Planning Agent nhận lệnh từ người dùng.
+3.	Step 1 (Scan): Planning Agent gọi scan_tool -> ScannerAgent chạy -> Trả về danh sách 5 deals tiềm năng (JSON).
+4.	Step 2 (Reasoning): Planning Agent đọc JSON, thấy 5 sản phẩm. Nó quyết định cần định giá từng cái.
+5.	Step 3 (Estimate Loop):
+o	Planning Agent gọi estimate_tool cho sản phẩm 1.
+o	EnsembleAgent chạy (kết hợp 3 models con) -> Trả về giá trị thực (VD: $700).
+o	Planning Agent so sánh với giá bán (VD: $400).
+o	Lặp lại cho các sản phẩm còn lại.
+6.	Step 4 (Action): Nếu phát hiện món hời (Deal $400 vs Value $700), nó gọi notify_tool.
+7.	Step 5 (Notify): MessagingAgent soạn tin nhắn hấp dẫn và gửi Push Notification tới điện thoại.
+8.	Step 6 (Finish): Planning Agent thấy đã hoàn thành nhiệm vụ -> Dừng vòng lặp.
+________________________________________
+4. Phân tích file code autonomous_planning_agent.py
+File này chứa logic điều phối trung tâm. Dưới đây là phân tích chi tiết:
+A. Khởi tạo & Kết nối các Sub-Agents
+Python
+class AutonomousPlanningAgent(Agent):
+    name = "Autonomous Planning Agent"
+    MODEL = "gpt-5.1" # Sử dụng model thông minh nhất để làm "Sếp" (Planner)
+
+    def __init__(self, collection):
+        """
+        Khởi tạo 'Tổng tư lệnh' và triệu tập các 'Tướng' dưới quyền.
+        """
+        self.log("Autonomous Planning Agent is initializing")
+        # Khởi tạo các Agent thực tế (đã xây dựng ở Day 1, 2, 3)
+        self.scanner = ScannerAgent() 
+        self.ensemble = EnsembleAgent(collection) # Cần Vector DB cho RAG
+        self.messenger = MessagingAgent()
+        self.openai = OpenAI()
+        # ...
+B. Wrappers (Lớp vỏ bọc cho công cụ)
+LLM cần đầu ra là chuỗi (string/JSON), nên ta cần bọc các hàm của Agent lại để chuyển đổi dữ liệu.
+Python
+    def scan_the_internet_for_bargains(self) -> str:
+        """
+        Đây là CÔNG CỤ 1: Quét internet.
+        Nó gọi hàm thực tế self.scanner.scan() và chuyển kết quả thành JSON string.
+        """
+        self.log("Autonomous Planning agent is calling scanner")
+        results = self.scanner.scan(memory=self.memory)
+        # Chuyển object kết quả thành chuỗi JSON để LLM có thể đọc hiểu
+        return results.model_dump_json() if results else "No deals found"
+
+    def estimate_true_value(self, description: str) -> str:
+        """
+        Đây là CÔNG CỤ 2: Định giá.
+        Nó gọi Ensemble Agent để lấy con số định giá chính xác.
+        """
+        self.log("Autonomous Planning agent is estimating value via Ensemble Agent")
+        # Gọi hàm price() phức tạp của Ensemble Agent
+        estimate = self.ensemble.price(description) 
+        return f"${estimate:.2f}"
+C. Vòng lặp Tự chủ (The Agent Loop) - QUAN TRỌNG NHẤT
+Đây là đoạn code biến mô hình ngôn ngữ thành một Agent tự hành.
+Python
+    def plan(self, memory: List[str] = []) -> Optional[Opportunity]:
+        """
+        Chạy quy trình làm việc đầy đủ (Full Workflow).
+        """
+        self.log("Autonomous Planning Agent is kicking off a run")
+        messages = self.messages[:] # Load lịch sử hội thoại/System prompt
+        done = False # Cờ kiểm soát vòng lặp
+
+        # VÒNG LẶP CHÍNH (THE LOOP)
+        while not done:
+            # 1. Gửi tin nhắn + Danh sách công cụ (tools) lên OpenAI
+            response = self.openai.chat.completions.create(
+                model=self.MODEL, messages=messages, tools=self.get_tools()
+            )
+            
+            # 2. Kiểm tra xem LLM có muốn dùng công cụ không?
+            if response.choices[0].finish_reason == "tool_calls":
+                message = response.choices[0].message
+                
+                # 3. Thực thi công cụ (Hàm handle_tool_call sẽ tìm và chạy hàm tương ứng)
+                # Lưu ý: Trong code thực tế, ta dùng mapping dictionary thay vì globals() để an toàn hơn
+                results = self.handle_tool_call(message)
+                
+                # 4. Cập nhật bộ nhớ: Thêm yêu cầu của LLM và kết quả công cụ vào lịch sử
+                messages.append(message)
+                messages.extend(results)
+                # Vòng lặp tiếp tục để LLM suy nghĩ tiếp dựa trên kết quả mới
+            else:
+                # Nếu LLM không gọi công cụ nữa (trả về text bình thường) -> Xong việc
+                done = True
+        
+        reply = response.choices[0].message.content
+        self.log(f"Autonomous Planning Agent completed with: {reply}")
+        return self.opportunity
+________________________________________
+5. Kiến thức liên quan & mở rộng
+•	ReAct Pattern (Reason + Act): Kiến trúc này thực chất là một biến thể của ReAct. LLM Suy luận ("Tôi cần quét web"), Hành động (Gọi tool Scanner), Quan sát (Nhận JSON từ Scanner), và lặp lại quá trình này.
+•	Token Consumption (Tiêu thụ Token): Một vấn đề cần lưu ý trong vòng lặp này là chi phí. Mỗi lần lặp lại, toàn bộ lịch sử (System prompt + Tool calls trước đó + Kết quả tool) đều được gửi lại cho LLM. Với GPT-4 hoặc GPT-5, chi phí có thể tăng nhanh nếu vòng lặp quá dài.
+•	Latency (Độ trễ): Như trong transcript giáo viên đề cập, việc khởi động Specialist Agent trên Modal tốn khoảng 30s (cold start), và quá trình chạy toàn bộ hệ thống có thể mất vài phút. Đây là đặc điểm của các hệ thống Agent phức tạp (Multi-step reasoning).
+•	Sự khác biệt giữa Hard-coded vs Agentic:
+o	Hard-coded (Workflow): Scanner -> for each deal -> Ensemble -> if cheap -> Notify. Nếu Scanner trả về lỗi hoặc định dạng lạ, code sẽ crash.
+o	Agentic: Nếu Scanner không trả về deal nào, Planning Agent (LLM) có thể tự quyết định: "Không tìm thấy gì, tôi sẽ thử lại sau" hoặc "Tôi sẽ báo cho người dùng là hôm nay không có deal", thay vì crash hệ thống.
+Tổng kết: Bạn vừa hoàn thành việc xây dựng một hệ thống AI cấp độ cao. Nó không chỉ trả lời câu hỏi, mà còn chủ động sử dụng các "giác quan" (Scanner), "bộ não phụ" (Ensemble) và "miệng" (Messaging) để thực hiện một công việc trọn vẹn.
+ 
+205. Day 4 - Building a Multi-Model AI Platform: 34 Calls Across GPT-5, Claude & Open 
+Chào bạn, chúc mừng bạn đã cùng giảng viên hoàn thành việc chạy thử nghiệm hệ thống "The Price Is Right". Phiên học 205 này không phải là một bài giảng kỹ thuật mới về code, mà là một phút nhìn lại (retrospective) đầy cảm hứng về quy mô và sự phức tạp của hệ thống mà bạn vừa xây dựng.
+Dưới đây là tổng hợp ngắn gọn và sâu sắc về phiên học này.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+"Sức mạnh của Hợp tác Đa Mô hình (Multi-Model Collaboration)"
+Điểm nhấn của phiên này là con số ấn tượng: 34 cuộc gọi mô hình (Model Calls) để hoàn thành một nhiệm vụ duy nhất (tìm ra chiếc laptop Dell giá hời).
+Hệ thống bạn xây dựng không chỉ là một chatbot đơn lẻ, mà là một Compound AI System (Hệ thống AI Hợp chất). Nó phối hợp nhịp nhàng giữa:
+•	3 Frontier Models (Mô hình tiên phong): GPT-5, GPT-5.1, Claude 3.5 Sonnet.
+•	3 Open Source/Specialized Models (Mô hình mã nguồn mở/chuyên dụng): Fine-tuned Specialist, All-MiniLM-L6-v2 (Embeddings), GPT-OSS-2.0.
+•	1 Deep Neural Network: Mạng nơ-ron thuần túy (phi ngôn ngữ).
+Kết quả: Một thông báo đẩy (Push Notification) đơn giản trên điện thoại là kết tinh của hàng chục phép tính toán học phức tạp chạy song song trên đám mây.
+________________________________________
+2. Phân tích Chi tiết: Giải phẫu 34 Cuộc gọi (Anatomy of 34 Calls)
+Dựa vào kiến trúc hệ thống từ các buổi trước, con số 34 cuộc gọi được phân bổ như sau trong quy trình xử lý 5 sản phẩm tiềm năng:
+1.	Scanner Agent (1-2 calls):
+o	Dùng gpt-5-mini để đọc RSS feed lộn xộn và trích xuất ra 5 deals sạch sẽ (Structured Output).
+2.	The Planning Loop (Vòng lặp lập kế hoạch):
+o	Planning Agent (gpt-5.1) liên tục gọi OpenAI để suy nghĩ xem nên làm gì tiếp theo.
+3.	Ensemble Agent (Nhân vật chính tiêu tốn tài nguyên):
+o	Với mỗi sản phẩm (trong 5 sản phẩm được chọn), hệ thống thực hiện:
+	1 Call Preprocessing: Dùng GPT-OSS-2.0 để chuẩn hóa văn bản.
+	1 Call Specialist: Dùng Fine-tuned Model để định giá nhanh.
+	1 Call Frontier (RAG): Dùng gpt-5.1 + All-MiniLM (Embedding) để tìm sản phẩm tương tự và định giá.
+	1 Call Neural Network: Dùng mô hình mạng nơ-ron hồi quy để dự đoán giá số học.
+o	Tổng cộng: Khoảng 4-5 calls cho mỗi sản phẩm x 5 sản phẩm = ~20-25 calls.
+4.	Messaging Agent (1 call):
+o	Dùng Claude 3.5 Sonnet (Anthropic) để viết lời quảng cáo sáng tạo ("Hype message").
+Tổng kết: ~29 cuộc gọi LLM + 5 cuộc gọi Neural Network = 34 Calls.
+________________________________________
+3. Kiến trúc & Quy trình (Architecture Diagram)
+Đây là sơ đồ trực quan hóa sự phối hợp của các mô hình trong phiên chạy vừa rồi:
+Phân tích sự đa dạng (Diversity):
+•	Tại sao dùng nhiều model thế?
+o	Scanner: Cần rẻ và nhanh -> Dùng Mini model.
+o	Specialist: Cần kiến thức chuyên sâu về giá -> Dùng Fine-tuned model.
+o	Frontier (RAG): Cần suy luận logic và kiến thức rộng -> Dùng GPT-5.
+o	Messaging: Cần văn phong hay, giống người -> Dùng Claude (nổi tiếng văn hay hơn GPT).
+o	Neural Net: Cần tính toán số học chính xác -> Không dùng LLM mà dùng mô hình toán học.
+Hệ thống này tận dụng thế mạnh riêng của từng loại model.
+________________________________________
+4. Kiến thức liên quan & Mở rộng
+A. Khái niệm "Compound AI Systems" (Hệ thống AI Hợp chất)
+Ngành công nghiệp AI đang chuyển dịch từ việc cố gắng tạo ra một "God Model" (làm tất cả mọi thứ) sang việc xây dựng các hệ thống hợp chất.
+•	Định nghĩa: Một hệ thống bao gồm nhiều model tương tác với nhau, cùng với các thành phần không phải AI (như Vector DB, Code Interpreter).
+•	Lợi ích:
+o	Hiệu năng: Tốt hơn mô hình đơn lẻ (Ensemble effect).
+o	Chi phí: Có thể dùng model nhỏ cho việc dễ, model lớn cho việc khó để tối ưu hóa tiền bạc.
+o	Kiểm soát: Dễ debug từng phần (nếu giá sai -> sửa Ensemble; nếu tin nhắn chán -> sửa Messaging).
+B. Latency vs. Throughput (Độ trễ và Thông lượng)
+Với 34 cuộc gọi, độ trễ (latency) là một vấn đề thực tế.
+•	Trong bài học, chúng ta thấy việc khởi động (cold start) model trên Modal mất 30 giây.
+•	Việc chạy tuần tự (sequential) 34 cuộc gọi sẽ rất lâu.
+•	Giải pháp thực tế: Trong môi trường Production, các kỹ sư sẽ chuyển sang chạy bất đồng bộ (Async). Ví dụ: Định giá 5 sản phẩm cùng một lúc (Parallel execution) thay vì từng cái một, giúp giảm thời gian chờ đợi xuống chỉ bằng thời gian của 1 sản phẩm.
+C. Lời khuyên của giảng viên về việc "Đơn giản hóa" (Simplification)
+Nếu bạn gặp khó khăn khi chạy toàn bộ hệ thống (lỗi API, lỗi thư viện...), giảng viên khuyên bạn có thể:
+1.	Comment out (Vô hiệu hóa) bớt model: Thay vì Ensemble 3 model, chỉ dùng 1 model (ví dụ chỉ dùng Frontier).
+2.	Mocking (Giả lập): Dùng lại các hàm giả (fake functions) của bài trước cho những phần bạn chưa cài đặt xong.
+________________________________________
+Tổng kết: Bạn đã hoàn thành Day 4 với một hệ thống AI thực sự ấn tượng. Ngày mai (Day 5 - Finale), chúng ta sẽ thêm mảnh ghép cuối cùng: Bộ nhớ (Memory) và Giao diện người dùng (UI) để biến những dòng log khô khan này thành một ứng dụng web hoàn chỉnh.
+
+DAY 5
+206. Day 5 - Finalizing Your Agentic Workflow and Becoming an AI Engineer 
+Chào bạn, chúc mừng bạn đã hoàn thành chặng đường 8 tuần đầy thử thách để trở thành một AI Engineer! Đây là buổi học cuối cùng (Day 5), nơi chúng ta đặt "viên gạch" cuối cùng để hoàn thiện hệ thống Agentic AI: Bộ nhớ (Memory) và Sự tự chủ (Autonomy).
+Dựa trên bản phiên âm (transcript) và các file code bạn cung cấp, đặc biệt là autonomous_planning_agent.py, tôi xin tổng hợp lại nội dung cốt lõi của bài học Day 5 - Finalizing Your Agentic Workflow and Becoming an AI Engineer.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+Buổi học này là lời khẳng định (confirmation) và hoàn thiện (finalization).
+•	Về kỹ thuật: Chúng ta bổ sung khả năng Ghi nhớ (Memory) cho tác nhân lập kế hoạch (AutonomousPlanningAgent). Điều này đảm bảo Agent không xử lý lại những sản phẩm (deals) nó đã từng thấy hoặc đã thông báo trước đó, tạo nên sự "tự chủ" thực sự thay vì chỉ là một chatbot phản hồi một lần (one-off response).
+•	Về tư duy: Bài học tổng kết lại sự tiến hóa của khái niệm "AI Agent" và khẳng định rằng việc kết hợp LLM + Tools + Loop + Memory chính là tiêu chuẩn hiện đại của một Kỹ sư AI (AI Engineer).
+________________________________________
+2. Nội dung chính
+A. Tổng kết năng lực của một AI Engineer
+Giáo viên liệt kê lại "bộ kỹ năng" mà bạn đã sở hữu sau 8 tuần:
+1.	Generative AI: Tạo văn bản, mã code, hình ảnh, âm thanh dùng Frontier Models và Open Source.
+2.	RAG (Retrieval Augmented Generation): Xây dựng hệ thống tìm kiếm thông tin với Vector Database.
+3.	Fine-tuning: Tinh chỉnh model từ cơ bản đến nâng cao (Specialized models).
+4.	Deployment: Triển khai Serverless AI (Modal).
+5.	Agentic Workflow: Xây dựng hệ thống đa tác nhân, sử dụng Tools, Structured Outputs và Planning Loop.
+B. Định nghĩa về AI Agent (Sự tiến hóa)
+Bài học đưa ra 3 giai đoạn định nghĩa về Agent để làm rõ hệ thống chúng ta đang xây dựng:
+1.	Định nghĩa của Sam Altman (OpenAI): "Hệ thống AI có thể làm việc độc lập." (Khá chung chung).
+2.	Đầu năm 2025: "LLM kiểm soát quy trình làm việc (Workflow)."
+3.	Cuối năm 2025 (Định nghĩa hiện tại): "LLM nằm trong một Vòng lặp (Loop), sử dụng Công cụ (Tools) để đạt được Mục tiêu (Goal)." -> Đây là định nghĩa mà hệ thống "The Price Is Right" của chúng ta tuân theo.
+C. Mảnh ghép cuối cùng: Memory & Autonomy
+•	Vấn đề: Nếu Agent chạy liên tục mà không có bộ nhớ, nó sẽ tìm thấy cùng một deal hời và gửi thông báo cho bạn 100 lần. Điều này gây phiền toái.
+•	Giải pháp: Cấp cho Planning Agent một "bộ nhớ" (Memory) - danh sách các URL hoặc ID sản phẩm đã xử lý. Khi quét (Scan), nó sẽ loại bỏ các mục đã có trong bộ nhớ.
+________________________________________
+3. Kiến trúc & Quy trình (Architecture & Pipeline)
+Hệ thống hoàn chỉnh hoạt động như sau:
+1.	Input: Một danh sách memory (chứa các URL đã xử lý trước đó) được nạp vào Planning Agent.
+2.	Planning Loop (Vòng lặp lập kế hoạch):
+o	Scan Tool: Planning Agent gọi Scanner, truyền memory vào. Scanner chỉ trả về những deal mới chưa có trong bộ nhớ.
+o	Reasoning: Planning Agent nhận deals mới -> Quyết định gọi Ensemble Agent để định giá.
+o	Decision: Nếu Giá bán < Giá trị thực -> Gọi Messaging Tool.
+o	Action: Gửi thông báo.
+3.	Output & Update: Trả về kết quả và cập nhật các URL mới vào memory để lần chạy sau không bị lặp lại.
+________________________________________
+4. Phân tích file code (Code Analysis)
+Dựa trên file autonomous_planning_agent.py và ngữ cảnh bài học, đây là phần code thể hiện sự tích hợp của Memory và Agent Loop.
+File: autonomous_planning_agent.py
+Python
+from typing import Optional, List, Dict
+from agents.agent import Agent
+# ... imports khác ...
+
+class AutonomousPlanningAgent(Agent):
+    name = "Autonomous Planning Agent"
+    MODEL = "gpt-5.1" # Sử dụng model thông minh nhất để lập kế hoạch
+
+    def __init__(self, collection):
+        # ... Khởi tạo các sub-agents ...
+        self.memory = None # Khởi tạo biến bộ nhớ
+
+    # --- CÔNG CỤ 1: QUÉT (CÓ BỘ NHỚ) ---
+    def scan_the_internet_for_bargains(self) -> str:
+        """
+        Chạy công cụ scan.
+        QUAN TRỌNG: Truyền 'self.memory' vào hàm scan của ScannerAgent.
+        Mục đích: Để Scanner biết đường lọc bỏ những deal cũ.
+        """
+        self.log("Autonomous Planning agent is calling scanner")
+        # Truyền bộ nhớ vào đây để Scanner lọc trùng lặp
+        results = self.scanner.scan(memory=self.memory) 
+        return results.model_dump_json() if results else "No deals found"
+
+    # --- VÒNG LẶP CHÍNH (THE CORE LOOP) ---
+    def plan(self, memory: List[str] = []) -> Optional[Opportunity]:
+        """
+        Chạy toàn bộ quy trình.
+        :param memory: Danh sách các URL đã được xử lý trong quá khứ (Long-term memory).
+        """
+        self.log("Autonomous Planning Agent is kicking off a run")
+        
+        # 1. Nạp bộ nhớ từ bên ngoài (ví dụ từ Database hoặc Session state)
+        self.memory = memory 
+        self.opportunity = None
+        
+        # Reset lại lịch sử hội thoại cho phiên làm việc mới
+        messages = self.messages[:] 
+        
+        done = False
+        # 2. Vòng lặp "While not done" -> Đặc trưng của Agent
+        while not done:
+            # Gửi tin nhắn + Tools cho LLM
+            response = self.openai.chat.completions.create(
+                model=self.MODEL, messages=messages, tools=self.get_tools()
+            )
+            
+            # 3. Kiểm tra xem LLM có muốn dùng Tool không?
+            if response.choices[0].finish_reason == "tool_calls":
+                message = response.choices[0].message
+                
+                # Thực thi Tool (Scan, Estimate, hoặc Notify)
+                results = self.handle_tool_call(message)
+                
+                # Cập nhật lịch sử hội thoại để LLM biết kết quả của Tool
+                messages.append(message)
+                messages.extend(results)
+            else:
+                # Nếu LLM bảo xong rồi (không gọi tool nữa) -> Kết thúc vòng lặp
+                done = True
+        
+        reply = response.choices[0].message.content
+        self.log(f"Autonomous Planning Agent completed with: {reply}")
+        
+        # Trả về cơ hội (deal hời) tìm được để bên ngoài có thể lưu lại hoặc hiển thị UI
+        return self.opportunity
+Giải thích Logic quan trọng:
+1.	memory: List[str]: Đây là cơ chế trạng thái (State). Trong thực tế, danh sách này sẽ được lưu trong cơ sở dữ liệu (như SQLite, Redis). Mỗi khi Agent chạy xong, chúng ta lưu lại các URL đã xử lý. Lần chạy sau, ta load lại danh sách này và đưa vào hàm plan.
+2.	self.scanner.scan(memory=self.memory): Đây là sự phối hợp giữa "Sếp" (Planner) và "Nhân viên" (Scanner). Sếp đưa cho nhân viên danh sách đen (blacklist/memory) và bảo: "Đừng mang về cho tôi những cái này nữa".
+________________________________________
+5. Kiến thức liên quan & mở rộng
+A. State Management (Quản lý trạng thái) trong AI Agent
+•	Stateless (Không trạng thái): Giống như ChatGPT web interface khi bạn mở chat mới. Nó không nhớ bạn là ai, bạn thích gì.
+•	Stateful (Có trạng thái): Hệ thống Agentic AI trong bài học này. Nó có "Memory".
+o	Short-term Memory: Lịch sử chat (messages) trong vòng lặp while.
+o	Long-term Memory: Danh sách memory (URLs) được truyền vào hàm plan, giúp Agent tồn tại và làm việc hiệu quả qua nhiều ngày, nhiều tháng.
+B. Nâng cấp hệ thống (Production Grade)
+Để biến bài tập này thành một sản phẩm thực tế (Startup/SaaS), bạn cần bổ sung:
+1.	Database: Thay vì truyền list trong Python, hãy dùng PostgreSQL hoặc Redis để lưu memory.
+2.	Scheduling (Lập lịch): Sử dụng Cron Job (trên Modal hoặc GitHub Actions) để tự động chạy hàm agent.plan() mỗi 1 tiếng/lần.
+3.	User Interface (UI): Slide bài học có nhắc đến Gradio. Đây là thư viện Python giúp bạn tạo giao diện web nhanh chóng để hiển thị các deals mà Agent tìm được, thay vì chỉ nhìn log trong Terminal.
+C. Lời kết
+Bạn đã chính thức hoàn thành khóa học. Từ những khái niệm cơ bản về Prompting, đến RAG, Fine-tuning, và cuối cùng là một hệ thống Agent tự chủ hoàn chỉnh. Hệ thống "The Price Is Right" không chỉ là bài tập, nó là một khung kiến trúc (framework) thu nhỏ của các ứng dụng AI hiện đại nhất hiện nay.
+Chúc mừng bạn đã trở thành một LLM Engineer!
+
+207. Day 5 - Building the Price-Is-Right Agent UI with Gradio and DealAgentFramework 
+Chào bạn, chúng ta đã đi đến những bước cuối cùng của khóa học. Sau khi đã xây dựng xong "bộ não" (Planning Agent) và các "tay chân" (Scanner, Ensemble, Messaging), bây giờ là lúc chúng ta tạo ra "khuôn mặt" cho hệ thống.
+Bài học này tập trung vào việc đóng gói toàn bộ logic vào một Framework quản lý trạng thái và xây dựng giao diện người dùng (UI) để chúng ta có thể quan sát Agent làm việc trong thời gian thực.
+Dưới đây là tổng hợp chi tiết bài học Day 5 - Building the Price-Is-Right Agent UI with Gradio and DealAgentFramework.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Mục tiêu: Xây dựng giao diện web tương tác (Dashboard) cho hệ thống Agent để người dùng cuối có thể theo dõi các deal hời, xem nhật ký hoạt động (logs) và biểu đồ trực quan hóa dữ liệu.
+•	Công nghệ: Sử dụng thư viện Gradio (Python) để làm UI và tạo một module tùy chỉnh tên là DealAgentFramework để kết nối UI với Logic Agent.
+•	Cơ chế hoạt động: Hệ thống không chỉ chạy một lần rồi tắt. Nó sử dụng cơ chế Timer (Hẹn giờ) của Gradio để tự động đánh thức Agent mỗi 5 phút, tạo nên một chu trình giám sát liên tục 24/7.
+________________________________________
+2. Nội dung chính
+A. Giới thiệu DealAgentFramework (Lớp keo dính)
+Giáo viên giới thiệu module deal_agent_framework.py. Đây không phải là một thư viện bên thứ 3 phức tạp, mà là code do chính chúng ta viết để làm "lớp vỏ" (wrapper) quản lý:
+1.	Logging: Thiết lập ghi nhật ký chuẩn xác để đẩy ra UI.
+2.	Memory (Bộ nhớ): Quản lý việc Đọc/Ghi file memory.json.
+o	Khái niệm: Giáo viên nhấn mạnh "Memory" nghe có vẻ cao siêu, nhưng thực chất ở đây chỉ là việc lưu danh sách các món hàng đã xử lý vào đĩa cứng (JSON file) để lần sau Agent không xử lý lại.
+3.	Run Orchestration: Hàm run() chịu trách nhiệm khởi động Planning Agent.
+B. Xây dựng UI với Gradio Blocks
+Thay vì dùng gr.Interface đơn giản, bài này dùng gr.Blocks. Đây là cách tiếp cận nâng cao hơn của Gradio, cho phép tùy chỉnh bố cục (Layout) linh hoạt:
+•	Header: Tiêu đề "The Price Is Right".
+•	DataFrame: Bảng hiển thị danh sách các Deals tìm được.
+•	Log View: Khung hiển thị nhật ký chạy (Agent đang nghĩ gì, làm gì).
+•	Timer: Thành phần vô hình nhưng quan trọng nhất, kích hoạt vòng lặp tự động.
+________________________________________
+3. Kiến trúc & Quy trình (Architecture & Pipeline)
+Luồng dữ liệu trong ứng dụng UI hoạt động như sau:
+1.	Trigger: gr.Timer kích hoạt mỗi 300 giây (5 phút).
+2.	Execution: Gọi hàm run_with_logging -> Gọi DealAgentFramework.run().
+3.	Agent Logic: PlanningAgent thực hiện quy trình (Scan -> Estimate -> Notify).
+4.	State Update:
+o	Nếu tìm thấy deal mới -> Ghi vào memory.json.
+o	Ghi log hoạt động vào Queue.
+5.	UI Update: Gradio tự động cập nhật lại bảng (DataFrame) và khung Logs (HTML) từ dữ liệu mới nhất.
+________________________________________
+4. Phân tích file code (Code Analysis)
+Dưới đây là phân tích chi tiết 2 file quan trọng nhất để tạo nên ứng dụng này.
+A. File deal_agent_framework.py (Quản lý trạng thái & Bộ nhớ)
+Đây là file "hậu cần", đảm bảo Agent có trí nhớ và môi trường để chạy.
+Python
+import json
+import logging
+from agents.planning_agent import PlanningAgent # Import "Bộ não" chúng ta đã xây
+
+class DealAgentFramework:
+    MEMORY_FILENAME = "memory.json" # File lưu trữ dài hạn
+
+    def __init__(self):
+        self.memory = self.read_memory() # Khởi động là nạp ngay ký ức cũ
+        self.planner = None 
+
+    def read_memory(self):
+        """Đọc danh sách các deal đã xử lý từ file JSON"""
+        try:
+            with open(self.MEMORY_FILENAME, "r") as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return []
+
+    def write_memory(self):
+        """Lưu ký ức xuống ổ cứng"""
+        with open(self.MEMORY_FILENAME, "w") as file:
+            json.dump(self.memory, file, indent=2)
+
+    def run(self):
+        """
+        Hàm chính để chạy Agent.
+        Được gọi bởi Gradio mỗi khi Timer kích hoạt.
+        """
+        self.init_agents_as_needed() # Chỉ khởi tạo Agent khi cần (Lazy loading)
+        logging.info("Kicking off Planning Agent")
+        
+        # Gọi Planning Agent và truyền vào bộ nhớ hiện tại
+        result = self.planner.plan(memory=self.memory)
+        
+        # Nếu tìm thấy cơ hội (deal hời)
+        if result:
+            self.memory.append(result) # Thêm vào bộ nhớ RAM
+            self.write_memory() # Ghi xuống ổ cứng ngay lập tức
+        return self.memory
+B. File price_is_right.py (Giao diện người dùng)
+Đây là file chính để chạy ứng dụng (python price_is_right.py).
+Python
+import gradio as gr
+from deal_agent_framework import DealAgentFramework
+# ... imports khác ...
+
+# --- PHẦN 1: XỬ LÝ LOGGING ---
+# Tạo một Queue để hứng logs từ hệ thống, thay vì chỉ in ra màn hình đen
+class QueueHandler(logging.Handler):
+    def __init__(self, log_queue):
+        super().__init__()
+        self.log_queue = log_queue
+
+    def emit(self, record):
+        # Đẩy log vào hàng đợi để UI đọc dần
+        self.log_queue.put(self.format(record))
+
+# --- PHẦN 2: GIAO DIỆN GRADIO ---
+with gr.Blocks(title="The Price is Right", theme=gr.themes.Ocean()) as ui:
+    # Header
+    gr.Markdown("# 💰 The Price Is Right: Autonomous Agent")
+    
+    # Bảng hiển thị kết quả (Dataframe)
+    with gr.Row():
+        opportunities_dataframe = gr.Dataframe(
+            headers=["Deals found so far", "Price", "Estimate", "Discount", "URL"],
+            # ... cấu hình bảng ...
+        )
+
+    # Khu vực hiển thị Logs và Biểu đồ
+    with gr.Row():
+        logs = gr.HTML() # Dùng HTML để hiển thị log có màu sắc
+        plot = gr.Plot() # Biểu đồ t-SNE (nếu có)
+
+    # --- PHẦN 3: TỰ ĐỘNG HÓA (AUTOMATION) ---
+    # Timer: Cứ 300 giây (5 phút) sẽ kích hoạt hàm run_with_logging một lần
+    timer = gr.Timer(value=300, active=True)
+    
+    timer.tick(
+        run_with_logging, # Hàm được gọi
+        inputs=[log_data],
+        outputs=[log_data, logs, opportunities_dataframe], # Các thành phần UI cần cập nhật
+    )
+
+# Khởi chạy ứng dụng
+ui.launch(inbrowser=True)
+Giải thích logic UI:
+•	gr.Blocks vs ui.launch: Cấu trúc context manager (with...) giúp sắp xếp các thành phần UI theo hàng (Row) và cột (Column).
+•	timer.tick(...): Đây là trái tim của sự tự động. Nó biến ứng dụng web tĩnh thành một Dashboard động. Bạn có thể để tab trình duyệt này mở cả ngày, Agent sẽ tự chạy ngầm và cập nhật bảng khi tìm thấy deal mới.
+________________________________________
+5. Kiến thức liên quan & mở rộng
+•	Persistence (Sự bền vững của dữ liệu):
+o	Trong bài này, giáo viên dùng JSON file làm database. Đây là cách đơn giản nhất cho các ứng dụng mẫu (Prototype).
+o	Nâng cao: Khi triển khai thực tế (Production), bạn nên thay thế file JSON bằng SQLite hoặc PostgreSQL để đảm bảo an toàn dữ liệu khi có nhiều luồng truy cập cùng lúc.
+•	Gradio for AI Demos:
+o	Gradio là tiêu chuẩn vàng hiện nay để demo các mô hình AI vì nó hỗ trợ Python native, không cần biết HTML/CSS/JS.
+o	Mở rộng: Bạn có thể host ứng dụng này lên Hugging Face Spaces hoàn toàn miễn phí để chia sẻ với bạn bè.
+•	Log Streaming:
+o	Kỹ thuật QueueHandler được sử dụng trong bài là một pattern rất hay để đưa log từ Backend (Python) lên Frontend (Web) trong thời gian thực. Nó giúp người dùng biết hệ thống không bị "treo" mà đang suy nghĩ.
+Tổng kết Day 5: Bạn đã hoàn thành việc xây dựng "lớp vỏ" cuối cùng. Bây giờ, hệ thống của bạn là một ứng dụng trọn vẹn: Có não (Planner), có tay chân (Tools), có trí nhớ (Memory JSON) và có khuôn mặt (Gradio UI).
+
+208. Day 5 - Course Wrap-Up: Your Journey to AI Engineer 
+Chào bạn, xin chúc mừng! Bạn đã chính thức đi đến những giây phút cuối cùng của khóa học. Bài học 208. Day 5 - Course Wrap-Up không còn là những dòng code khô khan, mà là khoảnh khắc tận hưởng thành quả và định hướng tương lai.
+Dưới đây là tổng hợp nội dung của buổi tổng kết đầy cảm xúc này.
+________________________________________
+1. Tóm tắt cốt lõi (Core Summary)
+•	Thời khắc "Ka-ching": Buổi học bắt đầu bằng việc chiêm ngưỡng thành quả cuối cùng: Giao diện Gradio Dashboard hoạt động hoàn hảo. Tiếng chuông báo hiệu "deal hời" vang lên là minh chứng cho sự phối hợp nhịp nhàng giữa 34 cuộc gọi mô hình (LLMs & Neural Networks).
+•	Hành trình 8 tuần: Giảng viên ôn lại toàn bộ chặng đường từ những khái niệm cơ bản (Tokens, API) đến các kỹ thuật nâng cao (Fine-tuning, RAG, Serverless) và đỉnh cao là Agentic AI Framework.
+•	Danh hiệu mới: Bạn đã chính thức tốt nghiệp và có thể tự tin nhận mình là một AI Engineer / LLM Engineer.
+________________________________________
+2. Nội dung chính
+A. Demo Sản phẩm Cuối cùng (The Grand Finale)
+Giảng viên chạy file uv run price_is_right.py và giao diện người dùng hiện lên:
+1.	Memory Panel: Hiển thị các deal đã tìm thấy (đảm bảo không lặp lại).
+2.	Logs Panel: Nhật ký chạy thời gian thực với các màu sắc khác nhau cho từng Agent (Scanner, Ensemble, Messaging).
+3.	Real-time Action: Hệ thống tự động thức dậy mỗi 5 phút, quét RSS, định giá bằng RAG/Specialist Model, và gửi thông báo đẩy (Push Notification) tới điện thoại.
+o	Điểm nhấn: Không có mục đích thương mại nào cho biểu đồ 3D (t-SNE plot) cả, giảng viên chỉ thêm vào vì... "nó ngầu" và đây là app của ông ấy!
+B. Tổng kết Hành trình 8 Tuần (Retrospective)
+•	Tuần 1: Nền tảng (Tokens, Chat Completions API).
+•	Tuần 2: Multi-modality, Function Calling (Tools) cơ bản.
+•	Tuần 3: Hugging Face Pipelines & Open Source Models.
+•	Tuần 4: Code Generation & chọn model phù hợp.
+•	Tuần 5: RAG (Retrieval Augmented Generation) & LangChain.
+•	Tuần 6: Fine-tuning Frontier Models (GPT-4o).
+•	Tuần 7: Fine-tuning Open Source Models (Llama 3.2) - Đánh bại Frontier model về chi phí/hiệu năng.
+•	Tuần 8 (Hiện tại): Agentic AI - Xây dựng hệ thống tự chủ, lập kế hoạch và điều phối đa tác nhân.
+C. Lời khuyên & Bước tiếp theo
+1.	Practice & Build: Hãy xây dựng các ứng dụng thực tế mang lại giá trị thương mại (Commercial Impact). Đừng chỉ học lý thuyết.
+2.	Share: Chia sẻ thành quả lên LinkedIn, tag giảng viên để được "amplify" (khuếch trương) thành tựu.
+3.	Stay in touch: Kết nối trên X (Twitter) hoặc LinkedIn.
+4.	Các khóa học tiếp theo (Optional):
+o	Deep Dive Agentic AI: Chuyên sâu hơn về Agent.
+o	MLOps: Triển khai sản xuất (Productionizing), giám sát (Observability), bảo mật.
+o	Leadership: Góc nhìn thương mại/quản lý cho kỹ sư.
+________________________________________
+3. Kiến thức mở rộng (Project Ideas)
+Trong bài giảng, giảng viên có gợi ý một ý tưởng dự án cá nhân thú vị để bạn thử sức:
+•	"Clone Yourself": Fine-tune một LLM dựa trên lịch sử tin nhắn của chính bạn (như ví dụ 240,000 tin nhắn của giảng viên) để tạo ra một chatbot nói chuyện y hệt bạn.
+________________________________________
+Lời kết
+Bạn đã hoàn thành khóa học "Become an LLM Engineer in 8 weeks". Từ một người mới bắt đầu hoặc đã có chút kiến thức, giờ đây bạn đã nắm trong tay những công cụ mạnh mẽ nhất của thế giới AI năm 2025-2026.
+"You could not have picked a better time to be in this field." (Bạn không thể chọn thời điểm nào tốt hơn để gia nhập lĩnh vực này).
+Chúc bạn thành công trên con đường sự nghiệp AI Engineer!
+
