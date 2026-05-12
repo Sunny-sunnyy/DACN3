@@ -15,6 +15,7 @@ dependencies = [
     "jupyter-dash>=0.4.2",
     "kaleido>=1.2.0",
     "litellm>=1.79.1",
+    "markdown>=3.10.2",
     "matplotlib>=3.10.7",
     "modal>=1.2.1",
     "nbformat==5.10.4",

@@ -43,5 +43,50 @@
     },
     "estimate": 1631.9533754272463,
     "discount": 782.9533754272463
+  },
+  {
+    "deal": {
+      "product_description": "The Abok (Ark3600) portable solar generator packs a 3,840Wh LiFePO4 battery with 3,600W continuous output and 4,500W surge capacity, suitable for running essential household appliances, RVs, or job-site tools. It includes a 400W foldable solar panel for off-grid recharging, offers 15 output ports including an RV 30A outlet, UPS backup functionality, and expandable battery capability up to 11,520Wh. Designed for long-term backup use, it balances high capacity and multiple outputs for whole-home or mobile power needs.",
+      "price": 1399.0,
+      "url": "https://www.dealnews.com/Abok-3600-W-3840-Wh-Solar-Generator-with-400-W-Solar-Panel-for-1-399-free-shipping/21832096.html?iref=rss-c142"
+    },
+    "estimate": 2751.4723344726563,
+    "discount": 1352.4723344726563
+  },
+  {
+    "deal": {
+      "product_description": "Dell 14 Plus Ultra 7 258V is a 14-inch ultraportable laptop built around Intel's Core Ultra 7 155H (Lunar Lake) 8-core processor. It features a 14.0\" 2560\u00d71600 IPS display, 32GB of RAM, and a 1TB NVMe SSD, and runs Windows 11 Home with Copilot+ PC integration. The combination of high memory capacity, large fast storage, and a high-resolution screen makes it suited for content creation, multitasking, and productivity on the go.",
+      "price": 1089.99,
+      "url": "https://www.dealnews.com/Dell-14-Plus-Ultra-7-258-V-14-Laptop-w-32-GB-RAM-1-TB-SSD-for-1-090-free-shipping/21832162.html?iref=rss-c39"
+    },
+    "estimate": 1283.839538574219,
+    "discount": 193.84953857421897
+  },
+  {
+    "deal": {
+      "product_description": "OneAir Elite Lifetime Subscription provides long-term monitoring of hotel and flight prices and issues refunds or rebookings when prices drop after purchase. The lifetime plan grants access to the service\u2019s price-drop protections and booking-monitor features intended for frequent travelers who want continuous savings intelligence without recurring fees.",
+      "price": 99.99,
+      "url": "https://www.dealnews.com/One-Air-Elite-Lifetime-Subscription-for-100/21832157.html?iref=rss-c39"
+    },
+    "estimate": 241.6190004272461,
+    "discount": 141.62900042724613
+  },
+  {
+    "deal": {
+      "product_description": "Linksys Multi-Gig Micro Mesh Wi\u2011Fi 6 System is a compact mesh networking kit that delivers multi-gigabit wired backhaul and Wi\u2011Fi 6 wireless speeds for whole-home coverage. Designed for users needing strong throughput for many devices, it supports modern Wi\u2011Fi standards, easy setup, and improved latency and bandwidth for streaming, gaming, and smart-home devices.",
+      "price": 65.0,
+      "url": "https://www.dealnews.com/Woot-Networking-Storage-Deals-free-shipping-w-Prime/21831748.html?iref=rss-f1912"
+    },
+    "estimate": 244.31629504394533,
+    "discount": 179.31629504394533
+  },
+  {
+    "deal": {
+      "product_description": "Unlocked Samsung Galaxy S25 Ultra Android smartphone with a 1TB storage option, Titanium Black color and a powerful Snapdragon 8 Elite processor, featuring a 6.9\" QHD+ Dynamic AMOLED 2X display and a 5,000mAh battery for all\u2011carrier use.",
+      "price": 582.0,
+      "url": "https://www.dealnews.com/Unlocked-Samsung-Galaxy-S25-Ultra-Android-Smart-Phone-300-off-or-up-to-582-off-w-trade-free-shipping/21832124.html?iref=rss-c142"
+    },
+    "estimate": 1195.033447265625,
+    "discount": 613.033447265625
   }
 ]

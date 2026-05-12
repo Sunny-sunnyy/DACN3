@@ -50,8 +50,8 @@ class DealAgentFramework:
     def init_agents_as_needed(self):
         if not self.planner:
             self.log("Initializing Agent Framework")
-            self.planner = AutonomousPlanningAgent(self.collection)
-            #self.planner = PlanningAgent(self.collection)
+            #self.planner = AutonomousPlanningAgent(self.collection)
+            self.planner = PlanningAgent(self.collection)
             self.log("Agent Framework is ready")
         
     def read_memory(self) -> List[Opportunity]:

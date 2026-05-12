@@ -554,6 +554,66 @@ class ScrapedDeal:
         # feedparser.parse() mỗi feed, BeautifulSoup loại bỏ HTML tags
 ```
 
+**Chi tiết `ScrapedDeal` — 2 tầng scraping:**
+
+`ScrapedDeal` không chỉ đọc RSS feed một chiều. Khi khởi tạo mỗi entry, nó thực hiện 2 tầng thu thập dữ liệu:
+
+**Tầng 1 — RSS summary:** `feedparser` parse RSS XML. Hàm `extract()` dùng BeautifulSoup để làm sạch HTML snippet trong field `summary` — DealNews RSS nhúng HTML thô vào đây, ví dụ: `<div class="snippet summary">Ryzen 5 laptop at a great price...</div>`. BeautifulSoup tìm đúng `<div class="snippet summary">`, lấy text thuần, rồi regex xóa nốt các thẻ HTML còn sót.
+
+**Tầng 2 — Follow URL (HTTP GET):** Sau khi có summary, `__init__` gọi `requests.get(self.url, timeout=10)` để lấy nội dung trang DealNews. BeautifulSoup tìm `<div class="content-section">` — nơi chứa mô tả đầy đủ. Nếu text có chữ `"Features"`, chia đôi thành `details` (phần trước) và `features` (phần sau). Kết quả: thông tin phong phú hơn nhiều so với chỉ đọc RSS.
+
+**Fallback kép:** Nếu `content-section` không tìm thấy → fallback về summary RSS. Nếu request lỗi (timeout, connection error) → cũng fallback. Hệ thống không crash khi 1 deal fail scrape — pattern phòng thủ cần thiết vì HTTP request luôn có thể lỗi.
+
+**`truncate()` — Bảo vệ context window và chi phí:**
+
+```python
+def truncate(self):
+    self.title = self.title[:100]
+    self.details = self.details[:500]
+    self.features = self.features[:500]
+```
+
+Mỗi deal được đưa vào prompt GPT. Nếu không cắt ngắn: ~20 deals × có thể vài nghìn ký tự mỗi deal = dễ vượt context limit và tốn nhiều tiền. Title 100 + details 500 + features 500 = 1100 ký tự/deal là đủ để GPT so sánh chất lượng.
+
+**`describe()` — Format nhất quán cho LLM:**
+
+```python
+def describe(self):
+    return f"Title: {self.title}\nDetails: {self.details.strip()}\nFeatures: {self.features.strip()}\nURL: {self.url}"
+```
+
+Format `Title / Details / Features / URL` nhất quán giúp GPT-5-nano so sánh 20 deals một cách công bằng — tất cả cùng template, không deal nào có cấu trúc khác gây confusion.
+
+**`fetch()` — Loop 4 feeds, tối đa 5 entries mỗi feed:**
+
+```python
+for feed_url in feed_iter:
+    feed = feedparser.parse(feed_url)
+    for entry in feed.entries[:5]:
+        deals.append(cls(entry))
+        time.sleep(0.05)
+```
+
+`[:5]` giới hạn 5 entries mỗi feed (4 feeds × 5 = ~20 deals). `time.sleep(0.05)` là rate-limit đơn giản: 50ms giữa mỗi entry tránh DealNews chặn vì quá nhiều request liên tiếp.
+
+**Pydantic Field descriptions — Hướng dẫn ngầm cho LLM:**
+
+Field `description` trong Pydantic không chỉ là documentation nội bộ. Khi dùng OpenAI Structured Outputs, các mô tả này được chuyển thành JSON Schema gửi lên API — GPT đọc chúng như hướng dẫn cách điền từng field:
+
+```python
+product_description: str = Field(
+    description="...Details of the item are much more important than why it's a good deal. "
+                "Avoid mentioning discounts and coupons; focus on the item itself."
+)
+price: float = Field(
+    description="...if a deal is described as $100 off the usual $300 price, you should respond with $200"
+)
+```
+
+Cách này ép GPT không chỉ tuân theo kiểu dữ liệu (str, float) mà còn tuân theo ngữ nghĩa: viết mô tả sản phẩm thay vì điều kiện deal; trả về giá cuối thay vì giá gốc.
+
+---
+
 ### 7.3 `scanner_agent.py` — Scan RSS + GPT filter
 
 ```python
@@ -599,6 +659,51 @@ class ScannerAgent(Agent):
 ```
 
 **Reasoning effort "minimal":** GPT-5-mini với `reasoning_effort="minimal"` giảm thời gian suy nghĩ xuống mức tối thiểu — phù hợp vì bài toán chọn deal chỉ cần đọc hiểu văn bản, không cần suy luận phức tạp. Tiết kiệm chi phí và thời gian.
+
+**Lưu ý: MODEL bị override — dấu vết của quá trình phát triển:**
+
+```python
+MODEL = "gpt-5-mini"   # Dòng 8 — model ban đầu
+MODEL = "gpt-5-nano"   # Dòng 9 — override, model thực tế chạy
+```
+
+Trong code thực tế có hai dòng gán `MODEL` liên tiếp. Đây là dấu vết quá trình chuyển từ `gpt-5-mini` sang `gpt-5-nano` (rẻ hơn, nhanh hơn) nhưng không xóa dòng cũ. Python gán cuối cùng thắng: model thực sự chạy là `gpt-5-nano`.
+
+**Hai tầng prompt — tại sao lặp lại pricing rules?**
+
+`SYSTEM_PROMPT` chứa 4 CRITICAL PRICING RULES bất biến. `USER_PROMPT_PREFIX` lặp lại một phần các rules này dưới dạng STRICT FILTERING CRITERIA kèm theo data thực tế.
+
+Lý do: LLM khi xử lý long user prompt (~20 deals × 1100 ký tự ≈ 5000+ tokens) có xu hướng "quên" system prompt. Lặp lại rules quan trọng trong phần gần với data tăng khả năng GPT áp dụng chúng đúng. Đây là kỹ thuật prompt engineering thực tế.
+
+**`make_user_prompt()` — Tách biệt logic tạo prompt:**
+
+```python
+def make_user_prompt(self, scraped) -> str:
+    user_prompt = self.USER_PROMPT_PREFIX
+    user_prompt += "\n\n".join([scrape.describe() for scrape in scraped])
+    user_prompt += self.USER_PROMPT_SUFFIX
+    return user_prompt
+```
+
+Phương thức tách biệt để dễ test và debug — có thể in ra prompt mà không cần gọi OpenAI. Mỗi deal nối bằng `\n\n` (dòng trống) để GPT phân biệt ranh giới giữa các deals.
+
+**Filter sau parse — tại sao check `deal.price > 0`?**
+
+```python
+result.deals = [deal for deal in result.deals if deal.price > 0]
+```
+
+Pydantic đảm bảo `price` là float, nhưng không cấm giá trị 0. GPT đôi khi trả về `price=0` khi không chắc chắn về giá — thường xảy ra với deals có cấu trúc phức tạp như "From $X" hoặc "Starting at". Lọc bỏ trước khi trả về tránh EnsembleAgent tính discount vô nghĩa.
+
+**`test_scan()` — Phát triển không tốn API:**
+
+```python
+def test_scan(self, memory: List[str] = []) -> Optional[DealSelection]:
+    results = {"deals": [...4 deals hardcoded...]}
+    return DealSelection(**results)
+```
+
+Phương thức này bypass hoàn toàn RSS fetch và OpenAI call, trả về `DealSelection` cứng. Khi đang phát triển `EnsembleAgent` hoặc `MessagingAgent`, dùng `test_scan()` thay `scan()` để không tốn tiền API mỗi lần test. Pattern này gọi là "test double" — phương thức thay thế cho phép test downstream logic mà không gọi external service.
 
 ---
 
@@ -695,6 +800,27 @@ class PlanningAgent(Agent):
 
 Workflow cứng: luôn scan → estimate tất cả → chọn tốt nhất → notify. Không có sự linh hoạt, nhưng dễ debug và ổn định.
 
+**`run()` vs `plan()` — Phân tách trách nhiệm rõ ràng:**
+
+`PlanningAgent` có hai phương thức với vai trò tách biệt:
+- `run(deal)`: Xử lý một deal đơn lẻ → gọi `EnsembleAgent.price()` → tạo `Opportunity`. Không biết gì về workflow tổng thể.
+- `plan(memory)`: Điều phối toàn bộ luồng → gọi `run()` cho mỗi deal.
+
+```python
+# plan() gọi run() bằng list comprehension
+opportunities = [self.run(deal) for deal in selection.deals[:5]]
+```
+
+Lợi ích: `plan()` có thể thay đổi cách gọi `run()` (list comprehension → parallel `ThreadPoolExecutor`) mà không cần sửa logic bên trong `run()`. Đây là Single Responsibility Principle trong thực tế: `run()` biết cách estimate 1 deal, `plan()` biết cách phối hợp toàn bộ.
+
+**Tại sao chỉ return deal nếu discount > threshold?**
+
+```python
+return best if best.discount > self.DEAL_THRESHOLD else None
+```
+
+`DealAgentFramework.run()` kiểm tra kết quả: nếu `None` → không lưu vào `memory.json`. Cycle tiếp theo sẽ scan lại toàn bộ RSS kể cả các deals lần này đã xem — vì chúng có thể giảm giá thêm sau đó. Chỉ deals đã gửi notification mới được lưu vào memory, tránh duplicate notification cho cùng một deal.
+
 ### 9.2 AutonomousPlanningAgent — GPT-5.1 làm Controller
 
 Đây là điểm khác biệt lớn nhất: thay vì hard-code "luôn scan rồi estimate rồi notify", GPT-5.1 tự quyết định thứ tự và điều kiện gọi các tool.
@@ -748,6 +874,82 @@ async def go(self):
         reply = await Runner.run(agent, self.task)
     return reply.final_output
 ```
+
+**`global planner` — Giải pháp cho closure limitation của `@function_tool`:**
+
+```python
+planner = None   # Module-level global
+
+@function_tool
+def scan_the_internet_for_bargains() -> str:
+    planner.log(...)
+    results = planner.scanner.scan(memory=planner.memory)
+    return results.model_dump_json() if results else ""
+```
+
+`@function_tool` phải được định nghĩa ở module level (bên ngoài class) nên không có `self`. Giải pháp: dùng module-level global `planner`. Khi `plan()` chạy, nó gán `global planner = self` trước khi gọi `go()`. Code có comment `# TODO use context instead of globals` — đây là technical debt được tác giả thừa nhận, có thể refactor bằng cách truyền `planner` qua context variable thay vì global.
+
+**Deduplication guard trong `notify_user_of_deal`:**
+
+```python
+@function_tool
+def notify_user_of_deal(description, deal_price, estimated_true_value, url) -> str:
+    if planner.opportunity:   # Đã notify rồi?
+        planner.log("...trying to notify 2nd time; ignoring")
+    else:
+        planner.messenger.notify(description, deal_price, estimated_true_value, url)
+        deal = Deal(product_description=description, price=deal_price, url=url)
+        discount = estimated_true_value - deal_price
+        planner.opportunity = Opportunity(deal=deal, estimate=estimated_true_value, discount=discount)
+    return "notification sent"   # Trả về giống nhau cả hai nhánh
+```
+
+GPT-5.1 đôi khi gọi `notify_user_of_deal` nhiều hơn 1 lần dù task prompt nói "only notify about ONE deal". Guard `if planner.opportunity:` đảm bảo chỉ notification đầu tiên thực sự được gửi. Cả hai nhánh đều `return "notification sent"` — GPT không biết lần gọi thứ 2 bị bỏ qua.
+
+**`run_async_task()` — Tương thích Jupyter và script thông thường:**
+
+```python
+def run_async_task(self, coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Không có event loop (script bình thường) → tạo mới
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+    else:
+        # Đã có event loop đang chạy (Jupyter) → nest_asyncio
+        import nest_asyncio
+        nest_asyncio.apply()
+        return loop.run_until_complete(coro)
+```
+
+Jupyter Notebook đã có event loop đang chạy. Nếu gọi `asyncio.run()` sẽ lỗi `"cannot be called from a running event loop"`. `nest_asyncio.apply()` patch Python asyncio để cho phép nested event loops — giải pháp tiêu chuẩn cho code async trong Jupyter. Trong production (`price_is_right.py`), không có running loop → nhánh `except RuntimeError` chạy bình thường.
+
+**MCP Server là subprocess Node.js:**
+
+```python
+files_params = {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", sandbox_path],
+}
+```
+
+`MCPServerStdio` chạy lệnh `npx -y @modelcontextprotocol/server-filesystem ./sandbox` như một subprocess Node.js, giao tiếp với Python qua stdin/stdout theo giao thức MCP. Context manager `async with` đảm bảo subprocess được terminate sau khi done. GPT-5.1 nhận danh sách tools từ MCP server (read_file, write_file, list_directory...) và gọi chúng như function tool thông thường — viết `sandbox/deals.md` không cần code Python file I/O thủ công.
+
+**State reset đầu mỗi cycle trong `plan()`:**
+
+```python
+def plan(self, memory: List[str] = []) -> Optional[Opportunity]:
+    self.memory = memory
+    self.opportunity = None   # Reset về None trước mỗi cycle
+    global planner
+    planner = self
+    reply = self.run_async_task(self.go())
+    return self.opportunity   # None nếu GPT không gọi notify
+```
+
+`self.opportunity = None` reset trước mỗi cycle. Nếu GPT không gọi `notify_user_of_deal` (không tìm được deal đủ tốt), `self.opportunity` vẫn là `None` → `plan()` trả về `None` → `DealAgentFramework` không lưu vào `memory.json`.
 
 ### 9.3 So sánh hai Planning Agents
 

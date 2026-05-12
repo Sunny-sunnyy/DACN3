@@ -2451,7 +2451,7 @@ Error:   $68.37  ← Underestimate đáng kể
 
 | Hạng | Model | Type | Params | Test MAE | Ghi chú |
 |------|-------|------|--------|----------|---------|
-| 1 | GPT 5.1 | Frontier LLM | — | **$44.06** | Zero-shot + RAG |
+| 1 | GPT 5.1 | Frontier LLM | — | **$44.06** | Zero-shot |
 | 2 | SentTrans E2E | Fine-tuned LM | 22.8M | **$44.44** | Model 3 |
 | 3 | DistilBERT V3 (mean pool) | Fine-tuned LM | 66.6M | $45.21 | Model 2 V3 |
 | 4 | DistilBERT V2 (CLS) | Fine-tuned LM | 66.6M | $46.57 | Model 2 V2 |
@@ -2466,7 +2466,7 @@ Error:   $68.37  ← Underestimate đáng kể
 
 | Hạng | Model | MAE |
 |------|-------|-----|
-| 1 | GPT 5.1 (Frontier + RAG) | $44.06 |
+| 1 | GPT 5.1 (Frontier) | $44.06 |
 | 2 | SentTrans E2E | $44.44 |
 | 3 | DistilBERT V1 (5 epochs) | $44.19 |
 | 4 | SentTrans frozen (4096 hidden) | $43.78 |
