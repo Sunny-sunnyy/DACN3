@@ -88,5 +88,14 @@
     },
     "estimate": 1195.033447265625,
     "discount": 613.033447265625
+  },
+  {
+    "deal": {
+      "product_description": "Refurb iRobot Roomba Combo i5+ Self-Emptying Robot Vacuum combines automated cleaning with self-emptying technology and smart home compatibility, backed by a warranty.",
+      "price": 150.0,
+      "url": "https://www.dealnews.com/products/iRobot/iRobot-Roomba-Combo-i5-Self-Emptying-Robot-Vacuum/477953.html?iref=rss-f1912"
+    },
+    "estimate": 396.0882278442383,
+    "discount": 246.0882278442383
   }
 ]

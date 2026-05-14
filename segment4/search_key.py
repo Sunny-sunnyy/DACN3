@@ -133,7 +133,7 @@ class App:
                     )
                     max_urls_input = gr.Number(
                         label="Max URLs (per source)",
-                        value=6, minimum=3, maximum=20, precision=0, scale=1,
+                        value=5, minimum=3, maximum=20, precision=0, scale=1,
                     )
                     source_input = gr.Radio(
                         choices=["All", "BestBuy", "Amazon"],
