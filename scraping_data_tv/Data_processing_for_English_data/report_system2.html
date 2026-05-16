@@ -1,0 +1,2222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo: AI Price Intelligence System — The Price Is Right</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0d0b1e;
+    --bg-secondary: #13102a;
+    --bg-card: rgba(255,255,255,0.04);
+    --border-glass: rgba(168,85,247,0.18);
+    --purple: #a855f7;
+    --cyan: #22d3ee;
+    --pink: #ec4899;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --text-primary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --sidebar-width: 280px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Progress Bar ── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, var(--purple), var(--cyan), var(--pink));
+    z-index: 1000;
+    transition: width 0.1s ease;
+    box-shadow: 0 0 8px var(--purple);
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: rgba(13,11,30,0.95);
+    border-right: 1px solid var(--border-glass);
+    backdrop-filter: blur(16px);
+    z-index: 100;
+    padding: 24px 0 40px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--purple) transparent;
+  }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border-glass);
+    margin-bottom: 16px;
+  }
+
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sidebar-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  #sidebar a {
+    display: block;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 6px 20px;
+    border-left: 2px solid transparent;
+    transition: all 0.2s ease;
+    word-break: break-word;
+  }
+
+  #sidebar a.nav-sub {
+    padding-left: 32px;
+    font-size: 12px;
+  }
+
+  #sidebar a:hover {
+    color: var(--cyan);
+    border-left-color: var(--cyan);
+    background: rgba(34,211,238,0.05);
+  }
+
+  #sidebar a.active {
+    color: var(--purple);
+    border-left-color: var(--purple);
+    background: rgba(168,85,247,0.08);
+    font-weight: 600;
+  }
+
+  /* ── Main Content ── */
+  #main {
+    margin-left: var(--sidebar-width);
+    padding: 48px 56px 80px;
+    max-width: calc(var(--sidebar-width) + 900px);
+  }
+
+  /* ── Hero Header ── */
+  .hero {
+    background: linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(34,211,238,0.08) 50%, rgba(236,72,153,0.06) 100%);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    padding: 40px 48px;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, var(--purple) 50%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.25;
+    margin-bottom: 20px;
+  }
+
+  .hero blockquote {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .hero blockquote p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 6px;
+  }
+
+  .hero blockquote strong {
+    color: var(--cyan);
+  }
+
+  .meta-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-cyan   { background: rgba(34,211,238,0.12); color: var(--cyan);   border: 1px solid rgba(34,211,238,0.25); }
+  .badge-pink   { background: rgba(236,72,153,0.12); color: var(--pink);   border: 1px solid rgba(236,72,153,0.25); }
+  .badge-green  { background: rgba(16,185,129,0.12); color: var(--green);  border: 1px solid rgba(16,185,129,0.25); }
+
+  /* ── Section headings ── */
+  #content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 56px 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-glass);
+    position: relative;
+  }
+
+  #content h2::before {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+  }
+
+  #content h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--cyan);
+    margin: 32px 0 14px;
+  }
+
+  #content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--purple);
+    margin: 24px 0 10px;
+  }
+
+  /* ── Paragraphs ── */
+  #content p {
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  #content strong {
+    color: #f1f5f9;
+    font-weight: 600;
+  }
+
+  #content em { color: var(--cyan); font-style: italic; }
+
+  /* ── Code blocks ── */
+  #content pre {
+    background: #0d1117 !important;
+    border: 1px solid rgba(168,85,247,0.2);
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  #content pre code {
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 20px 20px !important;
+    display: block;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 5px;
+    border: 1px solid rgba(168,85,247,0.35);
+    background: rgba(168,85,247,0.12);
+    color: var(--purple);
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 5;
+  }
+
+  .copy-btn:hover { background: rgba(168,85,247,0.25); color: #fff; }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); background: rgba(16,185,129,0.1); }
+
+  /* ── Inline code ── */
+  #content code {
+    background: rgba(168,85,247,0.12);
+    color: var(--cyan);
+    border: 1px solid rgba(168,85,247,0.2);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+  }
+
+  #content pre code {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 13px;
+  }
+
+  /* ── Tables ── */
+  #content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-glass);
+  }
+
+  #content thead tr {
+    background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(34,211,238,0.12));
+  }
+
+  #content th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--border-glass);
+  }
+
+  #content td {
+    padding: 10px 16px;
+    color: #cbd5e1;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+  }
+
+  #content tbody tr:hover td {
+    background: rgba(168,85,247,0.05);
+  }
+
+  #content tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Blockquote ── */
+  #content blockquote {
+    border-left: 3px solid var(--purple);
+    background: rgba(168,85,247,0.06);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+
+  #content blockquote p { color: #c4b5fd; margin: 0; font-style: italic; }
+  #content blockquote strong { color: var(--cyan); }
+
+  /* ── Lists ── */
+  #content ul, #content ol {
+    padding-left: 24px;
+    margin: 12px 0;
+  }
+
+  #content li {
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.75;
+    margin-bottom: 4px;
+  }
+
+  #content li::marker { color: var(--purple); }
+
+  /* ── HR ── */
+  #content hr {
+    border: none;
+    border-top: 1px solid var(--border-glass);
+    margin: 40px 0;
+  }
+
+  /* ── ASCII diagrams ── */
+  .ascii-diagram {
+    background: rgba(13,17,23,0.8);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'Cascadia Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #7dd3fc;
+    margin: 20px 0;
+  }
+
+  /* ── Back to top ── */
+  #back-to-top {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(168,85,247,0.4);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    z-index: 200;
+  }
+
+  #back-to-top.visible { opacity: 1; transform: translateY(0); }
+  #back-to-top:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(168,85,247,0.6); }
+
+  /* ── Day cards ── */
+  .day-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin: 16px 0;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.2s ease;
+  }
+  .day-card:hover { border-color: rgba(168,85,247,0.4); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 8px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.35); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--purple); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    #sidebar { display: none; }
+    #main { margin-left: 0; padding: 24px 20px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">The Price Is Right</div>
+    <div class="sidebar-subtitle">AI Price Intelligence — Week 8</div>
+  </div>
+  <a href="#hanh-trinh-tong-quan" class="nav-main" data-target="hanh-trinh-tong-quan">Hành trình tổng quan</a>
+<a href="#chi-tiet-tung-ngay-hoc-week-8-day-15" class="nav-main" data-target="chi-tiet-tung-ngay-hoc-week-8-day-15">Chi tiết từng ngày học — Week 8 Day 1–5</a>
+<a href="#day-1-d1_specialist_agentipynb-trien-khai-model-len-modal" class="nav-sub" data-target="day-1-d1_specialist_agentipynb-trien-khai-model-len-modal">Day 1 (d1_specialist_agent.ipynb) — Triển khai model lên Modal</a>
+<a href="#day-2-d2_gpt5rag_ensembleipynb-rag-pipeline-ensembleagent" class="nav-sub" data-target="day-2-d2_gpt5rag_ensembleipynb-rag-pipeline-ensembleagent">Day 2 (d2_gpt5rag_ensemble.ipynb) — RAG Pipeline + EnsembleAgent</a>
+<a href="#day-3-d3_scan_and_messipynb-scanneragent-messagingagent" class="nav-sub" data-target="day-3-d3_scan_and_messipynb-scanneragent-messagingagent">Day 3 (d3_scan_and_mess.ipynb) — ScannerAgent + MessagingAgent</a>
+<a href="#day-4-d4_plan_agentipynb-autonomousplanningagent" class="nav-sub" data-target="day-4-d4_plan_agentipynb-autonomousplanningagent">Day 4 (d4_plan_agent.ipynb) — AutonomousPlanningAgent</a>
+<a href="#day-5-day5ipynb-gradio-ui-production" class="nav-sub" data-target="day-5-day5ipynb-gradio-ui-production">Day 5 (day5.ipynb) — Gradio UI + Production</a>
+<a href="#phan-1-triet-ly-thiet-ke-he-thong-week-8-day-1" class="nav-main" data-target="phan-1-triet-ly-thiet-ke-he-thong-week-8-day-1">Phần 1: Triết lý thiết kế hệ thống (Week 8 Day 1)</a>
+<a href="#11-tu-notebook-en-production" class="nav-sub" data-target="11-tu-notebook-en-production">1.1 Từ Notebook đến Production</a>
+<a href="#12-quyet-inh-kien-truc-build-from-first-principles" class="nav-sub" data-target="12-quyet-inh-kien-truc-build-from-first-principles">1.2 Quyết định kiến trúc: Build from First Principles</a>
+<a href="#13-inh-nghia-agent-trong-du-an-nay" class="nav-sub" data-target="13-inh-nghia-agent-trong-du-an-nay">1.3 Định nghĩa Agent trong dự án này</a>
+<a href="#phan-2-modal-serverless-ua-model-len-cloud-day-1" class="nav-main" data-target="phan-2-modal-serverless-ua-model-len-cloud-day-1">Phần 2: Modal Serverless — Đưa Model lên Cloud (Day 1)</a>
+<a href="#21-tai-sao-can-modal" class="nav-sub" data-target="21-tai-sao-can-modal">2.1 Tại sao cần Modal?</a>
+<a href="#22-kien-truc-modal-service-pricer_service2py" class="nav-sub" data-target="22-kien-truc-modal-service-pricer_service2py">2.2 Kiến trúc Modal Service (pricer_service2.py)</a>
+<a href="#phan-3-kien-truc-agent-base-class-va-logging-day-1" class="nav-main" data-target="phan-3-kien-truc-agent-base-class-va-logging-day-1">Phần 3: Kiến trúc Agent — Base Class và Logging (Day 1)</a>
+<a href="#31-agentpy-nen-tang-cho-toan-bo-he-thong" class="nav-sub" data-target="31-agentpy-nen-tang-cho-toan-bo-he-thong">3.1 agent.py — Nền tảng cho toàn bộ hệ thống</a>
+<a href="#phan-4-specialistagent-ket-noi-local-cloud-day-1" class="nav-main" data-target="phan-4-specialistagent-ket-noi-local-cloud-day-1">Phần 4: SpecialistAgent — Kết nối Local ↔ Cloud (Day 1)</a>
+<a href="#phan-5-frontieragent-rag-voi-chromadb-day-2" class="nav-main" data-target="phan-5-frontieragent-rag-voi-chromadb-day-2">Phần 5: FrontierAgent — RAG với ChromaDB (Day 2)</a>
+<a href="#51-triet-ly-training-time-vs-inference-time" class="nav-sub" data-target="51-triet-ly-training-time-vs-inference-time">5.1 Triết lý Training Time vs Inference Time</a>
+<a href="#52-chromadb-vector-store-co-so-du-lieu-ngu-nghia" class="nav-sub" data-target="52-chromadb-vector-store-co-so-du-lieu-ngu-nghia">5.2 ChromaDB Vector Store — Cơ sở dữ liệu ngữ nghĩa</a>
+<a href="#53-frontier_agentpy-logic-rag-thu-cong" class="nav-sub" data-target="53-frontier_agentpy-logic-rag-thu-cong">5.3 frontier_agent.py — Logic RAG thủ công</a>
+<a href="#phan-6-ensembleagent-ket-hop-suc-manh-3-models-day-2" class="nav-main" data-target="phan-6-ensembleagent-ket-hop-suc-manh-3-models-day-2">Phần 6: EnsembleAgent — Kết hợp sức mạnh 3 models (Day 2)</a>
+<a href="#61-ly-thuyet-ensemble" class="nav-sub" data-target="61-ly-thuyet-ensemble">6.1 Lý thuyết Ensemble</a>
+<a href="#62-preprocessor-chuan-hoa-au-vao" class="nav-sub" data-target="62-preprocessor-chuan-hoa-au-vao">6.2 Preprocessor — Chuẩn hóa đầu vào</a>
+<a href="#63-ensemble_agentpy-code-thuc-te" class="nav-sub" data-target="63-ensemble_agentpy-code-thuc-te">6.3 ensemble_agent.py — Code thực tế</a>
+<a href="#64-neuralnetworkagent-dnn-local" class="nav-sub" data-target="64-neuralnetworkagent-dnn-local">6.4 NeuralNetworkAgent — DNN local</a>
+<a href="#phan-7-scanneragent-oi-mat-cua-he-thong-day-3" class="nav-main" data-target="phan-7-scanneragent-oi-mat-cua-he-thong-day-3">Phần 7: ScannerAgent — Đôi mắt của hệ thống (Day 3)</a>
+<a href="#71-structured-outputs-bien-van-ban-tho-thanh-data-co-cau-truc" class="nav-sub" data-target="71-structured-outputs-bien-van-ban-tho-thanh-data-co-cau-truc">7.1 Structured Outputs — Biến văn bản thô thành data có cấu trúc</a>
+<a href="#72-data-models-dealspy" class="nav-sub" data-target="72-data-models-dealspy">7.2 Data Models (deals.py)</a>
+<a href="#73-scanner_agentpy-scan-rss-gpt-filter" class="nav-sub" data-target="73-scanner_agentpy-scan-rss-gpt-filter">7.3 scanner_agent.py — Scan RSS + GPT filter</a>
+<a href="#phan-8-messagingagent-push-notification-day-3" class="nav-main" data-target="phan-8-messagingagent-push-notification-day-3">Phần 8: MessagingAgent — Push Notification (Day 3)</a>
+<a href="#81-pushover-api" class="nav-sub" data-target="81-pushover-api">8.1 Pushover API</a>
+<a href="#82-messaging_agentpy" class="nav-sub" data-target="82-messaging_agentpy">8.2 messaging_agent.py</a>
+<a href="#phan-9-planning-agents-bo-nao-ieu-phoi-day-4" class="nav-main" data-target="phan-9-planning-agents-bo-nao-ieu-phoi-day-4">Phần 9: Planning Agents — Bộ não điều phối (Day 4)</a>
+<a href="#91-planningagent-simple-mode-hard-coded-workflow" class="nav-sub" data-target="91-planningagent-simple-mode-hard-coded-workflow">9.1 PlanningAgent — Simple Mode (Hard-coded Workflow)</a>
+<a href="#92-autonomousplanningagent-gpt-51-lam-controller" class="nav-sub" data-target="92-autonomousplanningagent-gpt-51-lam-controller">9.2 AutonomousPlanningAgent — GPT-5.1 làm Controller</a>
+<a href="#93-so-sanh-hai-planning-agents" class="nav-sub" data-target="93-so-sanh-hai-planning-agents">9.3 So sánh hai Planning Agents</a>
+<a href="#phan-10-app-1-price_is_rightpy-autonomous-deal-hunter" class="nav-main" data-target="phan-10-app-1-price_is_rightpy-autonomous-deal-hunter">Phần 10: App 1 — price_is_right.py (Autonomous Deal Hunter)</a>
+<a href="#101-tong-quan" class="nav-sub" data-target="101-tong-quan">10.1 Tổng quan</a>
+<a href="#102-dealagentframework-quan-ly-trang-thai" class="nav-sub" data-target="102-dealagentframework-quan-ly-trang-thai">10.2 DealAgentFramework — Quản lý trạng thái</a>
+<a href="#103-gradio-ui-cua-price_is_rightpy" class="nav-sub" data-target="103-gradio-ui-cua-price_is_rightpy">10.3 Gradio UI của price_is_right.py</a>
+<a href="#104-workflow-chi-tiet" class="nav-sub" data-target="104-workflow-chi-tiet">10.4 Workflow chi tiết</a>
+<a href="#phan-11-app-2-search_keypy-multi-source-deal-finder" class="nav-main" data-target="phan-11-app-2-search_keypy-multi-source-deal-finder">Phần 11: App 2 — search_key.py (Multi-Source Deal Finder)</a>
+<a href="#111-tong-quan" class="nav-sub" data-target="111-tong-quan">11.1 Tổng quan</a>
+<a href="#112-thach-thuc-ky-thuat-scraping-bestbuy-va-amazon-tu-wsl2" class="nav-sub" data-target="112-thach-thuc-ky-thuat-scraping-bestbuy-va-amazon-tu-wsl2">11.2 Thách thức kỹ thuật: Scraping BestBuy và Amazon từ WSL2</a>
+<a href="#113-bestbuy-scraping-bestbuy_dealspy" class="nav-sub" data-target="113-bestbuy-scraping-bestbuy_dealspy">11.3 BestBuy Scraping (bestbuy_deals.py)</a>
+<a href="#114-amazon-scraping-amazon_dealspy" class="nav-sub" data-target="114-amazon-scraping-amazon_dealspy">11.4 Amazon Scraping (amazon_deals.py)</a>
+<a href="#115-multisourceplanningagent-pipeline-4-buoc" class="nav-sub" data-target="115-multisourceplanningagent-pipeline-4-buoc">11.5 MultiSourcePlanningAgent — Pipeline 4 bước</a>
+<a href="#116-unifiedscrapeddeal-chuan-hoa-2-nguon" class="nav-sub" data-target="116-unifiedscrapeddeal-chuan-hoa-2-nguon">11.6 UnifiedScrapedDeal — Chuẩn hóa 2 nguồn</a>
+<a href="#117-multisourcescanneragent-chon-top-3-tu-pool-hon-hop" class="nav-sub" data-target="117-multisourcescanneragent-chon-top-3-tu-pool-hon-hop">11.7 MultiSourceScannerAgent — Chọn top 3 từ pool hỗn hợp</a>
+<a href="#118-gradio-ui-cua-search_keypy" class="nav-sub" data-target="118-gradio-ui-cua-search_keypy">11.8 Gradio UI của search_key.py</a>
+<a href="#phan-12-kien-truc-3-tang-tong-the" class="nav-main" data-target="phan-12-kien-truc-3-tang-tong-the">Phần 12: Kiến trúc 3 tầng tổng thể</a>
+<a href="#121-so-o-toan-he-thong" class="nav-sub" data-target="121-so-o-toan-he-thong">12.1 Sơ đồ toàn hệ thống</a>
+<a href="#phan-13-cac-ky-thuat-quan-trong" class="nav-main" data-target="phan-13-cac-ky-thuat-quan-trong">Phần 13: Các kỹ thuật quan trọng</a>
+<a href="#131-structured-outputs-voi-pydantic" class="nav-sub" data-target="131-structured-outputs-voi-pydantic">13.1 Structured Outputs với Pydantic</a>
+<a href="#132-litellm-multi-provider-abstraction" class="nav-sub" data-target="132-litellm-multi-provider-abstraction">13.2 LiteLLM — Multi-provider abstraction</a>
+<a href="#133-real-time-log-streaming-trong-gradio" class="nav-sub" data-target="133-real-time-log-streaming-trong-gradio">13.3 Real-time Log Streaming trong Gradio</a>
+<a href="#134-lazy-initialization" class="nav-sub" data-target="134-lazy-initialization">13.4 Lazy Initialization</a>
+<a href="#phan-14-setup-va-chay" class="nav-main" data-target="phan-14-setup-va-chay">Phần 14: Setup và Chạy</a>
+<a href="#141-yeu-cau" class="nav-sub" data-target="141-yeu-cau">14.1 Yêu cầu</a>
+<a href="#142-trien-khai-modal-service-mot-lan" class="nav-sub" data-target="142-trien-khai-modal-service-mot-lan">14.2 Triển khai Modal Service (một lần)</a>
+<a href="#143-environment-variables-segment4env" class="nav-sub" data-target="143-environment-variables-segment4env">14.3 Environment Variables (segment4/.env)</a>
+<a href="#144-chay-ung-dung" class="nav-sub" data-target="144-chay-ung-dung">14.4 Chạy ứng dụng</a>
+<a href="#phan-15-hieu-nang-va-chi-phi" class="nav-main" data-target="phan-15-hieu-nang-va-chi-phi">Phần 15: Hiệu năng và Chi phí</a>
+<a href="#151-thoi-gian-thuc-thi" class="nav-sub" data-target="151-thoi-gian-thuc-thi">15.1 Thời gian thực thi</a>
+<a href="#152-chi-phi-uoc-tinh" class="nav-sub" data-target="152-chi-phi-uoc-tinh">15.2 Chi phí ước tính</a>
+<a href="#phan-16-chi-tiet-cac-file-ho-tro-chua-uoc-giai-thich-ay-u" class="nav-main" data-target="phan-16-chi-tiet-cac-file-ho-tro-chua-uoc-giai-thich-ay-u">Phần 16: Chi tiết các file hỗ trợ chưa được giải thích đầy đủ</a>
+<a href="#log_utilspy-chuyen-oi-ansi-sang-html" class="nav-sub" data-target="log_utilspy-chuyen-oi-ansi-sang-html">log_utils.py — Chuyển đổi ANSI sang HTML</a>
+<a href="#bestbuy_untilsgradio_helperspy-he-thong-streaming-logs-real-time" class="nav-sub" data-target="bestbuy_untilsgradio_helperspy-he-thong-streaming-logs-real-time">bestbuy_untils/gradio_helpers.py — Hệ thống streaming logs real-time</a>
+<a href="#price_agentsdealspy-data-models-chi-tiet" class="nav-sub" data-target="price_agentsdealspy-data-models-chi-tiet">price_agents/deals.py — Data Models chi tiết</a>
+<a href="#bestbuy_untilsunified_dealpy-chuan-hoa-2-nguon" class="nav-sub" data-target="bestbuy_untilsunified_dealpy-chuan-hoa-2-nguon">bestbuy_untils/unified_deal.py — Chuẩn hóa 2 nguồn</a>
+<a href="#phan-17-leaderboard-va-ket-qua-thuc-nghiem" class="nav-main" data-target="phan-17-leaderboard-va-ket-qua-thuc-nghiem">Phần 17: Leaderboard và kết quả thực nghiệm</a>
+<a href="#ensemble-vs-tung-model-on-le" class="nav-sub" data-target="ensemble-vs-tung-model-on-le">Ensemble vs từng model đơn lẻ</a>
+<a href="#ket-qua-scraping-thuc-te" class="nav-sub" data-target="ket-qua-scraping-thuc-te">Kết quả scraping thực tế</a>
+<a href="#tong-ket" class="nav-main" data-target="tong-ket">Tổng kết</a>
+
+</nav>
+
+<!-- Main content -->
+<main id="main">
+  <!-- Hero header -->
+  <div class="hero">
+    <div class="meta-badges">
+      <span class="badge badge-purple">📅 2026-05-11</span>
+      <span class="badge badge-cyan">📂 segment4/</span>
+      <span class="badge badge-pink">🤖 price_is_right.py</span>
+      <span class="badge badge-green">🔍 search_key.py</span>
+    </div>
+  </div>
+
+  <div id="content">
+    <h1 id="bao-cao-xay-dung-he-thong-ai-price-intelligence-the-price-is-right">Báo cáo: Xây dựng Hệ thống AI Price Intelligence — "The Price Is Right"</h1>
+<blockquote>
+<p><strong>Mục đích:</strong> Tài liệu chi tiết về quá trình xây dựng toàn bộ hệ thống production, từ việc triển khai mô hình đã fine-tune lên cloud cho đến hai ứng dụng hoàn chỉnh: ứng dụng autonomous quét deal tự động và ứng dụng tìm kiếm keyword theo yêu cầu.
+<strong>Phạm vi:</strong> Week 8 (Day 1–5) — từ Specialist Agent đầu tiên đến Multi-Source Deal Finder hoàn chỉnh
+<strong>Ngày cập nhật:</strong> 2026-05-11
+<strong>Thư mục code chính:</strong> <code>segment4/</code>
+<strong>Hai ứng dụng:</strong> <code>price_is_right.py</code> (Autonomous) và <code>search_key.py</code> (Keyword Search)</p>
+</blockquote>
+<hr />
+<h2 id="hanh-trinh-tong-quan">Hành trình tổng quan</h2>
+<pre><code>Week 7: Fine-tune Llama 3.2 3B (QLoRA) → SeanSunny/price-2026-final
+    │
+    ▼ Day 1 — Triển khai mô hình lên Modal Serverless
+SpecialistAgent kết nối với Pricer service trên cloud T4 GPU
+    │
+    ▼ Day 2 — RAG Pipeline + EnsembleAgent
+FrontierAgent (GPT-5.1 + ChromaDB) + EnsembleAgent (3 models, MAE $29.9)
+    │
+    ▼ Day 3 — ScannerAgent + MessagingAgent
+Structured Outputs (Pydantic) + Push Notification (Pushover)
+    │
+    ▼ Day 4 — PlanningAgent + AutonomousPlanningAgent
+Orchestrator điều phối toàn bộ: Quét RSS → Định giá → Notify
+    │
+    ▼ Day 5 — price_is_right.py + search_key.py hoàn chỉnh
+Gradio UI, BestBuy + Amazon scraping, Multi-Source pipeline
+</code></pre>
+<hr />
+<h2 id="chi-tiet-tung-ngay-hoc-week-8-day-15">Chi tiết từng ngày học — Week 8 Day 1–5</h2>
+<h3 id="day-1-d1_specialist_agentipynb-trien-khai-model-len-modal">Day 1 (<code>d1_specialist_agent.ipynb</code>) — Triển khai model lên Modal</h3>
+<p><strong>Mục tiêu:</strong> Kết nối mô hình fine-tuned Llama 3.2 3B (đã train ở Week 7) vào hệ thống thực tế bằng cách deploy lên Modal Serverless. Kiểm chứng rằng model chạy đúng trên cloud GPU, sau đó tích hợp <code>Preprocessor</code> để chuẩn hóa đầu vào.</p>
+<p><strong>Thực nghiệm cốt lõi — Proof that code runs on the cloud:</strong></p>
+<pre><code class="language-python"># Kiểm tra sự khác biệt local vs remote
+with app.run():
+    hello.local()   # → 'Hello from Da Nang, VN!!'    (máy local)
+    hello.remote()  # → 'Hello from Ashburn, Virginia, US!!'  (cloud Modal)
+    hello_europe.remote()  # → 'Hello from Frankfurt am Main, DE!!'
+</code></pre>
+<p>Đây là bài test đơn giản nhưng then chốt: chứng minh rằng cùng một đoạn Python, khi gọi <code>.remote()</code>, thực sự chạy trên máy chủ khác nằm ở Virginia (US) hoặc Frankfurt (EU). Bước tiếp theo là gọi model thực sự từ đó.</p>
+<p><strong>Kết quả thực tế:</strong>
+- Fine-tuned model dự đoán HyperX mic (sau preprocessing): <strong>$90</strong>
+- SpecialistAgent dự đoán iPhone 16 Pro Max: <strong>$700</strong>
+- Preprocessing với Groq chuyển mô tả thô → format chuẩn <code>Title/Category/Brand/Description/Details</code></p>
+<p><strong>Vấn đề gặp phải:</strong>
+- Windows: lỗi encoding <code>cp1252</code> khi Modal in emoji → fix: <code>set PYTHONIOENCODING=utf-8</code>
+- Cold Start lần đầu tốn ~10 phút (Modal phải build Docker image, download model từ HuggingFace)
+- <code>MIN_CONTAINERS = 0</code> (default): container tắt sau 2 phút idle → mọi request sau đó phải chịu cold start</p>
+<hr />
+<h3 id="day-2-d2_gpt5rag_ensembleipynb-rag-pipeline-ensembleagent">Day 2 (<code>d2_gpt5rag_ensemble.ipynb</code>) — RAG Pipeline + EnsembleAgent</h3>
+<p><strong>Mục tiêu:</strong> Xây dựng <code>FrontierAgent</code> dùng GPT-5.1 với dữ liệu tham chiếu từ ChromaDB (RAG), sau đó ghép 3 models thành <code>EnsembleAgent</code> với weighted average.</p>
+<p><strong>Thực nghiệm RAG:</strong></p>
+<pre><code class="language-python"># Tìm 5 sản phẩm tương tự trong ChromaDB 800K items
+def find_similars(item):
+    vec = encoder.encode(item.summary)   # all-MiniLM-L6-v2 → 384-dim vector
+    results = collection.query(query_embeddings=vec.tolist(), n_results=5)
+    return results['documents'][0], [m['price'] for m in results['metadatas'][0]]
+</code></pre>
+<p>Khi hỏi giá "Old Blood Noise Excess V2 Distortion Pedal" (giá thật $219), RAG trả về 5 sản phẩm: reverb pedal cùng hãng, Boss Mega Distortion, delay pedal... Tất cả trong khoảng $100-250. GPT-5.1 có context thực tế này → dự đoán <strong>$229</strong> (sai $10).</p>
+<p><strong>Kết quả thực tế trên một item cụ thể (Shure MV7+):</strong>
+| Model | Dự đoán |
+|-------|---------|
+| SpecialistAgent (Modal) | $299 |
+| FrontierAgent (GPT-5.1+RAG) | $289 |
+| NeuralNetworkAgent (DNN) | $187.66 |
+| <strong>EnsembleAgent (80/10/10)</strong> | <strong>$279.87</strong> |</p>
+<p><strong>Visualization TSNE:</strong> Khi plot 800 điểm ngẫu nhiên từ ChromaDB xuống 3D bằng t-SNE, các category tự động tụ thành cluster tách biệt — chứng tỏ <code>all-MiniLM-L6-v2</code> hiểu ngữ nghĩa sâu. Đây cũng là biểu đồ 3D hiển thị trong Gradio của <code>price_is_right.py</code>. Lưu ý: plot 800,000 điểm gần crash máy → giới hạn <code>MAXIMUM_DATAPOINTS = 10,000</code> trong notebook, và <code>max_datapoints=800</code> trong production.</p>
+<hr />
+<h3 id="day-3-d3_scan_and_messipynb-scanneragent-messagingagent">Day 3 (<code>d3_scan_and_mess.ipynb</code>) — ScannerAgent + MessagingAgent</h3>
+<p><strong>Mục tiêu:</strong> Xây dựng "đôi mắt" và "miệng" của hệ thống — ScannerAgent tự tìm deals từ RSS, MessagingAgent tự viết và gửi notification.</p>
+<p><strong>Kết quả scan thực tế (một lần chạy):</strong>
+GPT-5-mini lọc từ 25 deals thô → chọn 5 deals tốt nhất:
+- YLZKIX Gaming PC (Ryzen 5 5600 + RX 6600): <strong>$790</strong>
+- Oukitel P2001 Plus 2048Wh Power Station: <strong>$569</strong>
+- Ningmei Ryzen 7 Gaming Desktop: <strong>$629</strong>
+- Refurb Dell Latitude 7430 Touch Laptop: <strong>$399</strong>
+- Samsung HW-Q990D 11.1.4ch Soundbar: <strong>$1,000</strong></p>
+<p><strong>Edge case quan trọng:</strong> Deal "Newegg Up to 70% off Gaming PCs" — rule lọc nói loại bỏ "Up to X% off", nhưng bên trong description có PC cụ thể với giá $790. GPT-5-mini đủ thông minh để trích xuất deal cụ thể đó, không bỏ qua toàn bộ.</p>
+<p><strong>Lý do <code>reasoning_effort="minimal"</code>:</strong> Bài toán chọn deals chỉ cần đọc hiểu văn bản và so sánh — không cần suy luận chuỗi dài. <code>minimal</code> giảm ~50% cost và latency so với default, với chất lượng chọn deal tương đương.</p>
+<hr />
+<h3 id="day-4-d4_plan_agentipynb-autonomousplanningagent">Day 4 (<code>d4_plan_agent.ipynb</code>) — AutonomousPlanningAgent</h3>
+<p><strong>Mục tiêu:</strong> Xây dựng bộ não điều phối — thay vì hard-code "luôn scan rồi estimate rồi notify", GPT-5.1 tự quyết định thứ tự và điều kiện gọi các tool.</p>
+<p><strong>Quá trình học theo 3 bước:</strong></p>
+<p><strong>Bước 1:</strong> Prototype với fake functions để hiểu cơ chế Tool Use (Function Calling):</p>
+<pre><code class="language-python"># Giả lập 3 tools với kết quả cứng để test flow
+def scan_the_internet_for_bargains() -&gt; str:
+    return json.dumps({&quot;deals&quot;: [{&quot;title&quot;: &quot;Hisense TV&quot;, &quot;price&quot;: 178}, ...]})
+</code></pre>
+<p><strong>Bước 2:</strong> Viết Agent Loop thủ công:</p>
+<pre><code class="language-python">done = False
+while not done:
+    response = openai.chat.completions.create(model=&quot;gpt-5.1&quot;, messages=messages, tools=tools)
+    if response.choices[0].finish_reason == &quot;tool_calls&quot;:
+        # GPT muốn gọi tool → thực hiện và trả kết quả vào messages
+        results = handle_tool_call(response.choices[0].message)
+        messages.extend(results)
+    else:
+        done = True  # GPT trả lời cuối cùng, không gọi tool nữa
+</code></pre>
+<p><strong>Bước 3:</strong> Dùng OpenAI Agents SDK (<code>@function_tool</code> decorator) để thay thế loop thủ công.</p>
+<p><strong>Quan sát quan trọng:</strong> GPT-5.1 tự quyết định gọi <code>estimate_true_value</code> 4 lần (cho 4 deals), rồi chỉ gọi <code>notify_user_of_deal</code> <strong>một lần</strong> cho deal tốt nhất — đúng với instruction "only call this one time". Không cần code cứng logic này.</p>
+<hr />
+<h3 id="day-5-day5ipynb-gradio-ui-production">Day 5 (<code>day5.ipynb</code>) — Gradio UI + Production</h3>
+<p><strong>Mục tiêu:</strong> Đưa toàn bộ hệ thống vào một Gradio app hoàn chỉnh có thể demo được.</p>
+<p><strong>Quá trình build UI từng bước:</strong></p>
+<pre><code class="language-python"># Bước 1: Blank UI
+with gr.Blocks(title=&quot;The Price is Right&quot;, fill_width=True) as ui:
+    gr.Markdown(&quot;## The Price is Right&quot;)
+ui.launch()
+
+# Bước 2: Thêm Dataframe hiển thị deals (static data trước)
+opportunities_dataframe = gr.Dataframe(
+    headers=[&quot;Description&quot;, &quot;Price&quot;, &quot;Estimate&quot;, &quot;Discount&quot;, &quot;URL&quot;],
+    wrap=True,
+    max_height=400  # Lưu ý: `height` bị deprecated trong Gradio v5, phải dùng `max_height`
+)
+
+# Bước 3: Wire Gradio events vào agent pipeline
+ui.load(run_with_logging, ...)    # Chạy ngay khi UI load
+timer = gr.Timer(value=300)
+timer.tick(run_with_logging, ...) # Chạy lại mỗi 5 phút
+</code></pre>
+<p><strong>Lỗi Gradio v5 phát hiện trong class:</strong> <code>height</code> parameter của <code>gr.Dataframe</code> bị deprecated → dùng <code>max_height</code>. Đây là ví dụ điển hình về "API thay đổi theo phiên bản" — tài liệu cũ không còn chính xác.</p>
+<hr />
+<h2 id="phan-1-triet-ly-thiet-ke-he-thong-week-8-day-1">Phần 1: Triết lý thiết kế hệ thống (Week 8 Day 1)</h2>
+<h3 id="11-tu-notebook-en-production">1.1 Từ Notebook đến Production</h3>
+<p>Trước Week 8, toàn bộ quá trình train model, phân tích dữ liệu, và thử nghiệm đều diễn ra trong Jupyter Notebook — môi trường lý tưởng để khám phá nhưng không phù hợp cho sản phẩm chạy 24/7. Nhiệm vụ của Week 8 là "đưa mọi thứ lên môi trường Production thực tế."</p>
+<p>Hai thách thức cốt lõi:</p>
+<p><strong>Thứ nhất — Nơi chạy model:</strong> Mô hình Llama 3.2 3B fine-tuned nặng ~2.2GB (4-bit) không thể chạy trên laptop thông thường trong khi phục vụ request. Cần hạ tầng GPU cloud.</p>
+<p><strong>Thứ hai — Kiến trúc hệ thống:</strong> Cần tổ chức code sao cho mỗi thành phần có trách nhiệm độc lập, dễ debug, dễ mở rộng, và có thể thay thế từng phần mà không ảnh hưởng toàn bộ.</p>
+<h3 id="12-quyet-inh-kien-truc-build-from-first-principles">1.2 Quyết định kiến trúc: Build from First Principles</h3>
+<p>Thay vì dùng framework có sẵn như LangChain hay CrewAI, hệ thống được xây từ nguyên lý cơ bản — viết code Python gọi trực tiếp các API LLM, quản lý orchestration bằng logic thuần Python. Lý do:</p>
+<ul>
+<li>Framework ẩn quá nhiều chi tiết kỹ thuật, khi có lỗi khó debug</li>
+<li>Mỗi agent thực chất chỉ là một lời gọi LLM có cấu trúc — không cần abstraction phức tạp</li>
+<li>Kiểm soát hoàn toàn luồng dữ liệu, chi phí API, và latency</li>
+</ul>
+<h3 id="13-inh-nghia-agent-trong-du-an-nay">1.3 Định nghĩa Agent trong dự án này</h3>
+<p>Hệ thống có 3 loại "agent" với mức độ tự chủ khác nhau:</p>
+<table>
+<thead>
+<tr>
+<th>Loại</th>
+<th>Ví dụ</th>
+<th>Mô tả</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LLM Wrapper</strong></td>
+<td>SpecialistAgent, FrontierAgent</td>
+<td>Wrapper xung quanh một lời gọi LLM, che giấu chi tiết kỹ thuật</td>
+</tr>
+<tr>
+<td><strong>Workflow Agent</strong></td>
+<td>EnsembleAgent, PlanningAgent</td>
+<td>Điều phối nhiều agents con theo logic cứng (hard-coded)</td>
+</tr>
+<tr>
+<td><strong>Autonomous Agent</strong></td>
+<td>AutonomousPlanningAgent</td>
+<td>GPT tự quyết định gọi tool nào, khi nào, theo thứ tự nào</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phan-2-modal-serverless-ua-model-len-cloud-day-1">Phần 2: Modal Serverless — Đưa Model lên Cloud (Day 1)</h2>
+<h3 id="21-tai-sao-can-modal">2.1 Tại sao cần Modal?</h3>
+<p>Sau khi fine-tune, model Llama 3.2 3B cần GPU T4 để inference với tốc độ hợp lý. Các lựa chọn:</p>
+<ul>
+<li><strong>GPU riêng:</strong> Tốn $200-500/tháng dù model không chạy liên tục</li>
+<li><strong>Google Colab:</strong> Không thể tích hợp vào ứng dụng web, giới hạn thời gian chạy</li>
+<li><strong>Modal (Serverless):</strong> Chỉ trả tiền khi container đang xử lý request. Container tắt khi không có request, bật lại khi cần. Chi phí: ~$30 credit miễn phí/tháng là đủ.</li>
+</ul>
+<h3 id="22-kien-truc-modal-service-pricer_service2py">2.2 Kiến trúc Modal Service (<code>pricer_service2.py</code>)</h3>
+<p>Modal sử dụng mô hình "Infrastructure as Code" — toàn bộ cấu hình GPU, thư viện, và model đều được khai báo trong Python:</p>
+<pre><code class="language-python"># Định nghĩa môi trường: OS + thư viện AI
+image = (
+    modal.Image.debian_slim()
+    .pip_install(&quot;torch&quot;, &quot;transformers&quot;, &quot;bitsandbytes&quot;, &quot;accelerate&quot;, &quot;peft&quot;)
+)
+
+# Kết nối với HuggingFace Token (lưu trong Modal Secrets, không hard-code)
+secrets = [modal.Secret.from_name(&quot;huggingface-secret&quot;)]
+
+@app.cls(gpu=&quot;T4&quot;, image=image, secrets=secrets, timeout=1800)
+class Pricer:
+
+    @modal.enter()
+    def setup(self):
+        &quot;&quot;&quot;Chạy 1 lần khi container khởi động — load model vào RAM GPU.&quot;&quot;&quot;
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_type=&quot;nf4&quot;
+        )
+        # Base model Llama 3.2 3B (4-bit NF4, ~2.2GB VRAM)
+        base_model = AutoModelForCausalLM.from_pretrained(
+            &quot;meta-llama/Llama-3.2-3B&quot;,
+            quantization_config=quant_config,
+            device_map=&quot;auto&quot;
+        )
+        # Gắn LoRA adapter fine-tuned của chúng ta vào base model
+        self.model = PeftModel.from_pretrained(base_model, &quot;SeanSunny/price-2026-final&quot;)
+        self.tokenizer = AutoTokenizer.from_pretrained(&quot;meta-llama/Llama-3.2-3B&quot;)
+
+    @modal.method()
+    def price(self, description: str) -&gt; float:
+        &quot;&quot;&quot;Inference: nhận mô tả sản phẩm, trả về giá dự đoán.&quot;&quot;&quot;
+        prompt = f&quot;What does this cost to the nearest dollar?\n\n{description}\n\nPrice is $&quot;
+        inputs = self.tokenizer(prompt, return_tensors=&quot;pt&quot;).to(&quot;cuda&quot;)
+        with torch.no_grad():
+            output_ids = self.model.generate(**inputs, max_new_tokens=8)
+        generated = output_ids[0, inputs[&quot;input_ids&quot;].shape[1]:]
+        decoded = self.tokenizer.decode(generated, skip_special_tokens=True)
+        # Trích xuất số từ output (ví dụ: &quot;280.00&quot; → 280.0)
+        match = re.search(r&quot;\d+(?:\.\d+)?&quot;, decoded)
+        return float(match.group()) if match else 0.0
+</code></pre>
+<p><strong>Điểm mấu chốt:</strong> Decorator <code>@modal.enter()</code> tách biệt phần nặng (load model, ~30-60s) với phần nhẹ (inference, ~1-2s). Model được load 1 lần và giữ trong RAM GPU suốt vòng đời container. Các request tiếp theo chỉ tốn thời gian inference.</p>
+<p><strong>Cold Start vs Warm Start:</strong>
+- Cold Start (lần đầu sau khi container ngủ): ~30-60s — phải load model từ HuggingFace cache
+- Warm Start (container đang chạy): ~1-2s — model đã có sẵn trong VRAM</p>
+<p><strong>Triển khai:</strong></p>
+<pre><code class="language-bash">modal deploy pricer_service2.py
+# Tạo endpoint cố định: &quot;pricer-service&quot; trên Dashboard Modal
+</code></pre>
+<hr />
+<h2 id="phan-3-kien-truc-agent-base-class-va-logging-day-1">Phần 3: Kiến trúc Agent — Base Class và Logging (Day 1)</h2>
+<h3 id="31-agentpy-nen-tang-cho-toan-bo-he-thong">3.1 <code>agent.py</code> — Nền tảng cho toàn bộ hệ thống</h3>
+<p>Tất cả agents kế thừa từ một class duy nhất:</p>
+<pre><code class="language-python">class Agent:
+    &quot;&quot;&quot;Abstract base class với colored logging.&quot;&quot;&quot;
+
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    RESET = '\033[0m'
+
+    name: str = &quot;&quot;
+    color: str = WHITE
+
+    def log(self, message):
+        &quot;&quot;&quot;Log với màu đặc trưng của từng agent.&quot;&quot;&quot;
+        text = f&quot;[{self.name}] {message}&quot;
+        logging.info(self.color + text + self.RESET)
+</code></pre>
+<p><strong>Tại sao cần màu sắc?</strong> Khi hệ thống chạy, terminal hiển thị log từ 5-6 agents song song. Màu sắc riêng biệt giúp nhận diện agent nào đang làm gì trong vài giây — không cần đọc tên. Ví dụ: log màu đỏ luôn là SpecialistAgent, màu vàng là EnsembleAgent.</p>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Màu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specialist Agent</td>
+<td>Đỏ (RED)</td>
+</tr>
+<tr>
+<td>Frontier Agent</td>
+<td>Vàng (YELLOW)</td>
+</tr>
+<tr>
+<td>Ensemble Agent</td>
+<td>Vàng (YELLOW)</td>
+</tr>
+<tr>
+<td>Scanner Agent</td>
+<td>Xanh lam nhạt (CYAN)</td>
+</tr>
+<tr>
+<td>Planning Agent</td>
+<td>Xanh lá (GREEN)</td>
+</tr>
+<tr>
+<td>Messaging Agent</td>
+<td>Tím (MAGENTA)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phan-4-specialistagent-ket-noi-local-cloud-day-1">Phần 4: SpecialistAgent — Kết nối Local ↔ Cloud (Day 1)</h2>
+<p><code>specialist_agent.py</code> là ví dụ điển hình của mẫu thiết kế <strong>Proxy/Facade</strong>: agent này không chứa model, không có logic inference — nó chỉ là một "điều khiển từ xa" trỏ tới Modal:</p>
+<pre><code class="language-python">class SpecialistAgent(Agent):
+    name = &quot;Specialist Agent&quot;
+    color = Agent.RED
+
+    def __init__(self):
+        self.log(&quot;Specialist Agent is initializing - connecting to modal&quot;)
+        # Kết nối tới service đã deploy (không tải model về local)
+        Pricer = modal.Cls.from_name(&quot;pricer-service&quot;, &quot;Pricer&quot;)
+        self.pricer = Pricer()
+        self.log(&quot;Specialist Agent is ready&quot;)
+
+    def price(self, description: str) -&gt; float:
+        self.log(&quot;Specialist Agent is calling remote fine-tuned model&quot;)
+        # RPC call: gửi description lên Modal, đợi kết quả float trả về
+        result = self.pricer.price.remote(description)
+        self.log(f&quot;Specialist Agent completed - predicting ${result:.2f}&quot;)
+        return result
+</code></pre>
+<p><strong>Lợi ích của thiết kế này:</strong> Phần còn lại của hệ thống (EnsembleAgent, PlanningAgent) chỉ thấy <code>specialist.price(description) → float</code>. Chúng không biết — và không cần biết — rằng bên dưới là một GPU T4 đang chạy ở đâu đó trên cloud Modal. Nếu sau này muốn chuyển từ Modal sang AWS SageMaker, chỉ cần sửa file <code>specialist_agent.py</code>.</p>
+<hr />
+<h2 id="phan-5-frontieragent-rag-voi-chromadb-day-2">Phần 5: FrontierAgent — RAG với ChromaDB (Day 2)</h2>
+<h3 id="51-triet-ly-training-time-vs-inference-time">5.1 Triết lý Training Time vs Inference Time</h3>
+<p>Đây là điểm quan trọng nhất của Day 2: hai cách khác nhau để "dạy" LLM biết giá sản phẩm:</p>
+<table>
+<thead>
+<tr>
+<th>Cách</th>
+<th>Kỹ thuật</th>
+<th>Thời điểm nạp kiến thức</th>
+<th>Ưu điểm</th>
+<th>Nhược điểm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Training time</strong></td>
+<td>Fine-tuning (Week 7)</td>
+<td>Lúc train</td>
+<td>Nhanh khi inference</td>
+<td>Tốn kém để cập nhật</td>
+</tr>
+<tr>
+<td><strong>Inference time</strong></td>
+<td>RAG (Day 2)</td>
+<td>Lúc hỏi</td>
+<td>Dữ liệu luôn mới</td>
+<td>Tốn thêm thời gian lookup</td>
+</tr>
+</tbody>
+</table>
+<p>SpecialistAgent dùng training time — model đã "nhớ" giá từ 800k sản phẩm vào trọng số. FrontierAgent dùng inference time — mỗi lần hỏi, nó tra cứu 5 sản phẩm tương tự trong ChromaDB rồi "mớm" thông tin đó cho GPT-5.1.</p>
+<h3 id="52-chromadb-vector-store-co-so-du-lieu-ngu-nghia">5.2 ChromaDB Vector Store — Cơ sở dữ liệu ngữ nghĩa</h3>
+<p><strong>Xây dựng (một lần, ngoài runtime):</strong>
+- 800,000 sản phẩm Amazon được embed bằng <code>sentence-transformers/all-MiniLM-L6-v2</code>
+- Mỗi sản phẩm → vector 384 chiều biểu diễn ngữ nghĩa
+- Lưu vào ChromaDB Persistent Client tại <code>segment4/products_vectorstore/</code></p>
+<p><strong>t-SNE Visualization:</strong> Khi vẽ 800 điểm dữ liệu ngẫu nhiên xuống 3D (dùng t-SNE), các sản phẩm cùng category tự động tụ thành cluster rõ ràng — chứng tỏ all-MiniLM-L6-v2 hiểu ngữ nghĩa sâu, không chỉ dựa trên từ khóa. Đây cũng là biểu đồ 3D hiển thị trong Gradio dashboard của <code>price_is_right.py</code>.</p>
+<h3 id="53-frontier_agentpy-logic-rag-thu-cong">5.3 <code>frontier_agent.py</code> — Logic RAG thủ công</h3>
+<pre><code class="language-python">class FrontierAgent(Agent):
+    MODEL = &quot;gpt-5.1&quot;
+
+    def __init__(self, collection):
+        self.client = OpenAI()
+        self.collection = collection           # ChromaDB collection (800K products)
+        self.model = SentenceTransformer(&quot;sentence-transformers/all-MiniLM-L6-v2&quot;)
+
+    def find_similars(self, description: str):
+        &quot;&quot;&quot;Bước Retrieval: tìm 5 sản phẩm gần nhất trong ChromaDB.&quot;&quot;&quot;
+        self.log(&quot;Performing RAG search to find 5 similar products&quot;)
+        vector = self.model.encode([description])
+        results = self.collection.query(
+            query_embeddings=vector.astype(float).tolist(),
+            n_results=5
+        )
+        documents = results[&quot;documents&quot;][0][:]
+        prices = [m[&quot;price&quot;] for m in results[&quot;metadatas&quot;][0][:]]
+        return documents, prices
+
+    def make_context(self, similars, prices) -&gt; str:
+        &quot;&quot;&quot;Bước Augmentation: tạo context chèn vào prompt.&quot;&quot;&quot;
+        message = &quot;To provide context, here are similar products:\n\n&quot;
+        for similar, price in zip(similars, prices):
+            message += f&quot;Potentially related product:\n{similar}\nPrice is ${price:.2f}\n\n&quot;
+        return message
+
+    def price(self, description: str) -&gt; float:
+        &quot;&quot;&quot;Bước Generation: gửi description + context cho GPT-5.1.&quot;&quot;&quot;
+        documents, prices = self.find_similars(description)
+        message = f&quot;Estimate the price. Respond with the price only.\n\n{description}\n\n&quot;
+        message += self.make_context(documents, prices)
+        response = self.client.chat.completions.create(
+            model=self.MODEL,
+            messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: message}],
+            seed=42,
+            reasoning_effort=&quot;none&quot;,   # Tắt thinking để tiết kiệm thời gian
+        )
+        return self.get_price(response.choices[0].message.content)
+</code></pre>
+<p><strong>Ví dụ thực tế:</strong> Khi hỏi giá "Old Blood Noise Distortion Pedal", RAG trả về 5 sản phẩm: một reverb pedal cùng hãng, một Boss Mega Distortion, một delay pedal... Tất cả đều là guitar effects trong khoảng giá $100-250. GPT-5.1 nhận thông tin đó và đưa ra dự đoán cực chính xác — không phải vì nó biết giá từ training, mà vì nó có context thực tế.</p>
+<hr />
+<h2 id="phan-6-ensembleagent-ket-hop-suc-manh-3-models-day-2">Phần 6: EnsembleAgent — Kết hợp sức mạnh 3 models (Day 2)</h2>
+<h3 id="61-ly-thuyet-ensemble">6.1 Lý thuyết Ensemble</h3>
+<p>Mỗi model có điểm mạnh và điểm yếu riêng:
+- <strong>FrontierAgent:</strong> Giỏi suy luận ngữ nghĩa và có dữ liệu tham chiếu thực tế từ ChromaDB
+- <strong>SpecialistAgent:</strong> Được train chuyên sâu trên 800k sản phẩm Amazon, nhận biết pattern giá
+- <strong>NeuralNetworkAgent:</strong> Tính toán thống kê thuần túy từ 289M params, ít bị ảo giác (hallucination)</p>
+<p>Nếu một model đoán sai xa (ví dụ FrontierAgent hallucinate), hai model kia sẽ kéo kết quả về gần giá trị thực. Trên tập test 200 mẫu, Ensemble đạt MAE $29.9 — tốt hơn bất kỳ model đơn lẻ nào.</p>
+<h3 id="62-preprocessor-chuan-hoa-au-vao">6.2 Preprocessor — Chuẩn hóa đầu vào</h3>
+<p>Trước khi gửi vào các model, văn bản mô tả sản phẩm được LLM viết lại theo format chuẩn:</p>
+<pre><code class="language-python">SYSTEM_PROMPT = &quot;&quot;&quot;Create a concise description of a product. Respond only in this format:
+Title: Rewritten short precise title
+Category: eg Electronics
+Brand: Brand name
+Description: 1 sentence description
+Details: 1 sentence on features&quot;&quot;&quot;
+
+class Preprocessor:
+    def __init__(self):
+        # Mặc định: ollama/llama3.2 (miễn phí, chạy local)
+        # Hoặc dùng PRICER_PREPROCESSOR_MODEL env var để chọn model khác
+        self.model_name = os.getenv(&quot;PRICER_PREPROCESSOR_MODEL&quot;, &quot;ollama/llama3.2&quot;)
+
+    def preprocess(self, text: str) -&gt; str:
+        &quot;&quot;&quot;LLM viết lại text thành format chuẩn. Có fallback nếu LLM gọi thất bại.&quot;&quot;&quot;
+        try:
+            response = completion(model=self.model_name, messages=self.messages_for(text))
+            return response.choices[0].message.content
+        except Exception as e:
+            logging.warning(f&quot;[Preprocessor] LLM failed, using raw text: {e}&quot;)
+            return text  # Fallback: trả về text gốc thay vì crash
+</code></pre>
+<p><strong>Tại sao cần preprocessing?</strong> Dữ liệu khi inference (từ RSS feed, BestBuy API, Amazon HTML) có định dạng rất khác dữ liệu lúc training (đã được Groq Batch API chuẩn hóa ở Week 6 Day 2). Preprocessing đảm bảo format giống nhau ở training time và inference time — đây là nguyên tắc "treat inference data the same as training data."</p>
+<p><strong>Lưu ý thực tế:</strong> Groq API đôi khi trả về lỗi 522 (timeout). Vì vậy Preprocessor có try-except: nếu LLM call thất bại, trả về text gốc thay vì crash toàn bộ pipeline.</p>
+<h3 id="63-ensemble_agentpy-code-thuc-te">6.3 <code>ensemble_agent.py</code> — Code thực tế</h3>
+<pre><code class="language-python">class EnsembleAgent(Agent):
+    name = &quot;Ensemble Agent&quot;
+    color = Agent.YELLOW
+
+    def __init__(self, collection):
+        self.log(&quot;Initializing Ensemble Agent&quot;)
+        self.specialist = SpecialistAgent()           # Modal remote call
+        self.frontier = FrontierAgent(collection)    # GPT-5.1 + ChromaDB
+        self.neural_network = NeuralNetworkAgent()   # Local PyTorch DNN
+        self.preprocessor = Preprocessor()           # LiteLLM text rewrite
+        self.log(&quot;Ensemble Agent is ready&quot;)
+
+    def price(self, description: str) -&gt; float:
+        self.log(&quot;Running Ensemble Agent - preprocessing text&quot;)
+        rewrite = self.preprocessor.preprocess(description)
+        self.log(f&quot;Pre-processed text using {self.preprocessor.model_name}&quot;)
+
+        specialist = self.specialist.price(rewrite)        # ~1-2s (warm) hoặc ~60s (cold)
+        frontier = self.frontier.price(rewrite)            # ~3-5s (RAG + GPT call)
+        neural_network = self.neural_network.price(rewrite) # ~0.1s (local PyTorch)
+
+        # Weighted average: 80% GPT + 10% Llama + 10% DNN
+        combined = frontier * 0.8 + specialist * 0.1 + neural_network * 0.1
+        self.log(f&quot;Ensemble Agent complete - returning ${combined:.2f}&quot;)
+        return combined
+</code></pre>
+<h3 id="64-neuralnetworkagent-dnn-local">6.4 NeuralNetworkAgent — DNN local</h3>
+<pre><code class="language-python">class NeuralNetworkAgent(Agent):
+    def __init__(self):
+        self.neural_network = DeepNeuralNetworkInference()
+        self.neural_network.setup()
+        # Load 289M params từ file .pth (~1GB)
+        self.neural_network.load(&quot;deep_neural_network.pth&quot;)
+
+    def price(self, description: str) -&gt; float:
+        return self.neural_network.inference(description)
+</code></pre>
+<p><code>DeepNeuralNetworkInference</code> dùng <code>HashingVectorizer(n_features=5000, binary=True)</code> để chuyển text thành vector rồi đưa vào DNN 10 lớp ResidualBlocks. Kết quả được de-normalize: <code>exp(pred * std + mean) - 1</code> để trả về giá thực (giá đã log-transform lúc training).</p>
+<hr />
+<h2 id="phan-7-scanneragent-oi-mat-cua-he-thong-day-3">Phần 7: ScannerAgent — Đôi mắt của hệ thống (Day 3)</h2>
+<h3 id="71-structured-outputs-bien-van-ban-tho-thanh-data-co-cau-truc">7.1 Structured Outputs — Biến văn bản thô thành data có cấu trúc</h3>
+<p>Bài học Day 3 giới thiệu kỹ thuật quan trọng nhất cho việc xây dựng agent thực tế: thay vì viết Regex phức tạp để trích xuất thông tin từ HTML/RSS, dùng LLM với Pydantic để parse data.</p>
+<p><strong>Vấn đề truyền thống:</strong> Câu "Giảm $50 từ giá gốc $200 — chỉ còn $150" yêu cầu Regex rất phức tạp để hiểu rằng giá thực là $150, không phải $200 hay $50.</p>
+<p><strong>Giải pháp Structured Outputs:</strong> Định nghĩa schema bằng Pydantic, OpenAI tự động đảm bảo kết quả khớp 100% schema (Constrained Decoding — mỗi token được sinh ra phải hợp lệ theo JSON Schema, không thể có sai cú pháp).</p>
+<h3 id="72-data-models-dealspy">7.2 Data Models (<code>deals.py</code>)</h3>
+<pre><code class="language-python">class Deal(BaseModel):
+    &quot;&quot;&quot;Pydantic model — một sản phẩm đã qua LLM processing.&quot;&quot;&quot;
+    product_description: str
+    price: float
+    url: str
+
+class DealSelection(BaseModel):
+    &quot;&quot;&quot;Output của ScannerAgent — top 5 deals từ RSS.&quot;&quot;&quot;
+    deals: List[Deal]
+
+class Opportunity(BaseModel):
+    &quot;&quot;&quot;Output của EnsembleAgent — deal + ước lượng giá thực.&quot;&quot;&quot;
+    deal: Deal
+    estimate: float
+    discount: float        # = estimate - deal.price
+
+class ScrapedDeal:
+    &quot;&quot;&quot;Raw data từ RSS feed (dùng bởi price_is_right.py).&quot;&quot;&quot;
+    title: str
+    summary: str
+    url: str
+    details: str
+    features: str
+
+    @classmethod
+    def fetch(cls) -&gt; List[&quot;ScrapedDeal&quot;]:
+        &quot;&quot;&quot;Fetch từ 5 DealNews RSS categories bằng feedparser.&quot;&quot;&quot;
+        feeds = [
+            &quot;https://www.dealnews.com/c142/Electronics/?rss=1&quot;,
+            &quot;https://www.dealnews.com/c39/Computers/?rss=1&quot;,
+            &quot;https://www.dealnews.com/f1912/Smart-Home/?rss=1&quot;,
+            &quot;https://www.dealnews.com/c238/Automotive/?rss=1&quot;,
+            &quot;https://www.dealnews.com/c196/Home-Garden/?rss=1&quot;,
+        ]
+        # feedparser.parse() mỗi feed, BeautifulSoup loại bỏ HTML tags
+</code></pre>
+<p><strong>Chi tiết <code>ScrapedDeal</code> — 2 tầng scraping:</strong></p>
+<p><code>ScrapedDeal</code> không chỉ đọc RSS feed một chiều. Khi khởi tạo mỗi entry, nó thực hiện 2 tầng thu thập dữ liệu:</p>
+<p><strong>Tầng 1 — RSS summary:</strong> <code>feedparser</code> parse RSS XML. Hàm <code>extract()</code> dùng BeautifulSoup để làm sạch HTML snippet trong field <code>summary</code> — DealNews RSS nhúng HTML thô vào đây, ví dụ: <code>&lt;div class="snippet summary"&gt;Ryzen 5 laptop at a great price...&lt;/div&gt;</code>. BeautifulSoup tìm đúng <code>&lt;div class="snippet summary"&gt;</code>, lấy text thuần, rồi regex xóa nốt các thẻ HTML còn sót.</p>
+<p><strong>Tầng 2 — Follow URL (HTTP GET):</strong> Sau khi có summary, <code>__init__</code> gọi <code>requests.get(self.url, timeout=10)</code> để lấy nội dung trang DealNews. BeautifulSoup tìm <code>&lt;div class="content-section"&gt;</code> — nơi chứa mô tả đầy đủ. Nếu text có chữ <code>"Features"</code>, chia đôi thành <code>details</code> (phần trước) và <code>features</code> (phần sau). Kết quả: thông tin phong phú hơn nhiều so với chỉ đọc RSS.</p>
+<p><strong>Fallback kép:</strong> Nếu <code>content-section</code> không tìm thấy → fallback về summary RSS. Nếu request lỗi (timeout, connection error) → cũng fallback. Hệ thống không crash khi 1 deal fail scrape — pattern phòng thủ cần thiết vì HTTP request luôn có thể lỗi.</p>
+<p><strong><code>truncate()</code> — Bảo vệ context window và chi phí:</strong></p>
+<pre><code class="language-python">def truncate(self):
+    self.title = self.title[:100]
+    self.details = self.details[:500]
+    self.features = self.features[:500]
+</code></pre>
+<p>Mỗi deal được đưa vào prompt GPT. Nếu không cắt ngắn: ~20 deals × có thể vài nghìn ký tự mỗi deal = dễ vượt context limit và tốn nhiều tiền. Title 100 + details 500 + features 500 = 1100 ký tự/deal là đủ để GPT so sánh chất lượng.</p>
+<p><strong><code>describe()</code> — Format nhất quán cho LLM:</strong></p>
+<pre><code class="language-python">def describe(self):
+    return f"Title: {self.title}\nDetails: {self.details.strip()}\nFeatures: {self.features.strip()}\nURL: {self.url}"
+</code></pre>
+<p>Format <code>Title / Details / Features / URL</code> nhất quán giúp GPT-5-nano so sánh 20 deals một cách công bằng — tất cả cùng template, không deal nào có cấu trúc khác gây confusion.</p>
+<p><strong><code>fetch()</code> — Loop 4 feeds, tối đa 5 entries mỗi feed:</strong></p>
+<pre><code class="language-python">for feed_url in feed_iter:
+    feed = feedparser.parse(feed_url)
+    for entry in feed.entries[:5]:
+        deals.append(cls(entry))
+        time.sleep(0.05)
+</code></pre>
+<p><code>[:5]</code> giới hạn 5 entries mỗi feed (4 feeds × 5 = ~20 deals). <code>time.sleep(0.05)</code> là rate-limit đơn giản: 50ms giữa mỗi entry tránh DealNews chặn vì quá nhiều request liên tiếp.</p>
+<p><strong>Pydantic Field descriptions — Hướng dẫn ngầm cho LLM:</strong></p>
+<p>Field <code>description</code> trong Pydantic không chỉ là documentation nội bộ. Khi dùng OpenAI Structured Outputs, các mô tả này được chuyển thành JSON Schema gửi lên API — GPT đọc chúng như hướng dẫn cách điền từng field:</p>
+<pre><code class="language-python">product_description: str = Field(
+    description="...Details of the item are much more important than why it's a good deal. "
+                "Avoid mentioning discounts and coupons; focus on the item itself."
+)
+price: float = Field(
+    description="...if a deal is described as $100 off the usual $300 price, you should respond with $200"
+)
+</code></pre>
+<p>Cách này ép GPT không chỉ tuân theo kiểu dữ liệu (str, float) mà còn tuân theo ngữ nghĩa: viết mô tả sản phẩm thay vì điều kiện deal; trả về giá cuối thay vì giá gốc.</p>
+<hr />
+<h3 id="73-scanner_agentpy-scan-rss-gpt-filter">7.3 <code>scanner_agent.py</code> — Scan RSS + GPT filter</h3>
+<pre><code class="language-python">class ScannerAgent(Agent):
+    MODEL = &quot;gpt-5-mini&quot;
+    name = &quot;Scanner Agent&quot;
+    color = Agent.CYAN
+
+    SYSTEM_PROMPT = &quot;&quot;&quot;You identify and summarize the 5 most detailed deals from a list.
+    CRITICAL PRICING RULES:
+    1. &quot;Off&quot; is NOT the actual price — only include when final checkout price is explicit.
+    2. EXCLUDE &quot;Up to X% off&quot; general sale events.
+    3. EXCLUDE trade-in deals (&quot;$700 off w/ trade-in&quot;).
+    &quot;&quot;&quot;
+
+    def fetch_deals(self, memory) -&gt; List[ScrapedDeal]:
+        &quot;&quot;&quot;Lấy deals từ RSS, loại bỏ những cái đã có trong memory.&quot;&quot;&quot;
+        urls = [opp.deal.url for opp in memory]
+        scraped = ScrapedDeal.fetch()   # ~25 deals từ 5 feeds
+        return [s for s in scraped if s.url not in urls]
+
+    def scan(self, memory=[]) -&gt; Optional[DealSelection]:
+        &quot;&quot;&quot;GPT-5-mini chọn top 5 deals tốt nhất bằng Structured Outputs.&quot;&quot;&quot;
+        scraped = self.fetch_deals(memory)
+        if not scraped:
+            return None
+        user_prompt = self.USER_PROMPT_PREFIX
+        user_prompt += &quot;\n\n&quot;.join([scrape.describe() for scrape in scraped])
+        user_prompt += &quot;\n\nInclude exactly 5 deals, no more.&quot;
+
+        result = self.openai.chat.completions.parse(
+            model=self.MODEL,
+            messages=[
+                {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: self.SYSTEM_PROMPT},
+                {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_prompt},
+            ],
+            response_format=DealSelection,   # Structured Output
+            reasoning_effort=&quot;minimal&quot;,      # Nhanh và rẻ
+        )
+        result = result.choices[0].message.parsed
+        result.deals = [deal for deal in result.deals if deal.price &gt; 0]
+        return result
+</code></pre>
+<p><strong>Reasoning effort "minimal":</strong> GPT-5-mini với <code>reasoning_effort="minimal"</code> giảm thời gian suy nghĩ xuống mức tối thiểu — phù hợp vì bài toán chọn deal chỉ cần đọc hiểu văn bản, không cần suy luận phức tạp. Tiết kiệm chi phí và thời gian.</p>
+<p><strong>Lưu ý: MODEL bị override — dấu vết của quá trình phát triển:</strong></p>
+<pre><code class="language-python">MODEL = "gpt-5-mini"   # Dòng 8 — model ban đầu
+MODEL = "gpt-5-nano"   # Dòng 9 — override, model thực tế chạy
+</code></pre>
+<p>Trong code thực tế có hai dòng gán <code>MODEL</code> liên tiếp. Đây là dấu vết quá trình chuyển từ <code>gpt-5-mini</code> sang <code>gpt-5-nano</code> (rẻ hơn, nhanh hơn) nhưng không xóa dòng cũ. Python gán cuối cùng thắng: model thực sự chạy là <code>gpt-5-nano</code>.</p>
+<p><strong>Hai tầng prompt — tại sao lặp lại pricing rules?</strong></p>
+<p><code>SYSTEM_PROMPT</code> chứa 4 CRITICAL PRICING RULES bất biến. <code>USER_PROMPT_PREFIX</code> lặp lại một phần các rules này dưới dạng STRICT FILTERING CRITERIA kèm theo data thực tế.</p>
+<p>Lý do: LLM khi xử lý long user prompt (~20 deals × 1100 ký tự ≈ 5000+ tokens) có xu hướng "quên" system prompt. Lặp lại rules quan trọng trong phần gần với data tăng khả năng GPT áp dụng chúng đúng. Đây là kỹ thuật prompt engineering thực tế.</p>
+<p><strong><code>make_user_prompt()</code> — Tách biệt logic tạo prompt:</strong></p>
+<pre><code class="language-python">def make_user_prompt(self, scraped) -> str:
+    user_prompt = self.USER_PROMPT_PREFIX
+    user_prompt += "\n\n".join([scrape.describe() for scrape in scraped])
+    user_prompt += self.USER_PROMPT_SUFFIX
+    return user_prompt
+</code></pre>
+<p>Phương thức tách biệt để dễ test và debug — có thể in ra prompt mà không cần gọi OpenAI. Mỗi deal nối bằng <code>\n\n</code> (dòng trống) để GPT phân biệt ranh giới giữa các deals.</p>
+<p><strong>Filter sau parse — tại sao check <code>deal.price &gt; 0</code>?</strong></p>
+<pre><code class="language-python">result.deals = [deal for deal in result.deals if deal.price > 0]
+</code></pre>
+<p>Pydantic đảm bảo <code>price</code> là float, nhưng không cấm giá trị 0. GPT đôi khi trả về <code>price=0</code> khi không chắc chắn về giá — thường xảy ra với deals có cấu trúc phức tạp như "From $X" hoặc "Starting at". Lọc bỏ trước khi trả về tránh EnsembleAgent tính discount vô nghĩa.</p>
+<p><strong><code>test_scan()</code> — Phát triển không tốn API:</strong></p>
+<pre><code class="language-python">def test_scan(self, memory: List[str] = []) -> Optional[DealSelection]:
+    results = {"deals": [...4 deals hardcoded...]}
+    return DealSelection(**results)
+</code></pre>
+<p>Phương thức này bypass hoàn toàn RSS fetch và OpenAI call, trả về <code>DealSelection</code> cứng. Khi đang phát triển <code>EnsembleAgent</code> hoặc <code>MessagingAgent</code>, dùng <code>test_scan()</code> thay <code>scan()</code> để không tốn tiền API mỗi lần test. Pattern này gọi là "test double" — phương thức thay thế cho phép test downstream logic mà không gọi external service.</p>
+<hr />
+<h2 id="phan-8-messagingagent-push-notification-day-3">Phần 8: MessagingAgent — Push Notification (Day 3)</h2>
+<h3 id="81-pushover-api">8.1 Pushover API</h3>
+<p>Pushover là dịch vụ push notification đơn giản: gọi một API endpoint duy nhất là thông báo xuất hiện trên điện thoại, kèm âm thanh tùy chọn.</p>
+<h3 id="82-messaging_agentpy">8.2 <code>messaging_agent.py</code></h3>
+<pre><code class="language-python">class MessagingAgent(Agent):
+    name = &quot;Messaging Agent&quot;
+    color = Agent.MAGENTA
+    MODEL = &quot;gpt-5-nano&quot;    # Model nhỏ nhất, đủ dùng để viết text marketing
+
+    def push(self, text: str):
+        &quot;&quot;&quot;Gửi notification qua Pushover API.&quot;&quot;&quot;
+        payload = {
+            &quot;user&quot;: self.pushover_user,
+            &quot;token&quot;: self.pushover_token,
+            &quot;message&quot;: text,
+            &quot;sound&quot;: &quot;cashregister&quot;,   # Tiếng máy tính tiền khi deal tốt
+        }
+        requests.post(&quot;https://api.pushover.net/1/messages.json&quot;, data=payload)
+
+    def craft_message(self, description, deal_price, estimated_true_value) -&gt; str:
+        &quot;&quot;&quot;Dùng GPT-5-nano viết tin nhắn marketing hài hước, tạo FOMO.&quot;&quot;&quot;
+        user_prompt = f&quot;&quot;&quot;Summarize this deal in 2-3 sentences for a push notification.
+Item: {description}
+Deal Price: {deal_price}
+Estimated True Value: {estimated_true_value}
+Use hilarious, high-energy tone. Create major FOMO. Respond ONLY with the message.&quot;&quot;&quot;
+        response = completion(model=self.MODEL, messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_prompt}])
+        return response.choices[0].message.content
+
+    def notify(self, description, deal_price, estimated_true_value, url):
+        &quot;&quot;&quot;Craft message + push. Dùng bởi AutonomousPlanningAgent và MultiSourcePlanningAgent.&quot;&quot;&quot;
+        text = self.craft_message(description, deal_price, estimated_true_value)
+        self.push(text[:200] + &quot;... &quot; + url)
+
+    def alert(self, opportunity: Opportunity):
+        &quot;&quot;&quot;Format đơn giản + push. Dùng bởi PlanningAgent (simple mode).&quot;&quot;&quot;
+        text = f&quot;Deal Alert! Price=${opportunity.deal.price:.2f}, &quot;
+        text += f&quot;Estimate=${opportunity.estimate:.2f}, Discount=${opportunity.discount:.2f} :&quot;
+        text += opportunity.deal.product_description[:10] + &quot;... &quot; + opportunity.deal.url
+        self.push(text)
+</code></pre>
+<p><strong>Hai phương thức notify:</strong> <code>notify()</code> dùng GPT để viết tin nhắn sáng tạo (cho autonomous mode), <code>alert()</code> dùng format đơn giản không tốn API call (cho simple mode khi cần tiết kiệm).</p>
+<hr />
+<h2 id="phan-9-planning-agents-bo-nao-ieu-phoi-day-4">Phần 9: Planning Agents — Bộ não điều phối (Day 4)</h2>
+<h3 id="91-planningagent-simple-mode-hard-coded-workflow">9.1 PlanningAgent — Simple Mode (Hard-coded Workflow)</h3>
+<pre><code class="language-python">class PlanningAgent(Agent):
+    name = &quot;Planning Agent&quot;
+    color = Agent.GREEN
+    DEAL_THRESHOLD = 50    # Notify nếu discount &gt; $50
+
+    def __init__(self, collection):
+        self.scanner = ScannerAgent()
+        self.ensemble = EnsembleAgent(collection)
+        self.messenger = MessagingAgent()
+
+    def plan(self, memory=[]) -&gt; Optional[Opportunity]:
+        &quot;&quot;&quot;Sequential workflow — không có AI orchestration.&quot;&quot;&quot;
+        # 1. Scan RSS
+        selection = self.scanner.scan(memory=memory)
+        if not selection:
+            return None
+
+        # 2. Estimate all 5 deals
+        opportunities = []
+        for deal in selection.deals[:5]:
+            estimate = self.ensemble.price(deal.product_description)
+            discount = estimate - deal.price
+            opportunities.append(Opportunity(deal=deal, estimate=estimate, discount=discount))
+
+        # 3. Chọn deal tốt nhất (sort by discount)
+        opportunities.sort(key=lambda opp: opp.discount, reverse=True)
+        best = opportunities[0]
+
+        # 4. Notify nếu đủ tốt
+        if best.discount &gt; self.DEAL_THRESHOLD:
+            self.messenger.alert(best)
+
+        return best if best.discount &gt; self.DEAL_THRESHOLD else None
+</code></pre>
+<p>Workflow cứng: luôn scan → estimate tất cả → chọn tốt nhất → notify. Không có sự linh hoạt, nhưng dễ debug và ổn định.</p>
+<p><strong><code>run()</code> vs <code>plan()</code> — Phân tách trách nhiệm rõ ràng:</strong></p>
+<p><code>PlanningAgent</code> có hai phương thức với vai trò tách biệt:</p>
+<ul>
+<li><code>run(deal)</code>: Xử lý một deal đơn lẻ → gọi <code>EnsembleAgent.price()</code> → tạo <code>Opportunity</code>. Không biết gì về workflow tổng thể.</li>
+<li><code>plan(memory)</code>: Điều phối toàn bộ luồng → gọi <code>run()</code> cho mỗi deal.</li>
+</ul>
+<pre><code class="language-python"># plan() gọi run() bằng list comprehension
+opportunities = [self.run(deal) for deal in selection.deals[:5]]
+</code></pre>
+<p>Lợi ích: <code>plan()</code> có thể thay đổi cách gọi <code>run()</code> (list comprehension → parallel <code>ThreadPoolExecutor</code>) mà không cần sửa logic bên trong <code>run()</code>. Đây là Single Responsibility Principle trong thực tế: <code>run()</code> biết cách estimate 1 deal, <code>plan()</code> biết cách phối hợp toàn bộ.</p>
+<p><strong>Tại sao chỉ return deal nếu discount &gt; threshold?</strong></p>
+<pre><code class="language-python">return best if best.discount > self.DEAL_THRESHOLD else None
+</code></pre>
+<p><code>DealAgentFramework.run()</code> kiểm tra kết quả: nếu <code>None</code> → không lưu vào <code>memory.json</code>. Cycle tiếp theo sẽ scan lại toàn bộ RSS kể cả các deals lần này đã xem — vì chúng có thể giảm giá thêm sau đó. Chỉ deals đã gửi notification mới được lưu vào memory, tránh duplicate notification cho cùng một deal.</p>
+<h3 id="92-autonomousplanningagent-gpt-51-lam-controller">9.2 AutonomousPlanningAgent — GPT-5.1 làm Controller</h3>
+<p>Đây là điểm khác biệt lớn nhất: thay vì hard-code "luôn scan rồi estimate rồi notify", GPT-5.1 tự quyết định thứ tự và điều kiện gọi các tool.</p>
+<p><strong>Function Tools:</strong> Ba hàm được expose cho GPT như công cụ:</p>
+<pre><code class="language-python">@function_tool
+def scan_the_internet_for_bargains() -&gt; str:
+    &quot;&quot;&quot;Scan RSS feeds và trả về JSON của DealSelection.&quot;&quot;&quot;
+    results = planner.scanner.scan(memory=planner.memory)
+    return results.model_dump_json() if results else &quot;&quot;
+
+@function_tool
+def estimate_true_value(description: str) -&gt; str:
+    &quot;&quot;&quot;Estimate giá một sản phẩm, trả về JSON {description, estimated_true_value}.&quot;&quot;&quot;
+    estimate = planner.ensemble.price(description)
+    return json.dumps({&quot;description&quot;: description, &quot;estimated_true_value&quot;: estimate})
+
+@function_tool
+def notify_user_of_deal(description, deal_price, estimated_true_value, url) -&gt; str:
+    &quot;&quot;&quot;Gửi push notification và tạo Opportunity object.&quot;&quot;&quot;
+    planner.messenger.notify(description, deal_price, estimated_true_value, url)
+    deal = Deal(product_description=description, price=deal_price, url=url)
+    discount = estimated_true_value - deal_price
+    planner.opportunity = Opportunity(deal=deal, estimate=estimated_true_value, discount=discount)
+    return &quot;notification sent&quot;
+</code></pre>
+<p><strong>Task prompt cho GPT-5.1:</strong></p>
+<pre><code>You are an Autonomous AI Agent. Your mission:
+1. Scan the internet for bargains.
+2. For each deal, estimate its true value.
+3. Pick the single most compelling deal (price &lt;&lt; estimated value).
+4. Send a push notification and write to sandbox/deals.md.
+You must only notify about ONE deal. Then respond OK.
+</code></pre>
+<p><strong>MCP Server (Model Context Protocol):</strong> AutonomousPlanningAgent còn được tích hợp MCP Filesystem Server — cho phép GPT-5.1 đọc và ghi file <code>sandbox/deals.md</code> như thể đó là một tool thông thường. Không cần code thêm file I/O thủ công.</p>
+<pre><code class="language-python">async def go(self):
+    async with MCPServerStdio(params=files_params, client_session_timeout_seconds=60) as server:
+        agent = Agent(
+            name=&quot;Planner&quot;,
+            model=self.MODEL,
+            tools=self.get_tools(),
+            mcp_servers=[server],   # GPT có thể write file qua MCP
+        )
+        reply = await Runner.run(agent, self.task)
+    return reply.final_output
+</code></pre>
+<p><strong><code>global planner</code> — Giải pháp cho closure limitation của <code>@function_tool</code>:</strong></p>
+<pre><code class="language-python">planner = None   # Module-level global
+
+@function_tool
+def scan_the_internet_for_bargains() -> str:
+    planner.log(...)
+    results = planner.scanner.scan(memory=planner.memory)
+    return results.model_dump_json() if results else ""
+</code></pre>
+<p><code>@function_tool</code> phải được định nghĩa ở module level (bên ngoài class) nên không có <code>self</code>. Giải pháp: dùng module-level global <code>planner</code>. Khi <code>plan()</code> chạy, nó gán <code>global planner = self</code> trước khi gọi <code>go()</code>. Code có comment <code># TODO use context instead of globals</code> — đây là technical debt được tác giả thừa nhận, có thể refactor bằng cách truyền <code>planner</code> qua context variable thay vì global.</p>
+<p><strong>Deduplication guard trong <code>notify_user_of_deal</code>:</strong></p>
+<pre><code class="language-python">@function_tool
+def notify_user_of_deal(description, deal_price, estimated_true_value, url) -> str:
+    if planner.opportunity:   # Đã notify rồi?
+        planner.log("...trying to notify 2nd time; ignoring")
+    else:
+        planner.messenger.notify(description, deal_price, estimated_true_value, url)
+        deal = Deal(product_description=description, price=deal_price, url=url)
+        discount = estimated_true_value - deal_price
+        planner.opportunity = Opportunity(deal=deal, estimate=estimated_true_value, discount=discount)
+    return "notification sent"   # Trả về giống nhau cả hai nhánh
+</code></pre>
+<p>GPT-5.1 đôi khi gọi <code>notify_user_of_deal</code> nhiều hơn 1 lần dù task prompt nói "only notify about ONE deal". Guard <code>if planner.opportunity:</code> đảm bảo chỉ notification đầu tiên thực sự được gửi. Cả hai nhánh đều <code>return "notification sent"</code> — GPT không biết lần gọi thứ 2 bị bỏ qua.</p>
+<p><strong><code>run_async_task()</code> — Tương thích Jupyter và script thông thường:</strong></p>
+<pre><code class="language-python">def run_async_task(self, coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Không có event loop (script bình thường) → tạo mới
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+    else:
+        # Đã có event loop đang chạy (Jupyter) → nest_asyncio
+        import nest_asyncio
+        nest_asyncio.apply()
+        return loop.run_until_complete(coro)
+</code></pre>
+<p>Jupyter Notebook đã có event loop đang chạy. Nếu gọi <code>asyncio.run()</code> sẽ lỗi <code>"cannot be called from a running event loop"</code>. <code>nest_asyncio.apply()</code> patch Python asyncio để cho phép nested event loops — giải pháp tiêu chuẩn cho code async trong Jupyter. Trong production (<code>price_is_right.py</code>), không có running loop → nhánh <code>except RuntimeError</code> chạy bình thường.</p>
+<p><strong>MCP Server là subprocess Node.js:</strong></p>
+<pre><code class="language-python">files_params = {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", sandbox_path],
+}
+</code></pre>
+<p><code>MCPServerStdio</code> chạy lệnh <code>npx -y @modelcontextprotocol/server-filesystem ./sandbox</code> như một subprocess Node.js, giao tiếp với Python qua stdin/stdout theo giao thức MCP. Context manager <code>async with</code> đảm bảo subprocess được terminate sau khi done. GPT-5.1 nhận danh sách tools từ MCP server (read_file, write_file, list_directory...) và gọi chúng như function tool thông thường — viết <code>sandbox/deals.md</code> không cần code Python file I/O thủ công.</p>
+<p><strong>State reset đầu mỗi cycle trong <code>plan()</code>:</strong></p>
+<pre><code class="language-python">def plan(self, memory: List[str] = []) -> Optional[Opportunity]:
+    self.memory = memory
+    self.opportunity = None   # Reset về None trước mỗi cycle
+    global planner
+    planner = self
+    reply = self.run_async_task(self.go())
+    return self.opportunity   # None nếu GPT không gọi notify
+</code></pre>
+<p><code>self.opportunity = None</code> reset trước mỗi cycle. Nếu GPT không gọi <code>notify_user_of_deal</code> (không tìm được deal đủ tốt), <code>self.opportunity</code> vẫn là <code>None</code> → <code>plan()</code> trả về <code>None</code> → <code>DealAgentFramework</code> không lưu vào <code>memory.json</code>.</p>
+<hr />
+<h3 id="93-so-sanh-hai-planning-agents">9.3 So sánh hai Planning Agents</h3>
+<table>
+<thead>
+<tr>
+<th>Đặc điểm</th>
+<th>PlanningAgent</th>
+<th>AutonomousPlanningAgent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Điều phối</strong></td>
+<td>Code cứng (Python)</td>
+<td>GPT-5.1 tự quyết định</td>
+</tr>
+<tr>
+<td><strong>Linh hoạt</strong></td>
+<td>Thấp — luôn estimate đủ 5 deals</td>
+<td>Cao — GPT có thể chỉ estimate 3 deals tốt nhất</td>
+</tr>
+<tr>
+<td><strong>MCP Support</strong></td>
+<td>Không</td>
+<td>Có (write file)</td>
+</tr>
+<tr>
+<td><strong>Chi phí</strong></td>
+<td>Thấp hơn</td>
+<td>Cao hơn (thêm GPT-5.1 call)</td>
+</tr>
+<tr>
+<td><strong>Dễ debug</strong></td>
+<td>Có — luồng đơn giản</td>
+<td>Khó — phụ thuộc vào GPT reasoning</td>
+</tr>
+<tr>
+<td><strong>Default trong production</strong></td>
+<td>Không</td>
+<td>Có</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phan-10-app-1-price_is_rightpy-autonomous-deal-hunter">Phần 10: App 1 — price_is_right.py (Autonomous Deal Hunter)</h2>
+<h3 id="101-tong-quan">10.1 Tổng quan</h3>
+<p><code>price_is_right.py</code> là ứng dụng autonomous: sau khi khởi động, nó tự chạy mỗi 5 phút mà không cần người dùng tương tác. Mục tiêu: tìm deals từ DealNews RSS → estimate giá → notify nếu đủ tốt.</p>
+<h3 id="102-dealagentframework-quan-ly-trang-thai">10.2 DealAgentFramework — Quản lý trạng thái</h3>
+<pre><code class="language-python">class DealAgentFramework:
+    DB = &quot;products_vectorstore&quot;
+    MEMORY_FILENAME = &quot;memory.json&quot;
+
+    def __init__(self):
+        client = chromadb.PersistentClient(path=self.DB)
+        self.memory = self.read_memory()     # Load deals đã xử lý
+        self.collection = client.get_or_create_collection('products')
+        self.planner = None                  # Lazy init
+
+    def read_memory(self) -&gt; List[Opportunity]:
+        &quot;&quot;&quot;Load memory.json — danh sách deals đã gửi notification (tránh duplicate).&quot;&quot;&quot;
+        if os.path.exists(self.MEMORY_FILENAME):
+            with open(self.MEMORY_FILENAME, &quot;r&quot;) as file:
+                data = json.load(file)
+            return [Opportunity(**item) for item in data]
+        return []
+
+    def write_memory(self) -&gt; None:
+        &quot;&quot;&quot;Append deal mới vào memory.json.&quot;&quot;&quot;
+        data = [opportunity.dict() for opportunity in self.memory]
+        with open(self.MEMORY_FILENAME, &quot;w&quot;) as file:
+            json.dump(data, file, indent=2)
+
+    def run(self) -&gt; List[Opportunity]:
+        &quot;&quot;&quot;Chạy một cycle: scan → estimate → notify → save.&quot;&quot;&quot;
+        self.init_agents_as_needed()
+        result = self.planner.plan(memory=self.memory)
+        if result:
+            self.memory.append(result)
+            self.write_memory()
+        return self.memory
+
+    @classmethod
+    def get_plot_data(cls, max_datapoints=800):
+        &quot;&quot;&quot;Lấy data cho 3D t-SNE visualization.&quot;&quot;&quot;
+        client = chromadb.PersistentClient(path=cls.DB)
+        collection = client.get_or_create_collection('products')
+        result = collection.get(include=['embeddings', 'documents', 'metadatas'], limit=max_datapoints)
+        vectors = np.array(result['embeddings'])
+        categories = [m['category'] for m in result['metadatas']]
+        colors = [COLORS[CATEGORIES.index(c)] for c in categories]
+        tsne = TSNE(n_components=3, random_state=42, n_jobs=-1)
+        reduced_vectors = tsne.fit_transform(vectors)
+        return result['documents'], reduced_vectors, colors
+</code></pre>
+<p><strong>Memory system:</strong> <code>memory.json</code> lưu danh sách deals đã xử lý. Mỗi cycle, ScannerAgent lọc bỏ các URL đã có trong memory — đảm bảo người dùng không nhận notification trùng lặp về cùng một deal.</p>
+<h3 id="103-gradio-ui-cua-price_is_rightpy">10.3 Gradio UI của price_is_right.py</h3>
+<pre><code class="language-python">class App:
+    def run(self):
+        with gr.Blocks(title=&quot;The Price is Right&quot;) as ui:
+
+            # Bảng deals: Description | Price | Estimate | Discount | URL
+            opportunities_dataframe = gr.Dataframe(
+                headers=[&quot;Deals found so far&quot;, &quot;Price&quot;, &quot;Estimate&quot;, &quot;Discount&quot;, &quot;URL&quot;],
+                row_count=10,
+            )
+
+            # Logs HTML + Plot 3D t-SNE
+            with gr.Row():
+                logs = gr.HTML()
+                plot = gr.Plot(value=get_plot())   # t-SNE visualization của ChromaDB
+
+            # Load lần đầu + Timer mỗi 5 phút
+            ui.load(run_with_logging, inputs=[log_data], outputs=[log_data, logs, opportunities_dataframe])
+            timer = gr.Timer(value=300, active=True)
+            timer.tick(run_with_logging, inputs=[log_data], outputs=[log_data, logs, opportunities_dataframe])
+
+            # Click vào row → gửi notification thủ công
+            opportunities_dataframe.select(do_select)
+</code></pre>
+<p><strong>Real-time logging:</strong> Pipeline chạy trong thread riêng (<code>threading.Thread</code>), logs được đưa vào <code>queue.Queue</code>. Main thread poll queue mỗi 0.1s và yield log updates cho Gradio — tạo hiệu ứng streaming log real-time mà không block UI.</p>
+<h3 id="104-workflow-chi-tiet">10.4 Workflow chi tiết</h3>
+<pre><code>[Khởi động]
+    │
+    ├─ Load ChromaDB (800K products)
+    ├─ Load memory.json (deals đã xử lý)
+    └─ Vẽ 3D t-SNE plot (800 điểm ngẫu nhiên)
+    │
+    ▼ [Mỗi 5 phút hoặc khi load]
+    │
+[Step 1] ScannerAgent.scan(memory)
+    ├─ Fetch 5 DealNews RSS categories (~25 deals)
+    ├─ Lọc bỏ URLs đã có trong memory
+    └─ GPT-5-mini chọn top 5 deals (Structured Outputs)
+    │
+[Step 2] EnsembleAgent.price() cho mỗi deal
+    ├─ Preprocessor: LiteLLM viết lại text
+    ├─ FrontierAgent: GPT-5.1 + RAG (ChromaDB) → 80%
+    ├─ SpecialistAgent: Llama-3.2-3B (Modal T4) → 10%
+    └─ NeuralNetworkAgent: PyTorch DNN (local) → 10%
+    │
+[Step 3] Sort by discount (cao nhất đầu)
+    │
+[Step 4] if best.discount &gt; $50:
+    └─ MessagingAgent.notify() → Pushover push notification
+    │
+[Step 5] Append best deal vào memory.json
+         Update Gradio dataframe
+    │
+[Sleep 5 phút] ──────────────────────────► [Lặp lại từ Step 1]
+</code></pre>
+<hr />
+<h2 id="phan-11-app-2-search_keypy-multi-source-deal-finder">Phần 11: App 2 — search_key.py (Multi-Source Deal Finder)</h2>
+<h3 id="111-tong-quan">11.1 Tổng quan</h3>
+<p><code>search_key.py</code> là ứng dụng tương tác: người dùng nhập keyword → hệ thống tìm kiếm song song trên BestBuy và Amazon → trả về top 3 deals với ước lượng giá thực. Đây là ứng dụng được phát triển sau, mở rộng từ <code>price_is_right.py</code> để hỗ trợ scraping thực tế từ hai nguồn thay vì chỉ RSS.</p>
+<h3 id="112-thach-thuc-ky-thuat-scraping-bestbuy-va-amazon-tu-wsl2">11.2 Thách thức kỹ thuật: Scraping BestBuy và Amazon từ WSL2</h3>
+<p><strong>Vấn đề:</strong> Cả BestBuy và Amazon đều dùng hệ thống phát hiện bot tinh vi. Requests HTTP thông thường từ WSL2 bị chặn ngay lập tức.</p>
+<p><strong>Giải pháp: <code>curl_cffi</code> với Chrome impersonation</strong></p>
+<p><code>curl_cffi</code> là thư viện HTTP có thể giả lập TLS fingerprint của Chrome — cách mà các trang web phát hiện bot. Bằng cách dùng <code>impersonate="chrome"</code>, request của chúng ta trông giống hệt request từ trình duyệt Chrome thực sự.</p>
+<pre><code class="language-python">from curl_cffi import requests as cffi_requests
+
+session = cffi_requests.Session(impersonate=&quot;chrome&quot;)
+# Từ đây, mọi request từ session này đều có TLS fingerprint của Chrome
+response = session.get(&quot;https://www.bestbuy.com/...&quot;, headers=headers)
+</code></pre>
+<h3 id="113-bestbuy-scraping-bestbuy_dealspy">11.3 BestBuy Scraping (<code>bestbuy_deals.py</code>)</h3>
+<p>BestBuy product pages bị chặn từ WSL2 (HTTP/2 + Akamai CDN). Giải pháp: dùng internal APIs thay vì scrape HTML.</p>
+<p><strong>3 API endpoints của BestBuy được dùng:</strong></p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>Endpoint</th>
+<th>Dữ liệu lấy về</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search</td>
+<td><code>/site/searchpage.jsp</code></td>
+<td>Apollo SSR cache → list <code>{skuId, pdpUrl}</code></td>
+</tr>
+<tr>
+<td>Price Blocks</td>
+<td><code>/api/3.0/priceBlocks</code></td>
+<td>price, brand, name, onSale (batch cho nhiều SKU)</td>
+</tr>
+<tr>
+<td>Product Details</td>
+<td><code>/api/v2/product/&lt;skuId&gt;</code></td>
+<td>features, clean URL</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">def search_filter_scrape_bestbuy(keyword: str, max_results: int = 6) -&gt; List[ScrapedBestBuyDeal]:
+    &quot;&quot;&quot;Pipeline BestBuy hoàn chỉnh.&quot;&quot;&quot;
+    session = _init_session()         # curl_cffi + bypass country selection
+
+    # 1. Search: GET searchpage.jsp → parse Apollo SSR cache → {skuId, url}
+    sku_list = search_bestbuy(session, keyword)
+
+    # 2. Filter: GET priceBlocks API → chỉ lấy sản phẩm onSale = True
+    price_data = get_price_blocks(session, [s[&quot;skuId&quot;] for s in sku_list])
+    on_sale = [p for p in price_data if p.get(&quot;onSale&quot;)][:max_results]
+
+    # 3. Scrape details: GET v2 product API → features + clean URL
+    deals = []
+    for item in on_sale:
+        details = get_product_details(session, item[&quot;skuId&quot;])
+        deals.append(ScrapedBestBuyDeal(
+            title=item[&quot;name&quot;], brand=item[&quot;brand&quot;],
+            price=item[&quot;price&quot;], features=details[&quot;features&quot;], url=details[&quot;url&quot;]
+        ))
+    return deals
+</code></pre>
+<h3 id="114-amazon-scraping-amazon_dealspy">11.4 Amazon Scraping (<code>amazon_deals.py</code>)</h3>
+<p>Amazon dùng HTML parsing thay vì internal APIs:</p>
+<pre><code class="language-python">def search_filter_scrape_amazon(keyword: str, max_results: int = 6) -&gt; List[ScrapedAmazonDeal]:
+    &quot;&quot;&quot;Pipeline Amazon hoàn chỉnh.&quot;&quot;&quot;
+    session = init_amazon_session()   # curl_cffi + POST set ZIP 96150 (để có giá USD)
+
+    # Search: GET search page, parse HTML → list products
+    search_results = search_amazon(session, keyword)
+
+    # Filter on_sale only
+    on_sale = [r for r in search_results if r.get(&quot;on_sale&quot;)][:max_results]
+
+    deals = []
+    for item in on_sale:
+        # Approach A: specs từ search page đủ dài (&gt;= 50 chars) → dùng luôn
+        # Approach B: specs ngắn → GET product page để lấy #feature-bullets
+        if len(item.get(&quot;specs&quot;, &quot;&quot;)) &lt; 50:
+            item[&quot;specs&quot;] = scrape_product_page(session, item[&quot;url&quot;])
+
+        deals.append(ScrapedAmazonDeal(
+            title=item[&quot;title&quot;], brand=item.get(&quot;brand&quot;, &quot;&quot;),
+            price=item[&quot;price&quot;], features=item[&quot;specs&quot;], url=item[&quot;url&quot;]
+        ))
+    return deals
+</code></pre>
+<p><strong>Hai Approach:</strong> Approach A nhanh (không cần request thêm), Approach B tốn thêm 2-3s mỗi sản phẩm nhưng lấy được thông số đầy đủ từ trang sản phẩm.</p>
+<p><strong>ZIP Code 96150:</strong> Đây là ZIP của Lake Tahoe, California — được dùng để ép Amazon hiển thị giá USD thay vì giá theo vùng. Trick này được POST qua API khi khởi tạo session.</p>
+<h3 id="115-multisourceplanningagent-pipeline-4-buoc">11.5 MultiSourcePlanningAgent — Pipeline 4 bước</h3>
+<pre><code class="language-python">class MultiSourcePlanningAgent(Agent):
+    name = &quot;Multi-Source Planning Agent&quot;
+    color = Agent.GREEN
+    DEAL_THRESHOLD = 100    # Auto-notify nếu discount &gt; $100
+
+    def plan(self, keyword: str, max_urls: int = 6, source: str = &quot;All&quot;) -&gt; List[Opportunity]:
+        &quot;&quot;&quot;Pipeline hoàn chỉnh: search → combine → select → estimate.&quot;&quot;&quot;
+        pipeline_start = time.time()
+
+        # Step 1: Search + Filter + Scrape (BestBuy + Amazon song song)
+        t0 = time.time()
+        if source == &quot;All&quot;:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                bb_future = executor.submit(self._bestbuy_pipeline, keyword, max_urls)
+                az_future = executor.submit(self._amazon_pipeline, keyword, max_urls)
+                bb_deals = bb_future.result()
+                az_deals = az_future.result()
+        # source == &quot;BestBuy&quot; hoặc &quot;Amazon&quot;: chạy chỉ một nguồn
+        self.log(f&quot;[TIMER] Step 1 completed in {time.time() - t0:.1f}s&quot;)
+
+        # Step 2: Combine → UnifiedScrapedDeal pool
+        unified_deals = self.combine(bb_deals, az_deals)
+
+        # Step 3: GPT-5-nano chọn top 3 deals từ pool hỗn hợp
+        deal_selection = self.select_top_deals(unified_deals)
+
+        # Step 4: EnsembleAgent estimate cho mỗi deal
+        opportunities = self.estimate_prices(deal_selection)
+
+        # Auto-notify nếu deal tốt nhất vượt threshold
+        if opportunities and opportunities[0].discount &gt; self.DEAL_THRESHOLD:
+            best = opportunities[0]
+            self.messenger.notify(...)
+
+        total = time.time() - pipeline_start
+        self.log(f&quot;Pipeline completed! Total: {total:.1f}s ({total/60:.1f} min)&quot;)
+        return opportunities
+</code></pre>
+<p><strong>ThreadPoolExecutor:</strong> BestBuy và Amazon scraping chạy song song — giảm thời gian Step 1 từ ~12-20s xuống còn ~6-8s (bottleneck là nguồn chậm hơn).</p>
+<h3 id="116-unifiedscrapeddeal-chuan-hoa-2-nguon">11.6 UnifiedScrapedDeal — Chuẩn hóa 2 nguồn</h3>
+<p>Sau khi scrape, BestBuy deals và Amazon deals có format khác nhau. <code>UnifiedScrapedDeal</code> chuẩn hóa về format chung:</p>
+<pre><code class="language-python">class UnifiedScrapedDeal:
+    source: str   # &quot;BestBuy&quot; hoặc &quot;Amazon&quot;
+    title: str
+    brand: str
+    price: float
+    features: str
+    url: str
+
+    @classmethod
+    def from_bestbuy(cls, deal: ScrapedBestBuyDeal) -&gt; &quot;UnifiedScrapedDeal&quot;:
+        return cls(source=&quot;BestBuy&quot;, title=deal.title, ...)
+
+    @classmethod
+    def from_amazon(cls, deal: ScrapedAmazonDeal) -&gt; &quot;UnifiedScrapedDeal&quot;:
+        return cls(source=&quot;Amazon&quot;, title=deal.title, ...)
+
+    def describe(self) -&gt; str:
+        &quot;&quot;&quot;Format cho LLM prompt: [Source] Title\nBrand\nPrice\nFeatures\nURL&quot;&quot;&quot;
+        return f&quot;[{self.source}] {self.title}\nBrand: {self.brand}\nPrice: ${self.price:.2f}\n...&quot;
+</code></pre>
+<h3 id="117-multisourcescanneragent-chon-top-3-tu-pool-hon-hop">11.7 MultiSourceScannerAgent — Chọn top 3 từ pool hỗn hợp</h3>
+<pre><code class="language-python">class MultiSourceScannerAgent(Agent):
+    MODEL = &quot;gpt-5-nano&quot;   # Model rẻ nhất, reasoning_effort=&quot;minimal&quot;
+
+    def scan(self, unified_deals: List[UnifiedScrapedDeal]) -&gt; Optional[DealSelection]:
+        &quot;&quot;&quot;GPT-5-nano chọn 3 deals có description chi tiết nhất từ pool BestBuy + Amazon.&quot;&quot;&quot;
+        prompt = self._build_prompt(unified_deals)  # describe() mỗi deal
+        result = self.openai.chat.completions.parse(
+            model=self.MODEL,
+            messages=[{&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: self.SYSTEM_PROMPT},
+                       {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
+            response_format=DealSelection,
+            reasoning_effort=&quot;minimal&quot;,
+        )
+        return result.choices[0].message.parsed
+</code></pre>
+<p>Prompt yêu cầu GPT prefix tên deal bằng <code>[BestBuy]</code> hoặc <code>[Amazon]</code> — giúp biết nguồn khi hiển thị kết quả.</p>
+<h3 id="118-gradio-ui-cua-search_keypy">11.8 Gradio UI của search_key.py</h3>
+<pre><code class="language-python">class App:
+    def run(self):
+        with gr.Blocks(title=&quot;Multi-Source Deal Finder&quot;) as ui:
+            # Input: keyword + max_urls + source (All/BestBuy/Amazon)
+            keyword_input = gr.Textbox(label=&quot;What are you looking for?&quot;)
+            max_urls_input = gr.Number(label=&quot;Max URLs (per source)&quot;, value=6)
+            source_input = gr.Radio(choices=[&quot;All&quot;, &quot;BestBuy&quot;, &quot;Amazon&quot;], value=&quot;All&quot;)
+            search_btn = gr.Button(&quot;Search&quot;, variant=&quot;primary&quot;)
+
+            # Output: HTML table + logs
+            results_table = gr.HTML()    # clickable URLs, color-coded by discount
+            logs_html = gr.HTML()        # real-time pipeline logs (dark theme)
+
+            # Push Notification thủ công
+            deal_index = gr.Number(label=&quot;Deal # to notify (0 = best)&quot;)
+            push_btn = gr.Button(&quot;Send Push Notification&quot;)
+</code></pre>
+<p><strong>HTML Table thay vì Dataframe:</strong> <code>search_key.py</code> dùng <code>gr.HTML</code> thay vì <code>gr.Dataframe</code> cho bảng kết quả — vì cần URL clickable và color-coding theo mức discount (HOT DEAL/Good Deal/OK/Overpriced).</p>
+<p><strong>Threading + Queue logging:</strong> Giống <code>price_is_right.py</code>, pipeline chạy trong thread riêng và stream logs real-time qua queue. Ngoài ra, <code>search_key.py</code> có một <code>QueueHandler</code> riêng được tích hợp vào Python logging system — mọi <code>logging.info()</code> trong bất kỳ agent nào cũng tự động xuất hiện trong logs panel của Gradio.</p>
+<hr />
+<h2 id="phan-12-kien-truc-3-tang-tong-the">Phần 12: Kiến trúc 3 tầng tổng thể</h2>
+<h3 id="121-so-o-toan-he-thong">12.1 Sơ đồ toàn hệ thống</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                          TẦNG UI (User Interface)                            │
+│                                                                               │
+│  price_is_right.py (Gradio)           search_key.py (Gradio)                 │
+│  ├─ Dataframe (deals history)         ├─ HTML table (top 3 deals)            │
+│  ├─ Logs HTML (real-time)             ├─ Logs HTML (real-time)               │
+│  ├─ 3D Plot (t-SNE ChromaDB)         └─ Push notification button             │
+│  └─ Timer (5 min auto-refresh)                                               │
+└─────────────────────────┬────────────────────────────────┬───────────────────┘
+                          │                                │
+                          ▼                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       TẦNG FRAMEWORK (Orchestrator)                          │
+│                                                                               │
+│  DealAgentFramework                   MultiSourceFramework                   │
+│  ├─ ChromaDB init                     ├─ ChromaDB init                       │
+│  ├─ memory.json (read/write)          └─ Lazy init MultiSourcePlanningAgent │
+│  └─ Lazy init AutonomousPlanningAgent                                        │
+└─────────────────────────┬────────────────────────────────┬───────────────────┘
+                          │                                │
+                          ▼                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TẦNG AGENT (Business Logic)                          │
+│                                                                               │
+│  AutonomousPlanningAgent              MultiSourcePlanningAgent               │
+│  ├─ ScannerAgent (RSS feeds)          ├─ BestBuyDeals (curl_cffi + APIs)    │
+│  ├─ EnsembleAgent                     ├─ AmazonDeals (curl_cffi + HTML)     │
+│  │   ├─ Preprocessor (LiteLLM)       ├─ UnifiedScrapedDeal (normalize)     │
+│  │   ├─ FrontierAgent (GPT+RAG)      ├─ MultiSourceScannerAgent (GPT-nano) │
+│  │   ├─ SpecialistAgent (Modal)       └─ EnsembleAgent (shared)             │
+│  │   └─ NeuralNetworkAgent (local)                                           │
+│  └─ MessagingAgent (Pushover)                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EXTERNAL SERVICES                                    │
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │  OpenAI      │  │  Modal       │  │  ChromaDB    │  │  Pushover    │   │
+│  │  GPT-5.1     │  │  T4 GPU      │  │  800K items  │  │  Push API    │   │
+│  │  GPT-5-mini  │  │  Llama-3.2   │  │  384-dim     │  │              │   │
+│  │  GPT-5-nano  │  │  3B QLoRA    │  │  vectors     │  │              │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘   │
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                      │
+│  │  BestBuy     │  │  Amazon      │  │  DealNews    │                      │
+│  │  Internal    │  │  HTML+curl   │  │  RSS Feeds   │                      │
+│  │  APIs        │  │  cffi        │  │  5 categories│                      │
+│  └──────────────┘  └──────────────┘  └──────────────┘                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h2 id="phan-13-cac-ky-thuat-quan-trong">Phần 13: Các kỹ thuật quan trọng</h2>
+<h3 id="131-structured-outputs-voi-pydantic">13.1 Structured Outputs với Pydantic</h3>
+<p>Kỹ thuật cốt lõi để tích hợp LLM vào hệ thống phần mềm. Thay vì parse string thủ công bằng Regex, sử dụng Pydantic để đảm bảo LLM trả về data đúng format 100%:</p>
+<pre><code class="language-python"># Định nghĩa schema
+class DealSelection(BaseModel):
+    deals: List[Deal]
+
+# Gọi OpenAI với response_format=DealSelection
+result = openai.chat.completions.parse(
+    model=&quot;gpt-5-mini&quot;,
+    messages=[...],
+    response_format=DealSelection,   # Key: ép LLM trả về JSON khớp schema
+)
+deal_selection = result.choices[0].message.parsed  # Đã là Python object, không cần json.loads()
+</code></pre>
+<p><strong>Cơ chế Constrained Decoding:</strong> OpenAI chuyển Pydantic schema sang JSON Schema, rồi dùng token-level masking khi generate — mỗi token được sinh ra phải hợp lệ theo schema. Không thể có JSON sai cú pháp.</p>
+<h3 id="132-litellm-multi-provider-abstraction">13.2 LiteLLM — Multi-provider abstraction</h3>
+<p><code>preprocessor.py</code> và <code>messaging_agent.py</code> dùng LiteLLM thay vì OpenAI SDK trực tiếp:</p>
+<pre><code class="language-python">from litellm import completion
+
+# LiteLLM hỗ trợ hàng chục providers với cùng API interface
+response = completion(
+    model=&quot;ollama/llama3.2&quot;,   # Local Ollama (miễn phí)
+    # hoặc &quot;gpt-5-nano&quot;        # OpenAI
+    # hoặc &quot;groq/openai/...&quot;   # Groq
+    messages=[...]
+)
+</code></pre>
+<p>Lợi ích: có thể đổi model preprocessor bằng cách thay đổi env var <code>PRICER_PREPROCESSOR_MODEL</code> mà không cần sửa code.</p>
+<h3 id="133-real-time-log-streaming-trong-gradio">13.3 Real-time Log Streaming trong Gradio</h3>
+<p>Pattern này được dùng trong cả hai ứng dụng:</p>
+<pre><code class="language-python">def _run_pipeline(self, query, initial_log):
+    &quot;&quot;&quot;Generator pattern: yield UI updates trong khi pipeline đang chạy.&quot;&quot;&quot;
+    log_q = queue.Queue()
+    result_q = queue.Queue()
+    setup_logging(log_q)    # Redirect logging.info() vào queue
+
+    def worker():
+        opps = self.framework.run(query, self.max_urls, self.source)
+        result_q.put(opps)
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+
+    while thread.is_alive() or not result_q.empty():
+        # Poll log queue mỗi 0.1s, yield update lên Gradio
+        while True:
+            try:
+                log_data.append(log_q.get_nowait())
+            except queue.Empty:
+                break
+        yield current_table, &quot;Processing...&quot;, html_for_logs(log_data)
+        time.sleep(0.1)
+</code></pre>
+<p>Gradio hỗ trợ generator functions — mỗi <code>yield</code> cập nhật UI ngay lập tức mà không cần chờ pipeline xong. Người dùng thấy log stream theo thời gian thực.</p>
+<h3 id="134-lazy-initialization">13.4 Lazy Initialization</h3>
+<p>Cả <code>DealAgentFramework</code> và <code>MultiSourceFramework</code> đều dùng lazy initialization cho agents:</p>
+<pre><code class="language-python">def init_agents_as_needed(self):
+    &quot;&quot;&quot;Chỉ khởi tạo agents khi cần — không block thời gian startup.&quot;&quot;&quot;
+    if not self.planner:
+        self.planner = AutonomousPlanningAgent(self.collection)
+        # Lúc này mới tạo SpecialistAgent → kết nối Modal
+        # Mới tạo NeuralNetworkAgent → load 1GB DNN weights
+</code></pre>
+<p>Lý do: load DNN weights (~1GB) và kết nối Modal mất 30-60s. Nếu khởi tạo ngay khi start, UI sẽ bị trắng hàng phút. Lazy init cho phép Gradio hiển thị giao diện ngay, chỉ tạo agents khi người dùng thực sự cần.</p>
+<hr />
+<h2 id="phan-14-setup-va-chay">Phần 14: Setup và Chạy</h2>
+<h3 id="141-yeu-cau">14.1 Yêu cầu</h3>
+<ul>
+<li>Python 3.12, <code>uv</code> package manager</li>
+<li>API keys: <code>OPENAI_API_KEY</code> (bắt buộc), <code>PUSHOVER_USER</code> + <code>PUSHOVER_TOKEN</code> (tùy chọn)</li>
+<li>Node.js 18+ (cho MCP Filesystem server trong AutonomousPlanningAgent)</li>
+<li>Modal account với <code>pricer-service</code> đã deploy</li>
+</ul>
+<h3 id="142-trien-khai-modal-service-mot-lan">14.2 Triển khai Modal Service (một lần)</h3>
+<pre><code class="language-bash">cd segment4
+
+# Setup Modal token
+uv run modal token set --token-id &lt;ID&gt; --token-secret &lt;SECRET&gt;
+
+# Deploy Pricer service lên Modal cloud
+uv run modal deploy price_agents/khong_su_dung/pricer_service2.py
+
+# Kiểm tra service đã chạy
+uv run modal app list
+</code></pre>
+<h3 id="143-environment-variables-segment4env">14.3 Environment Variables (<code>segment4/.env</code>)</h3>
+<pre><code class="language-env">OPENAI_API_KEY=sk-xxx              # Bắt buộc (cho GPT calls và ScannerAgent)
+PUSHOVER_USER=xxx                  # Tùy chọn (push notification)
+PUSHOVER_TOKEN=xxx                 # Tùy chọn
+PRICER_PREPROCESSOR_MODEL=ollama/llama3.2  # Tùy chọn, default: Ollama local
+GROQ_API_KEY=xxx                   # Tùy chọn (nếu dùng Groq cho preprocessor)
+HF_TOKEN=hf_xxx                    # Cần cho Modal deploy (tải Llama từ HuggingFace)
+</code></pre>
+<h3 id="144-chay-ung-dung">14.4 Chạy ứng dụng</h3>
+<pre><code class="language-bash">cd tech2ai &amp;&amp; uv sync
+
+# App 1: Autonomous Deal Hunter
+cd segment4 &amp;&amp; uv run price_is_right.py
+# → http://127.0.0.1:7860 — tự động chạy mỗi 5 phút
+
+# App 2: Multi-Source Deal Finder
+cd segment4 &amp;&amp; uv run search_key.py
+# → http://127.0.0.1:7860 — nhập keyword để tìm kiếm
+</code></pre>
+<hr />
+<h2 id="phan-15-hieu-nang-va-chi-phi">Phần 15: Hiệu năng và Chi phí</h2>
+<h3 id="151-thoi-gian-thuc-thi">15.1 Thời gian thực thi</h3>
+<p><strong>price_is_right.py (mỗi cycle 5 phút):</strong></p>
+<pre><code>Tổng: ~60-90 giây
+
+  ├── Fetch RSS feeds (5 categories):        5-10s
+  ├── GPT-5-mini chọn top 5:                3-5s
+  ├── EnsembleAgent × 5 deals:
+  │   ├── Preprocessor (5 × Ollama local):  15-20s
+  │   ├── FrontierAgent (5 × GPT-5.1+RAG): 10-15s
+  │   ├── SpecialistAgent (5 × Modal):      10-20s
+  │   │   └─ Cold start lần đầu:           +30-60s
+  │   └── NeuralNetworkAgent (5 × local):   1-2s
+  └── Notification (nếu có):                1-2s
+</code></pre>
+<p><strong>search_key.py (mỗi search):</strong></p>
+<pre><code>Tổng: ~70-100 giây
+
+  ├── Step 1: Search+Filter+Scrape (parallel):
+  │   ├── BestBuy (curl_cffi + APIs):       4-8s
+  │   └── Amazon (curl_cffi + HTML):        2-14s
+  │   Thực tế: max(BestBuy, Amazon) ≈ 6-8s
+  ├── Step 2: Combine (UnifiedScrapedDeal): &lt;1s
+  ├── Step 3: GPT-5-nano chọn top 3:       5-10s
+  └── Step 4: EnsembleAgent × 3 deals:     40-60s
+</code></pre>
+<h3 id="152-chi-phi-uoc-tinh">15.2 Chi phí ước tính</h3>
+<p><strong>price_is_right.py:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Model</th>
+<th>Chi phí/cycle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scanner</td>
+<td>GPT-5-mini</td>
+<td>~$0.002</td>
+</tr>
+<tr>
+<td>Frontier (5 calls)</td>
+<td>GPT-5.1</td>
+<td>~$0.010</td>
+</tr>
+<tr>
+<td>Specialist (5 calls)</td>
+<td>Modal T4</td>
+<td>~$0.010</td>
+</tr>
+<tr>
+<td>Messaging</td>
+<td>GPT-5-nano</td>
+<td>~$0.001</td>
+</tr>
+<tr>
+<td>Preprocessor</td>
+<td>Ollama local</td>
+<td>$0</td>
+</tr>
+<tr>
+<td>Neural Network</td>
+<td>Local</td>
+<td>$0</td>
+</tr>
+<tr>
+<td><strong>Tổng/cycle</strong></td>
+<td></td>
+<td><strong>~$0.023</strong></td>
+</tr>
+<tr>
+<td><strong>Daily (288 cycles)</strong></td>
+<td></td>
+<td><strong>~$6.62</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>search_key.py:</strong> ~$0.015/search (3 deals thay vì 5).</p>
+<hr />
+<h2 id="phan-16-chi-tiet-cac-file-ho-tro-chua-uoc-giai-thich-ay-u">Phần 16: Chi tiết các file hỗ trợ chưa được giải thích đầy đủ</h2>
+<h3 id="log_utilspy-chuyen-oi-ansi-sang-html"><code>log_utils.py</code> — Chuyển đổi ANSI sang HTML</h3>
+<p><strong>Mục đích:</strong> Giữ nguyên màu sắc ANSI từ terminal logging khi hiển thị trong Gradio HTML panel. Không có file này, logs trong Gradio sẽ hiển thị chuỗi escape code thô như <code>\033[31m</code> thay vì màu đỏ.</p>
+<pre><code class="language-python"># Mapping: ANSI code → màu HEX để dùng trong CSS
+mapper = {
+    BG_BLACK+RED:     &quot;#dd0000&quot;,   # SpecialistAgent (đỏ)
+    BG_BLACK+GREEN:   &quot;#00dd00&quot;,   # PlanningAgent (xanh lá)
+    BG_BLACK+YELLOW:  &quot;#dddd00&quot;,   # EnsembleAgent, FrontierAgent (vàng)
+    BG_BLACK+BLUE:    &quot;#0000ee&quot;,
+    BG_BLACK+MAGENTA: &quot;#aa00dd&quot;,   # MessagingAgent (tím)
+    BG_BLACK+CYAN:    &quot;#00dddd&quot;,   # ScannerAgent (xanh lam nhạt)
+    BG_BLACK+WHITE:   &quot;#87CEEB&quot;,   # Agent thông thường
+    BG_BLUE+WHITE:    &quot;#ff7800&quot;    # Highlight đặc biệt (cam)
+}
+
+def reformat(message: str) -&gt; str:
+    &quot;&quot;&quot;Thay thế ANSI codes bằng HTML span tags với màu tương ứng.&quot;&quot;&quot;
+    for ansi_code, hex_color in mapper.items():
+        message = message.replace(ansi_code, f'&lt;span style=&quot;color: {hex_color}&quot;&gt;')
+    message = message.replace(RESET, '&lt;/span&gt;')
+    return message
+</code></pre>
+<p><strong>Chuỗi xử lý:</strong> <code>Agent.log()</code> → Python <code>logging.info()</code> (với ANSI codes) → <code>QueueHandler</code> đẩy vào queue → <code>html_for_logs()</code> gọi <code>reformat()</code> → HTML <code>&lt;span&gt;</code> có màu → Gradio hiển thị.</p>
+<hr />
+<h3 id="bestbuy_untilsgradio_helperspy-he-thong-streaming-logs-real-time"><code>bestbuy_untils/gradio_helpers.py</code> — Hệ thống streaming logs real-time</h3>
+<p><strong>Mục đích:</strong> Cung cấp các tiện ích để Gradio hiển thị logs từ pipeline chạy trong background thread theo thời gian thực.</p>
+<p><strong><code>class QueueHandler(logging.Handler)</code></strong></p>
+<p><strong>Mục đích:</strong> Custom handler cho Python <code>logging</code> module — thay vì ghi ra terminal (StreamHandler) hoặc file (FileHandler), nó đưa mỗi log record vào một <code>queue.Queue</code>. Điều này cho phép pipeline chạy trong background thread truyền logs sang main thread một cách thread-safe.</p>
+<pre><code class="language-python">class QueueHandler(logging.Handler):
+    def __init__(self, log_queue: queue.Queue):
+        super().__init__()
+        self.log_queue = log_queue
+
+    def emit(self, record: logging.LogRecord) -&gt; None:
+        &quot;&quot;&quot;Mỗi khi logging.info() được gọi, record đi vào queue thay vì stdout.&quot;&quot;&quot;
+        self.log_queue.put(self.format(record))
+</code></pre>
+<p><strong><code>setup_logging(log_queue)</code></strong></p>
+<p><strong>Mục đích:</strong> Cấu hình root logger dùng <code>QueueHandler</code>. Hàm này cần được gọi trước khi chạy pipeline trong thread — sau đó mọi <code>logging.info()</code> từ bất kỳ agent nào đều tự động vào queue. Không cần sửa code bên trong các agents.</p>
+<p>Lưu ý quan trọng: hàm này xóa các <code>QueueHandler</code> cũ trước khi thêm mới — tránh trường hợp gọi nhiều lần tạo duplicate handlers làm mỗi log xuất hiện nhiều lần.</p>
+<p><strong><code>html_for_logs(log_data, max_logs=25)</code></strong></p>
+<p><strong>Mục đích:</strong> Convert list log messages thành HTML styled với dark background (#1a1a2e) để hiển thị trong Gradio. Chỉ lấy 25 logs gần nhất để tránh panel quá dài. Gọi <code>reformat()</code> từ <code>log_utils.py</code> để giữ màu ANSI.</p>
+<p><strong><code>opportunities_to_html(opportunities)</code></strong></p>
+<p><strong>Mục đích:</strong> Convert list <code>Opportunity</code> thành HTML table có URL clickable và color-coding theo mức discount:
+- <code>discount &gt; $200</code> → HOT
+- <code>discount &gt; $100</code> → Good
+- <code>discount &gt; $0</code> → OK
+- <code>discount ≤ 0</code> → Overpriced</p>
+<p>Lý do dùng <code>gr.HTML</code> thay vì <code>gr.Dataframe</code>: Gradio Dataframe không hỗ trợ clickable URL links. HTML table custom cho phép <code>&lt;a href="..." target="_blank"&gt;</code> để người dùng mở link trực tiếp.</p>
+<hr />
+<h3 id="price_agentsdealspy-data-models-chi-tiet"><code>price_agents/deals.py</code> — Data Models chi tiết</h3>
+<p><strong><code>extract(html_snippet: str) → str</code></strong></p>
+<p><strong>Mục đích:</strong> Làm sạch HTML từ RSS feed. DealNews RSS trả về HTML raw trong trường <code>summary</code> (chứa tags <code>&lt;div&gt;</code>, <code>&lt;span&gt;</code>, v.v.). BeautifulSoup tìm <code>div.snippet.summary</code> rồi trích xuất text thuần. Loại bỏ newlines để text nằm trên một dòng.</p>
+<p><strong><code>ScrapedDeal.__init__(entry: Dict)</code></strong></p>
+<p><strong>Mục đích:</strong> Khởi tạo deal từ một RSS entry. Bước quan trọng: sau khi lấy URL từ RSS, method này cố gắng fetch thêm trang web deal để lấy phần <code>details</code> và <code>features</code> đầy đủ hơn. Có fallback: nếu request timeout hoặc trang web không có <code>content-section</code>, dùng summary từ RSS làm details.</p>
+<p><strong>Cơ chế tách details/features:</strong></p>
+<pre><code class="language-python">if &quot;Features&quot; in content:
+    self.details, self.features = content.split(&quot;Features&quot;, 1)
+else:
+    self.details = content
+    self.features = &quot;&quot;
+</code></pre>
+<p>DealNews format trang sản phẩm thường có section "Features" chia đôi nội dung — phần trước là mô tả tổng quát (details), phần sau là bullet points tính năng (features).</p>
+<p><strong><code>ScrapedDeal.truncate()</code></strong></p>
+<p><strong>Mục đích:</strong> Giới hạn độ dài để tránh gửi quá nhiều tokens cho LLM. <code>title</code> tối đa 100 chars, <code>details</code> và <code>features</code> mỗi cái 500 chars. Thông tin quan trọng (brand, model, giá) thường nằm ở đầu — cắt đuôi ít mất thông tin.</p>
+<p><strong><code>ScrapedDeal.describe() → str</code></strong></p>
+<p><strong>Mục đích:</strong> Tạo text đẹp để đưa vào LLM prompt. Format: <code>Title: ... / Details: ... / Features: ... / URL: ...</code>. Dùng bởi <code>ScannerAgent.scan()</code> khi tạo prompt gửi cho GPT-5-mini.</p>
+<p><strong><code>ScrapedDeal.fetch(show_progress=False) → List[ScrapedDeal]</code></strong></p>
+<p><strong>Mục đích:</strong> Fetch toàn bộ deals từ 5 RSS feeds của DealNews. Mỗi feed lấy tối đa 5 entries → tổng ~25 deals. <code>time.sleep(0.05)</code> giữa mỗi deal để không spam requests quá nhanh. <code>show_progress=True</code> hiển thị <code>tqdm</code> progress bar (dùng trong notebook, tắt trong production để tránh nhiễu logs).</p>
+<p><strong><code>Deal(BaseModel)</code> — Field descriptions</strong></p>
+<p>Field <code>product_description</code> có Pydantic <code>Field(description=...)</code> rất chi tiết:</p>
+<pre><code class="language-python">product_description: str = Field(
+    description=&quot;&quot;&quot;Your clearly expressed summary in 3-4 sentences.
+    Details of the item are much more important than why it's a good deal.
+    Avoid mentioning discounts and coupons; focus on the item itself.&quot;&quot;&quot;
+)
+</code></pre>
+<p>Description này được OpenAI Structured Outputs dùng như một phần của JSON Schema — GPT đọc nó và biết cần viết mô tả sản phẩm trung lập, không đề cập deal/discount. Đây là kỹ thuật prompt engineering thông qua schema thay vì system prompt.</p>
+<p><strong><code>DealSelection(BaseModel)</code></strong></p>
+<p>Field <code>deals</code> yêu cầu GPT chọn các deals "có description chi tiết nhất, giá rõ ràng nhất, và là deal thực sự tốt". Ràng buộc này nằm trong schema — không cần nhắc lại trong prompt.</p>
+<hr />
+<h3 id="bestbuy_untilsunified_dealpy-chuan-hoa-2-nguon"><code>bestbuy_untils/unified_deal.py</code> — Chuẩn hóa 2 nguồn</h3>
+<p><strong><code>UnifiedScrapedDeal.from_bestbuy(deal)</code> và <code>from_amazon(deal)</code></strong></p>
+<p><strong>Mục đích:</strong> Factory methods chuyển đổi từ format riêng của từng nguồn (<code>ScrapedBestBuyDeal</code>, <code>ScrapedAmazonDeal</code>) sang format chung. Đây là mẫu <strong>Adapter pattern</strong> — phần còn lại của hệ thống chỉ làm việc với <code>UnifiedScrapedDeal</code>, không biết nguồn gốc.</p>
+<p>Truncation trong <code>__init__</code>: <code>title</code> giới hạn 200 chars, <code>features</code> giới hạn 1500 chars. Lý do: BestBuy API v2 đôi khi trả về <code>features</code> rất dài (list bullet điểm hàng trăm dòng). 1500 chars đủ để GPT hiểu sản phẩm mà không waste tokens.</p>
+<p><strong><code>UnifiedScrapedDeal.describe() → str</code></strong></p>
+<p><strong>Mục đích:</strong> Format deal cho LLM prompt trong <code>MultiSourceScannerAgent.scan()</code>. Prefix <code>[BestBuy]</code> hoặc <code>[Amazon]</code> trong output giúp GPT-5-nano khi trả về <code>DealSelection</code> biết cần giữ prefix này trong <code>product_description</code>. Từ đó người dùng biết deal đến từ nguồn nào.</p>
+<hr />
+<h2 id="phan-17-leaderboard-va-ket-qua-thuc-nghiem">Phần 17: Leaderboard và kết quả thực nghiệm</h2>
+<h3 id="ensemble-vs-tung-model-on-le">Ensemble vs từng model đơn lẻ</h3>
+<p>Kết quả trên 200 mẫu test (cùng test set, <code>set_seed(42)</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Loại</th>
+<th>MAE</th>
+<th>Ghi chú</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EnsembleAgent</strong></td>
+<td>Combo</td>
+<td><strong>$29.9</strong></td>
+<td>Production model — tốt nhất</td>
+</tr>
+<tr>
+<td>FrontierAgent (GPT-5.1+RAG)</td>
+<td>LLM</td>
+<td>$44.06</td>
+<td>Đứng 1 trong leaderboard toàn khóa</td>
+</tr>
+<tr>
+<td>Fine-tuned Llama 3.2 3B</td>
+<td>LLM</td>
+<td>$39.85</td>
+<td>Chỉ số tốt nhất Week 7, nhưng đây là test set Week 6</td>
+</tr>
+<tr>
+<td>HashingVec DNN (5 epochs)</td>
+<td>DL</td>
+<td>$46.02</td>
+<td>Baseline production hiện tại</td>
+</tr>
+<tr>
+<td>Claude Opus 4.5 (zero-shot)</td>
+<td>LLM</td>
+<td>$47.10</td>
+<td>Human-level reference</td>
+</tr>
+<tr>
+<td>Human (giảng viên)</td>
+<td>Bio</td>
+<td>$87.62</td>
+<td>Baseline con người</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tại sao Ensemble ($29.9) tốt hơn FrontierAgent đơn lẻ ($44.06)?</strong></p>
+<p>Mỗi model có điểm mù riêng:
+- FrontierAgent đôi khi "hallucinate" giá xa thực tế khi ChromaDB không tìm được sản phẩm tương tự tốt
+- SpecialistAgent có thể fail với sản phẩm ngoài phân phối của training data
+- NeuralNetworkAgent bị kéo về giá trung bình khi gặp sản phẩm đặc thù</p>
+<p>Khi 3 models dự đoán cùng lúc, các lỗi cực đoan (outliers) bị kéo về gần giá thực. Trọng số 80/10/10 ưu tiên FrontierAgent vì nó có context thực tế từ RAG — nhưng 20% còn lại đủ để điều chỉnh khi FrontierAgent sai.</p>
+<h3 id="ket-qua-scraping-thuc-te">Kết quả scraping thực tế</h3>
+<p><strong>BestBuy:</strong>
+- Thời gian pipeline: ~4-8 giây cho 6 sản phẩm on-sale
+- Tỷ lệ thành công: ~90% (đôi khi BestBuy rate-limit hoặc Apollo cache không có)</p>
+<p><strong>Amazon:</strong>
+- Approach A (search page only): ~2 giây — hoạt động với laptop, TV, điện thoại (specs đủ dài)
+- Approach B (product page): ~14 giây — cần thiết với headphones, accessories (specs ngắn)
+- Tỷ lệ thành công: ~80% (CAPTCHA đôi khi trigger, zip 96150 giảm thiểu nhưng không loại bỏ hoàn toàn)</p>
+<hr />
+<h2 id="tong-ket">Tổng kết</h2>
+<p>Hệ thống "The Price Is Right" là kết quả của 8 tuần học — từ dataset thô 3 triệu sản phẩm Amazon đến hai ứng dụng production hoàn chỉnh:</p>
+<table>
+<thead>
+<tr>
+<th>Thành tựu</th>
+<th>Chi tiết</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ensemble MAE</strong></td>
+<td>$29.9 — tốt hơn mọi model đơn lẻ, tốt hơn cả Claude Opus 4.5 ($47.10)</td>
+</tr>
+<tr>
+<td><strong>Hai ứng dụng</strong></td>
+<td>Autonomous (RSS-based) + Interactive (keyword search)</td>
+</tr>
+<tr>
+<td><strong>Hai nguồn scraping</strong></td>
+<td>BestBuy (internal APIs) + Amazon (HTML parsing), song song</td>
+</tr>
+<tr>
+<td><strong>Ba models</strong></td>
+<td>GPT-5.1+RAG (80%) + Llama fine-tuned (10%) + DNN (10%)</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Modal serverless T4 GPU, chỉ tốn tiền khi chạy</td>
+</tr>
+<tr>
+<td><strong>UI</strong></td>
+<td>Gradio với real-time logs, 3D visualization ChromaDB</td>
+</tr>
+</tbody>
+</table>
+<p>Điểm kỹ thuật nổi bật nhất: toàn bộ hệ thống được xây từ nguyên lý cơ bản (no LangChain, no CrewAI), sử dụng Python thuần kết hợp với các API mạnh (OpenAI Structured Outputs, Modal Serverless, MCP Protocol) — cho phép kiểm soát hoàn toàn và dễ debug khi có vấn đề.</p>
+  </div>
+</main>
+
+<!-- Back to top -->
+<button id="back-to-top" title="Back to top">↑</button>
+
+<script>
+// ── Highlight.js ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('pre code').forEach(block => {
+    // Detect language
+    const text = block.textContent;
+    if (!block.className) {
+      if (text.includes('def ') || text.includes('import ') || text.includes('class ')) {
+        block.classList.add('language-python');
+      } else if (text.match(/^(cd |uv run|modal |git )/m)) {
+        block.classList.add('language-bash');
+      } else if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        block.classList.add('language-json');
+      } else if (text.includes('│') || text.includes('├') || text.includes('└') || text.includes('┌') || text.includes('▼')) {
+        // ASCII diagram — skip highlight, apply special styling
+        block.closest('pre').classList.add('ascii-pre');
+        return;
+      }
+    }
+    hljs.highlightElement(block);
+  });
+
+  // Style ASCII diagrams
+  document.querySelectorAll('pre.ascii-pre').forEach(pre => {
+    pre.style.background = 'rgba(13,17,23,0.8)';
+    pre.style.borderColor = 'rgba(34,211,238,0.2)';
+    pre.querySelector('code').style.color = '#7dd3fc';
+    pre.querySelector('code').style.fontFamily = "'Fira Code', monospace";
+    pre.querySelector('code').style.fontSize = '12.5px';
+  });
+
+  // ── Copy buttons ──
+  document.querySelectorAll('pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code');
+      navigator.clipboard.writeText(code.innerText).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
+
+  // ── Active nav on scroll ──
+  const navLinks = document.querySelectorAll('#sidebar a[data-target]');
+  const headings = document.querySelectorAll('#content h2, #content h3');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(a => {
+          a.classList.toggle('active', a.dataset.target === id);
+        });
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+
+  headings.forEach(h => { if (h.id) observer.observe(h); });
+
+  // ── Scroll progress bar ──
+  const progressBar = document.getElementById('progress-bar');
+  const backTop = document.getElementById('back-to-top');
+
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.body.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = progress + '%';
+    backTop.classList.toggle('visible', scrollTop > 400);
+  });
+
+  backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  // ── Smooth scroll for nav links ──
+  document.querySelectorAll('#sidebar a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.getElementById(a.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+});
+</script>
+</body>
+</html>

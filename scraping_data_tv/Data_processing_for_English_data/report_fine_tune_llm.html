@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fine-Tune Llama 3.2 3B với QLoRA — The Price Is Right</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b22;
+    --bg3: #1c2130;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #bc8cff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --teal: #39d353;
+    --code-bg: #161b22;
+    --tag-bg: #21262d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 24px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 20px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .sidebar a {
+    display: block;
+    padding: 5px 20px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .sidebar a:hover, .sidebar a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(88,166,255,0.06);
+  }
+  .sidebar a.h3 { padding-left: 32px; font-size: 12px; }
+
+  /* ── Main content ── */
+  .main {
+    flex: 1;
+    max-width: 900px;
+    padding: 48px 60px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .report-header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .report-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 16px;
+  }
+
+  .report-header h1 span { color: var(--accent); }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .meta-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  .meta-item .label { color: var(--text-muted); margin-bottom: 2px; }
+  .meta-item .value { color: var(--text); font-weight: 500; }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 56px; }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2 .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(88,166,255,0.15);
+    color: var(--accent);
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent2);
+    margin: 24px 0 12px;
+  }
+
+  h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--orange);
+    margin: 16px 0 8px;
+  }
+
+  p { margin-bottom: 14px; color: var(--text); }
+
+  strong { color: var(--text); font-weight: 600; }
+
+  /* ── Journey flowchart ── */
+  .journey {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+
+  .journey-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 4px;
+  }
+
+  .journey-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 28px;
+  }
+
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .dot-base { background: rgba(248,81,73,0.2); color: var(--red); border: 1px solid var(--red); }
+  .dot-1 { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid var(--accent); }
+  .dot-2 { background: rgba(188,140,255,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
+  .dot-3 { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid var(--orange); }
+  .dot-4 { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid var(--green); }
+
+  .connector {
+    width: 2px;
+    height: 28px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  .step-content { flex: 1; padding-top: 4px; }
+  .step-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .step-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Result highlight ── */
+  .result-hero {
+    background: linear-gradient(135deg, rgba(63,185,80,0.12) 0%, rgba(88,166,255,0.08) 100%);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .metric-big {
+    text-align: center;
+  }
+  .metric-big .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+  }
+  .metric-big .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .divider-v {
+    width: 1px;
+    height: 48px;
+    background: var(--border);
+  }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; border: 1px solid var(--border); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead tr { background: var(--bg3); }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(88,166,255,0.03); }
+
+  tr.highlight td { background: rgba(63,185,80,0.08); }
+  tr.highlight td:first-child { border-left: 3px solid var(--green); }
+
+  .rank-1 { color: var(--green); font-weight: 700; }
+  .mae-good { color: var(--green); font-weight: 600; }
+  .mae-mid { color: var(--orange); }
+  .mae-bad { color: var(--red); }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 14px 0;
+    font-family: 'SFMono-Regular', 'Cascadia Code', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  code {
+    font-family: 'SFMono-Regular', 'Cascadia Code', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+  }
+
+  /* Syntax colors */
+  .kw { color: #ff7b72; }       /* keyword */
+  .fn { color: #d2a8ff; }       /* function */
+  .st { color: #a5d6ff; }       /* string */
+  .cm { color: #8b949e; }       /* comment */
+  .nm { color: #79c0ff; }       /* number/const */
+  .op { color: #ff7b72; }       /* operator */
+  .cl { color: #ffa657; }       /* class */
+
+  /* ── Architecture diagram ── */
+  .arch-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 14px 0;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--text);
+  }
+
+  /* ── Callout boxes ── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+    border-left: 4px solid;
+    display: flex;
+    gap: 12px;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; line-height: 1.6; }
+  .callout-info { background: rgba(88,166,255,0.08); border-color: var(--accent); }
+  .callout-warn { background: rgba(210,153,34,0.08); border-color: var(--orange); }
+  .callout-good { background: rgba(63,185,80,0.08); border-color: var(--green); }
+  .callout-bad  { background: rgba(248,81,73,0.08);  border-color: var(--red); }
+
+  /* ── Inline code ── */
+  p code, li code, td code {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 12px;
+    color: #ffa657;
+  }
+
+  /* ── Lists ── */
+  ul, ol { margin: 10px 0 14px 24px; }
+  li { margin-bottom: 6px; color: var(--text); }
+
+  /* ── Hyper param grid ── */
+  .param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .param-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .param-name {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 13px;
+    color: #ffa657;
+    margin-bottom: 4px;
+  }
+
+  .param-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .param-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── Flow diagram ── */
+  .flow {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 14px 0;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+
+  .flow-num {
+    width: 24px;
+    height: 24px;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .flow-content { flex: 1; }
+  .flow-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .flow-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .flow-arrow {
+    text-align: center;
+    color: var(--border);
+    font-size: 16px;
+    margin: 2px 0 2px 38px;
+  }
+
+  /* ── VRAM comparison ── */
+  .vram-bars { margin: 16px 0; }
+  .vram-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .vram-label { width: 80px; font-size: 12px; color: var(--text-muted); }
+  .vram-bar-wrap { flex: 1; background: var(--bg3); border-radius: 4px; height: 22px; overflow: hidden; }
+  .vram-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; font-size: 11px; font-weight: 600; }
+  .bar-32 { width: 90%; background: rgba(248,81,73,0.3); color: var(--red); border: 1px solid var(--red); }
+  .bar-8  { width: 25%; background: rgba(210,153,34,0.3); color: var(--orange); border: 1px solid var(--orange); }
+  .bar-4  { width: 16%; background: rgba(63,185,80,0.3); color: var(--green); border: 1px solid var(--green); }
+
+  /* ── Leaderboard ── */
+  .lb-rank { font-size: 13px; font-weight: 700; }
+
+  /* ── Section number chip ── */
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid rgba(88,166,255,0.4);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 4px;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { padding: 24px 20px; }
+    .param-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="sidebar-title">Mục lục</div>
+  <a href="#overview">Hành trình tổng quan</a>
+  <a href="#s1">1. Kiến trúc Llama 3.2 3B</a>
+  <a href="#s1-layers" class="h3">Cấu trúc các lớp</a>
+  <a href="#s1-vram" class="h3">Tại sao cần Quantization</a>
+  <a href="#s2">2. Lý thuyết QLoRA</a>
+  <a href="#s2-lora" class="h3">LoRA — Train phần nhỏ</a>
+  <a href="#s2-quant" class="h3">4-bit NF4 Quantization</a>
+  <a href="#s3">3. Luồng hoạt động</a>
+  <a href="#s3-fwd" class="h3">Forward Pass khi train</a>
+  <a href="#s3-loop" class="h3">4 bước Training Loop</a>
+  <a href="#s3-infer" class="h3">Luồng Inference</a>
+  <a href="#s4">4. Chuẩn bị dữ liệu</a>
+  <a href="#s4-token" class="h3">Token Analysis & Cutoff</a>
+  <a href="#s4-prompt" class="h3">Prompt Format</a>
+  <a href="#s5">5. Cấu hình Training</a>
+  <a href="#s5-qlora" class="h3">QLoRA Hyperparameters</a>
+  <a href="#s5-train" class="h3">Training Hyperparameters</a>
+  <a href="#s6">6. Quá trình huấn luyện</a>
+  <a href="#s6-wb" class="h3">W&B Monitoring</a>
+  <a href="#s6-overfit" class="h3">Phân tích Overfitting</a>
+  <a href="#s7">7. Kết quả & So sánh</a>
+  <a href="#s8">8. Deployment</a>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+<!-- Header -->
+<div class="report-header">
+  <h1>Fine-Tune <span>Llama 3.2 3B</span> với QLoRA<br>— "The Price Is Right"</h1>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <div class="label">Phạm vi</div>
+      <div class="value">Week 7 (Day 1–5)</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Base Model</div>
+      <div class="value">meta-llama/Llama-3.2-3B</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Trained Model</div>
+      <div class="value">SeanSunny/price-2026-final</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Ngày cập nhật</div>
+      <div class="value">2026-05-10</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OVERVIEW ══ -->
+<div class="section" id="overview">
+  <h2>Hành trình tổng quan</h2>
+
+  <div class="journey">
+    <div class="journey-step">
+      <div class="journey-line">
+        <div class="step-dot dot-base">✗</div>
+        <div class="connector"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-label">Base Llama 3.2 3B — MAE <span style="color:var(--red)">$110.72</span></div>
+        <div class="step-sub">Zero-shot inference, tệ hơn cả Constant Baseline ($106.18)</div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="journey-line">
+        <div class="step-dot dot-1">1</div>
+        <div class="connector"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-label">Day 1 — Lý thuyết QLoRA + khám phá kiến trúc</div>
+        <div class="step-sub">Hiểu tại sao 4-bit, LoRA là gì, tại sao không full fine-tune</div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="journey-line">
+        <div class="step-dot dot-2">2</div>
+        <div class="connector"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-label">Day 2 — Chuẩn bị dữ liệu</div>
+        <div class="step-sub">Token analysis → cutoff=110 → prompt/completion format → push HuggingFace</div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="journey-line">
+        <div class="step-dot dot-3">3</div>
+        <div class="connector"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-label">Day 3–4 — Training</div>
+        <div class="step-sub">GPU RTX 3090 Ti | Epochs: 3 | r=64 | 800k samples | W&B monitoring</div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="journey-line">
+        <div class="step-dot dot-4">5</div>
+      </div>
+      <div class="step-content">
+        <div class="step-label">Day 5 — Evaluation</div>
+        <div class="step-sub">Fine-tuned model đánh bại tất cả models trước đó</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-hero">
+    <div class="metric-big">
+      <div class="value">$39.85</div>
+      <div class="label">Test MAE</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="metric-big">
+      <div class="value" style="color:var(--accent)">4,643</div>
+      <div class="label">MSE</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="metric-big">
+      <div class="value" style="color:var(--accent2)">78.9%</div>
+      <div class="label">R²</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="metric-big">
+      <div class="value" style="font-size:20px; color:var(--teal)">#1</div>
+      <div class="label">Leaderboard</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Mô hình</th><th>MAE</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr class="highlight">
+          <td><strong>Fine-tuned Llama 3.2 3B (QLoRA)</strong></td>
+          <td class="mae-good">$39.85</td>
+          <td>Top 1</td>
+        </tr>
+        <tr><td>HashingVec DNN (289M params)</td><td class="mae-mid">$46.02</td><td>Baseline tốt nhất trước Week 7</td></tr>
+        <tr><td>Claude Opus 4.5 (zero-shot)</td><td class="mae-mid">$47.10</td><td>Frontier model đắt tiền</td></tr>
+        <tr><td>Constant Pricer</td><td class="mae-bad">$106.18</td><td>Luôn đoán giá trung bình</td></tr>
+        <tr><td>Base Llama 3.2 3B (zero-shot)</td><td class="mae-bad">$110.72</td><td>Tệ hơn Constant Baseline</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ SECTION 1 ══ -->
+<div class="section" id="s1">
+  <h2><span class="section-num">1</span> Kiến trúc Llama 3.2 3B</h2>
+
+  <p>Llama 3.2 3B là mô hình của Meta với 3 tỷ tham số, tối ưu cho thiết bị biên. Dù nhỏ, nó thừa hưởng toàn bộ quy trình training từ Llama 405B thông qua Knowledge Distillation — nên thông minh hơn kích thước cho thấy.</p>
+
+  <h3 id="s1-layers">Cấu trúc các lớp</h3>
+
+<div class="arch-box"><span class="cl">LlamaForCausalLM</span>
+├── <span class="fn">embed_tokens</span>        <span class="cm"># vocab 128,256 → hidden 3,072</span>
+├── <span class="fn">layers</span> (×28)        <span class="cm"># 28 Decoder Layers — "bộ não" chính</span>
+│   ├── <span class="fn">self_attn</span>          <span class="cm"># Self-Attention</span>
+│   │   ├── q_proj  <span class="cm">[3072 × 3072]</span>   <span class="cm"># Query</span>
+│   │   ├── k_proj  <span class="cm">[1024 × 3072]</span>   <span class="cm"># Key  (GQA — nhỏ hơn)</span>
+│   │   ├── v_proj  <span class="cm">[1024 × 3072]</span>   <span class="cm"># Value (GQA — nhỏ hơn)</span>
+│   │   └── o_proj  <span class="cm">[3072 × 3072]</span>   <span class="cm"># Output</span>
+│   ├── <span class="fn">mlp</span>                 <span class="cm"># Multi-Layer Perceptron</span>
+│   │   ├── gate_proj <span class="cm">[8192 × 3072]</span>  <span class="cm"># SwiGLU gate</span>
+│   │   ├── up_proj   <span class="cm">[8192 × 3072]</span>
+│   │   └── down_proj <span class="cm">[3072 × 8192]</span>
+│   ├── input_layernorm        <span class="cm"># RMSNorm</span>
+│   └── post_attention_layernorm
+├── <span class="fn">norm</span>                <span class="cm"># Final RMSNorm</span>
+└── <span class="fn">lm_head</span>             <span class="cm"># 3,072 → 128,256 (logits)</span></div>
+
+  <p><strong>Embedding Layer:</strong> Chuyển token ID (số nguyên) thành vector dense 3,072 chiều mang ngữ nghĩa. Vocabulary size = 128,256 — lớn hơn Llama 2 (32k) giúp hiểu đa ngôn ngữ tốt hơn.</p>
+
+  <p><strong>28 Decoder Layers — Self-Attention:</strong> Cho phép model "nhìn" toàn bộ câu để hiểu ngữ cảnh. k_proj và v_proj có chiều đầu ra 1,024 (không phải 3,072) — đây là <strong>Grouped Query Attention (GQA)</strong> giúp giảm bộ nhớ khi inference bằng cách chia sẻ Key/Value giữa nhiều Query heads.</p>
+
+  <p><strong>MLP:</strong> "Phình" dữ liệu 3,072 → 8,192 để xử lý phi tuyến (SwiGLU activation), rồi nén về 3,072. Đây là nơi model lưu trữ "kiến thức thực tế" về thế giới.</p>
+
+  <p><strong>RMSNorm:</strong> Chuẩn hóa dữ liệu trước mỗi sub-layer. Đơn giản hơn LayerNorm (bỏ qua phép tính mean) nhưng hiệu quả tương đương, ổn định gradient khi train.</p>
+
+  <p><strong>Output Head:</strong> Chiếu 3,072 chiều → 128,256 logits. Mỗi số là score của token tương ứng; model chọn token có score cao nhất làm dự đoán tiếp theo.</p>
+
+  <h3 id="s1-vram">Tại sao cần Quantization?</h3>
+
+<pre><code><span class="cm"># Load model ở chế độ mặc định (32-bit)</span>
+base_model = <span class="cl">AutoModelForCausalLM</span>.from_pretrained(<span class="st">"meta-llama/Llama-3.2-3B"</span>)
+<span class="fn">print</span>(base_model.get_memory_footprint() / <span class="nm">1e9</span>)
+<span class="cm"># Output: ~12.9 GB — gần trọn GPU T4 (16GB)</span></code></pre>
+
+  <div class="vram-bars">
+    <div class="vram-row">
+      <div class="vram-label">32-bit</div>
+      <div class="vram-bar-wrap"><div class="vram-bar bar-32">~12.9 GB</div></div>
+    </div>
+    <div class="vram-row">
+      <div class="vram-label">8-bit</div>
+      <div class="vram-bar-wrap"><div class="vram-bar bar-8">~3.6 GB</div></div>
+    </div>
+    <div class="vram-row">
+      <div class="vram-label">4-bit NF4</div>
+      <div class="vram-bar-wrap"><div class="vram-bar bar-4">~2.2 GB</div></div>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon">⚠</div>
+    <div>12.9 GB VRAM chỉ để <em>load</em> model — chưa tính training. Backpropagation cần thêm bộ nhớ cho gradients và optimizer states (gấp 3–4× dung lượng model). Không thể train theo cách thông thường trên GPU tiêu dùng.</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 2 ══ -->
+<div class="section" id="s2">
+  <h2><span class="section-num">2</span> Lý thuyết QLoRA</h2>
+
+  <p>QLoRA = <strong>Q</strong>uantization + <strong>Lo</strong>w-<strong>R</strong>ank <strong>A</strong>daptation. Hai kỹ thuật giải quyết hai vấn đề độc lập: thiếu bộ nhớ (Q) và chi phí tính toán quá lớn (LoRA).</p>
+
+  <h3 id="s2-lora">LoRA — Chỉ train phần nhỏ</h3>
+
+  <p><strong>Vấn đề:</strong> Full fine-tuning cập nhật 3 tỷ tham số — cần vài chục GB VRAM cho gradients + optimizer states.</p>
+
+  <p><strong>Giải pháp:</strong></p>
+  <ol>
+    <li><strong>Freeze</strong> toàn bộ trọng số gốc W — không thay đổi, không tính gradient</li>
+    <li><strong>Thêm Adapter</strong> vào các lớp được chọn: hai ma trận nhỏ A và B</li>
+    <li><strong>Chỉ train</strong> A và B</li>
+  </ol>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">∑</div>
+    <div>
+      <strong>Công thức LoRA:</strong><br>
+      <code>W_mới = W_gốc + ΔW = W_gốc + (A × B) × (alpha / r)</code><br><br>
+      A: [d_out × r] — khởi tạo Gaussian &nbsp;|&nbsp; B: [r × d_in] — khởi tạo 0 (để ΔW = 0 lúc đầu)<br>
+      <strong>Tại sao B = 0?</strong> Đảm bảo fine-tuning xuất phát chính xác từ hành vi base model, không thay đổi gì ngay lập tức.
+    </div>
+  </div>
+
+  <h4>Tính toán số tham số (r=32, chỉ attention layers)</h4>
+<pre><code>r = <span class="nm">32</span>
+<span class="cm"># Mỗi attention module trong 1 layer:</span>
+lora_q = <span class="nm">3072</span> * r + <span class="nm">3072</span> * r  <span class="cm"># = 196,608 params</span>
+lora_k = <span class="nm">3072</span> * r + <span class="nm">1024</span> * r  <span class="cm"># = 131,072 params</span>
+lora_v = <span class="nm">3072</span> * r + <span class="nm">1024</span> * r  <span class="cm"># = 131,072 params</span>
+lora_o = <span class="nm">3072</span> * r + <span class="nm">3072</span> * r  <span class="cm"># = 196,608 params</span>
+
+total_params = (lora_q + lora_k + lora_v + lora_o) * <span class="nm">28</span>  <span class="cm"># = ~18.3M</span>
+size_mb = (total_params * <span class="nm">4</span>) / <span class="nm">1_000_000</span>  <span class="cm"># Float32 = 4 bytes</span>
+<span class="cm"># Output: ~73 MB</span>
+<span class="cm"># Thực tế trên HuggingFace: adapter_model.safetensors = 73.4 MB ✓</span></code></pre>
+
+  <div class="callout callout-good">
+    <div class="callout-icon">✓</div>
+    <div>Thêm ~18 triệu tham số mới (chỉ 0.6% so với 3 tỷ), nặng 73MB — đây là toàn bộ thứ cần lưu trữ và chia sẻ sau khi train. Nhỏ hơn nhiều ảnh RAW từ máy ảnh.</div>
+  </div>
+
+  <h3 id="s2-quant">4-bit NF4 Quantization</h3>
+
+  <p><strong>4-bit thông thường</strong> chỉ lưu được 16 giá trị nguyên (0–15). <strong>NF4 (Normal Float 4)</strong> thông minh hơn: ánh xạ 16 giá trị theo <strong>phân phối chuẩn</strong> của trọng số neural network. Vì phần lớn trọng số nằm gần 0, NF4 phân bổ nhiều "điểm mô tả" hơn ở vùng này → giảm sai số lượng tử hóa.</p>
+
+  <p><strong>Double Quantization:</strong> Nén thêm một lần nữa cả hằng số lượng tử hóa — tiết kiệm thêm ~0.37 bits/parameter.</p>
+
+<pre><code>quant_config = <span class="cl">BitsAndBytesConfig</span>(
+    load_in_4bit=<span class="nm">True</span>,
+    bnb_4bit_use_double_quant=<span class="nm">True</span>,       <span class="cm"># Double quantization</span>
+    bnb_4bit_compute_dtype=torch.bfloat16, <span class="cm"># Tính toán ở 16-bit cho nhanh</span>
+    bnb_4bit_quant_type=<span class="st">"nf4"</span>             <span class="cm"># Normal Float 4</span>
+)</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">i</div>
+    <div><strong>Chỉ base model bị nén 4-bit.</strong> Các LoRA adapter vẫn giữ float32/bfloat16 — vì đây là phần cần tính gradient chính xác. <code>compute_dtype=bfloat16</code>: khi tính toán (không phải lưu trữ), model tạm thời dequantize về bfloat16 để tính — đủ chính xác và nhanh hơn float32.</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 3 ══ -->
+<div class="section" id="s3">
+  <h2><span class="section-num">3</span> Luồng hoạt động QLoRA</h2>
+
+  <h3 id="s3-fwd">3.1 Forward Pass khi Training</h3>
+
+<div class="arch-box"><span class="cm">Input Prompt (text)</span>
+        │
+        ▼ Tokenizer
+<span class="nm">Token IDs [batch × seq_len]</span>
+        │
+        ├──────────────────────────────────────────┐
+        │                                          │
+        ▼ <span class="kw">Base Model</span> — <span class="op">FROZEN, 4-bit</span>            ▼ <span class="fn">LoRA Adapter</span> — <span class="op">TRAINABLE, bf16</span>
+<span class="fn">embed_tokens</span>                                    │
+        │                                          │
+Layer 0..27:                                       │
+  q_proj(4-bit) ────────────────────────────── + A_q × B_q × (α/r)
+  k_proj(4-bit)
+  v_proj(4-bit) ────────────────────────────── + A_v × B_v × (α/r)
+  o_proj(4-bit) ────────────────────────────── + A_o × B_o × (α/r)
+  gate/up/down  ────────────────────────────── + A_mlp × B_mlp × (α/r)
+        │                                          │
+        └───────────────── <span class="op">cộng gộp (+)</span> ──────────┘
+                               │
+                               ▼
+                     <span class="nm">Output logits [vocab_size]</span>
+                               │
+                               ▼
+               <span class="cl">Cross Entropy Loss</span> (so với completion thực)</div>
+
+  <p><strong>Điểm mấu chốt:</strong> Base model xử lý forward pass bình thường. Adapter tính song song và cộng kết quả vào. Đây là lý do LoRA <em>không làm chậm inference</em> — chỉ là một phép cộng thêm.</p>
+
+  <h3 id="s3-loop">3.2 Bốn bước Training Loop</h3>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <div class="flow-title">FORWARD PASS</div>
+        <div class="flow-desc">Prompt → [Base Model 4-bit frozen] + [LoRA Adapters trainable] → Predicted tokens</div>
+      </div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <div class="flow-title">LOSS CALCULATION</div>
+        <div class="flow-desc">Cross Entropy(predicted_tokens, completion_tokens). Ví dụ: model dự đoán "249" nhưng thực tế "199" → Loss cao</div>
+      </div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <div class="flow-title">BACKWARD PASS (Backpropagation)</div>
+        <div class="flow-desc">Tính gradient CHỈ cho A và B — bỏ qua 3 tỷ params của base model. Tiết kiệm ~99.4% khối lượng tính toán.</div>
+      </div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-content">
+        <div class="flow-title">OPTIMIZATION (paged_adamw_32bit)</div>
+        <div class="flow-desc">Cập nhật A và B theo hướng giảm Loss. Bước nhỏ theo learning rate hiện tại của Cosine Scheduler.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 id="s3-infer">3.3 Luồng Inference</h3>
+<pre><code><span class="cm"># 1. Load base model (4-bit, ~2.2GB VRAM)</span>
+base_model = <span class="cl">AutoModelForCausalLM</span>.from_pretrained(
+    <span class="st">"meta-llama/Llama-3.2-3B"</span>,
+    quantization_config=quant_config,
+    device_map=<span class="st">"auto"</span>
+)
+<span class="cm"># 2. Gắn adapter vào base model (+73MB)</span>
+fine_tuned_model = <span class="cl">PeftModel</span>.from_pretrained(base_model, <span class="st">"SeanSunny/price-2026-final"</span>)
+
+<span class="cm"># 3. Predict</span>
+<span class="kw">def</span> <span class="fn">model_predict</span>(item):
+    inputs = tokenizer(item[<span class="st">"prompt"</span>], return_tensors=<span class="st">"pt"</span>).to(<span class="st">"cuda"</span>)
+    <span class="kw">with</span> torch.no_grad():  <span class="cm"># Tắt gradient → giảm ~50% VRAM, tăng tốc</span>
+        output_ids = fine_tuned_model.generate(**inputs, max_new_tokens=<span class="nm">8</span>)
+    prompt_len = inputs[<span class="st">"input_ids"</span>].shape[<span class="nm">1</span>]
+    generated_ids = output_ids[<span class="nm">0</span>, prompt_len:]
+    <span class="kw">return</span> tokenizer.decode(generated_ids)</code></pre>
+
+  <p><strong><code>max_new_tokens=8</code>:</strong> Llama tokenizer mã hóa số 0–999 thành 1 token duy nhất. Giá dưới $1000 tối đa 3–4 tokens. Đặt 8 là an toàn.</p>
+</div>
+
+<!-- ══ SECTION 4 ══ -->
+<div class="section" id="s4">
+  <h2><span class="section-num">4</span> Chuẩn bị dữ liệu</h2>
+
+  <h4>File: <code>Code_Fine_tune/items.py</code></h4>
+<pre><code><span class="nm">PREFIX</span> = <span class="st">"Price is $"</span>
+<span class="nm">QUESTION</span> = <span class="st">"What does this cost to the nearest dollar?"</span>
+
+<span class="kw">class</span> <span class="cl">Item</span>(BaseModel):
+    title: str
+    category: str
+    price: float
+    summary: Optional[str] = <span class="nm">None</span>     <span class="cm"># Text sạch từ Groq LLM (Week 6 Day 2)</span>
+    prompt: Optional[str] = <span class="nm">None</span>      <span class="cm"># Input cho fine-tuning</span>
+    completion: Optional[str] = <span class="nm">None</span>  <span class="cm"># Ground truth output</span></code></pre>
+
+  <h3 id="s4-token">Token Analysis & Cutoff Strategy</h3>
+
+  <p><strong>Vấn đề:</strong> Mô tả sản phẩm có độ dài từ 20 đến 245+ tokens. GPU phải padding tất cả về cùng độ dài → mẫu dài nhất quyết định bộ nhớ cần dùng cho cả batch.</p>
+
+<pre><code>tokenizer = <span class="cl">AutoTokenizer</span>.from_pretrained(<span class="st">"meta-llama/Llama-3.2-3B"</span>)
+token_counts = [item.count_tokens(tokenizer) <span class="kw">for</span> item <span class="kw">in</span> items]
+
+<span class="nm">CUTOFF</span> = <span class="nm">110</span>
+cut = <span class="fn">len</span>([c <span class="kw">for</span> c <span class="kw">in</span> token_counts <span class="kw">if</span> c > CUTOFF])
+<span class="cm"># ~5.7% mẫu bị cắt bớt — chấp nhận được</span></code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Quyết định</th><th>Giá trị</th><th>Lý do</th></tr></thead>
+      <tbody>
+        <tr><td>Token cutoff</td><td><strong>110</strong></td><td>Cắt 5.7% mẫu đuôi dài; thông tin quan trọng ở phần đầu</td></tr>
+        <tr><td>Max sequence length</td><td><strong>128</strong></td><td>110 + 16 (câu hỏi + PREFIX) = 126 → làm tròn lên 128 = 2⁷ (memory alignment)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s4-prompt">Prompt Format & Rounding Strategy</h3>
+
+<pre><code><span class="kw">def</span> <span class="fn">make_prompts</span>(self, tokenizer, max_tokens, do_round):
+    tokens = tokenizer.encode(self.summary, add_special_tokens=<span class="nm">False</span>)
+    <span class="kw">if</span> <span class="fn">len</span>(tokens) > max_tokens:
+        summary = tokenizer.decode(tokens[:max_tokens]).rstrip()  <span class="cm"># Cắt</span>
+    <span class="kw">else</span>:
+        summary = self.summary
+
+    self.prompt = <span class="st">f"</span><span class="nm">{QUESTION}</span><span class="st">\n\n</span><span class="nm">{summary}</span><span class="st">\n\n</span><span class="nm">{PREFIX}</span><span class="st">"</span>
+    self.completion = <span class="st">f"</span><span class="nm">{round(self.price)}</span><span class="st">.00"</span> <span class="kw">if</span> do_round <span class="kw">else</span> <span class="fn">str</span>(self.price)</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tập dữ liệu</th><th>Xử lý giá</th><th>Lý do</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Train & Val</strong></td><td>Làm tròn → <code>"280.00"</code></td><td>LLM là bài toán classification (next-token). Làm tròn giúp model tập trung học magnitude (hàng đô) thay vì bị nhiễu bởi cents</td></tr>
+        <tr><td><strong>Test</strong></td><td>Giữ nguyên → <code>"279.99"</code></td><td>Đánh giá công bằng, so sánh được với DNN và frontier models</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-good">
+    <div class="callout-icon">★</div>
+    <div><strong>Llama Tokenizer — lợi thế đặc biệt:</strong> Mã hóa số 0–999 thành <strong>1 token duy nhất</strong> (ví dụ: "280" = 1 token). Với các model khác, "280" bị tách thành "2", "8", "0". Điều này biến bài toán thành: chọn đúng 1 trong ~1000 token giá — classification thuần túy, dễ học hơn nhiều.</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 5 ══ -->
+<div class="section" id="s5">
+  <h2><span class="section-num">5</span> Cấu hình Training</h2>
+
+  <h3 id="s5-qlora">5.1 QLoRA Hyperparameters</h3>
+
+  <div class="param-grid">
+    <div class="param-card">
+      <div class="param-name">LORA_R</div>
+      <div class="param-val">64</div>
+      <div class="param-desc">Rank của ma trận adapter. Số càng lớn, adapter học được đặc trưng phức tạp hơn nhưng tốn VRAM. Light Mode dùng 32; Full Mode dùng 64.</div>
+    </div>
+    <div class="param-card">
+      <div class="param-name">LORA_ALPHA</div>
+      <div class="param-val">128</div>
+      <div class="param-desc">Hệ số scaling. alpha/r = 2. ΔW thực tế = A×B × (128/64). Quy tắc ngón tay cái: alpha = 2×r cho kết quả ổn định.</div>
+    </div>
+    <div class="param-card">
+      <div class="param-name">LORA_DROPOUT</div>
+      <div class="param-val">0.1</div>
+      <div class="param-desc">Tắt ngẫu nhiên 10% neurons mỗi bước train. Buộc model học đặc trưng độc lập → chống overfitting.</div>
+    </div>
+    <div class="param-card">
+      <div class="param-name">TARGET_MODULES</div>
+      <div class="param-val" style="font-size:13px">Attn + MLP</div>
+      <div class="param-desc">q/k/v/o_proj + gate/up/down_proj. Full Mode train cả attention lẫn MLP — attention học ngữ cảnh, MLP học kiến thức về giá.</div>
+    </div>
+  </div>
+
+  <h3 id="s5-train">5.2 Training Hyperparameters</h3>
+
+  <div class="param-grid">
+    <div class="param-card">
+      <div class="param-name">EPOCHS</div>
+      <div class="param-val">3</div>
+      <div class="param-desc">Số lần nhìn thấy toàn bộ 800k mẫu. Thực tế: Epoch 1–2 tốt, Epoch 3 overfitting. Checkpoint tốt nhất ở cuối Epoch 2.</div>
+    </div>
+    <div class="param-card">
+      <div class="param-name">Effective Batch</div>
+      <div class="param-val">64</div>
+      <div class="param-desc">BATCH_SIZE=16 × GRADIENT_ACCUMULATION=4. GPU load 16 mẫu/lần, tích lũy gradient 4 bước rồi mới update → tương đương batch 64.</div>
+    </div>
+    <div class="param-card">
+      <div class="param-name">LEARNING_RATE</div>
+      <div class="param-val">2e-4</div>
+      <div class="param-desc">Điểm khởi đầu chuẩn cho QLoRA (từ paper gốc Dettmers et al.). Kết hợp Cosine Scheduler để giảm dần về 0.</div>
+    </div>
+    <div class="param-card">
+      <div class="param-name">OPTIMIZER</div>
+      <div class="param-val" style="font-size:13px">paged_adamw</div>
+      <div class="param-desc">Adam + Weight Decay. "Paged": đẩy optimizer states sang CPU RAM khi GPU VRAM đầy → tránh OOM. weight_decay=0.001 là regularization nhẹ.</div>
+    </div>
+  </div>
+
+  <h4>Cosine LR Scheduler với Warmup</h4>
+
+<pre><code>train_parameters = <span class="cl">SFTConfig</span>(
+    <span class="cm"># ... các params khác ...</span>
+    learning_rate=<span class="nm">2e-4</span>,
+    warmup_ratio=<span class="nm">0.03</span>,         <span class="cm"># 3% bước đầu: LR tăng 0 → 2e-4 (tránh "sốc nhiệt")</span>
+    lr_scheduler_type=<span class="st">"cosine"</span>, <span class="cm"># Sau đó giảm theo hàm cosine về 0</span>
+    gradient_accumulation_steps=<span class="nm">4</span>,
+    max_grad_norm=<span class="nm">0.3</span>,          <span class="cm"># Gradient clipping — tránh explosion</span>
+    group_by_length=<span class="nm">True</span>,       <span class="cm"># Nhóm mẫu cùng độ dài → giảm padding → nhanh hơn ~15%</span>
+    save_steps=<span class="nm">200</span>,
+    save_total_limit=<span class="nm">10</span>,        <span class="cm"># Chỉ giữ 10 checkpoint → tránh đầy đĩa</span>
+    eval_strategy=<span class="st">"steps"</span>,
+    push_to_hub=<span class="nm">True</span>,
+)</code></pre>
+</div>
+
+<!-- ══ SECTION 6 ══ -->
+<div class="section" id="s6">
+  <h2><span class="section-num">6</span> Quá trình huấn luyện</h2>
+
+  <h4>SFTTrainer — một dòng lệnh, toàn bộ pipeline</h4>
+<pre><code>fine_tuning = <span class="cl">SFTTrainer</span>(
+    model=base_model,
+    train_dataset=train,
+    eval_dataset=val,
+    peft_config=lora_parameters,
+    args=train_parameters
+)
+
+fine_tuning.train()  <span class="cm"># ← Thực thi toàn bộ training loop</span>
+fine_tuning.model.push_to_hub(PROJECT_RUN_NAME, private=<span class="nm">True</span>)</code></pre>
+
+  <p><code>SFTTrainer</code> (thư viện <code>trl</code>) tự động: nhận dataset với columns <code>prompt</code>/<code>completion</code>, thêm EOS token, thực hiện 4-bước loop, tính Validation Loss mỗi <code>SAVE_STEPS</code>, lưu checkpoint và push Hub định kỳ.</p>
+
+  <h3 id="s6-wb">6.1 W&B Monitoring</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Chỉ số</th><th>Đặc điểm</th><th>Ý nghĩa</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Training Loss</strong></td>
+          <td>Gập ghềnh (noisy), cập nhật mỗi 10 bước</td>
+          <td>Giảm mạnh ban đầu (học format), sau đó chậm (học kiến thức giá)</td>
+        </tr>
+        <tr>
+          <td><strong>Validation Loss</strong></td>
+          <td>Mượt hơn, cập nhật mỗi 200 bước</td>
+          <td>Thước đo trung thực nhất về generalization. Phải giảm theo thời gian.</td>
+        </tr>
+        <tr>
+          <td><strong>Learning Rate</strong></td>
+          <td>Hình "quả núi" liên tục qua 3 epochs</td>
+          <td>Warmup 3% → Cosine decay về 0. Không reset sau mỗi epoch.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s6-overfit">6.2 Phân tích Overfitting</h3>
+
+<div class="arch-box"><span class="cm">Epoch 1:  Eval Loss = 1.29 → giảm dần ✓</span>
+<span class="cm">Epoch 2:  Eval Loss = 1.124 tại bước ~6200 ← ĐIỂM TỐT NHẤT</span>
+<span class="cm">Epoch 3:  Eval Loss tăng vọt lên 1.283 → OVERFITTING ✗</span></div>
+
+  <div class="callout callout-bad">
+    <div class="callout-icon">✗</div>
+    <div><strong>Nguyên nhân Epoch 3 overfitting:</strong> Với r=64 và 800k mẫu, model có đủ "bộ nhớ" để học vẹt sau 2 epochs. Epoch 3 củng cố memorization thay vì generalization — Training Loss giảm đẹp nhưng Validation Loss tăng.</div>
+  </div>
+
+  <div class="callout callout-good">
+    <div class="callout-icon">✓</div>
+    <div><strong>Giải pháp:</strong> Lấy checkpoint tại bước ~6200 (cuối Epoch 2), không dùng model cuối cùng. Đây là lý do cấu hình <code>save_steps=200</code> — có đủ checkpoint để chọn lại bất cứ lúc nào.</div>
+  </div>
+</div>
+
+<!-- ══ SECTION 7 ══ -->
+<div class="section" id="s7">
+  <h2><span class="section-num">7</span> Kết quả và so sánh</h2>
+
+  <div class="result-hero">
+    <div class="metric-big">
+      <div class="value">$39.85</div>
+      <div class="label">MAE — Sai lệch trung bình</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="metric-big">
+      <div class="value" style="color:var(--accent)">4,643</div>
+      <div class="label">MSE</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="metric-big">
+      <div class="value" style="color:var(--accent2)">78.9%</div>
+      <div class="label">R² — Variance explained</div>
+    </div>
+  </div>
+
+  <p><strong>Đọc R² = 78.9%:</strong> Model giải thích được ~79% variance trong giá thực tế. Phần còn lại (21%) là noise không thể đoán từ mô tả — ví dụ giá sale, regional pricing, thời điểm thị trường.</p>
+
+  <h3>Leaderboard "The Price Is Right"</h3>
+  <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px">Metric: MAE trên 200 mẫu test, set_seed(42)</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Hạng</th><th>Model</th><th>Loại</th><th>MAE</th></tr></thead>
+      <tbody>
+        <tr class="highlight">
+          <td class="lb-rank rank-1">1</td>
+          <td><strong>Fine-tuned Llama 3.2 3B (QLoRA)</strong></td>
+          <td>Fine-tuned LLM</td>
+          <td class="mae-good">$39.85</td>
+        </tr>
+        <tr>
+          <td class="lb-rank">2</td>
+          <td>SentTrans frozen (4096)</td>
+          <td>Specialized DL</td>
+          <td class="mae-mid">$43.78</td>
+        </tr>
+        <tr>
+          <td class="lb-rank">3</td>
+          <td>DistilBERT V1 (5 epochs)</td>
+          <td>Fine-tuned LM</td>
+          <td class="mae-mid">$44.19</td>
+        </tr>
+        <tr>
+          <td class="lb-rank">4</td>
+          <td>HashingVec DNN (289M params)</td>
+          <td>Specialized DL</td>
+          <td class="mae-mid">$46.02</td>
+        </tr>
+        <tr>
+          <td class="lb-rank">5</td>
+          <td>Claude Opus 4.5 (zero-shot)</td>
+          <td>Frontier LLM</td>
+          <td class="mae-mid">$47.10</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Gemini 3 Pro</td>
+          <td>Frontier LLM</td>
+          <td>$50.54</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td>GPT-4.1 Nano</td>
+          <td>Fast LLM</td>
+          <td>$62.51</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td>XGBoost (800k samples)</td>
+          <td>ML</td>
+          <td>$68.23</td>
+        </tr>
+        <tr>
+          <td>13</td>
+          <td>Human (giảng viên)</td>
+          <td>Bio</td>
+          <td class="mae-bad">$87.62</td>
+        </tr>
+        <tr>
+          <td>14</td>
+          <td>Base Llama 3.2 3B (zero-shot)</td>
+          <td>Base LLM</td>
+          <td class="mae-bad">$110.72</td>
+        </tr>
+        <tr>
+          <td>15</td>
+          <td>Constant Pricer</td>
+          <td>Trivial</td>
+          <td class="mae-bad">$106.18</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-good">
+    <div class="callout-icon">★</div>
+    <div>
+      Fine-tuned Llama cải thiện <strong>64%</strong> so với chính base model của nó ($110.72 → $39.85).<br>
+      Đánh bại Claude Opus 4.5 — frontier model đắt tiền — với chi phí inference gần như bằng 0 sau khi train xong.<br>
+      Adapter nặng 73MB chứa toàn bộ "trí tuệ mới" — nhỏ hơn nhiều ảnh RAW từ máy ảnh.
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 8 ══ -->
+<div class="section" id="s8">
+  <h2><span class="section-num">8</span> Deployment</h2>
+
+  <p>Model được deploy lên <strong>Modal serverless T4 GPU</strong> qua <code>segment4/khong_su_dung/pricer_service2.py</code> — chạy như Specialist Agent với weight 10% trong EnsembleAgent (<code>frontier×0.8 + specialist×0.1 + neural×0.1</code>). Chi tiết kiến trúc deployment, cách tích hợp, và xử lý cold start (30–60s lần đầu sau khi container ngủ) xem tại <code>report_system.md</code>.</p>
+</div>
+
+</main>
+</div>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('[id]');
+  const links = document.querySelectorAll('.sidebar a');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.sidebar a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
