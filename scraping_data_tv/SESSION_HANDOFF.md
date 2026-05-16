@@ -10,56 +10,100 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 ```
 Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
-- fine_tune_qwen/phase2_execution_log.md
+- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md
 
-Trang thai hien tai (2026-05-01 — session 13 da ket thuc):
+Trang thai hien tai (2026-05-16 — session 15 da ket thuc):
 - Branch: feature/day5-qlora-qwen
-- RTX 5090 32GB (vast.ai), torch 2.9.0+cu128, compute cap 12.0 (Blackwell)
+- Day 5 QLoRA: Run #5 (v4-scratch-v4) DONE — RMSLE=0.4608, MAE=79,589 VND, R2=62.93%
+- Day 3 v2: Notebook day3_v2_baseline_ml.ipynb DA TAO XONG (Section 0-4)
 
-LICH SU QUAN TRONG:
-- 06_train_v4_scratch_v2.ipynb: FAILED — mode collapse RSLoRA scale 22.6x, RMSLE=0.9739, R2=-28%
-  Root cause: USE_RSLORA=True voi r=128 → scale=alpha/sqrt(r)=22.6x → gradient spike step 200 → collapse
-  Model chi predict "199" (gia pho bien nhat). Chi tiet day du: phase2_execution_log.md Run #4 FAILED.
-- 06_train_v4_scratch_v3.ipynb: da tao nhung co loi cau truc (source luu theo tung ki tu), deprecated.
-- 06_train_v4_scratch_v4.ipynb: VERSION DUNG, fix hoan toan:
-  r=64/alpha=128/scale=2.0x/no-DoRA/no-RSLoRA/wd=0.001/3ep/NEFTune=5/batch=32/eff_batch=128
-- utils/evaluator.py: da fix r2_score*100 → tra ve % (nhu day4, vi du 66.39% thay vi 0.6639)
+NHIEM VU CHINH (session tiep theo): Chay notebook day3_v2_baseline_ml.ipynb tren may thue
 
-Nhiem vu hom nay:
-1. User chay 06_train_v4_scratch_v4.ipynb tren RTX 5090 32GB (vast.ai)
-   - KHONG doi gi — constants cell da chot dung
-   - Dataset: SeanSunny/items_prompts_tv_4 (269,112 train)
-   - Config: r=64/alpha=128/no-DoRA/no-RSLoRA/wd=0.001/3ep/NEFTune=5
-   - batch=32 (eff_batch=128), smoke abort limit 28GB, fallback 24 neu VRAM > 28GB
-   - Target: RMSLE 0.36-0.40, save results/v4_scratch_v4_results.json + v4_scratch_v4_val_predictions.json
-2. User se thong bao ket qua: smoke VRAM/sec_per_step/time_est, RMSLE per-eval,
-   final RMSLE/MAE/MAPE/R2%, 8 charts PNG, best ckpt step.
-3. Ghi vao phase2_execution_log.md muc "Run #5 — v4-scratch v4".
-4. Sau khi co v4_scratch_v4_val_predictions.json:
-   - Cap nhat 07_ensemble.ipynb load v4_scratch_v4 (thay vi v4_scratch)
-   - Chay 07_ensemble.ipynb (CPU ~2h) — Ridge log-space blend v3 + v4-scratch-v4 + v8
-5. Sau khi co ensemble_results.json:
-   - Tao 09_eval_full.ipynb — eval v3/v4-scratch-v4/ensemble tren test 3,872
-   - Viet day5_summary.md (tieng Viet, leaderboard final, lessons learned)
-6. Commit va push tat ca.
+NHUNG GI DA CO SAN:
+- Dataset: SeanSunny/items_tv_v9 (train=269,112 | val=3,926 | test=3,872)
+  Schema: title, category, brand, summary, price (round/1000 = 5-1000), price_vnd_true
+- pricer_vi_2/items.py: Item dataclass + from_hub() method (da verify)
+- pricer_vi_2/evaluator.py: match English — MAE/MSE/R2, hien thi "k VND", KHONG co RMSLE/MAPE
+- day3_v2/day3_v2_baseline_ml.ipynb: 28 cells, Section 0-4 hoan chinh
+- plan_day3_v2.md: CANONICAL — doc truoc khi code
 
-TUONG LAI (sau khi xong Day 5):
-- Day3/Day4 retrain voi items_tv_v9 (269K) — trao doi chi tiet session sau
-  Ly do: chi can thay doi dataset path, co the dat RMSLE 0.37-0.39
+CAU TRUC NOTEBOOK (Section 0-4 da co):
+Section 0: Setup + EDA + results = {}
+Section 1: Statistical baselines (random / mean / median / category_mean)
+Section 2: LR simple + LR + BoW + LR + TF-IDF char_wb
+Section 3: Benchmark 3 vectorizer (BoW / char_wb / Underthesea) tren 50K subset voi LGB
+Section 4: RandomForest (15K) + XGBoost (full 269K) + bang so sanh tong hop
+
+KEY CONSTRAINTS (cap nhat 2026-05-16):
+- Price label: price = round(price_vnd/1000), range 5-1000. KHONG dung price_vnd_true.
+- Primary metric: MAE (k VND) — KHONG dung RMSLE nua.
+- KHONG dung log1p transform — train tren raw price (5-1000), giong English.
+- Evaluate tren TEST set, 200 samples — giong English day3.
+- Underthesea: benchmark bat buoc trong Section 3 (khong bo qua).
+- KHONG dung evaluator cu (pricer_vi/) — chi dung pricer_vi_2/.
+
+SAU KHI CHAY SECTION 0-4:
+- Xem ket qua MAE cua tung model
+- Quyet dinh ky thuat MAE optimization cho Section 5+ (plan_day3_v2.md Section 4 co cac option)
+- Cac option: MAE loss truc tiep (LGB objective='regression_l1'), Quantile regression, Huber, Blend
+
+CAC FILE THAM KHAO:
+- Data_processing_for_English_data/Code_Data_processing/day3.ipynb — English baseline structure
+- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md — CANONICAL plan
+- Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py — evaluator da cap nhat
 
 Coding guidelines:
-- Truoc khi viet hoac sua bat ki doan code nao: invoke skill `karpathy-guidelines`
-  (think before coding, simplicity first, surgical changes, verifiable goals)
-
-Debug protocol khi gap loi:
-- Reproduce → root cause → 1 fix → verify (KHONG fix nhieu thu cung luc)
-- Neu OOM o smoke → giam PER_DEVICE_BATCH: 32→24→20, restart kernel, re-run
-- Neu disconnect giua train → instance moi, chay tu Section 7 (auto resume tu HF last-checkpoint)
-  HF branch: last-checkpoint | Repo: SeanSunny/qwen3.5-4b-vn-pricer-v4-scratch-v4
-
-KHONG sua plan_day5.md (READ-ONLY).
-KHONG chay GPU tu dong — chi code/debug.
+- Truoc khi viet hoac sua bat ki doan code nao: invoke skill karpathy-guidelines
+- KHONG chay GPU — Day 3 v2 chay tren CPU/RAM.
 ```
+
+---
+
+## Trang thai hien tai (2026-05-16 — session 14)
+
+**Trang thai:** Day 3 v2 khoi dong. pricer_vi_2 (items.py + evaluator.py) da tao va verify.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 14 ket qua (2026-05-16)
+
+**Context:**
+- Day 5 Run #5 (v4-scratch-v4) da chay xong truoc session nay: RMSLE=0.4608, MAE=79,589 VND, R2=62.93%, MAPE=32.78%, best ckpt step=4500. Ket qua luu tai fine_tune_qwen/results/v4_scratch_v4_results.json.
+- Quyet dinh retrain Day 3 / Day 4 voi items_tv_v9 (269K) va price=round/1000.
+
+**Da tao:**
+- [x] `Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md` — plan day du cho Day 3 v2 (9 sections, 3 kien truc, acceptance criteria)
+- [x] `Data_processing_for_Vietnamese_data/pricer_vi_2/__init__.py`
+- [x] `Data_processing_for_Vietnamese_data/pricer_vi_2/items.py`
+  - Item dataclass (price = round/1000, range 5-1000)
+  - from_hub("SeanSunny/items_tv_v9") classmethod
+  - Bo: weight, full, prompt (khong can cho Day 3)
+  - Them: brand, price_vnd_true (optional)
+- [x] `Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py`
+  - Don vi: k VND (55 = 55,000 VND)
+  - color_for: error<40k OR ratio<20% → green; error<80k OR ratio<40% → orange (theo English)
+  - Metrics: RMSLE (primary), MAE (k VND + VND), MSE (log-space), MAPE, R2
+  - plot_predictions: color logic dung numpy vectorized voi cung threshold
+  - plot_training_history: them moi (English co, pricer_vi v1 khong co)
+  - Da verify: all checks passed
+
+**Quyet dinh kien truc Day 3 v2 (da chot):**
+- Price unit: round(price/1000) → range 5-1000 (align English pipeline)
+- Target transform: log1p(price) train, expm1(pred) inference (mandatory cho RMSLE)
+- Vectorizer chinh: TfidfVectorizer(char_wb, ngram=(2,4), 100K vocab, sublinear_tf=True)
+- Underthesea: tuy chon — benchmark truoc voi 50K subset LGB default
+- Model chinh: LightGBM + TruncatedSVD(200) + log-space
+- Best result: Blend Ridge 30% + LGB 70% trong log-space
+
+**3 kien truc da research va de xuat:**
+1. Ridge + TF-IDF sparse — RMSLE ~0.50-0.55, <1 phut train
+2. LGB + SVD(TF-IDF) + Optuna — RMSLE ~0.40-0.48, 5-15 phut train
+3. Blend Ridge + LGB (log-space) — RMSLE ~0.37-0.45, +5 phut
+
+### Buoc tiep (session tiep theo):
+- [ ] Tao `day3_v2/day3_v2_baseline_ml.ipynb` (9 sections theo plan)
+- [ ] Chay toan bo notebook tren CPU (khong can GPU)
+- [ ] Save `day3_v2/day3_v2_results.json`
+- [ ] Viet `day3_v2/day3_v2_summary.md`
 
 ---
 
