@@ -146,18 +146,41 @@ Chạy 3 vectorizer với LGB default trên **50K subset**, chọn cái có **MA
 
 ---
 
-## 4. Approach: Section 0-4 (baseline) + Section 5+ (MAE optimization)
+## 4. Kết quả thực tế Section 0-4 (2026-05-16)
 
-### Section 0-4 — Baseline (bám sát English day3)
+| Model | MAE (k VND) | R² | Ghi chú |
+|---|---|---|---|
+| 2a. LR Simple (text_length) | ~225k | -0.002 | Worse than mean — vô dụng |
+| 2b. LR + BoW (2K) | 131.7k | 44.3% | Baseline NLP |
+| **2c. Ridge + TF-IDF char_wb** | **112.1k** | **59.2%** | Best linear model |
+| 3A. BoW + LGB (50K) | 120.8k | 50.8% | |
+| **3B. char_wb + LGB (50K, n=1000)** | **108.8k** | **59.6%** | **Best toàn bộ** |
+| 3C. Underthesea + LGB (50K) | 118.0k | 50.8% | Tokenize 30 phút, thua char_wb |
+| 4a. RandomForest (15K) | 129.7k | 42.3% | Underfit — subset nhỏ |
+| 4b. XGBoost (269K, hist) | 125.2k | 43.5% | Thấp hơn kỳ vọng |
 
-**Không dùng log transform.** Train tất cả model với raw price (5–1000) và MSE loss — giống English day3 hoàn toàn.
+**Nhận xét quan trọng:**
+- XGBoost full 269K (125k) THUA Ridge+TF-IDF (112k) — LGB phù hợp hơn với sparse TF-IDF
+- LGB trên 50K subset đã đạt 108.8k — **train trên full 269K sẽ là Section 5 ưu tiên cao nhất**
+- char_wb vượt Underthesea (tốn 30 phút tokenize) → giữ char_wb làm vectorizer chính
 
-| Model | Training target | Loss |
-|---|---|---|
-| LR, RF, XGBoost | raw price | MSE |
-| LGB benchmark | raw price | MSE (default) |
+---
 
-Evaluate trên `test` set, 200 samples — giống English.
+## 4b. Approach: Section 5+ (MAE optimization)
+
+### Thứ tự ưu tiên (dựa trên kết quả Section 0-4)
+
+**P0 — LGB full 269K (expected ~95-103k):**
+LGB trên 50K cho 108.8k. Scale lên 269K sẽ cải thiện đáng kể.
+
+**P1 — LGB objective='regression_l1' (expected +2-5k improvement):**
+Train MAE loss trực tiếp thay vì MSE.
+
+**P2 — Add category OHE features:**
+Category mean pricer cho thấy signal mạnh theo danh mục. Nối OHE category vào TF-IDF.
+
+**P3 — Blend LGB + Ridge (trong raw-space):**
+Simple ensemble. Thực hiện sau khi có LGB full 269K.
 
 ---
 
@@ -275,6 +298,23 @@ Cell: Chạy best model trên test (3,872)
 Cell: Save day3_v2_results.json
 Cell: Tạo day3_v2_summary.md
 ```
+
+---
+
+## 5. Section 5 — Đã implement (2026-05-16)
+
+**File:** `day3_v2/day3_v2_section5.ipynb`
+
+| Section | Model | Config | Kỳ vọng MAE |
+|---|---|---|---|
+| 5A | LGB + char_wb 269K | MSE obj, num_leaves=63, n=1000 | ~95-103k |
+| 5B | LGB + char_wb 269K | MAE obj (regression_l1) | ~90-100k |
+| 5C | Blend 5A+5B | Optimize weight trên val set | Best |
+| 5D | RF + BoW 2000 | hypothesis: low-dim fix RF | TBD |
+| 5E | XGB + BoW 2000 | hypothesis: low-dim fix XGB | TBD |
+
+**Root cause 4a/4b thua:** TF-IDF 100K features quá cao chiều với RF/XGB.
+English day3 dùng BoW 2000 → RF/XGB hoạt động tốt. 5D/5E verify hypothesis này.
 
 ---
 

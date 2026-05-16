@@ -12,29 +12,34 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md
 
-Trang thai hien tai (2026-05-16 — session 15 da ket thuc):
+Trang thai hien tai (2026-05-16 — session 16 ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 5 QLoRA: Run #5 (v4-scratch-v4) DONE — RMSLE=0.4608, MAE=79,589 VND, R2=62.93%
-- Day 3 v2: Notebook DA CHAY XONG tren may thue — co ket qua Section 0-4
+- Day 3 v2: Section 5 notebook DA TAO XONG. San sang chay tren may thue.
 
-NHIEM VU CHINH (session tiep theo): Phan tich ket qua Section 0-4, quyet dinh Section 5+
+== KET QUA SECTION 0-4 ==
+  2b. LR + BoW:           MAE=131.7k R2=44.3%
+  2c. Ridge + TF-IDF:     MAE=112.1k R2=59.2%
+  3B. Bench char_wb+LGB:  MAE=108.8k R2=59.6% (BEST so far, 50K subset)
+  4a. RandomForest (15K, TF-IDF 100K): MAE=129.7k R2=42.3%
+  4b. XGBoost (269K, TF-IDF 100K):    MAE=125.2k R2=43.5%
 
-== KET QUA SECTION 0-4 (USER DIEN VAO SAU KHI CHAY) ==
-[User dien ket qua MAE cua tung model vao day]
+  ROOT CAUSE 4a/4b thua: TF-IDF 100K features qua cao chieu cho RF/XGB.
+  English day3 dung BoW 2000 → XGBoost/RF tot hon.
 
-Goi y cach bao cao:
-  1a. Random:             MAE=???k
-  1b. Constant (Mean):    MAE=???k
-  1c. Median:             MAE=???k
-  1d. Category Mean:      MAE=???k
-  2a. LR Simple:          MAE=???k
-  2b. LR + BoW:           MAE=???k
-  2c. LR + TF-IDF:        MAE=???k
-  3A. Bench BoW+LGB:      MAE=???k
-  3B. Bench char_wb+LGB:  MAE=???k
-  3C. Bench Under+LGB:    MAE=???k
-  4a. RandomForest (15K): MAE=???k
-  4b. XGBoost:            MAE=???k
+== SECTION 5 NOTEBOOK ==
+  File: day3_v2/day3_v2_section5.ipynb
+  5A. LGB + char_wb full 269K (MSE)        — expected ~95-103k
+  5B. LGB + char_wb full 269K (MAE loss)   — expected ~90-100k
+  5C. Blend 5A+5B (optimize tren val set)  — expected best
+  5D. RF + BoW 2000 (hypothesis test)      — verify RF voi low-dim
+  5E. XGBoost + BoW 2000 (hypothesis test) — verify XGB voi low-dim
+  Save: day3_v2_results.json
+
+== NHIEM VU CHINH (session tiep theo) ==
+  1. Chay day3_v2_section5.ipynb tren may thue
+  2. Bao cao MAE cua 5A/5B/5C/5D/5E
+  3. Quyet dinh co can Section 6 (tuning/ensemble them) khong
+  4. Save day3_v2_results.json + tao day3_v2_summary.md
 
 == NHUNG GI DA CO ==
 - Dataset: SeanSunny/items_tv_v9 (train=269,112 | val=3,926 | test=3,872)
@@ -69,11 +74,31 @@ Coding guidelines:
 
 ---
 
-## Trang thai hien tai (2026-05-16 — session 15)
+## Trang thai hien tai (2026-05-16 — session 16)
 
-**Trang thai:** Day 3 v2 hoan chinh. Notebook Section 0-4 san sang chay tren may thue.
+**Trang thai:** Section 5 notebook HOAN CHINH. San sang chay tren may thue.
 **Branch hien tai:** `feature/day5-qlora-qwen`
-**Commit:** `956b867`
+
+### Session 16 ket qua (2026-05-16)
+
+**Phan tich root cause 4a/4b thua:**
+- English day3: BoW 2000 features → XGBoost/RF hoat dong tot
+- Vietnamese day3: TF-IDF 100K features → XGBoost/RF overloaded (qua cao chieu)
+- LGB thich hop voi sparse high-dim nhung RF/XGB thi khong
+
+**Da tao:**
+- [x] `day3_v2/day3_v2_section5.ipynb` — 5A/5B/5C (LGB) + 5D/5E (hypothesis BoW 2000)
+
+**Fix loi trong session nay:**
+- CountVectorizer tra ve int64 → LGB TypeError: them .astype(np.float32) khi fit va predict
+- LinearRegression (269K x 100K) chay > 25 phut → doi sang Ridge(solver='sag') → vai phut
+- under_lgb_bench: dat nham .astype(np.float32) vao vi_tokenize (str) thay vi transform()
+
+**Buoc tiep (session 17):**
+- [ ] Chay day3_v2_section5.ipynb tren may thue
+- [ ] Bao cao MAE tung model
+- [ ] Neu best MAE < 90k → tao day3_v2_summary.md va dong Day 3 v2
+- [ ] Neu chua < 90k → quyet dinh tiep tuc tuning
 
 ### Session 15 ket qua (2026-05-16)
 
