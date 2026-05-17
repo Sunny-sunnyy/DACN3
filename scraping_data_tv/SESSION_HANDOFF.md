@@ -12,51 +12,39 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
 
-Trang thai hien tai (2026-05-17 — session 18 ket thuc):
+Trang thai hien tai (2026-05-17 — session 20 ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 3 v2: XONG (best = 5A MAE=92.6k). Day 4 v2 plan DA VIET XONG.
-- Day 4 v2: plan_day4_v2.md da tao, chua bat dau implement.
+- Day 3 v2: XONG (best = 5A MAE=92.6k).
+- Day 4 v2: 7 notebooks da tao (00-05 + 01-02). San sang chay tren vast.ai.
 
-== DAY 3 V2 TONG KET ==
-  Best model: 5A. LGB + char_wb TF-IDF 100K (MSE, 269K): MAE=92.6k
-  Stretch goal <90k CHUA dat. 5C (blend) CHUA implement.
-  Files: day3_v2_baseline_ml.ipynb + day3_v2_section5.ipynb
-  NOTE: Day 3 v2 CHUA co day3_v2_results.json va day3_v2_summary.md
+== DAY 4 V2 TRANG THAI HIEN TAI ==
+  Notebooks DA TON TAI (code viet xong, CHUA CHAY):
+    day4_v2_00_token_analysis.ipynb  — profile char/word/token, can chay TRUOC TIEN
+    day4_v2_01_dnn_tfidf.ipynb       — DNN + TF-IDF char_wb 100K
+    day4_v2_02_dnn_hashvec.ipynb     — DNN + HashingVec 5000
+    day4_v2_03_senttrans.ipynb       — MiniLM 128t (baseline, giu nguyen)
+    day4_v2_04_e5small.ipynb         — e5-small 512t (Huong A)
+    day4_v2_05_aitvn.ipynb           — AITeamVN 1024-dim (Huong B)
 
-== DAY 4 V2 PLAN (MOI TAO SESSION 18) ==
-  File: Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
-  5 models + 1 ensemble Ridge stacking. Target: MAE < 65k VND.
-  GPU: RTX 3090 Ti 24GB, vast.ai.
+  Notebooks CHUA TON TAI (can tao sau khi co MAE tu 01-05):
+    day4_v2_06_xlmr.ipynb            — XLM-RoBERTa fine-tune
+    day4_v2_07_phobert.ipynb         — PhoBERT-v2 fine-tune
+    day4_v2_08_ensemble.ipynb        — Ridge stacking
 
-  Models (theo thu tu chay):
-    Task 2: DNN + TF-IDF char_wb 100K  (sparse mini-batch) → target <80k
-    Task 3: DNN + HashingVec 5000       (binary)            → target <85k
-    Task 4: Multilingual SentTrans+DNN  (frozen encoder)    → target <75k
-    Task 5: XLM-RoBERTa fine-tune       (end-to-end)        → target <70k
-    Task 6: PhoBERT-v2 fine-tune        (word seg required) → target <68k
-    Task 7: Ridge Stacking Ensemble     (val predictions)   → target <65k
-
-  New model files (CAN TAO — chua co):
-    pricer_vi_2/dnn_sparse.py     (SparseDNNRunner + PriceDNN)
-    pricer_vi_2/senttrans_model.py (SentTransRunner)
-    pricer_vi_2/xlmr_model.py     (XLMRRunner)
-    pricer_vi_2/phobert_model.py  (PhoBERTRunner + word_segment_and_cache)
-
-  Reuse (KHONG SUA):
-    pricer_vi_2/items.py
-    pricer_vi_2/evaluator.py
+  Runner files DA CO:
+    pricer_vi_2/deep_neural_network_sparse.py  (SparseDNNRunner + PriceDNN)
+    pricer_vi_2/senttrans_model.py  (SentTransRunner)
+      — ENCODER_NAME = "intfloat/multilingual-e5-small" (doi tu session 20)
+      — encode_batch_size param: 256 (default), 64 (AITeamVN notebook 05)
+    pricer_vi_2/xlmr_model.py    (CHUA TON TAI)
+    pricer_vi_2/phobert_model.py (CHUA TON TAI)
 
 == NHIEM VU SESSION TIEP THEO ==
-  Option A — Dong Day 3 v2 truoc, roi bat dau Day 4 v2:
-    1. Tao day3_v2_results.json (copy ket qua tu session 17)
-    2. Tao day3_v2_summary.md
-    3. Commit + push
-    4. Bat dau Task 1 Day 4 v2: tao 4 model files trong pricer_vi_2/
-
-  Option B — Bat dau Day 4 v2 luon:
-    1. Thuc thi Task 1: tao pricer_vi_2/dnn_sparse.py + senttrans + xlmr + phobert
-    2. Tao notebook 01 (DNN + TF-IDF) tren may thue
-    3. Bao cao MAE sau khi chay
+  1. Chay day4_v2_00_token_analysis.ipynb → bao cao ket qua → chon embedding model
+  2. Chay notebooks 01/02/03/04/05 tren vast.ai → bao cao MAE
+  3. Dua vao MAE: quyet dinh co can XLM-R/PhoBERT hay du ensemble voi 5 models
+  4. Neu can: tao xlmr_model.py, phobert_model.py + notebooks 06/07
+  5. Chay day4_v2_08_ensemble.ipynb — Ridge stacking, target MAE < 65k
 
 == KEY CONSTRAINTS DAY 4 V2 ==
 - Primary metric: MAE (k VND) — KHONG dung RMSLE.
@@ -65,17 +53,126 @@ Trang thai hien tai (2026-05-17 — session 18 ket thuc):
 - Evaluate: pricer_vi_2/evaluator.py tren 200 test samples.
 - Moi notebook luu ca val_predictions VA test_predictions (dung cho ensemble).
 - KHONG sua pricer_vi_2/items.py va evaluator.py.
+- Notebook 05 (AITeamVN): encode_batch_size=64, DNN batch_size=128.
+
+== KEY TECHNICAL NOTES SESSION 20 ==
+- senttrans_model.py ENCODER_NAME doi: MiniLM → intfloat/multilingual-e5-small
+  Ly do: MiniLM co 128-TOKEN LIMIT, truncate am tham descriptions dai
+- Notebooks 04/05 chi override sm.ENCODER_NAME truoc khi tao SentTransRunner
+  04: sm.ENCODER_NAME = "intfloat/multilingual-e5-small"
+  05: sm.ENCODER_NAME = "AITeamVN/Vietnamese_Embedding"
+- encode_batch_size=256 (default, e5-small), 64 (AITeamVN 568M)
+- AITeamVN: input_size=1024 tu dong detect qua X_train.shape[1]
+- dangvantuan: DROPPED (PyVi dependency, phuc tap)
+- Notebook numbering: 04=e5small, 05=aitvn, 06+=XLM-R/PhoBERT/Ensemble
 
 == FILE THAM KHAO ==
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md (CANONICAL)
 - Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py
-- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md (Day 3 v2 ref)
 - Data_processing_for_English_data/Code_Data_processing/pricer/deep_neural_network.py
 - Data_processing_for_English_data/Code_Data_processing/pricer/distilbert_model.py
 
 Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
 ```
+
+---
+
+## Trang thai hien tai (2026-05-17 — session 20)
+
+**Trang thai:** Day 4 v2 embedding models fix + 3 notebooks moi. San sang chay 00_token_analysis.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 20 ket qua (2026-05-17)
+
+**Da lam:**
+- [x] Fix `pricer_vi_2/senttrans_model.py`:
+  - `ENCODER_NAME`: `paraphrase-multilingual-MiniLM-L12-v2` → `intfloat/multilingual-e5-small`
+  - Them param `encode_batch_size=256` vao `encode_and_cache()` va `test_predictions()` (backward compatible)
+  - Ly do: MiniLM co 128-TOKEN LIMIT truncate am tham, e5-small = 512 tokens cung dim 384
+- [x] Tao `day4_v2_00_token_analysis.ipynb`:
+  - Profile char count / word count / MiniLM token count / e5-small token count
+  - Hien thi % bi truncate tai 128 tokens (MiniLM) va 512 tokens (e5-small)
+  - Distribution plots + summary table — chay tren vast.ai, bao cao ket qua
+- [x] Tao `day4_v2_04_e5small.ipynb` (Huong A):
+  - Mirror notebook 03, override `sm.ENCODER_NAME = "intfloat/multilingual-e5-small"`
+  - Cache: `cache/e5small_embeddings.pkl`, weights: `weights/e5small_dnn.pth`
+- [x] Tao `day4_v2_05_aitvn.ipynb` (Huong B):
+  - Override `sm.ENCODER_NAME = "AITeamVN/Vietnamese_Embedding"`
+  - `encode_batch_size=64` (model 568M), DNN `batch_size=128` (1024-dim activations)
+  - Cache: `cache/aitvn_embeddings.pkl`, weights: `weights/aitvn_dnn.pth`
+- [x] Cap nhat `plan_day4_v2.md`:
+  - Folder structure: them notebooks 00/04/05, rename 06-08 cho XLM-R/PhoBERT/Ensemble
+  - Task 4b: mark [x] DONE
+  - Task 4c (dangvantuan): DROPPED — PyVi dependency phuc tap, bo khoi plan
+  - Task 4d: renumber 05, mark [x] DONE
+  - Section 6.1: them note ve senttrans_model.py fix
+  - Section 6.4: cap nhat thu tu chay
+
+**Con lai:**
+- [ ] Chay `day4_v2_00_token_analysis.ipynb` tren vast.ai → bao cao % truncation
+- [ ] Chay notebooks 01/02/03/04/05 tren vast.ai → bao cao MAE
+- [ ] Quyet dinh co can XLM-R/PhoBERT (06/07) hay ensemble luon
+- [ ] Tao `day4_v2_08_ensemble.ipynb` (Ridge stacking)
+
+---
+
+## Trang thai hien tai (2026-05-17 — session 19)
+
+**Trang thai:** Day 4 v2 code HOAN CHINH. 2 runner files + 3 notebooks + plan cap nhat 2072 dong. San sang chay.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 19 ket qua (2026-05-17)
+
+**Da lam:**
+- [x] Tao `pricer_vi_2/deep_neural_network_sparse.py`:
+  - `ResidualBlock` + `PriceDNN` (input flexible, num_blocks=8, hidden=4096)
+  - `SparseDataset` (per-row toarray — khong toarray() toan bo 269K×100K)
+  - `SparseDNNRunner`: val[:1000] training, `val_predictions()` full 3926, `test_predictions()`
+  - history: 4 keys (train_loss, val_loss, val_mae, lr) — compatible voi `evaluator.plot_training_history`
+  - `inference()` clip tai `max(5.0, ...)` — dung cho price range 5-1000k VND
+- [x] Tao `pricer_vi_2/senttrans_model.py`:
+  - `SentTransRunner`: frozen encoder, `encode_and_cache()`, val[:1000] training
+  - `ENCODER_NAME = "paraphrase-multilingual-MiniLM-L12-v2"` (default, co the override)
+  - Reuse `PriceDNN` tu `deep_neural_network_sparse.py`
+- [x] Tao 3 notebooks trong `day4_v2/`:
+  - `day4_v2_01_dnn_tfidf.ipynb` — TF-IDF char_wb 100K + SparseDNNRunner
+  - `day4_v2_02_dnn_hashvec.ipynb` — HashingVec 5000 + SparseDNNRunner
+  - `day4_v2_03_senttrans.ipynb` — paraphrase-multilingual-MiniLM + SentTransRunner
+  - Tat ca: 7 sections, save weights + val_predictions + test_predictions, evaluate 200 test
+- [x] Research 3 Vietnamese embedding models (VN-MTEB benchmark):
+  - `intfloat/multilingual-e5-small`: 118M, 384-dim, 512 tokens, VN-MTEB 60.66
+  - `dangvantuan/vietnamese-embedding`: 135M, 768-dim, STS 88.33, can PyVi tokenize
+  - `AITeamVN/Vietnamese_Embedding`: 568M, 1024-dim, VN-MTEB 63.34 (tot nhat), BGE-M3 base
+- [x] Cap nhat `plan_day4_v2.md` (1652 → 2072 dong):
+  - Section 6: Embedding Model Research + bang so sanh VN-MTEB
+  - Task 4b: multilingual-e5-small + DNN (chay truoc tien)
+  - Task 4c: dangvantuan/vietnamese-embedding + DNN (can PyVi)
+  - Task 4d: AITeamVN/Vietnamese_Embedding + DNN (tot nhat, nang nhat)
+  - Cap nhat folder structure, results table
+
+**Phat hien quan trong session 19:**
+- `paraphrase-multilingual-MiniLM-L12-v2` (notebook 03) co 128-TOKEN LIMIT — truncate am tham product descriptions dai
+- AITeamVN/Vietnamese_Embedding: classification score 69.06 (manh nhat) — phu hop price prediction theo category
+- 3 notebooks moi (4b/4c/4d) chua tao — se lam session tiep theo
+
+**Con lai:**
+- [ ] Tao 3 notebooks: `day4_v2_04_e5small.ipynb`, `day4_v2_05_dangvantuan.ipynb`, `day4_v2_06_aitvn.ipynb`
+- [ ] Commit + push tat ca files session 19
+- [ ] Chay 3 notebooks DNN (01/02/03) tren vast.ai, bao cao MAE
+- [ ] Chay 3 notebooks SentTrans (03/04/05/06), bao cao MAE
+
+== NHIEM VU SESSION TIEP THEO ==
+  1. Commit tat ca files session 19 (2 runner .py + 3 notebooks + plan update)
+  2. Tao 3 notebooks Task 4b/4c/4d theo plan_day4_v2.md Section Task4b/4c/4d
+  3. Chay notebooks tren vast.ai + bao cao MAE
+
+== KEY TECHNICAL NOTES SESSION 19 ==
+- SparseDNNRunner.setup(): HashingVec khong co fit() — fit_transform() va transform() deu nhu nhau
+- history format: {"train_loss", "val_loss", "val_mae", "lr"} — 4 keys cho plot_training_history()
+- SentTransRunner: override ENCODER_NAME TRUOC khi tao runner: `import pricer_vi_2.senttrans_model as sm; sm.ENCODER_NAME = "new-model"`
+- dangvantuan: inject X_train/X_val truc tiep sau PyVi tokenize (khong qua encode_and_cache)
+- AITeamVN uses dot product similarity (khong phai cosine) — khong anh huong den DNN head
 
 ---
 

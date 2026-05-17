@@ -212,25 +212,34 @@ evaluate(make_predictor(model, vec, y_mean, y_std, device), test)
 Data_processing_for_Vietnamese_data/
 ├── day4_v2/
 │   ├── plan_day4_v2.md                          # File này — CANONICAL
+│   ├── day4_v2_00_token_analysis.ipynb          # Phân tích token length dataset [DONE]
 │   ├── day4_v2_01_dnn_tfidf.ipynb               # Task 2
 │   ├── day4_v2_02_dnn_hashvec.ipynb             # Task 3
-│   ├── day4_v2_03_senttrans.ipynb               # Task 4
-│   ├── day4_v2_04_xlmr.ipynb                    # Task 5
-│   ├── day4_v2_05_phobert.ipynb                 # Task 6
-│   ├── day4_v2_06_ensemble.ipynb                # Task 7
+│   ├── day4_v2_03_senttrans.ipynb               # Task 4 — MiniLM 128t baseline
+│   ├── day4_v2_04_e5small.ipynb                 # Task 4b — e5-small 512t [DONE]
+│   ├── day4_v2_05_aitvn.ipynb                   # Task 4d — AITeamVN 1024-dim [DONE]
+│   ├── day4_v2_06_xlmr.ipynb                    # Task 5 — XLM-RoBERTa fine-tune
+│   ├── day4_v2_07_phobert.ipynb                 # Task 6 — PhoBERT-v2 fine-tune
+│   ├── day4_v2_08_ensemble.ipynb                # Task 7 — Ridge stacking
 │   ├── weights/
 │   │   ├── dnn_tfidf.pth
 │   │   ├── dnn_hashvec.pth
 │   │   ├── senttrans_dnn.pth
+│   │   ├── e5small_dnn.pth                      # Task 4b
+│   │   ├── aitvn_dnn.pth                        # Task 4d
 │   │   ├── xlmr/                                # HF save_pretrained format
 │   │   └── phobert/
 │   ├── cache/
 │   │   ├── phobert_seg_cache.pkl                # Word-seg 269K+3926 docs
-│   │   └── senttrans_embeddings_train.pkl       # 269K × 384 float32
+│   │   ├── senttrans_embeddings.pkl             # MiniLM 269K × 384 float32
+│   │   ├── e5small_embeddings.pkl               # e5-small 269K × 384
+│   │   └── aitvn_embeddings.pkl                 # AITeamVN 269K × 1024
 │   ├── val_predictions/
 │   │   ├── dnn_tfidf_val.json                   # 3926 val predictions
 │   │   ├── dnn_hashvec_val.json
 │   │   ├── senttrans_val.json
+│   │   ├── e5small_val.json
+│   │   ├── aitvn_val.json
 │   │   ├── xlmr_val.json
 │   │   └── phobert_val.json
 │   ├── day4_v2_results.json                     # Kết quả tất cả models
@@ -241,7 +250,7 @@ Data_processing_for_Vietnamese_data/
     ├── evaluator.py                             # Existing — KHÔNG SỬA
     ├── __init__.py                              # Existing
     ├── dnn_sparse.py                            # Task 1: ResidualBlock + PriceDNN + SparseDNNRunner
-    ├── senttrans_model.py                       # Task 1: SentTransRunner
+    ├── senttrans_model.py                       # Task 1: SentTransRunner — ENCODER_NAME=intfloat/multilingual-e5-small (updated session 20)
     ├── xlmr_model.py                            # Task 1: XLMRRunner
     └── phobert_model.py                         # Task 1: PhoBERTRunner
 ```
@@ -1650,3 +1659,427 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 ---
 
 *Tạo: 2026-05-17 — Day 4 v2 Deep Learning Vietnamese Price Prediction*
+
+---
+
+## 6. Embedding Model Research — Vietnamese Sentence Encoders (2026-05-17)
+
+> **Mục tiêu:** Chọn 3 frozen encoder models bổ sung vào pipeline (Tasks 4b/4c/4d) để cải thiện MAE so với Task 4 hiện tại.
+> **Architecture pattern:** Tất cả dùng frozen encoder + DNN head (như Task 4) — phù hợp với 269K training samples.
+
+### 6.1. Vấn đề với Task 4 hiện tại
+
+`paraphrase-multilingual-MiniLM-L12-v2` — model trong `day4_v2_03_senttrans.ipynb` — có **128-token hard limit**. Product descriptions tiếng Việt đầy đủ (Tiêu đề + Danh mục + Thương hiệu + Mô tả + Thông số) thường vượt 128 tokens → bị truncate âm thầm. Đây là weakness cần khắc phục.
+
+> **Session 20 fix:** `senttrans_model.py` default `ENCODER_NAME` đã đổi sang `intfloat/multilingual-e5-small` (512 tokens). Notebook 03 giữ nguyên làm baseline. Notebooks 04/05 dùng encoder tốt hơn. Xem `day4_v2_00_token_analysis.ipynb` để biết % truncation thực tế.
+
+### 6.2. Bảng so sánh (VN-MTEB benchmark 2025)
+
+| Model | Params | Dim | Token limit | STS | Classification | Overall | Pipeline |
+|---|---|---|---|---|---|---|---|
+| AITeamVN/Vietnamese_Embedding | 568M | 1024 | 2048 | 77.48 | **69.06** | **63.34** | Chuẩn |
+| intfloat/multilingual-e5-small | 118M | 384 | 512 | 77.56 | 60.27 | 60.66 | Chuẩn |
+| dangvantuan/vietnamese-embedding | 135M | 768 | 512 | **88.33*** | N/A | N/A | **Cần PyVi** |
+| paraphrase-multilingual-MiniLM-L12-v2 *(Task 4)* | 118M | 384 | **128** | 62.34 | 45.57 | 46.05 | Chuẩn |
+
+*dangvantuan dùng benchmark STS riêng, không có trong VN-MTEB.
+**Nguồn:** [VN-MTEB arXiv 2507.21500](https://arxiv.org/html/2507.21500v1)
+
+### 6.3. Phân tích từng model
+
+#### Task 4b — `intfloat/multilingual-e5-small`
+
+**Ưu điểm:**
+- Drop-in replacement hoàn hảo: cùng 384-dim → dùng lại `senttrans_model.py` y chang, chỉ đổi `ENCODER_NAME`
+- 512 tokens — gấp 4x so với Task 4 hiện tại, cover đủ product descriptions
+- VN-MTEB overall 60.66 — tốt hơn Task 4 (46.05) đáng kể
+- Không cần pre-tokenization, không dependency ngoài
+- Nhỏ gọn: 118M params, ~113 MB int8 ONNX
+
+**Nhược điểm:**
+- Không chuyên tiếng Việt (100 languages)
+- Classification score 60.27 — yếu hơn AITeamVN (69.06)
+
+**Kết luận: Chạy TRƯỚC TIÊN** — ít rủi ro, dễ implement, cải thiện rõ so với notebook 03.
+
+---
+
+#### Task 4c — `dangvantuan/vietnamese-embedding`
+
+**Ưu điểm:**
+- STS score cao nhất trong 4 models (Pearson 88.33, Spearman 88.20 trên STSB-vn)
+- Chuyên biệt tiếng Việt (PhoBERT RoBERTa base)
+- 768-dim — richer representation hơn 384-dim
+- 4-stage training: SimCSE Triplet → Multi-Negative Ranking → Siamese BERT-STS → Augmented SBERT
+
+**Nhược điểm:**
+- **Bắt buộc PyVi tokenization** trước khi encode: `from pyvi.ViTokenizer import tokenize` + `tokenize(text)` cho mỗi document
+- PyVi có thể sai với brand/model names: "Samsung Galaxy A55 5G 128GB" → tách sai token
+- Không có retrieval/classification scores (chỉ đánh giá STS)
+- Pipeline phức tạp hơn 2 models kia
+
+**Implementation note:** Cần modify `SentTransRunner.encode_and_cache()` hoặc pre-tokenize trong notebook trước khi truyền vào runner. Xem code pattern trong Section 6.4.
+
+---
+
+#### Task 4d — `AITeamVN/Vietnamese_Embedding`
+
+**Ưu điểm:**
+- **VN-MTEB tốt nhất** (63.34 overall) trong tất cả models test
+- Classification score mạnh nhất (69.06) — quan trọng cho price prediction theo category
+- 2048 tokens — cover được product descriptions dài nhất
+- BGE-M3 base — SOTA retrieval architecture
+- Trained on 300K Vietnamese triplets (legal + general domain)
+- 177K downloads/month — community validation mạnh
+
+**Nhược điểm:**
+- **Nặng nhất**: 568M params (~2.2GB on disk fp32)
+- Encoding 269K train docs: ~20-30 min trên RTX 3090 Ti (vs ~10 min cho 118M models)
+- 1024-dim → DNN head input layer lớn hơn: 1024×4096 thay vì 384×4096
+- Sử dụng dot product similarity (không phải cosine) — khác convention SentTrans
+
+**Kết luận: MAE tốt nhất dự kiến** nhưng encoding chậm nhất. Chạy SAU cùng, dùng cache pkl.
+
+---
+
+### 6.4. Thứ tự chạy đề xuất
+
+```
+Task 4b (e5-small)        → nhanh nhất, confirm pipeline — DONE (notebook 04)
+Task 4c (dangvantuan)     → DROPPED: pipeline phức tạp (PyVi), bỏ khỏi plan
+Task 4d (AITeamVN)        → nặng nhất — DONE (notebook 05)
+```
+
+---
+
+## Task 4b: Notebook 04 — intfloat/multilingual-e5-small + DNN ✓ DONE (session 20)
+
+**File:** `day4_v2/day4_v2_04_e5small.ipynb`
+
+**Architecture:** `intfloat/multilingual-e5-small` (frozen) → 384-dim → PriceDNN (6 ResidualBlocks)
+
+Notebook structure: **y chang notebook 03** (`day4_v2_03_senttrans.ipynb`) — chỉ thay `ENCODER_NAME`.
+
+- [x] **Step 4b.1: Setup cell**
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("..").resolve()))
+
+import json
+import torch
+from pricer_vi_2.items import Item
+from pricer_vi_2.evaluator import evaluate, plot_training_history
+from pricer_vi_2.senttrans_model import SentTransRunner
+
+print("CUDA:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("GPU:", torch.cuda.get_device_name(0))
+```
+
+- [x] **Step 4b.2: Load data + encode + cache**
+
+```python
+train, val, test = Item.from_hub("SeanSunny/items_tv_v9")
+print(f"Train: {len(train):,} | Val: {len(val):,} | Test: {len(test):,}")
+
+# Chỉ cần đổi encoder_name trong SentTransRunner
+import pricer_vi_2.senttrans_model as sm
+sm.ENCODER_NAME = "intfloat/multilingual-e5-small"
+
+runner = SentTransRunner(train, val)
+runner.encode_and_cache(cache_path=Path("cache/e5small_embeddings.pkl"))
+```
+
+- [x] **Step 4b.3: Setup + train**
+
+```python
+runner.setup(batch_size=256, num_blocks=6)
+history = runner.train(epochs=15, patience=3)
+```
+
+- [x] **Step 4b.4: Plot + save + val/test predictions + evaluate**
+
+```python
+from pricer_vi_2.evaluator import plot_training_history
+plot_training_history(history, title="multilingual-e5-small + DNN")
+
+Path("weights").mkdir(exist_ok=True)
+runner.save("weights/e5small_dnn.pth")
+
+Path("val_predictions").mkdir(exist_ok=True)
+val_preds = runner.val_predictions()
+with open("val_predictions/e5small_val.json", "w") as f:
+    json.dump(val_preds, f)
+
+test_preds = runner.test_predictions(test)
+with open("val_predictions/e5small_test.json", "w") as f:
+    json.dump(test_preds, f)
+
+def e5small_pricer(item):
+    return runner.inference(item)
+
+results = evaluate(e5small_pricer, test)
+print(f"MAE: {results['mae']:.1f}k VND | R²: {results['r2']:.1f}%")
+```
+
+---
+
+## Task 4c: ~~Notebook 05 — dangvantuan/vietnamese-embedding~~ ✗ DROPPED (session 20)
+
+> **Lý do drop:** Pipeline phức tạp (bắt buộc PyVi pre-tokenize), rủi ro cao với brand/model names, không có classification score để so sánh. Bỏ khỏi plan — notebook **không tạo**.
+
+**File:** `day4_v2/day4_v2_05_dangvantuan.ipynb` — không tạo
+
+**Architecture:** PyVi tokenize → `dangvantuan/vietnamese-embedding` (frozen PhoBERT) → 768-dim → PriceDNN (6 ResidualBlocks)
+
+**Lưu ý quan trọng:** Cần install pyvi (`uv add pyvi`) và pre-tokenize trước khi encode.
+
+- [ ] **Step 4c.1: Setup cell**
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("..").resolve()))
+
+import json, pickle
+import torch
+from sentence_transformers import SentenceTransformer
+from pyvi.ViTokenizer import tokenize
+from pricer_vi_2.items import Item
+from pricer_vi_2.evaluator import evaluate, plot_training_history
+from pricer_vi_2.deep_neural_network_sparse import PriceDNN
+# Dùng SentTransRunner nhưng override encode_and_cache
+from pricer_vi_2.senttrans_model import SentTransRunner
+
+print("CUDA:", torch.cuda.is_available())
+```
+
+- [ ] **Step 4c.2: Load data + PyVi tokenize + encode**
+
+```python
+train, val, test = Item.from_hub("SeanSunny/items_tv_v9")
+
+CACHE_PATH = Path("cache/dangvantuan_embeddings.pkl")
+
+if CACHE_PATH.exists():
+    print("Loading from cache...")
+    with open(CACHE_PATH, "rb") as f:
+        cached = pickle.load(f)
+    X_train = cached["train"]
+    X_val = cached["val"]
+else:
+    print("PyVi tokenizing 269K docs...")
+    # Bắt buộc PyVi tokenize trước khi encode
+    train_texts = [tokenize(item.summary) for item in train]
+    val_texts   = [tokenize(item.summary) for item in val]
+
+    encoder = SentenceTransformer("dangvantuan/vietnamese-embedding")
+
+    print("Encoding train (269K × 768)...")
+    import torch as _t
+    X_train = _t.FloatTensor(encoder.encode(train_texts, show_progress_bar=True, batch_size=128))
+    print("Encoding val (3926 × 768)...")
+    X_val = _t.FloatTensor(encoder.encode(val_texts, show_progress_bar=True, batch_size=128))
+
+    CACHE_PATH.parent.mkdir(exist_ok=True)
+    with open(CACHE_PATH, "wb") as f:
+        pickle.dump({"train": X_train, "val": X_val}, f)
+    print(f"Cached to {CACHE_PATH}")
+
+print(f"Train: {X_train.shape} | Val: {X_val.shape}")
+```
+
+- [ ] **Step 4c.3: Inject cached embeddings vào SentTransRunner**
+
+```python
+import numpy as np
+
+runner = SentTransRunner(train, val)
+# Inject pre-computed embeddings (bypass encode_and_cache)
+runner.X_train = X_train
+runner.X_val = X_val
+# Encoder cần cho inference — load lại
+runner.encoder = SentenceTransformer("dangvantuan/vietnamese-embedding")
+
+runner.setup(batch_size=256, num_blocks=6)
+history = runner.train(epochs=15, patience=3)
+```
+
+- [ ] **Step 4c.4: Plot + save + predictions + evaluate**
+
+```python
+plot_training_history(history, title="dangvantuan/vietnamese-embedding + DNN")
+
+Path("weights").mkdir(exist_ok=True)
+runner.save("weights/dangvantuan_dnn.pth")
+
+val_preds = runner.val_predictions()
+with open("val_predictions/dangvantuan_val.json", "w") as f:
+    json.dump(val_preds, f)
+
+# Test: cần PyVi tokenize trước khi encode
+test_texts = [tokenize(item.summary) for item in test]
+X_test = torch.FloatTensor(runner.encoder.encode(test_texts, show_progress_bar=True, batch_size=128))
+runner.model.eval()
+test_preds = []
+with torch.no_grad():
+    for i in range(0, len(X_test), 256):
+        batch = X_test[i:i+256].to(runner.device)
+        pred_orig = torch.exp(runner.model(batch) * runner.y_std + runner.y_mean) - 1
+        test_preds.extend(pred_orig.cpu().squeeze().tolist())
+with open("val_predictions/dangvantuan_test.json", "w") as f:
+    json.dump(test_preds, f)
+
+def dangvantuan_pricer(item):
+    # Phải PyVi tokenize trước khi inference
+    seg = tokenize(item.summary)
+    runner.model.eval()
+    with torch.no_grad():
+        emb = torch.FloatTensor(runner.encoder.encode([seg])).to(runner.device)
+        pred_norm = runner.model(emb)[0]
+        return max(5.0, (torch.exp(pred_norm * runner.y_std + runner.y_mean) - 1).item())
+
+results = evaluate(dangvantuan_pricer, test)
+print(f"MAE: {results['mae']:.1f}k VND | R²: {results['r2']:.1f}%")
+```
+
+---
+
+## Task 4d: Notebook 05 — AITeamVN/Vietnamese_Embedding + DNN ✓ DONE (session 20)
+
+**File:** `day4_v2/day4_v2_05_aitvn.ipynb` (renumbered từ 06 vì Task 4c dropped)
+
+**Architecture:** `AITeamVN/Vietnamese_Embedding` (frozen BGE-M3, 568M) → 1024-dim → PriceDNN (6 ResidualBlocks, hidden=4096)
+
+**Lưu ý:** Model nặng 2.2GB. Encoding 269K mất ~20-30 min. Dùng cache pkl. `encode_batch_size=64` để tránh OOM. DNN `batch_size=128`.
+
+- [x] **Step 4d.1: Setup cell**
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("..").resolve()))
+
+import json
+import torch
+from pricer_vi_2.items import Item
+from pricer_vi_2.evaluator import evaluate, plot_training_history
+from pricer_vi_2.senttrans_model import SentTransRunner
+import pricer_vi_2.senttrans_model as sm
+
+# Override encoder name trước khi tạo runner
+sm.ENCODER_NAME = "AITeamVN/Vietnamese_Embedding"
+
+print("CUDA:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("GPU:", torch.cuda.get_device_name(0))
+```
+
+- [x] **Step 4d.2: Load data + encode + cache**
+
+```python
+train, val, test = Item.from_hub("SeanSunny/items_tv_v9")
+print(f"Train: {len(train):,} | Val: {len(val):,} | Test: {len(test):,}")
+
+runner = SentTransRunner(train, val)
+# Cache riêng — embeddings 1024-dim nặng hơn (~4GB pkl)
+runner.encode_and_cache(cache_path=Path("cache/aitvn_embeddings.pkl"))
+# Lần đầu: ~20-30 phút. Lần sau: load ngay.
+```
+
+- [x] **Step 4d.3: Setup model**
+
+```python
+# num_blocks=8 vì 1024-dim input richer, cần deeper network
+runner.setup(batch_size=256, num_blocks=8)
+```
+
+- [x] **Step 4d.4: Train + plot**
+
+```python
+history = runner.train(epochs=15, patience=3)
+plot_training_history(history, title="AITeamVN/Vietnamese_Embedding + DNN")
+```
+
+- [x] **Step 4d.5: Save + val/test predictions + evaluate**
+
+```python
+Path("weights").mkdir(exist_ok=True)
+runner.save("weights/aitvn_dnn.pth")
+
+Path("val_predictions").mkdir(exist_ok=True)
+val_preds = runner.val_predictions()
+with open("val_predictions/aitvn_val.json", "w") as f:
+    json.dump(val_preds, f)
+
+test_preds = runner.test_predictions(test)
+with open("val_predictions/aitvn_test.json", "w") as f:
+    json.dump(test_preds, f)
+print(f"Val: {len(val_preds)} | Test: {len(test_preds)}")
+
+def aitvn_pricer(item):
+    return runner.inference(item)
+
+results = evaluate(aitvn_pricer, test)
+print(f"MAE: {results['mae']:.1f}k VND | R²: {results['r2']:.1f}%")
+```
+
+---
+
+## 7. Cập nhật Folder Structure (sau khi thêm Tasks 4b/4c/4d)
+
+```
+day4_v2/
+├── day4_v2_01_dnn_tfidf.ipynb        # Task 2 — DNN + TF-IDF
+├── day4_v2_02_dnn_hashvec.ipynb       # Task 3 — DNN + HashVec
+├── day4_v2_03_senttrans.ipynb         # Task 4 — paraphrase-multilingual-MiniLM (128-token!)
+├── day4_v2_04_e5small.ipynb           # Task 4b — multilingual-e5-small (RECOMMENDED FIRST)
+├── day4_v2_05_dangvantuan.ipynb       # Task 4c — dangvantuan PhoBERT + PyVi
+├── day4_v2_06_aitvn.ipynb             # Task 4d — AITeamVN BGE-M3 (best expected)
+├── day4_v2_07_xlmr.ipynb              # Task 5 — XLM-RoBERTa fine-tune
+├── day4_v2_08_phobert.ipynb           # Task 6 — PhoBERT fine-tune
+├── day4_v2_09_ensemble.ipynb          # Task 7 — Ridge Stacking
+├── weights/
+│   ├── dnn_tfidf.pth
+│   ├── dnn_hashvec.pth
+│   ├── senttrans_dnn.pth
+│   ├── e5small_dnn.pth
+│   ├── dangvantuan_dnn.pth
+│   └── aitvn_dnn.pth
+├── cache/
+│   ├── senttrans_embeddings.pkl       # 384-dim, ~400MB
+│   ├── e5small_embeddings.pkl         # 384-dim, ~400MB
+│   ├── dangvantuan_embeddings.pkl     # 768-dim, ~800MB
+│   └── aitvn_embeddings.pkl          # 1024-dim, ~1.1GB
+└── val_predictions/
+    ├── dnn_tfidf_val.json / _test.json
+    ├── dnn_hashvec_val.json / _test.json
+    ├── senttrans_val.json / _test.json
+    ├── e5small_val.json / _test.json
+    ├── dangvantuan_val.json / _test.json
+    └── aitvn_val.json / _test.json
+```
+
+---
+
+## 8. Cập nhật Kết quả thực tế (điền sau khi chạy)
+
+| Model | Encoder | Dim | Val MAE | Test MAE (200) | R² |
+|---|---|---|---|---|---|
+| DNN + TF-IDF | — | 100K sparse | — | — | — |
+| DNN + HashVec | — | 5K sparse | — | — | — |
+| SentTrans (Task 4) | paraphrase-multilingual-MiniLM-L12-v2 | 384 | — | — | — |
+| **e5-small (Task 4b)** | multilingual-e5-small | 384 | — | — | — |
+| dangvantuan (Task 4c) | dangvantuan/vietnamese-embedding | 768 | — | — | — |
+| **AITeamVN (Task 4d)** | AITeamVN/Vietnamese_Embedding | 1024 | — | — | — |
+| XLM-RoBERTa | fine-tune | 768 | — | — | — |
+| PhoBERT-v2 | fine-tune | 768 | — | — | — |
+| **Ensemble Ridge** | — | — | — | — | — |
+
+*In đậm: models dự kiến cho MAE tốt nhất.*
+
+---
+
+*Cập nhật: 2026-05-17 — Thêm Tasks 4b/4c/4d: 3 Vietnamese embedding models (e5-small, dangvantuan, AITeamVN)*
