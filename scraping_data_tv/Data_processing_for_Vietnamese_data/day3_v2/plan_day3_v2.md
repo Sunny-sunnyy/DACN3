@@ -146,7 +146,9 @@ Chạy 3 vectorizer với LGB default trên **50K subset**, chọn cái có **MA
 
 ---
 
-## 4. Kết quả thực tế Section 0-4 (2026-05-16)
+## 4. Kết quả thực tế Section 0-5 (2026-05-16/17)
+
+### Section 0-4
 
 | Model | MAE (k VND) | R² | Ghi chú |
 |---|---|---|---|
@@ -154,33 +156,59 @@ Chạy 3 vectorizer với LGB default trên **50K subset**, chọn cái có **MA
 | 2b. LR + BoW (2K) | 131.7k | 44.3% | Baseline NLP |
 | **2c. Ridge + TF-IDF char_wb** | **112.1k** | **59.2%** | Best linear model |
 | 3A. BoW + LGB (50K) | 120.8k | 50.8% | |
-| **3B. char_wb + LGB (50K, n=1000)** | **108.8k** | **59.6%** | **Best toàn bộ** |
+| 3B. char_wb + LGB (50K, n=1000) | 108.8k | 59.6% | Best Section 0-4 |
 | 3C. Underthesea + LGB (50K) | 118.0k | 50.8% | Tokenize 30 phút, thua char_wb |
-| 4a. RandomForest (15K) | 129.7k | 42.3% | Underfit — subset nhỏ |
-| 4b. XGBoost (269K, hist) | 125.2k | 43.5% | Thấp hơn kỳ vọng |
+| 4a. RandomForest (15K, TF-IDF 100K) | 129.7k | 42.3% | Underfit |
+| 4b. XGBoost (269K, TF-IDF 100K) | 125.2k | 43.5% | High-dim → XGB bão hòa |
 
-**Nhận xét quan trọng:**
+### Section 5 — Kết quả thực tế (2026-05-17)
+
+> MAE ước tính từ 200 giá trị lỗi trong output. Xem notebook `day3_v2_section5.ipynb`.
+
+| Model | MAE (k VND) | Ghi chú |
+|---|---|---|
+| **5A. LGB + char_wb TF-IDF 100K (MSE, 269K)** | **92.6k** | **BEST — cải thiện 15% vs 3B** |
+| 5B. LGB + char_wb TF-IDF 100K (MAE obj, 269K) | 95.1k | MAE obj thua MSE obj — bất ngờ |
+| 5F. LGB + CountVect word 50K (MSE, 269K) | 97.3k | TF-IDF char_wb tốt hơn CountVect ~5k |
+| 5G. LGB + CountVect word 50K (MAE obj, 269K) | 100.0k | |
+| 5E. XGBoost + CountVect word 50K (269K) | 113.2k | Cải thiện vs 4b (125k) — hypothesis confirmed |
+| 5D. RF + CountVect word 50K (15K subset) | 123.3k | Cải thiện vs 4a (130k) — hypothesis confirmed |
+| 5C. Blend 5A+5B | — | **CHƯA implement** |
+
+**Nhận xét Section 5:**
+1. **5A là BEST** (92.6k): Scale LGB từ 50K → 269K cải thiện đáng kể (-15%)
+2. **MSE obj tốt hơn MAE obj** (5A 92.6k vs 5B 95.1k): Với 269K data lớn, MSE ổn định hơn
+3. **char_wb TF-IDF tốt hơn CountVect word** (5A 92.6k vs 5F 97.3k): IDF weighting + char-level features mang lại ~5k MAE
+4. **Hypothesis confirmed**: XGB/RF với low-dim (50K CountVect) đều cải thiện so với high-dim (100K TF-IDF)
+5. **Stretch goal <90k CHƯA đạt** (best = 92.6k). 5C (blend) chưa implement có thể giúp thêm ~1-3k
+
+**Nhận xét quan trọng (Section 0-4):**
 - XGBoost full 269K (125k) THUA Ridge+TF-IDF (112k) — LGB phù hợp hơn với sparse TF-IDF
 - LGB trên 50K subset đã đạt 108.8k — **train trên full 269K sẽ là Section 5 ưu tiên cao nhất**
 - char_wb vượt Underthesea (tốn 30 phút tokenize) → giữ char_wb làm vectorizer chính
 
 ---
 
-## 4b. Approach: Section 5+ (MAE optimization)
+## 4b. Approach: Section 5+ (đã thực hiện + còn lại)
 
-### Thứ tự ưu tiên (dựa trên kết quả Section 0-4)
+### Đã thực hiện (Section 5, session 17)
 
-**P0 — LGB full 269K (expected ~95-103k):**
-LGB trên 50K cho 108.8k. Scale lên 269K sẽ cải thiện đáng kể.
+| Approach | Kết quả | Nhận xét |
+|---|---|---|
+| P0: LGB full 269K (MSE) → 5A | **92.6k** ✓ | Đạt kỳ vọng, BEST model |
+| P1: LGB MAE obj → 5B | 95.1k ✓ | Thua MSE obj — không khuyến nghị |
+| P1 variant: CountVect → 5F/5G | 97-100k ✓ | Thua char_wb TF-IDF |
+| Hypothesis test RF/XGB → 5D/5E | 113-123k ✓ | Hypothesis confirmed |
 
-**P1 — LGB objective='regression_l1' (expected +2-5k improvement):**
-Train MAE loss trực tiếp thay vì MSE.
+### Còn lại nếu cần đạt <90k
 
-**P2 — Add category OHE features:**
-Category mean pricer cho thấy signal mạnh theo danh mục. Nối OHE category vào TF-IDF.
+**P2 — Blend 5A + một model khác (5C):**
+5A=92.6k, 5B=95.1k — blend có thể giảm thêm 1-3k nếu uncorrelated errors.
 
-**P3 — Blend LGB + Ridge (trong raw-space):**
-Simple ensemble. Thực hiện sau khi có LGB full 269K.
+**P3 — Add category OHE features:**
+Category mean pricer cho thấy signal mạnh. Nối one-hot category vào TF-IDF có thể giảm thêm 2-5k.
+
+> Nếu 92.6k đủ để tổng kết Day 3 v2, không cần implement thêm.
 
 ---
 
@@ -301,20 +329,29 @@ Cell: Tạo day3_v2_summary.md
 
 ---
 
-## 5. Section 5 — Đã implement (2026-05-16)
+## 5. Section 5 — Kết quả (2026-05-16/17)
 
 **File:** `day3_v2/day3_v2_section5.ipynb`
 
-| Section | Model | Config | Kỳ vọng MAE |
+| Section | Model | Config thực tế | MAE thực tế |
 |---|---|---|---|
-| 5A | LGB + char_wb 269K | MSE obj, num_leaves=63, n=1000 | ~95-103k |
-| 5B | LGB + char_wb 269K | MAE obj (regression_l1) | ~90-100k |
-| 5C | Blend 5A+5B | Optimize weight trên val set | Best |
-| 5D | RF + BoW 2000 | hypothesis: low-dim fix RF | TBD |
-| 5E | XGB + BoW 2000 | hypothesis: low-dim fix XGB | TBD |
+| **5A** | **LGB + char_wb TF-IDF** | **MSE obj, num_leaves=63, n=1000, 269K** | **92.6k ← BEST** |
+| 5B | LGB + char_wb TF-IDF | MAE obj (regression_l1), 269K | 95.1k |
+| 5C | Blend 5A+5B | **CHƯA implement** | — |
+| 5D | RF + CountVect word (1,2) 50K | 15K subset | 123.3k |
+| 5E | XGBoost + CountVect word (1,2) 50K | 269K | 113.2k |
+| 5F | LGB + CountVect word (1,2) 50K | MSE obj, 269K | 97.3k |
+| 5G | LGB + CountVect word (1,2) 50K | MAE obj, 269K | 100.0k |
 
-**Root cause 4a/4b thua:** TF-IDF 100K features quá cao chiều với RF/XGB.
-English day3 dùng BoW 2000 → RF/XGB hoạt động tốt. 5D/5E verify hypothesis này.
+**Ghi chú thực tế so với kế hoạch:**
+- 5D/5E dùng CountVect 50K (không phải BoW 2000) — vì muốn test properly với large vocab
+- 5F/5G thêm ngoài kế hoạch: so sánh CountVect vs TF-IDF trực tiếp với LGB
+- 5C (blend) chưa implement — có thể cải thiện thêm ~1-3k nếu cần
+
+**Root cause 4a/4b thua — xác nhận (hypothesis confirmed):**
+- XGB + TF-IDF 100K (4b): 125.2k → XGB + CountVect 50K (5E): 113.2k (cải thiện 9.6k)
+- RF + TF-IDF 100K (4a): 129.7k → RF + CountVect 50K (5D): 123.3k (cải thiện 6.4k)
+- LGB không bị ảnh hưởng bởi high-dim vì xử lý sparse matrix tốt hơn
 
 ---
 
@@ -346,7 +383,7 @@ Data_processing_for_Vietnamese_data/
 | Không dùng log1p transform (train trên raw price) | Bắt buộc |
 | Section 3 benchmark đủ 3 vectorizer (BoW / char_wb / Underthesea) | Bắt buộc |
 | day3_v2_results.json lưu đủ metrics (MAE, MSE, R²) của từng model | Bắt buộc |
-| **Stretch: best model MAE < 90k VND** | Target (confirm sau Section 0-4) |
+| **Stretch: best model MAE < 90k VND** | **CHƯA đạt** — best = 92.6k (5A). Cần blend/OHE để đạt |
 
 ---
 
@@ -376,14 +413,9 @@ English day3 không dùng log1p. Lý do:
 - Train MSE trên raw price → model tối ưu cho MSE, báo cáo MAE → fine
 - Range 5–1000 đã đủ nhỏ, không cần normalize thêm
 
-### 9.2. TruncatedSVD trước LightGBM (Section 5+)
+### 9.2. LightGBM với sparse TF-IDF — không cần TruncatedSVD
 
-Nếu dùng LGB full (không phải benchmark), cần SVD vì LGB cần dense matrix hiệu quả hơn sparse:
-```python
-from sklearn.decomposition import TruncatedSVD
-svd = TruncatedSVD(n_components=200)
-X_dense = svd.fit_transform(X_sparse_tfidf)
-```
+Thực tế từ Section 5: LGB xử lý sparse CSR matrix trực tiếp tốt (cả TF-IDF 100K và CountVect 50K). Không cần SVD. SVD thường làm mất thông tin và không cải thiện MAE với LGB.
 
 ### 9.3. Blend trong raw-space khi metric là MAE
 

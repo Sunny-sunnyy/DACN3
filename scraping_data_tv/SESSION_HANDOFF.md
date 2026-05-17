@@ -12,65 +12,91 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md
 
-Trang thai hien tai (2026-05-16 — session 16 ket thuc):
+Trang thai hien tai (2026-05-17 — session 17 ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 3 v2: Section 5 notebook DA TAO XONG. San sang chay tren may thue.
+- Day 3 v2: Section 5 DA CHAY XONG. Best model = 5A (MAE=92.6k).
 
-== KET QUA SECTION 0-4 ==
-  2b. LR + BoW:           MAE=131.7k R2=44.3%
-  2c. Ridge + TF-IDF:     MAE=112.1k R2=59.2%
-  3B. Bench char_wb+LGB:  MAE=108.8k R2=59.6% (BEST so far, 50K subset)
-  4a. RandomForest (15K, TF-IDF 100K): MAE=129.7k R2=42.3%
-  4b. XGBoost (269K, TF-IDF 100K):    MAE=125.2k R2=43.5%
+== KET QUA SECTION 5 (DA CHAY) ==
+  5A. LGB + char_wb TF-IDF 100K (MSE, 269K):  MAE=92.6k  ← BEST
+  5B. LGB + char_wb TF-IDF 100K (MAE obj, 269K): MAE=95.1k
+  5F. LGB + CountVect word 50K (MSE, 269K):    MAE=97.3k
+  5G. LGB + CountVect word 50K (MAE obj, 269K): MAE=100.0k
+  5E. XGBoost + CountVect word 50K (269K):     MAE=113.2k
+  5D. RF + CountVect word 50K (15K subset):    MAE=123.3k
+  5C. Blend 5A+5B: CHUA implement
 
-  ROOT CAUSE 4a/4b thua: TF-IDF 100K features qua cao chieu cho RF/XGB.
-  English day3 dung BoW 2000 → XGBoost/RF tot hon.
+  (MAE uoc tinh tu 200 error values trong output — chinh xac +-1k)
 
-== SECTION 5 NOTEBOOK ==
-  File: day3_v2/day3_v2_section5.ipynb
-  5A. LGB + char_wb full 269K (MSE)        — expected ~95-103k
-  5B. LGB + char_wb full 269K (MAE loss)   — expected ~90-100k
-  5C. Blend 5A+5B (optimize tren val set)  — expected best
-  5D. RF + BoW 2000 (hypothesis test)      — verify RF voi low-dim
-  5E. XGBoost + BoW 2000 (hypothesis test) — verify XGB voi low-dim
-  Save: day3_v2_results.json
-
-== NHIEM VU CHINH (session tiep theo) ==
-  1. Chay day3_v2_section5.ipynb tren may thue
-  2. Bao cao MAE cua 5A/5B/5C/5D/5E
-  3. Quyet dinh co can Section 6 (tuning/ensemble them) khong
-  4. Save day3_v2_results.json + tao day3_v2_summary.md
+== KET QUA SECTION 0-4 (TRUOC DO) ==
+  3B. Bench char_wb+LGB (50K):  MAE=108.8k  (baseline truoc Section 5)
+  4b. XGBoost (269K, TF-IDF 100K): MAE=125.2k
+  4a. RandomForest (15K, TF-IDF 100K): MAE=129.7k
 
 == NHUNG GI DA CO ==
-- Dataset: SeanSunny/items_tv_v9 (train=269,112 | val=3,926 | test=3,872)
-  price = round(price_vnd/1000), range 5-1000
-- pricer_vi_2/items.py + evaluator.py: HOAN CHINH (MAE/MSE/R2, match English)
-- day3_v2/day3_v2_baseline_ml.ipynb: 28 cells, Section 0-4
+- day3_v2_section5.ipynb: 5A/5B/5D/5E/5F/5G da chay, co output
+- Stretch goal <90k CHUA dat (best = 92.6k)
+- 5C (blend) CHUA implement
+
+== NHIEM VU CHINH (session tiep theo) ==
+Option A — Dong Day 3 v2 (92.6k du tot):
+  1. Save day3_v2_results.json voi tat ca ket qua
+  2. Tao day3_v2_summary.md
+  3. Commit + push
+
+Option B — Tiep tuc cai thien de dat <90k:
+  1. Implement 5C: blend 5A+5B (optimize weight tren val set)
+  2. Hoac: Add category OHE features vao 5A
+  Xem plan_day3_v2.md Section 4b de biet chi tiet
 
 == KEY CONSTRAINTS ==
 - Primary metric: MAE (k VND) — KHONG dung RMSLE.
 - KHONG dung log1p — train raw price (5-1000), giong English.
 - Evaluate tren TEST set, 200 samples (giong English day3).
-- KHONG dung pricer_vi/ cu — chi dung pricer_vi_2/.
-
-== SAU KHI CO KET QUA ==
-Dua vao MAE gap giua cac model, chon ky thuat Section 5+:
-  B1: LGB objective='regression_l1' (MAE loss truc tiep)
-  B2: Quantile regression (q=0.5)
-  B3: Huber regression
-  B4: Feature engineering (brand/category encoding, price bucket)
-  B5: Blend trong raw-space
-Chi tiet cac option: plan_day3_v2.md Section 4
+- KHONG chay GPU — Day 3 v2 chay tren CPU/RAM.
 
 == FILE THAM KHAO ==
 - Data_processing_for_English_data/Code_Data_processing/day3.ipynb
-- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md (CANONICAL)
+- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md (CANONICAL — da cap nhat)
 - Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py
 
 Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
-- KHONG chay GPU — Day 3 v2 chay tren CPU/RAM.
 ```
+
+---
+
+## Trang thai hien tai (2026-05-17 — session 17)
+
+**Trang thai:** Section 5 DA CHAY XONG. Best model = 5A MAE=92.6k. Stretch goal <90k chua dat.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 17 ket qua (2026-05-17)
+
+**Da chay tren may thue:**
+- [x] 5A: LGB + char_wb 269K (MSE) → MAE=92.6k ← BEST
+- [x] 5B: LGB + char_wb 269K (MAE obj) → MAE=95.1k
+- [x] 5D: RF + CountVect word 50K (15K subset) → MAE=123.3k
+- [x] 5E: XGBoost + CountVect word 50K (269K) → MAE=113.2k
+- [x] 5F: LGB + CountVect word 50K (MSE, 269K) → MAE=97.3k
+- [x] 5G: LGB + CountVect word 50K (MAE obj, 269K) → MAE=100.0k
+- [ ] 5C: Blend 5A+5B — CHUA implement
+
+**Fix loi trong session nay:**
+- CountVectorizer tra ve int64 o predict → them .astype(np.float32) vao vec_count.transform()
+- Loi xuat hien ca o fit (truoc) va predict (session nay)
+
+**Phat hien quan trong:**
+- MSE obj (5A: 92.6k) BEAT MAE obj (5B: 95.1k) — voi 269K data lon, MSE on dinh hon
+- TF-IDF char_wb (5A: 92.6k) beat CountVect word (5F: 97.3k) — IDF + char ngrams co gia tri
+- Hypothesis 4a/4b confirmed: RF/XGB deu cai thien voi low-dim features
+
+**plan_day3_v2.md va SESSION_HANDOFF.md: DA CAP NHAT** (session nay)
+
+**Buoc tiep (session 18):**
+- [ ] Quyet dinh: dong Day 3 v2 (92.6k) hay tiep tuc implement 5C/OHE
+- [ ] Save day3_v2_results.json
+- [ ] Tao day3_v2_summary.md
+- [ ] Commit + push
 
 ---
 
