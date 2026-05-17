@@ -10,54 +10,68 @@ Cap nhat moi khi ket thuc 1 session lam viec.
 ```
 Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
-- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md
+- Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
 
-Trang thai hien tai (2026-05-17 — session 17 ket thuc):
+Trang thai hien tai (2026-05-17 — session 18 ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 3 v2: Section 5 DA CHAY XONG. Best model = 5A (MAE=92.6k).
+- Day 3 v2: XONG (best = 5A MAE=92.6k). Day 4 v2 plan DA VIET XONG.
+- Day 4 v2: plan_day4_v2.md da tao, chua bat dau implement.
 
-== KET QUA SECTION 5 (DA CHAY) ==
-  5A. LGB + char_wb TF-IDF 100K (MSE, 269K):  MAE=92.6k  ← BEST
-  5B. LGB + char_wb TF-IDF 100K (MAE obj, 269K): MAE=95.1k
-  5F. LGB + CountVect word 50K (MSE, 269K):    MAE=97.3k
-  5G. LGB + CountVect word 50K (MAE obj, 269K): MAE=100.0k
-  5E. XGBoost + CountVect word 50K (269K):     MAE=113.2k
-  5D. RF + CountVect word 50K (15K subset):    MAE=123.3k
-  5C. Blend 5A+5B: CHUA implement
+== DAY 3 V2 TONG KET ==
+  Best model: 5A. LGB + char_wb TF-IDF 100K (MSE, 269K): MAE=92.6k
+  Stretch goal <90k CHUA dat. 5C (blend) CHUA implement.
+  Files: day3_v2_baseline_ml.ipynb + day3_v2_section5.ipynb
+  NOTE: Day 3 v2 CHUA co day3_v2_results.json va day3_v2_summary.md
 
-  (MAE uoc tinh tu 200 error values trong output — chinh xac +-1k)
+== DAY 4 V2 PLAN (MOI TAO SESSION 18) ==
+  File: Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
+  5 models + 1 ensemble Ridge stacking. Target: MAE < 65k VND.
+  GPU: RTX 3090 Ti 24GB, vast.ai.
 
-== KET QUA SECTION 0-4 (TRUOC DO) ==
-  3B. Bench char_wb+LGB (50K):  MAE=108.8k  (baseline truoc Section 5)
-  4b. XGBoost (269K, TF-IDF 100K): MAE=125.2k
-  4a. RandomForest (15K, TF-IDF 100K): MAE=129.7k
+  Models (theo thu tu chay):
+    Task 2: DNN + TF-IDF char_wb 100K  (sparse mini-batch) → target <80k
+    Task 3: DNN + HashingVec 5000       (binary)            → target <85k
+    Task 4: Multilingual SentTrans+DNN  (frozen encoder)    → target <75k
+    Task 5: XLM-RoBERTa fine-tune       (end-to-end)        → target <70k
+    Task 6: PhoBERT-v2 fine-tune        (word seg required) → target <68k
+    Task 7: Ridge Stacking Ensemble     (val predictions)   → target <65k
 
-== NHUNG GI DA CO ==
-- day3_v2_section5.ipynb: 5A/5B/5D/5E/5F/5G da chay, co output
-- Stretch goal <90k CHUA dat (best = 92.6k)
-- 5C (blend) CHUA implement
+  New model files (CAN TAO — chua co):
+    pricer_vi_2/dnn_sparse.py     (SparseDNNRunner + PriceDNN)
+    pricer_vi_2/senttrans_model.py (SentTransRunner)
+    pricer_vi_2/xlmr_model.py     (XLMRRunner)
+    pricer_vi_2/phobert_model.py  (PhoBERTRunner + word_segment_and_cache)
 
-== NHIEM VU CHINH (session tiep theo) ==
-Option A — Dong Day 3 v2 (92.6k du tot):
-  1. Save day3_v2_results.json voi tat ca ket qua
-  2. Tao day3_v2_summary.md
-  3. Commit + push
+  Reuse (KHONG SUA):
+    pricer_vi_2/items.py
+    pricer_vi_2/evaluator.py
 
-Option B — Tiep tuc cai thien de dat <90k:
-  1. Implement 5C: blend 5A+5B (optimize weight tren val set)
-  2. Hoac: Add category OHE features vao 5A
-  Xem plan_day3_v2.md Section 4b de biet chi tiet
+== NHIEM VU SESSION TIEP THEO ==
+  Option A — Dong Day 3 v2 truoc, roi bat dau Day 4 v2:
+    1. Tao day3_v2_results.json (copy ket qua tu session 17)
+    2. Tao day3_v2_summary.md
+    3. Commit + push
+    4. Bat dau Task 1 Day 4 v2: tao 4 model files trong pricer_vi_2/
 
-== KEY CONSTRAINTS ==
+  Option B — Bat dau Day 4 v2 luon:
+    1. Thuc thi Task 1: tao pricer_vi_2/dnn_sparse.py + senttrans + xlmr + phobert
+    2. Tao notebook 01 (DNN + TF-IDF) tren may thue
+    3. Bao cao MAE sau khi chay
+
+== KEY CONSTRAINTS DAY 4 V2 ==
 - Primary metric: MAE (k VND) — KHONG dung RMSLE.
-- KHONG dung log1p — train raw price (5-1000), giong English.
-- Evaluate tren TEST set, 200 samples (giong English day3).
-- KHONG chay GPU — Day 3 v2 chay tren CPU/RAM.
+- Log1p + z-normalize CHO DNN (khac Day 3 v2 LGB — ly do: gradient stability).
+- Loss: nn.L1Loss() cho tat ca models.
+- Evaluate: pricer_vi_2/evaluator.py tren 200 test samples.
+- Moi notebook luu ca val_predictions VA test_predictions (dung cho ensemble).
+- KHONG sua pricer_vi_2/items.py va evaluator.py.
 
 == FILE THAM KHAO ==
-- Data_processing_for_English_data/Code_Data_processing/day3.ipynb
-- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md (CANONICAL — da cap nhat)
+- Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md (CANONICAL)
 - Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py
+- Data_processing_for_Vietnamese_data/day3_v2/plan_day3_v2.md (Day 3 v2 ref)
+- Data_processing_for_English_data/Code_Data_processing/pricer/deep_neural_network.py
+- Data_processing_for_English_data/Code_Data_processing/pricer/distilbert_model.py
 
 Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
@@ -65,10 +79,35 @@ Coding guidelines:
 
 ---
 
-## Trang thai hien tai (2026-05-17 — session 17)
+## Trang thai hien tai (2026-05-17 — session 18)
 
-**Trang thai:** Section 5 DA CHAY XONG. Best model = 5A MAE=92.6k. Stretch goal <90k chua dat.
+**Trang thai:** Day 4 v2 plan HOAN CHINH. 7 tasks, 1652 lines. Chua bat dau implement.
 **Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 18 ket qua (2026-05-17)
+
+**Da lam:**
+- [x] Doc Report_data_processing_v2.md + tat ca model files tieng Anh
+- [x] Brainstorm + interview 6 cau hoi (GPU, model scope, PhoBERT, stacking, target MAE, sparse handling)
+- [x] Viet `day4_v2/plan_day4_v2.md` — 1,652 dong, 7 tasks day du:
+  - Task 1: 4 model runner files (dnn_sparse, senttrans, xlmr, phobert) — code day du
+  - Task 2-6: 5 notebooks (DNN TF-IDF, DNN HashVec, SentTrans, XLM-R, PhoBERT) — code day du
+  - Task 7: Ridge Stacking Ensemble — code day du, khong reload models
+- [x] Self-review + fix 6 issues (placeholder Task 7, test predictions cho tung notebook)
+- [x] Commit plan_day4_v2.md
+
+**Quyet dinh quan trong session 18:**
+- Log1p + z-normalize CHO DNN (mirror English Day 4) — khac Day 3 v2 LGB
+- TF-IDF 100K features: mini-batch sparse (SparseDataset + collate) — khong toarray() toan bo
+- Moi notebook save ca val_predictions + test_predictions → Task 7 chi load, khong reload model
+- Ridge stacking optimize MAE tren val set
+- Target: MAE < 65k VND (ensemble)
+
+**Con lai:**
+- [ ] Dong Day 3 v2: day3_v2_results.json + day3_v2_summary.md (optional truoc Day 4)
+- [ ] Thuc thi Task 1: tao 4 model files trong pricer_vi_2/
+- [ ] Tao 5 notebooks tren may thue (vast.ai RTX 3090 Ti)
+- [ ] Chay tung notebook, bao cao MAE
 
 ### Session 17 ket qua (2026-05-17)
 
