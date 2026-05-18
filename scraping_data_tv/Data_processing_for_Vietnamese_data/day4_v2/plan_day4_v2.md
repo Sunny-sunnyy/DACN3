@@ -218,24 +218,35 @@ Data_processing_for_Vietnamese_data/
 │   ├── day4_v2_03_senttrans.ipynb               # Task 4 — MiniLM 128t baseline
 │   ├── day4_v2_04_e5small.ipynb                 # Task 4b — e5-small 512t [DONE]
 │   ├── day4_v2_05_aitvn.ipynb                   # Task 4d — AITeamVN frozen + DNN [DONE, MAE=76.1k]
-│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 LLRD+EMA+Huber [PENDING]
-│   ├── day4_v2_07_ensemble.ipynb                # Ensemble — Ridge stacking [PENDING]
+│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 (→top-8 nếu MAE>75k) [PENDING]
+│   ├── day4_v2_07_phobert_base.ipynb            # PhoBERT-base-v2 top-4 (→top-8 nếu MAE>78k) [CREATED]
+│   ├── day4_v2_08_phobert_large.ipynb           # PhoBERT-large top-4 (→top-8 nếu MAE>73k) [CREATED]
+│   ├── day4_v2_09_ensemble.ipynb                # Ensemble — Ridge stacking NB01+02+05+06+07+08 [PENDING]
 │   ├── weights/
 │   │   ├── dnn_tfidf.pth                        # DONE
 │   │   ├── dnn_hashvec.pth                      # DONE
 │   │   ├── e5small_dnn.pth                      # DONE
 │   │   ├── aitvn_dnn.pth                        # DONE
-│   │   └── aitvn_finetune.pth                   # PENDING (notebook 06)
+│   │   ├── aitvn_finetune.pth                   # PENDING (notebook 06)
+│   │   ├── phobert_base_top4.pth                # PENDING (notebook 07, hoặc top8 nếu sweep)
+│   │   └── phobert_large_top4.pth               # PENDING (notebook 08, hoặc top8 nếu sweep)
 │   ├── cache/
 │   │   ├── e5small_embeddings.pkl               # e5-small 269K × 384
-│   │   └── aitvn_embeddings.pkl                 # AITeamVN 269K × 1024
+│   │   ├── aitvn_embeddings.pkl                 # AITeamVN 269K × 1024
+│   │   ├── phobert_seg_train.pkl                # Underthesea word_segment 269K (shared NB07+NB08, ~2-3h)
+│   │   ├── phobert_seg_val.pkl                  # Underthesea val 3926
+│   │   └── phobert_seg_test.pkl                 # Underthesea test 3872
 │   ├── val_predictions/
 │   │   ├── dnn_tfidf_val.json                   # DONE
 │   │   ├── dnn_hashvec_val.json                 # DONE
 │   │   ├── e5small_val.json                     # DONE
 │   │   ├── aitvn_val.json                       # DONE
 │   │   ├── aitvn_finetune_val.json              # PENDING (notebook 06)
-│   │   └── aitvn_finetune_test.json             # PENDING (notebook 06)
+│   │   ├── aitvn_finetune_test.json             # PENDING (notebook 06)
+│   │   ├── phobert_base_val.json                # PENDING (notebook 07)
+│   │   ├── phobert_base_test.json               # PENDING (notebook 07)
+│   │   ├── phobert_large_val.json               # PENDING (notebook 08)
+│   │   └── phobert_large_test.json              # PENDING (notebook 08)
 │   ├── day4_v2_results.json                     # Kết quả tất cả models
 │   └── day4_v2_summary.md
 │
@@ -245,7 +256,8 @@ Data_processing_for_Vietnamese_data/
     ├── __init__.py                              # Existing
     ├── deep_neural_network_sparse.py            # SparseDNNRunner + PriceDNN + ResidualBlock
     ├── senttrans_model.py                       # SentTransRunner (frozen encoder) — updated session 21
-    └── bert_finetune_model.py                   # BERTFinetuneRunner (LLRD+EMA+Huber+AMP) — created session 21
+    ├── bert_finetune_model.py                   # BERTFinetuneRunner (LLRD+EMA+Huber+AMP) — session 21
+    └── phobert_model.py                         # PhoBERTRunner (Underthesea + BERTFinetuneRegressor) — session 22
 ```
 
 ---
@@ -1630,13 +1642,19 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 | DNN + HashingVec 5000 | 02 | **80.0k** | — | DONE |
 | e5-small frozen + DNN | 04 | **102.7k** | 50.3% | DONE (frozen 384-dim thua) |
 | AITeamVN frozen + DNN | 05 | **76.1k** | 71.7% | DONE (best frozen) |
-| AITeamVN fine-tune top-4 | 06 | — | — | **PENDING** |
-| **Ensemble Ridge** | 07 | — | — | PENDING |
+| AITeamVN fine-tune top-4 (→top-8 nếu MAE>75k) | 06 | — | — | **PENDING** |
+| PhoBERT-base-v2 fine-tune (→top-8 nếu MAE>78k) | 07 | — | — | PENDING |
+| PhoBERT-large fine-tune (→top-8 nếu MAE>73k) | 08 | — | — | PENDING |
+| **Ensemble Ridge (NB01+02+05+06+07+08)** | 09 | — | — | PENDING |
 
-**Observation (session 21):**
+**Observation (session 21-22):**
 - Frozen e5-small (384-dim) MAE=102.7k thua cả TF-IDF (77.3k) — frozen embeddings không encode price-relevant VN features
 - AITeamVN frozen (1024-dim, VN-MTEB 63.34) MAE=76.1k — embedding tốt hơn nhưng vẫn chưa đạt target 70k
 - Fine-tuning top-4 layers (bert_finetune_model.py) là hướng ưu tiên để cải thiện AITeamVN → target MAE < 65k
+- **Sweep logic (session 22):** nếu NB06 MAE > 75k → chạy lại với keep_top_layers=8 (16/24 tầng đóng băng, ~30M params trainable). Ngưỡng NB07=78k, NB08=73k (large mạnh hơn, kỳ vọng cao hơn).
+- **PhoBERT thêm diversity cho ensemble:** tokenizer khác (Underthesea word segmentation bắt buộc), backbone khác (VinAI pre-train 20GB VN corpus), giúp ensemble giảm variance
+- **Thứ tự chạy:** NB06 → NB07 (Underthesea cache ~2-3h, shared NB08) → NB08 (tái dụng cache) → NB09 (ensemble)
+- **bert_finetune_model.py fix (session 22):** thêm `.clamp(min=0)` vào val_predictions() và test_predictions() để tránh giá âm trong early epochs
 
 ---
 
@@ -1657,6 +1675,7 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 ---
 
 *Tạo: 2026-05-17 — Day 4 v2 Deep Learning Vietnamese Price Prediction*
+*Cập nhật: 2026-05-18 (session 22) — Thêm PhoBERT-base/large (NB07/08), sweep keep_top_layers 4→8, renumber ensemble NB07→NB09, fix bert_finetune_model clamp*
 
 ---
 

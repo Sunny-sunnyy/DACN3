@@ -12,78 +12,121 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
 
-Trang thai hien tai (2026-05-18 — session 21 ket thuc):
+Trang thai hien tai (2026-05-18 — session 22 ket thuc):
 - Branch: feature/day5-qlora-qwen
 - Day 3 v2: XONG (MAE=92.6k).
-- Day 4 v2: Notebooks 01/02/04/05 DA CHAY. Session 21 tao bert_finetune_model.py + notebook 06.
+- Day 4 v2: NB01/02/04/05 DA CHAY. NB06/07/08 code san sang, chua chay tren may thue.
 
 == DAY 4 V2 — KET QUA DA CO ==
-  KET QUA THUC TE (chay tren RTX 3090 Ti, session 21):
-    Notebook 01 — DNN + TF-IDF char_wb 100K:     test MAE = 77.3k
-    Notebook 02 — DNN + HashingVec 5000:          test MAE = 80.0k
-    Notebook 04 — e5-small frozen + DNN:          test MAE = 102.7k, R2=50.3%
-    Notebook 05 — AITeamVN frozen + DNN:          test MAE = 76.1k,  R2=71.7%  ← best so far
-    Notebook 06 — AITeamVN fine-tune top-4:       CHUA CHAY (san sang)
+  KET QUA THUC TE (chay tren RTX 3090 Ti):
+    Notebook 01 — DNN + TF-IDF char_wb 100K:          test MAE = 77.3k
+    Notebook 02 — DNN + HashingVec 5000:               test MAE = 80.0k
+    Notebook 04 — e5-small frozen + DNN:               test MAE = 102.7k, R2=50.3%
+    Notebook 05 — AITeamVN frozen + DNN:               test MAE = 76.1k,  R2=71.7%  <- best so far
+    Notebook 06 — AITeamVN fine-tune top-4 (->top-8):  CHUA CHAY (san sang)
+    Notebook 07 — PhoBERT-base-v2 (->top-8 sweep):     CHUA CHAY (san sang)
+    Notebook 08 — PhoBERT-large (->top-8 sweep):       CHUA CHAY (san sang)
 
-  Insight quan trong:
-    - Frozen e5-small (384-dim) thua ca TF-IDF — frozen embeddings khong encode price features tot
-    - AITeamVN frozen (1024-dim, VN-MTEB 63.34) cho ket qua tot nhat (76.1k)
-    - Fine-tune top-4 layers (LLRD+EMA+Huber+AMP) ky vong giam xuong < 65k
+  Sweep logic:
+    NB06: top-4 truoc. Neu MAE > 75k → chay lai keep_top_layers=8.
+    NB07: top-4 truoc. Neu MAE > 78k → chay lai keep_top_layers=8.
+    NB08: top-4 truoc. Neu MAE > 73k → chay lai keep_top_layers=8.
+    (keep_top_layers=8 = mo 8 tang tren cung, dong bang cac tang con lai + embeddings)
 
-== FILE DA TON TAI (san sang chay) ==
-  Notebooks:
-    day4_v2_06_aitvn_finetune.ipynb  — AITeamVN fine-tune, CHUA CHAY → CHAY NGAY
+== FILE SAN SANG CHAY ==
+  Notebooks (tren vast.ai, theo thu tu):
+    day4_v2_06_aitvn_finetune.ipynb  — AITeamVN 568M, batch=32, ~30-40 min/ep
+    day4_v2_07_phobert_base.ipynb    — PhoBERT-base 135M, batch=64, ~15-20 min/ep
+                                       Buoc 2.2: Underthesea cache 269K samples (~2-3h lan dau)
+                                       Cache dung lai cho NB08 (khong chay lai Underthesea)
+    day4_v2_08_phobert_large.ipynb   — PhoBERT-large 370M, batch=48, ~25-30 min/ep
+    day4_v2_09_ensemble.ipynb        — CHUA TON TAI, tao sau khi co du val_predictions
 
-  Runner files:
-    pricer_vi_2/deep_neural_network_sparse.py  (SparseDNNRunner + PriceDNN)
-    pricer_vi_2/senttrans_model.py             (SentTransRunner, ENCODER_NAME=intfloat/multilingual-e5-small)
-      Fixes session 21: hidden_size=4096 explicit, num_workers=0, full val (3926) cho early stopping
-    pricer_vi_2/bert_finetune_model.py         (BERTFinetuneRunner — LLRD+EMA+Huber+AMP, session 21)
-      Class: BERTFinetuneRunner
-      setup(): tokenize 269K+3926, freeze bottom 20/24 layers, keep_top_layers=4, base_lr=2e-5
-      train(): LLRD + EMA(0.999) + HuberLoss(delta=1.0) + AMP + CosineWarmup + patience=3
-      Val: full 3926 samples moi epoch (khong val[:1000])
-      Save: ema_state_dict + y_mean + y_std + cat_classes
+  Runner files (tat ca san sang):
+    pricer_vi_2/bert_finetune_model.py  (BERTFinetuneRunner — da fix clamp session 22)
+    pricer_vi_2/phobert_model.py        (PhoBERTRunner — Underthesea + BERTFinetuneRegressor)
 
-== NHIEM VU SESSION TIEP THEO ==
-  BUOC 1 (URGENT): Chay day4_v2_06_aitvn_finetune.ipynb tren vast.ai
-    Expected: ~30-40 min/epoch × 5-8 epochs ~ 3-5 gio
-    Report: val_mae moi epoch, final test MAE, R2
-    Config: keep_top_layers=4, batch=32, max_length=256, base_lr=2e-5, llrd_decay=0.9
-
-  BUOC 2: Neu fine-tune MAE < 70k → chay ensemble ngay
-    Tao day4_v2_07_ensemble.ipynb — Ridge stacking tren val_predictions:
-      Input: dnn_tfidf_val.json + dnn_hashvec_val.json + aitvn_val.json + aitvn_finetune_val.json
-      Target: MAE < 65k (P0), < 60k (stretch)
-
-  BUOC 3: Neu fine-tune MAE > 75k → xem xet tang keep_top_layers=8 hoac XLM-RoBERTa
-
-== KEY CONSTRAINTS DAY 4 V2 ==
-- Primary metric: MAE (k VND) — KHONG dung RMSLE.
-- Loss: bert_finetune_model dung HuberLoss, DNN dung L1Loss.
-- num_workers=0 (fix HuggingFace tokenizer fork warning).
-- Evaluate: pricer_vi_2/evaluator.py tren 200 test samples.
-- Moi notebook luu val_predictions + test_predictions (dung cho ensemble).
-- KHONG sua pricer_vi_2/items.py va evaluator.py.
-
-== KEY TECHNICAL NOTES SESSION 21 ==
-- bert_finetune_model.py: BERTFinetuneRunner.train() dung AveragedModel (EMA)
-  → inference phai dung runner.ema_model, KHONG phai runner.model
-  → save() luu ema_state_dict, load() goi sau setup() de overwrite
-- LLRD: heads lr=2e-5, moi layer thap hon × decay=0.9
-  → layer 23 (top): ~1.8e-5, layer 20: ~1.3e-5
-- val_predictions trong notebook 06 = aitvn_finetune_val.json (full 3926)
+== KEY TECHNICAL NOTES ==
+- PhoBERT bat buoc Underthesea word segmentation TRUOC tokenizer
+  → word_segment(texts, cache_path) trong phobert_model.py co cach cache pkl
+  → Cache phobert_seg_{train,val,test}.pkl dung chung NB07 va NB08
+- BERTFinetuneRunner.train() dung AveragedModel (EMA) — inference phai dung ema_model
+- LLRD: heads lr=2e-5, moi layer thap hon x decay=0.9
 - Checkpoint keys: ema_state_dict, y_mean, y_std, model_name, keep_top_layers, cat_classes
+- bert_finetune_model.py fix session 22: .clamp(min=0) sau torch.exp()-1 o val/test_predictions
+- num_workers=0 bat buoc tren Linux/WSL2
+
+== SAU KHI CO KET QUA ==
+  Neu NB06 MAE < 70k: tao NB09 ensemble ngay (Ridge stacking NB01+02+05+06+07+08)
+  Neu NB06 MAE > 75k: chay lai top-8 section trong NB06 truoc khi sang NB07
+  Target ensemble: MAE < 65k (P0), < 60k (stretch)
 
 == FILE THAM KHAO ==
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md (CANONICAL)
 - Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py
 - Data_processing_for_Vietnamese_data/pricer_vi_2/bert_finetune_model.py
+- Data_processing_for_Vietnamese_data/pricer_vi_2/phobert_model.py
 
 Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
 - Su dung evaluator.py de ve bieu do (plot_training_history + evaluate)
 ```
+
+---
+
+## Trang thai hien tai (2026-05-18 — session 22)
+
+**Trang thai:** Tao PhoBERT plan + 3 files moi + fix bug. NB06/07/08 san sang chay tren vast.ai.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 22 ket qua (2026-05-18)
+
+**Da lam (code):**
+- [x] Tao `pricer_vi_2/phobert_model.py` (moi):
+  - Import BERTFineTuneRegressor, freeze_bottom_layers, build_llrd_param_groups, _MultiTaskDataset tu bert_finetune_model.py (khong duplicate)
+  - `PHOBERT_BASE = "vinai/phobert-base-v2"`, `PHOBERT_LARGE = "vinai/phobert-large"`
+  - `word_segment(texts, cache_path)`: Underthesea word_tokenize voi joblib pkl cache
+  - `PhoBERTRunner`: setup() word-segments TRUOC khi tokenize, reuse toan bo training loop tu BERTFinetuneRunner
+  - val_predictions() va test_predictions(): .clamp(min=0) de tranh gia am
+  - inference(): word_segment 1 sample, tra ve max(5.0, pred)
+- [x] Tao `day4_v2/day4_v2_07_phobert_base.ipynb`:
+  - Model: vinai/phobert-base-v2 (12L, 768d, 135M)
+  - Sweep: keep_top_layers=4 → evaluate → neu MAE > 78k → chay lai top-8
+  - batch_size=64, max_length=256, base_lr=2e-5
+  - Cache: cache/phobert_seg_{train,val,test}.pkl (dung chung NB08)
+  - Save: weights/phobert_base_{top4,top8}.pth, val_predictions/phobert_base_{val,test}.json
+- [x] Tao `day4_v2/day4_v2_08_phobert_large.ipynb`:
+  - Model: vinai/phobert-large (24L, 1024d, 370M)
+  - Sweep: keep_top_layers=4 → evaluate → neu MAE > 73k → chay lai top-8
+  - batch_size=48 (kem VRAM headroom hon base), max_length=256
+  - Tai su dung cache tu NB07 (khong chay lai Underthesea)
+  - Save: weights/phobert_large_{top4,top8}.pth, val_predictions/phobert_large_{val,test}.json
+- [x] Fix `pricer_vi_2/bert_finetune_model.py`:
+  - val_predictions(): them .clamp(min=0) sau torch.exp()-1 (tranh gia am early epochs)
+  - test_predictions(): them .clamp(min=0) tuong tu
+
+**Cap nhat plan:**
+- [x] `day4_v2/plan_day4_v2.md`:
+  - Folder structure: them NB07/08, rename ensemble NB07→NB09, them phobert_model.py, them phobert cache/weights/predictions
+  - Results table: them hang PhoBERT-base/large, renumber ensemble → NB09
+  - Them sweep logic va observation session 22
+  - Them timestamp cap nhat session 22
+- [x] `scraping_data_tv/SESSION_HANDOFF.md`: cap nhat prompt + them session 22 block nay
+
+**Thao luan kien truc (session 22):**
+- keep_top_layers=8 co the tot hon top-4: ~30M trainable (vs 15M) → thich nghi sau hon voi price features
+  AITeamVN: 8/24 tang = 33% encoder. PhoBERT-base: 8/12 = 67% (nhieu). PhoBERT-large: 8/24 = 33%.
+- EMA(0.999) + dropout(0.2) + weight_decay(0.02) + HuberLoss kiem soat overfit tot voi 269K samples
+- PhoBERT bo sung diversity cho ensemble: tokenizer khac (Underthesea), backbone khac (VinAI 20GB VN corpus)
+- Thong tin: vinai/phobert-base-v2 va vinai/phobert-large doi hoi Underthesea word_tokenize TRUOC tokenizer
+  → "Man hinh TV" → "Man_hinh TV" → PhoBERT tokenizer xu ly dung
+
+**Con lai:**
+- [ ] Chay NB06 (AITeamVN fine-tune) tren vast.ai — bao cao val_mae moi epoch + final test MAE
+- [ ] Tuy ket qua NB06: neu MAE > 75k → chay section sweep top-8 trong NB06
+- [ ] Chay NB07 (PhoBERT-base): Underthesea cache ~2-3h + train
+- [ ] Chay NB08 (PhoBERT-large): tai su dung cache + train
+- [ ] Tao NB09 (ensemble): Ridge stacking NB01+02+05+06+07+08 → target MAE < 65k
 
 ---
 

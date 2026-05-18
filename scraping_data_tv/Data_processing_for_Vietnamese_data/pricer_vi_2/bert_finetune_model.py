@@ -415,7 +415,7 @@ class BERTFinetuneRunner:
                         pred, _ = self.ema_model(b_ids, b_mask)
                 else:
                     pred, _ = self.ema_model(b_ids, b_mask)
-                pred_orig = torch.exp(pred.float() * self.y_std + self.y_mean) - 1
+                pred_orig = (torch.exp(pred.float() * self.y_std + self.y_mean) - 1).clamp(min=0)
                 preds.extend(pred_orig.cpu().squeeze().tolist())
         return preds
 
@@ -439,7 +439,7 @@ class BERTFinetuneRunner:
                         pred, _ = self.ema_model(b_ids, b_mask)
                 else:
                     pred, _ = self.ema_model(b_ids, b_mask)
-                pred_orig = torch.exp(pred.float() * self.y_std + self.y_mean) - 1
+                pred_orig = (torch.exp(pred.float() * self.y_std + self.y_mean) - 1).clamp(min=0)
                 preds.extend(pred_orig.cpu().squeeze().tolist())
         return preds
 
