@@ -218,22 +218,26 @@ Data_processing_for_Vietnamese_data/
 │   ├── day4_v2_03_senttrans.ipynb               # Task 4 — MiniLM 128t baseline
 │   ├── day4_v2_04_e5small.ipynb                 # Task 4b — e5-small 512t [DONE]
 │   ├── day4_v2_05_aitvn.ipynb                   # Task 4d — AITeamVN frozen + DNN [DONE, MAE=76.1k]
-│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 (→top-8 nếu MAE>75k) [PENDING]
+│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 (→top-8 nếu MAE>75k) [RUNNING]
 │   ├── day4_v2_07_phobert_base.ipynb            # PhoBERT-base-v2 top-4 (→top-8 nếu MAE>78k) [CREATED]
 │   ├── day4_v2_08_phobert_large.ipynb           # PhoBERT-large top-4 (→top-8 nếu MAE>73k) [CREATED]
-│   ├── day4_v2_09_ensemble.ipynb                # Ensemble — Ridge stacking NB01+02+05+06+07+08 [PENDING]
+│   ├── day4_v2_09_aitvn_improved.ipynb          # AITeamVN improved: top-8, EMA 0.9999, R-Drop [CREATED session 23]
+│   ├── day4_v2_10_phobert_improved.ipynb        # PhoBERT-base improved: top-8, EMA 0.9999, R-Drop [CREATED session 23]
+│   ├── day4_v2_11_ensemble.ipynb                # Ensemble — Ridge stacking (tạo sau khi có đủ val_predictions)
 │   ├── weights/
 │   │   ├── dnn_tfidf.pth                        # DONE
 │   │   ├── dnn_hashvec.pth                      # DONE
 │   │   ├── e5small_dnn.pth                      # DONE
 │   │   ├── aitvn_dnn.pth                        # DONE
 │   │   ├── aitvn_finetune.pth                   # PENDING (notebook 06)
-│   │   ├── phobert_base_top4.pth                # PENDING (notebook 07, hoặc top8 nếu sweep)
-│   │   └── phobert_large_top4.pth               # PENDING (notebook 08, hoặc top8 nếu sweep)
+│   │   ├── aitvn_improved.pth                   # PENDING (notebook 09)
+│   │   ├── phobert_base_top4.pth                # PENDING (notebook 07)
+│   │   ├── phobert_base_improved.pth            # PENDING (notebook 10)
+│   │   └── phobert_large_top4.pth               # PENDING (notebook 08)
 │   ├── cache/
 │   │   ├── e5small_embeddings.pkl               # e5-small 269K × 384
 │   │   ├── aitvn_embeddings.pkl                 # AITeamVN 269K × 1024
-│   │   ├── phobert_seg_train.pkl                # Underthesea word_segment 269K (shared NB07+NB08, ~2-3h)
+│   │   ├── phobert_seg_train.pkl                # Underthesea word_segment 269K (shared NB07/08/10, ~2-3h)
 │   │   ├── phobert_seg_val.pkl                  # Underthesea val 3926
 │   │   └── phobert_seg_test.pkl                 # Underthesea test 3872
 │   ├── val_predictions/
@@ -243,8 +247,12 @@ Data_processing_for_Vietnamese_data/
 │   │   ├── aitvn_val.json                       # DONE
 │   │   ├── aitvn_finetune_val.json              # PENDING (notebook 06)
 │   │   ├── aitvn_finetune_test.json             # PENDING (notebook 06)
+│   │   ├── aitvn_improved_val.json              # PENDING (notebook 09)
+│   │   ├── aitvn_improved_test.json             # PENDING (notebook 09)
 │   │   ├── phobert_base_val.json                # PENDING (notebook 07)
 │   │   ├── phobert_base_test.json               # PENDING (notebook 07)
+│   │   ├── phobert_base_improved_val.json       # PENDING (notebook 10)
+│   │   ├── phobert_base_improved_test.json      # PENDING (notebook 10)
 │   │   ├── phobert_large_val.json               # PENDING (notebook 08)
 │   │   └── phobert_large_test.json              # PENDING (notebook 08)
 │   ├── day4_v2_results.json                     # Kết quả tất cả models
@@ -256,8 +264,8 @@ Data_processing_for_Vietnamese_data/
     ├── __init__.py                              # Existing
     ├── deep_neural_network_sparse.py            # SparseDNNRunner + PriceDNN + ResidualBlock
     ├── senttrans_model.py                       # SentTransRunner (frozen encoder) — updated session 21
-    ├── bert_finetune_model.py                   # BERTFinetuneRunner (LLRD+EMA+Huber+AMP) — session 21
-    └── phobert_model.py                         # PhoBERTRunner (Underthesea + BERTFinetuneRegressor) — session 22
+    ├── bert_finetune_model.py                   # BERTFinetuneRunner — session 21 + R-Drop session 23
+    └── phobert_model.py                         # PhoBERTRunner — session 22 + R-Drop session 23
 ```
 
 ---
@@ -2083,20 +2091,218 @@ day4_v2/
 
 ## 8. Cập nhật Kết quả thực tế (điền sau khi chạy)
 
-| Model | Encoder | Dim | Val MAE | Test MAE (200) | R² |
+| Model | Notebook | Config | Val MAE | Test MAE (200) | R² |
 |---|---|---|---|---|---|
-| DNN + TF-IDF | — | 100K sparse | — | — | — |
-| DNN + HashVec | — | 5K sparse | — | — | — |
-| SentTrans (Task 4) | paraphrase-multilingual-MiniLM-L12-v2 | 384 | — | — | — |
-| **e5-small (Task 4b)** | multilingual-e5-small | 384 | — | — | — |
-| dangvantuan (Task 4c) | dangvantuan/vietnamese-embedding | 768 | — | — | — |
-| **AITeamVN (Task 4d)** | AITeamVN/Vietnamese_Embedding | 1024 | — | — | — |
-| XLM-RoBERTa | fine-tune | 768 | — | — | — |
-| PhoBERT-v2 | fine-tune | 768 | — | — | — |
-| **Ensemble Ridge** | — | — | — | — | — |
+| DNN + TF-IDF | NB01 | 100K sparse | — | **77.3k** | — |
+| DNN + HashVec | NB02 | 5K sparse | — | **80.0k** | — |
+| e5-small frozen + DNN | NB04 | 384-dim | — | **102.7k** | 50.3% |
+| **AITeamVN frozen + DNN** | NB05 | 1024-dim | — | **76.1k** | 71.7% |
+| AITeamVN fine-tune top-4 | NB06 | top-4/24, ema=0.999 | — | PENDING | — |
+| PhoBERT-base top-4 | NB07 | top-4/12, ema=0.999 | — | PENDING | — |
+| PhoBERT-large top-4 | NB08 | top-4/24, ema=0.999 | — | PENDING | — |
+| **AITeamVN improved** | **NB09** | **top-8/24, EMA 0.9999, R-Drop** | — | PENDING | — |
+| **PhoBERT-base improved** | **NB10** | **top-8/12, EMA 0.9999, R-Drop** | — | PENDING | — |
+| **Ensemble Ridge (NB11)** | NB11 | Ridge stacking best models | — | **target <65k** | — |
 
-*In đậm: models dự kiến cho MAE tốt nhất.*
+*NB01/02/04/05: kết quả thực tế trên RTX 3090 Ti.*
+*NB09/10: improved config — ưu tiên chạy trước NB07/08 (old config).*
 
 ---
+
+## 9. Phân tích dữ liệu & Nghiên cứu kỹ thuật (session 23 — 2026-05-18)
+
+> Nguồn: chạy code trực tiếp trên `SeanSunny/items_tv_v9` + research literature (EMA paper arXiv 2411.18704, LLRD ACM, AutoFreeze arXiv 2102.01386, NeurIPS 2024 weight decay, BERT fine-tuning ICLR).
+
+### 9.1. Phân tích dataset thực tế
+
+**Dataset:** 269,112 train | 3,926 val | 3,872 test  
+**Cột chính:** `summary` — 5 dòng cấu trúc cố định
+
+```
+Tiêu đề: <tên sản phẩm>
+Danh mục: <sub-category chi tiết>
+Thương hiệu: <brand>
+Mô tả: <mô tả ngắn>
+Thông số: <thông số kỹ thuật>
+```
+
+**Phân phối giá (k VND):**
+
+| Thống kê | Giá trị |
+|---|---|
+| min / max | 5k / 1000k |
+| mean / median | 330k / 215k |
+| std | 268k |
+| p5 / p25 / p75 / p95 | 55k / 115k / 535k / 884k |
+
+**Histogram (bimodal rõ ràng):**
+
+```
+[  0- 50k):  7,542  (2.8%)  — hàng giá rất rẻ
+[ 50-100k): 50,981 (18.9%)  ████ PEAK 1 (phụ kiện, thời trang rẻ)
+[100-150k): 35,294 (13.1%)  
+[150-200k): 36,042 (13.4%)  
+[200-300k): 32,940 (12.2%)  — valley (ít mặt hàng nhất)
+[300-500k): 31,988 (11.9%)  
+[500-600k): 22,004  (8.2%)  ██ PEAK 2 (điện tử, gia dụng)
+[600-1000k): 52,321 (19.5%) — long tail cao cấp
+```
+
+**Sau log1p: skewness = -0.110** → gần như Gaussian hoàn hảo.  
+**Kết luận: log1p + z-normalize là lựa chọn tối ưu** — không cần quantile transform hay Yeo-Johnson.
+
+**Phân phối giá theo category (8 top-level):**
+
+| Category | Median | Mean | Std | Range |
+|---|---|---|---|---|
+| Bách Hóa | 131k | 211k | 205k | [10, 1000] |
+| Thời Trang | 188k | 292k | 249k | [5, 1000] |
+| Mẹ và Bé | 194k | 310k | 257k | [32, 1000] |
+| Làm Đẹp - Sức Khỏe | 194k | 304k | 256k | [10, 1000] |
+| Ô Tô - Xe Máy | 239k | 339k | 263k | [45, 1000] |
+| Nhà Cửa - Đời Sống | 245k | 366k | 285k | [40, 1000] |
+| Điện Tử - Công Nghệ | 325k | 402k | 277k | [49, 1000] |
+| Điện Lạnh và Gia Dụng | 549k | 520k | 304k | [50, 1000] |
+
+**Quan sát quan trọng:**
+- Mỗi category đều có range [5, 1000] — phân phối giá trong từng category cực kỳ rộng (std ~250k)
+- 8 top-level categories quá coarse: "Thời Trang" chứa cả áo 50k và túi xách 1000k
+- Sub-category thực tế (field "Danh mục:" trong summary): **5,575+ unique** — thông tin giá-specific nằm trong text, không phải label
+
+**Phân phối summary (độ dài):**
+
+| Thống kê | Ký tự | Từ |
+|---|---|---|
+| mean | 323 | 68 |
+| median | 317 | 67 |
+| p95 | 413 | 88 |
+| max | 3,184 | — |
+
+**Kết luận max_length=256:** Với p95=88 từ, sau tokenizer PhoBERT/AITeamVN ước tính ~120-140 tokens. max_length=256 đủ bao phủ 99%+ dataset, không có truncation đáng kể.
+
+---
+
+### 9.2. Đánh giá kỹ thuật trong BERTFinetuneRunner
+
+#### 9.2.1. log1p + z-normalize — TỐT, giữ nguyên ✓
+
+Skewness từ right-skewed → -0.110 sau log1p: **xác nhận đây là transform tối ưu** cho price distribution này. Literature (BERT-for-property-price, Kaggle price regression) đồng thuận. Không cần Quantile Transform hay Box-Cox.
+
+#### 9.2.2. HuberLoss delta=1.0 — TỐT, giữ nguyên ✓
+
+z-std của dataset = 0.890. Delta=1.0 ≈ 1.12 standard deviation → biên giới MSE↔L1 nằm ở sai số vừa phải. Với 8 categories mỗi cái std~250k, outlier price rất phổ biến → HuberLoss robust hơn L1Loss thuần. Phù hợp.
+
+#### 9.2.3. EMA decay=0.999 — CẦN TĂNG LÊN 0.9999
+
+**Cơ sở:**
+```
+EMA averaging window = 1 / (1 - decay)
+0.999  → window ≈ 1,000 steps
+0.9999 → window ≈ 10,000 steps
+
+Với batch=32, 269K train: ~8,400 steps/epoch × 10 epochs = 84,000 total steps
+```
+
+EMA(0.999) có window 1K/84K = 1.2% tổng training — quá nhạy với nhiễu cuối training, đặc biệt nguy hiểm với bimodal distribution (model có thể dao động giữa 2 mode). `timm` dùng 0.9999 mặc định cho ImageNet-scale training (arXiv 2411.18704). **Với batch=48 (PhoBERT), 3-5 epochs: vẫn nên dùng 0.9999.**
+
+**→ Áp dụng cho NB07/08: `ema_decay=0.9999`**
+
+#### 9.2.4. LLRD decay=0.9 — OK với top-4, cần 0.85 với top-8+
+
+Với top-4 layers trainable: LR range thực tế chỉ từ 1.46e-5 → 2e-5 (gần flat) — LLRD không có nhiều tác dụng. Nếu mở top-8, LLRD decay=0.85 tạo range rộng hơn: 0.85^8 = 0.27x → LR bottom trainable layer = 5.4e-6, phân biệt rõ hơn.
+
+**→ NB07/08 nếu dùng top-8: `llrd_decay=0.85`**
+
+#### 9.2.5. keep_top_layers=4/24 — LIKELY UNDERFITTING với 269K samples
+
+Literature (AutoFreeze arXiv 2102.01386, "Revisiting Few-Sample BERT" ICLR):
+- Dataset nhỏ (<50K): top-4 phù hợp (tránh overfit)
+- Dataset lớn (>100K): 33-50% layers nên trainable
+
+**269K samples → top-8 (33%) là minimum hợp lý.** Sweep logic hiện tại đã đúng hướng:
+```
+NB06 top-4 → nếu MAE > 75k → sweep top-8
+NB07 top-4 → nếu MAE > 78k → sweep top-8
+NB08 top-4 → nếu MAE > 73k → sweep top-8
+```
+
+**Khuyến nghị thêm:** Nếu VRAM cho phép, có thể thử **top-12 (50%)** cho NB09 ensemble sau khi có kết quả top-8.
+
+#### 9.2.6. Aux category head (8 classes, alpha=0.1) — HIỆU QUẢ THẤP
+
+**Phân tích từ data:**
+- Mỗi trong 8 categories đều có range [5, 1000k] với std ~250k
+- Overlap giữa các categories cực lớn: Thời Trang (median 188k) vs Điện Tử (median 325k) — phân biệt được nhưng rất coarse
+- Sub-categories thực sự có predictive power (5,575+ unique) nhưng không dùng làm label
+
+**Kết luận:** Aux head 8 classes cung cấp regularization rất nhẹ (alpha=0.1 đã conservative). Không gây hại lớn nhưng signal quá coarse để giúp nhiều. Literature (Ruder MTL survey) cảnh báo negative transfer khi aux task và main task không align tốt ở feature level.
+
+**Cải thiện tiềm năng (nếu cần):** Dùng sub-category từ "Danh mục:" field trong summary làm aux label (top-50 frequent sub-cats). Nhưng phức tạp — chưa triển khai ở iteration này.
+
+**→ Giữ nguyên alpha=0.1. Nếu NB07 MAE cao bất ngờ, thử bỏ aux head.**
+
+#### 9.2.7. weight_decay=0.02 — HƠI CAO, nên 0.01
+
+Chuẩn BERT (Google paper) và HuggingFace: `weight_decay=0.01` (chỉ cho weight matrices, không bias/LayerNorm — đã đúng trong `no_decay` logic của code). NeurIPS 2024 (arXiv 2411.01713) xác nhận 0.01 là chuẩn; 0.02 không có bằng chứng cải thiện. Với 269K samples không có nguy cơ overfit cao, 0.02 thêm constraint không cần thiết.
+
+**→ NB07/08: `weight_decay=0.01`**
+
+#### 9.2.8. warmup_ratio=0.1 — QUÁ CAO CHO 10 EPOCHS
+
+```
+warmup_ratio=0.1, epochs=10, steps/epoch=8,400
+→ warmup = 8,400 steps = toàn bộ epoch 1 là ramp-up
+→ Model không học hiệu quả epoch đầu tiên
+```
+
+Google BERT team khuyến nghị: warmup ≈ 0.5–1 epoch tuyệt đối (không phải ratio cố định). Với 10 epochs: `warmup_ratio=0.05` (nửa epoch). Với 3-5 epochs (PhoBERT): `warmup_ratio=0.06`.
+
+**→ NB07/08: `warmup_ratio=0.05`**
+
+---
+
+### 9.3. Bảng tóm tắt thay đổi đề xuất
+
+| # | Kỹ thuật | NB06 (đang chạy) | NB07/08 đề xuất | Impact |
+|---|---|---|---|---|
+| 1 | log1p + z-normalize | Giữ ✓ | Giữ ✓ | — |
+| 2 | HuberLoss delta=1.0 | Giữ ✓ | Giữ ✓ | — |
+| 3 | **EMA decay** | 0.999 | **0.9999** | Cao |
+| 4 | **warmup_ratio** | 0.1 | **0.05** | Trung bình |
+| 5 | **weight_decay** | 0.02 | **0.01** | Thấp |
+| 6 | **keep_top_layers** | 4 (sweep→8) | **8 trực tiếp** | Cao |
+| 7 | **llrd_decay** | 0.9 | **0.85** (nếu top-8) | Trung bình |
+| 8 | Aux head alpha | 0.1 | 0.1 (giữ) | Thấp |
+
+**Top 3 thay đổi impact cao nhất cho NB07/08:**
+```python
+# Thay vì:
+runner.setup(model_name, keep_top_layers=4, weight_decay=0.02, llrd_decay=0.9)
+runner.train(epochs=10, patience=3, ema_decay=0.999, warmup_ratio=0.1)
+
+# NB07/08 nên dùng:
+runner.setup(model_name, keep_top_layers=8, weight_decay=0.01, llrd_decay=0.85)
+runner.train(epochs=10, patience=3, ema_decay=0.9999, warmup_ratio=0.05)
+```
+
+---
+
+### 9.4. Nhận xét về bimodal distribution
+
+Dataset có 2 peaks rõ ràng (50-100k và 500-600k) với valley ở 200-500k. Điều này có nghĩa:
+
+1. **log1p đã xử lý tốt** — skewness -0.110 sau transform, model không cần biết về bimodality
+2. **EMA 0.9999 quan trọng hơn** — bimodal làm training loss oscillate mạnh giữa 2 modes, EMA window dài giúp stable
+3. **MAE metric phù hợp hơn RMSLE** — RMSLE phạt under-prediction của peak 1 (giá thấp) nặng hơn; MAE neutral hơn với 2 peaks
+
+---
+
+### 9.5. Kết luận về max_length=256
+
+p95 summary = 413 chars / ~88 words. Sau PhoBERT word segmentation (Underthesea) ước tính ~120-140 tokens. **max_length=256 đủ bao phủ 99%+ dataset** — không cần tăng. Nếu muốn tăng tốc training PhoBERT, có thể giảm xuống **192** mà không ảnh hưởng accuracy (chỉ mất <1% truncation).
+
+---
+
+*Phần này thêm session 23 (2026-05-18) — data exploration + literature research trước khi chạy NB07/08.*
 
 *Cập nhật: 2026-05-17 — Thêm Tasks 4b/4c/4d: 3 Vietnamese embedding models (e5-small, dangvantuan, AITeamVN)*

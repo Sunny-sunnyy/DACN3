@@ -252,8 +252,12 @@ class BERTFinetuneRunner:
         self.model.to(self.device)
 
     def train(self, epochs=10, patience=3, huber_delta=1.0, aux_alpha=0.1,
-              ema_decay=0.999, warmup_ratio=0.1, max_grad_norm=1.0):
-        """Train with LLRD + EMA + Huber + AMP + cosine warmup. Early stop on val MAE."""
+              ema_decay=0.999, warmup_ratio=0.1, max_grad_norm=1.0, r_drop_alpha=0.0):
+        """Train with LLRD + EMA + Huber + AMP + cosine warmup. Early stop on val MAE.
+
+        r_drop_alpha > 0 enables R-Drop: forward twice per step, add MSE consistency
+        loss between the two predictions to improve robustness against dropout noise.
+        """
         dataset = _MultiTaskDataset(
             self._train_enc["input_ids"],
             self._train_enc["attention_mask"],
@@ -292,7 +296,7 @@ class BERTFinetuneRunner:
         print(
             f"LLRD: base={self._base_lr:.1e}, decay={self._llrd_decay}, "
             f"emb_lr={emb_lr:.2e} | EMA={ema_decay} | Huber delta={huber_delta} | "
-            f"aux_alpha={aux_alpha}"
+            f"aux_alpha={aux_alpha} | R-Drop={r_drop_alpha}"
         )
 
         self.history = {"train_loss": [], "val_loss": [], "val_mae": [], "lr": []}
@@ -321,8 +325,16 @@ class BERTFinetuneRunner:
                 if scaler:
                     with autocast(device_type="cuda"):
                         pred, cat_logits = self.model(ids, mask)
-                        loss = (huber_fn(pred, price_lbl)
-                                + aux_alpha * ce_fn(cat_logits, cat_lbl))
+                        if r_drop_alpha > 0:
+                            pred2, cat_logits2 = self.model(ids, mask)
+                            loss = (
+                                0.5 * (huber_fn(pred, price_lbl) + huber_fn(pred2, price_lbl))
+                                + aux_alpha * 0.5 * (ce_fn(cat_logits, cat_lbl) + ce_fn(cat_logits2, cat_lbl))
+                                + r_drop_alpha * ((pred - pred2) ** 2).mean()
+                            )
+                        else:
+                            loss = (huber_fn(pred, price_lbl)
+                                    + aux_alpha * ce_fn(cat_logits, cat_lbl))
                     scaler.scale(loss).backward()
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(
@@ -333,8 +345,16 @@ class BERTFinetuneRunner:
                     scaler.update()
                 else:
                     pred, cat_logits = self.model(ids, mask)
-                    loss = (huber_fn(pred, price_lbl)
-                            + aux_alpha * ce_fn(cat_logits, cat_lbl))
+                    if r_drop_alpha > 0:
+                        pred2, cat_logits2 = self.model(ids, mask)
+                        loss = (
+                            0.5 * (huber_fn(pred, price_lbl) + huber_fn(pred2, price_lbl))
+                            + aux_alpha * 0.5 * (ce_fn(cat_logits, cat_lbl) + ce_fn(cat_logits2, cat_lbl))
+                            + r_drop_alpha * ((pred - pred2) ** 2).mean()
+                        )
+                    else:
+                        loss = (huber_fn(pred, price_lbl)
+                                + aux_alpha * ce_fn(cat_logits, cat_lbl))
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(
                         [p for p in self.model.parameters() if p.requires_grad],

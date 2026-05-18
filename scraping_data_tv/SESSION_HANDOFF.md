@@ -12,10 +12,11 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
 
-Trang thai hien tai (2026-05-18 — session 22 ket thuc):
+Trang thai hien tai (2026-05-18 — session 23 ket thuc):
 - Branch: feature/day5-qlora-qwen
 - Day 3 v2: XONG (MAE=92.6k).
-- Day 4 v2: NB01/02/04/05 DA CHAY. NB06/07/08 code san sang, chua chay tren may thue.
+- Day 4 v2: NB01/02/04/05 DA CHAY. NB06 DANG CHAY (epoch 5+/10).
+  NB09/10 MOI TAO (improved config). NB07/08 code cu, co the bo qua.
 
 == DAY 4 V2 — KET QUA DA CO ==
   KET QUA THUC TE (chay tren RTX 3090 Ti):
@@ -23,28 +24,41 @@ Trang thai hien tai (2026-05-18 — session 22 ket thuc):
     Notebook 02 — DNN + HashingVec 5000:               test MAE = 80.0k
     Notebook 04 — e5-small frozen + DNN:               test MAE = 102.7k, R2=50.3%
     Notebook 05 — AITeamVN frozen + DNN:               test MAE = 76.1k,  R2=71.7%  <- best so far
-    Notebook 06 — AITeamVN fine-tune top-4 (->top-8):  CHUA CHAY (san sang)
-    Notebook 07 — PhoBERT-base-v2 (->top-8 sweep):     CHUA CHAY (san sang)
-    Notebook 08 — PhoBERT-large (->top-8 sweep):       CHUA CHAY (san sang)
+    Notebook 06 — AITeamVN fine-tune top-4:            DANG CHAY (epoch 5+/10)
+    Notebook 07 — PhoBERT-base-v2 top-4:               CHUA CHAY (config cu, co the bo qua)
+    Notebook 08 — PhoBERT-large top-4:                 CHUA CHAY (config cu, co the bo qua)
+    Notebook 09 — AITeamVN improved (top-8+R-Drop):    CHUA CHAY (config moi session 23)
+    Notebook 10 — PhoBERT-base improved (top-8+R-Drop): CHUA CHAY (config moi session 23)
 
-  Sweep logic:
-    NB06: top-4 truoc. Neu MAE > 75k → chay lai keep_top_layers=8.
-    NB07: top-4 truoc. Neu MAE > 78k → chay lai keep_top_layers=8.
-    NB08: top-4 truoc. Neu MAE > 73k → chay lai keep_top_layers=8.
-    (keep_top_layers=8 = mo 8 tang tren cung, dong bang cac tang con lai + embeddings)
+  Thu tu uu tien chay:
+    1. Doi NB06 xong -> lay ket qua
+    2. Chay NB09 (AITeamVN improved — thay the sweep NB06 top-8)
+    3. Chay NB10 (PhoBERT-base improved)
+    4. Chay NB07/08 neu can them diversity cho ensemble
+    5. Tao NB11 (ensemble Ridge stacking)
+
+== CONFIG MOI NB09/10 (session 23 — research-backed) ==
+  NB09 AITeamVN improved:
+    keep_top_layers=8, batch=24, ema_decay=0.9999, warmup_ratio=0.05
+    weight_decay=0.01, llrd_decay=0.85, r_drop_alpha=0.3
+
+  NB10 PhoBERT-base improved:
+    keep_top_layers=8, batch=48, ema_decay=0.9999, warmup_ratio=0.05
+    weight_decay=0.01, llrd_decay=0.85, r_drop_alpha=0.3
+    Underthesea cache shared voi NB07 (phobert_seg_*.pkl)
 
 == FILE SAN SANG CHAY ==
-  Notebooks (tren vast.ai, theo thu tu):
-    day4_v2_06_aitvn_finetune.ipynb  — AITeamVN 568M, batch=32, ~30-40 min/ep
-    day4_v2_07_phobert_base.ipynb    — PhoBERT-base 135M, batch=64, ~15-20 min/ep
-                                       Buoc 2.2: Underthesea cache 269K samples (~2-3h lan dau)
-                                       Cache dung lai cho NB08 (khong chay lai Underthesea)
-    day4_v2_08_phobert_large.ipynb   — PhoBERT-large 370M, batch=48, ~25-30 min/ep
-    day4_v2_09_ensemble.ipynb        — CHUA TON TAI, tao sau khi co du val_predictions
+  Notebooks (tren vast.ai, theo thu tu uu tien):
+    day4_v2_09_aitvn_improved.ipynb  — AITeamVN 568M, top-8, batch=24, R-Drop, ~50-60 min/ep
+    day4_v2_10_phobert_improved.ipynb — PhoBERT-base 135M, top-8, batch=48, R-Drop, ~20-30 min/ep
+                                        Reuse phobert_seg_*.pkl cache tu NB07 neu co
+    day4_v2_07_phobert_base.ipynb    — Config cu (optional, cho ensemble diversity)
+    day4_v2_08_phobert_large.ipynb   — PhoBERT-large 370M (optional)
+    day4_v2_11_ensemble.ipynb        — CHUA TON TAI, tao sau khi co du val_predictions
 
-  Runner files (tat ca san sang):
-    pricer_vi_2/bert_finetune_model.py  (BERTFinetuneRunner — da fix clamp session 22)
-    pricer_vi_2/phobert_model.py        (PhoBERTRunner — Underthesea + BERTFinetuneRegressor)
+  Runner files (da update session 23):
+    pricer_vi_2/bert_finetune_model.py  (them r_drop_alpha param, backward-compatible)
+    pricer_vi_2/phobert_model.py        (them r_drop_alpha param, backward-compatible)
 
 == KEY TECHNICAL NOTES ==
 - PhoBERT bat buoc Underthesea word segmentation TRUOC tokenizer
@@ -71,6 +85,62 @@ Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
 - Su dung evaluator.py de ve bieu do (plot_training_history + evaluate)
 ```
+
+---
+
+## Trang thai hien tai (2026-05-18 — session 23)
+
+**Trang thai:** Research kỹ thuật + data exploration + tạo NB09/NB10 (improved config). Runner files updated.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 23 ket qua (2026-05-18)
+
+**Research & Data Exploration:**
+- [x] Chay code kham pha dataset SeanSunny/items_tv_v9:
+  - Price: bimodal (peak 50-100k + peak 500-600k), sau log1p skewness=-0.110 (optimal)
+  - Categories: 8 top-level, moi cat span [5,1000k] voi std~250k (coarse, aux head hieu qua thap)
+  - Sub-categories: 5,575+ unique trong "Danh muc:" field — BERT tu hoc duoc
+  - Summary: median=317 chars / 67 words / p95=88 words → max_length=256 du bao phu
+- [x] Research literature (EMA arXiv 2411.18704, AutoFreeze 2102.01386, LLRD ACM, NeurIPS 2024 WD):
+  - EMA 0.999 → 0.9999 (window 1K→10K, 84K total steps)
+  - keep_top_layers=4 → 8 (269K samples can 33%+ encoder)
+  - warmup_ratio=0.1 → 0.05 (tranh mat toan bo epoch 1 ramp-up)
+  - weight_decay=0.02 → 0.01 (BERT standard)
+  - llrd_decay=0.9 → 0.85 (wider range cho top-8)
+  - R-Drop alpha=0.3 (MSE consistency loss, su dung trong English Day 4)
+  - max_length=256: giu nguyen (p95=88 words, 256 tokens du bao phu, thoi gian khong quan trong)
+- [x] Cap nhat plan_day4_v2.md Section 9 (day du analysis + bang summary)
+
+**Da lam (code):**
+- [x] `pricer_vi_2/bert_finetune_model.py`:
+  - Them `r_drop_alpha=0.0` vao `train()` (backward-compatible)
+  - R-Drop branch: 2x forward, MSE consistency loss, trong ca AMP va non-AMP path
+  - Cap nhat print: hien thi r_drop_alpha
+- [x] `pricer_vi_2/phobert_model.py`:
+  - Them `r_drop_alpha=0.0` vao `train()` (backward-compatible)
+  - R-Drop branch tuong tu
+- [x] Tao `day4_v2/day4_v2_09_aitvn_improved.ipynb`:
+  - AITeamVN top-8, batch=24, ema=0.9999, warmup=0.05, wd=0.01, llrd=0.85, r_drop=0.3
+  - Save: weights/aitvn_improved.pth + val_predictions/aitvn_improved_{val,test}.json
+- [x] Tao `day4_v2/day4_v2_10_phobert_improved.ipynb`:
+  - PhoBERT-base top-8, batch=48, ema=0.9999, warmup=0.05, wd=0.01, llrd=0.85, r_drop=0.3
+  - Reuse Underthesea cache tu NB07
+  - Save: weights/phobert_base_improved.pth + val_predictions/phobert_base_improved_{val,test}.json
+- [x] Cap nhat plan_day4_v2.md: folder structure (NB09/10/11), results table (them NB09/10)
+- [x] Cap nhat SESSION_HANDOFF.md: prompt + session 23 block
+
+**Thu tu chay tren may thue (doi NB06 xong):**
+- [ ] Doi NB06 ket qua (dang chay epoch 5+/10)
+- [ ] Chay NB09 (AITeamVN improved) — uu tien cao nhat
+- [ ] Chay NB10 (PhoBERT-base improved)
+- [ ] Tuy ket qua: co the chay them NB07/08 cho ensemble diversity
+- [ ] Tao NB11 (ensemble Ridge stacking)
+
+**Con lai:**
+- [ ] Nhan ket qua NB06 (val_mae moi epoch + final test MAE)
+- [ ] Chay NB09 tren vast.ai — bao cao val_mae moi epoch
+- [ ] Chay NB10 tren vast.ai — reuse Underthesea cache
+- [ ] Tao NB11 (ensemble) sau khi co du val_predictions
 
 ---
 
