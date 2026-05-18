@@ -16,6 +16,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
 
 from pricer_vi_2.deep_neural_network_sparse import PriceDNN
 
@@ -76,23 +77,23 @@ class SentTransRunner:
 
         print(f"Train: {self.X_train.shape} | Val: {self.X_val.shape}")
 
-    def setup(self, batch_size=256, num_blocks=6):
+    def setup(self, batch_size=256, num_blocks=6, hidden_size=4096):
         y_train = torch.FloatTensor([item.price for item in self.train_items]).unsqueeze(1)
-        y_val_1k = torch.FloatTensor([item.price for item in self.val_items[:1000]]).unsqueeze(1)
+        y_val = torch.FloatTensor([item.price for item in self.val_items]).unsqueeze(1)
 
         y_train_log = torch.log(y_train + 1)
         self.y_mean = y_train_log.mean()
         self.y_std = y_train_log.std()
         y_train_norm = (y_train_log - self.y_mean) / self.y_std
 
-        self.y_val_1k = y_val_1k
-        self.y_val_1k_norm = (torch.log(y_val_1k + 1) - self.y_mean) / self.y_std
+        self.y_val = y_val
+        self.y_val_norm = (torch.log(y_val + 1) - self.y_mean) / self.y_std
 
         dataset = TensorDataset(self.X_train, y_train_norm)
         self.train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
-        input_size = self.X_train.shape[1]  # 384
-        self.model = PriceDNN(input_size, num_blocks=num_blocks)
+        input_size = self.X_train.shape[1]  # 384 or 1024
+        self.model = PriceDNN(input_size, num_blocks=num_blocks, hidden_size=hidden_size)
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print(f"SentTrans DNN head: {total_params:,} trainable params | embedding_dim={input_size}")
 
@@ -107,14 +108,15 @@ class SentTransRunner:
         self.history = {"train_loss": [], "val_loss": [], "val_mae": [], "lr": []}
 
         best_val_mae, patience_counter, best_state = float("inf"), 0, None
-        X_val_dev = self.X_val[:1000].to(self.device)
-        y_val_norm_dev = self.y_val_1k_norm.to(self.device)
-        y_val_dev = self.y_val_1k.to(self.device)
+        X_val_dev = self.X_val.to(self.device)
+        y_val_norm_dev = self.y_val_norm.to(self.device)
+        y_val_dev = self.y_val.to(self.device)
 
         for epoch in range(1, epochs + 1):
             self.model.train()
             train_losses = []
-            for batch_X, batch_y in self.train_loader:
+            pbar = tqdm(self.train_loader, desc=f"Epoch {epoch}/{epochs}", leave=False)
+            for batch_X, batch_y in pbar:
                 batch_X, batch_y = batch_X.to(self.device), batch_y.to(self.device)
                 optimizer.zero_grad()
                 out = self.model(batch_X)
@@ -123,6 +125,7 @@ class SentTransRunner:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 optimizer.step()
                 train_losses.append(loss.item())
+                pbar.set_postfix(loss=f"{loss.item():.4f}")
             scheduler.step()
 
             self.model.eval()
@@ -164,7 +167,7 @@ class SentTransRunner:
         self.model.eval()
         preds = []
         with torch.no_grad():
-            for i in range(0, len(self.X_val), 256):
+            for i in tqdm(range(0, len(self.X_val), 256), desc="val_predictions", leave=False):
                 batch = self.X_val[i:i + 256].to(self.device)
                 pred_orig = torch.exp(self.model(batch) * self.y_std + self.y_mean) - 1
                 preds.extend(pred_orig.cpu().squeeze().tolist())
@@ -179,7 +182,7 @@ class SentTransRunner:
         )
         preds = []
         with torch.no_grad():
-            for i in range(0, len(X_test), 256):
+            for i in tqdm(range(0, len(X_test), 256), desc="test_predictions", leave=False):
                 batch = X_test[i:i + 256].to(self.device)
                 pred_orig = torch.exp(self.model(batch) * self.y_std + self.y_mean) - 1
                 preds.extend(pred_orig.cpu().squeeze().tolist())

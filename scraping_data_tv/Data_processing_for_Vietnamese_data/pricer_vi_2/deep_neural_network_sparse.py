@@ -15,6 +15,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from scipy.sparse import spmatrix
+from tqdm import tqdm
 
 
 class ResidualBlock(nn.Module):
@@ -91,7 +92,7 @@ class SparseDNNRunner:
         np.random.seed(42)
         torch.manual_seed(42)
 
-    def setup(self, vectorizer, batch_size=256, num_blocks=8, hidden_size=4096):
+    def setup(self, vectorizer, batch_size=64, num_blocks=8, hidden_size=4096):
         self.vectorizer = vectorizer
         train_docs = [item.summary for item in self.train_items]
         val_docs_1k = [item.summary for item in self.val_items[:1000]]
@@ -115,7 +116,7 @@ class SparseDNNRunner:
         self.y_val_1k_norm = (torch.log(y_val_1k + 1) - self.y_mean) / self.y_std
 
         dataset = SparseDataset(X_train, y_train_norm)
-        self.train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+        self.train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
         input_size = X_train.shape[1]
         self.model = PriceDNN(input_size, num_blocks=num_blocks, hidden_size=hidden_size)
@@ -140,7 +141,8 @@ class SparseDNNRunner:
         for epoch in range(1, epochs + 1):
             self.model.train()
             train_losses = []
-            for batch_X, batch_y in self.train_loader:
+            pbar = tqdm(self.train_loader, desc=f"Epoch {epoch}/{epochs}", leave=False)
+            for batch_X, batch_y in pbar:
                 batch_X, batch_y = batch_X.to(self.device), batch_y.to(self.device)
                 optimizer.zero_grad()
                 out = self.model(batch_X)
@@ -149,6 +151,7 @@ class SparseDNNRunner:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 optimizer.step()
                 train_losses.append(loss.item())
+                pbar.set_postfix(loss=f"{loss.item():.4f}")
             scheduler.step()
 
             self.model.eval()
@@ -191,7 +194,7 @@ class SparseDNNRunner:
         val_docs = [item.summary for item in self.val_items]
         preds = []
         with torch.no_grad():
-            for i in range(0, len(val_docs), 256):
+            for i in tqdm(range(0, len(val_docs), 256), desc="val_predictions", leave=False):
                 x = torch.FloatTensor(
                     self.vectorizer.transform(val_docs[i:i + 256]).toarray()
                 ).to(self.device)
@@ -205,7 +208,7 @@ class SparseDNNRunner:
         test_docs = [item.summary for item in test_items]
         preds = []
         with torch.no_grad():
-            for i in range(0, len(test_docs), 256):
+            for i in tqdm(range(0, len(test_docs), 256), desc="test_predictions", leave=False):
                 x = torch.FloatTensor(
                     self.vectorizer.transform(test_docs[i:i + 256]).toarray()
                 ).to(self.device)

@@ -12,69 +12,122 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
 
-Trang thai hien tai (2026-05-17 — session 20 ket thuc):
+Trang thai hien tai (2026-05-18 — session 21 ket thuc):
 - Branch: feature/day5-qlora-qwen
-- Day 3 v2: XONG (best = 5A MAE=92.6k).
-- Day 4 v2: 7 notebooks da tao (00-05 + 01-02). San sang chay tren vast.ai.
+- Day 3 v2: XONG (MAE=92.6k).
+- Day 4 v2: Notebooks 01/02/04/05 DA CHAY. Session 21 tao bert_finetune_model.py + notebook 06.
 
-== DAY 4 V2 TRANG THAI HIEN TAI ==
-  Notebooks DA TON TAI (code viet xong, CHUA CHAY):
-    day4_v2_00_token_analysis.ipynb  — profile char/word/token, can chay TRUOC TIEN
-    day4_v2_01_dnn_tfidf.ipynb       — DNN + TF-IDF char_wb 100K
-    day4_v2_02_dnn_hashvec.ipynb     — DNN + HashingVec 5000
-    day4_v2_03_senttrans.ipynb       — MiniLM 128t (baseline, giu nguyen)
-    day4_v2_04_e5small.ipynb         — e5-small 512t (Huong A)
-    day4_v2_05_aitvn.ipynb           — AITeamVN 1024-dim (Huong B)
+== DAY 4 V2 — KET QUA DA CO ==
+  KET QUA THUC TE (chay tren RTX 3090 Ti, session 21):
+    Notebook 01 — DNN + TF-IDF char_wb 100K:     test MAE = 77.3k
+    Notebook 02 — DNN + HashingVec 5000:          test MAE = 80.0k
+    Notebook 04 — e5-small frozen + DNN:          test MAE = 102.7k, R2=50.3%
+    Notebook 05 — AITeamVN frozen + DNN:          test MAE = 76.1k,  R2=71.7%  ← best so far
+    Notebook 06 — AITeamVN fine-tune top-4:       CHUA CHAY (san sang)
 
-  Notebooks CHUA TON TAI (can tao sau khi co MAE tu 01-05):
-    day4_v2_06_xlmr.ipynb            — XLM-RoBERTa fine-tune
-    day4_v2_07_phobert.ipynb         — PhoBERT-v2 fine-tune
-    day4_v2_08_ensemble.ipynb        — Ridge stacking
+  Insight quan trong:
+    - Frozen e5-small (384-dim) thua ca TF-IDF — frozen embeddings khong encode price features tot
+    - AITeamVN frozen (1024-dim, VN-MTEB 63.34) cho ket qua tot nhat (76.1k)
+    - Fine-tune top-4 layers (LLRD+EMA+Huber+AMP) ky vong giam xuong < 65k
 
-  Runner files DA CO:
+== FILE DA TON TAI (san sang chay) ==
+  Notebooks:
+    day4_v2_06_aitvn_finetune.ipynb  — AITeamVN fine-tune, CHUA CHAY → CHAY NGAY
+
+  Runner files:
     pricer_vi_2/deep_neural_network_sparse.py  (SparseDNNRunner + PriceDNN)
-    pricer_vi_2/senttrans_model.py  (SentTransRunner)
-      — ENCODER_NAME = "intfloat/multilingual-e5-small" (doi tu session 20)
-      — encode_batch_size param: 256 (default), 64 (AITeamVN notebook 05)
-    pricer_vi_2/xlmr_model.py    (CHUA TON TAI)
-    pricer_vi_2/phobert_model.py (CHUA TON TAI)
+    pricer_vi_2/senttrans_model.py             (SentTransRunner, ENCODER_NAME=intfloat/multilingual-e5-small)
+      Fixes session 21: hidden_size=4096 explicit, num_workers=0, full val (3926) cho early stopping
+    pricer_vi_2/bert_finetune_model.py         (BERTFinetuneRunner — LLRD+EMA+Huber+AMP, session 21)
+      Class: BERTFinetuneRunner
+      setup(): tokenize 269K+3926, freeze bottom 20/24 layers, keep_top_layers=4, base_lr=2e-5
+      train(): LLRD + EMA(0.999) + HuberLoss(delta=1.0) + AMP + CosineWarmup + patience=3
+      Val: full 3926 samples moi epoch (khong val[:1000])
+      Save: ema_state_dict + y_mean + y_std + cat_classes
 
 == NHIEM VU SESSION TIEP THEO ==
-  1. Chay day4_v2_00_token_analysis.ipynb → bao cao ket qua → chon embedding model
-  2. Chay notebooks 01/02/03/04/05 tren vast.ai → bao cao MAE
-  3. Dua vao MAE: quyet dinh co can XLM-R/PhoBERT hay du ensemble voi 5 models
-  4. Neu can: tao xlmr_model.py, phobert_model.py + notebooks 06/07
-  5. Chay day4_v2_08_ensemble.ipynb — Ridge stacking, target MAE < 65k
+  BUOC 1 (URGENT): Chay day4_v2_06_aitvn_finetune.ipynb tren vast.ai
+    Expected: ~30-40 min/epoch × 5-8 epochs ~ 3-5 gio
+    Report: val_mae moi epoch, final test MAE, R2
+    Config: keep_top_layers=4, batch=32, max_length=256, base_lr=2e-5, llrd_decay=0.9
+
+  BUOC 2: Neu fine-tune MAE < 70k → chay ensemble ngay
+    Tao day4_v2_07_ensemble.ipynb — Ridge stacking tren val_predictions:
+      Input: dnn_tfidf_val.json + dnn_hashvec_val.json + aitvn_val.json + aitvn_finetune_val.json
+      Target: MAE < 65k (P0), < 60k (stretch)
+
+  BUOC 3: Neu fine-tune MAE > 75k → xem xet tang keep_top_layers=8 hoac XLM-RoBERTa
 
 == KEY CONSTRAINTS DAY 4 V2 ==
 - Primary metric: MAE (k VND) — KHONG dung RMSLE.
-- Log1p + z-normalize CHO DNN (khac Day 3 v2 LGB — ly do: gradient stability).
-- Loss: nn.L1Loss() cho tat ca models.
+- Loss: bert_finetune_model dung HuberLoss, DNN dung L1Loss.
+- num_workers=0 (fix HuggingFace tokenizer fork warning).
 - Evaluate: pricer_vi_2/evaluator.py tren 200 test samples.
-- Moi notebook luu ca val_predictions VA test_predictions (dung cho ensemble).
+- Moi notebook luu val_predictions + test_predictions (dung cho ensemble).
 - KHONG sua pricer_vi_2/items.py va evaluator.py.
-- Notebook 05 (AITeamVN): encode_batch_size=64, DNN batch_size=128.
 
-== KEY TECHNICAL NOTES SESSION 20 ==
-- senttrans_model.py ENCODER_NAME doi: MiniLM → intfloat/multilingual-e5-small
-  Ly do: MiniLM co 128-TOKEN LIMIT, truncate am tham descriptions dai
-- Notebooks 04/05 chi override sm.ENCODER_NAME truoc khi tao SentTransRunner
-  04: sm.ENCODER_NAME = "intfloat/multilingual-e5-small"
-  05: sm.ENCODER_NAME = "AITeamVN/Vietnamese_Embedding"
-- encode_batch_size=256 (default, e5-small), 64 (AITeamVN 568M)
-- AITeamVN: input_size=1024 tu dong detect qua X_train.shape[1]
-- dangvantuan: DROPPED (PyVi dependency, phuc tap)
-- Notebook numbering: 04=e5small, 05=aitvn, 06+=XLM-R/PhoBERT/Ensemble
+== KEY TECHNICAL NOTES SESSION 21 ==
+- bert_finetune_model.py: BERTFinetuneRunner.train() dung AveragedModel (EMA)
+  → inference phai dung runner.ema_model, KHONG phai runner.model
+  → save() luu ema_state_dict, load() goi sau setup() de overwrite
+- LLRD: heads lr=2e-5, moi layer thap hon × decay=0.9
+  → layer 23 (top): ~1.8e-5, layer 20: ~1.3e-5
+- val_predictions trong notebook 06 = aitvn_finetune_val.json (full 3926)
+- Checkpoint keys: ema_state_dict, y_mean, y_std, model_name, keep_top_layers, cat_classes
 
 == FILE THAM KHAO ==
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md (CANONICAL)
 - Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py
-- Data_processing_for_English_data/Code_Data_processing/pricer/deep_neural_network.py
-- Data_processing_for_English_data/Code_Data_processing/pricer/distilbert_model.py
+- Data_processing_for_Vietnamese_data/pricer_vi_2/bert_finetune_model.py
 
 Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
+- Su dung evaluator.py de ve bieu do (plot_training_history + evaluate)
 ```
+
+---
+
+## Trang thai hien tai (2026-05-18 — session 21)
+
+**Trang thai:** Day 4 v2 notebooks 01/02/04/05 DA CHAY. Fix senttrans_model.py + tao bert_finetune_model.py + notebook 06. San sang chay fine-tune AITeamVN.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 21 ket qua (2026-05-18)
+
+**Ket qua chay tren vast.ai (RTX 3090 Ti) — user bao cao:**
+- [x] Notebook 01 — DNN + TF-IDF char_wb 100K: **test MAE = 77.3k VND**
+- [x] Notebook 02 — DNN + HashingVec 5000:     **test MAE = 80.0k VND**
+- [x] Notebook 04 — e5-small frozen + DNN:     **test MAE = 102.7k VND**, R2=50.3%
+- [x] Notebook 05 — AITeamVN frozen + DNN:     **test MAE = 76.1k VND**,  R2=71.7% ← best
+
+**Da lam (code):**
+- [x] Fix `pricer_vi_2/senttrans_model.py` (surgical edits):
+  - `setup()`: expose `hidden_size=4096` parameter (truoc: an trong PriceDNN default)
+  - `num_workers=4` → `num_workers=0` (fix HuggingFace tokenizer fork warning trong WSL2/Linux)
+  - Val early stopping: `val_items[:1000]` → `val_items` (full 3926) — `val[:1000]` qua nhieu nhieu va khong representative
+  - Doi ten attribute: `y_val_1k`, `y_val_1k_norm` → `y_val`, `y_val_norm`
+- [x] Tao `pricer_vi_2/bert_finetune_model.py` (moi):
+  - `BERTFinetuneRegressor`: AutoModel + mean_pooling + price_head + aux category_head
+  - `freeze_bottom_layers(keep_top_n=4)`: freeze embeddings + bottom 20/24 layers
+  - `build_llrd_param_groups()`: LLRD heads=base_lr, layer i = base_lr × decay^(num_layers-i-1)
+  - `BERTFinetuneRunner`: setup/train/val_predictions/test_predictions/save/load/inference
+  - Training: LLRD + EMA(AveragedModel 0.999) + HuberLoss(delta=1.0) + AMP(GradScaler) + CosineWarmup
+  - history keys: train_loss/val_loss/val_mae/lr — compatible voi evaluator.plot_training_history
+- [x] Tao `day4_v2/day4_v2_06_aitvn_finetune.ipynb`:
+  - 8 cells: imports → load data → setup → train → plot history → save → evaluate → sanity check
+  - Config: keep_top_layers=4, batch=32, max_length=256, base_lr=2e-5, llrd_decay=0.9
+  - Save: weights/aitvn_finetune.pth + val_predictions/aitvn_finetune_{val,test}.json
+
+**Phan tich ket qua session 21:**
+- Frozen e5-small (384-dim) MAE=102.7k thua ca TF-IDF (77.3k): frozen embeddings treat "ao 100k" va "ao 500k" nhu nhau (embedding space cho similarity, khong phai price)
+- AITeamVN frozen (1024-dim, VN-MTEB 63.34) MAE=76.1k: embedding phong phu hon, classification score 69.06 cao (price range by category)
+- Training history notebook 05: train_loss=0.0705 vs val_loss=0.3669 epoch 15 — heavy overfitting. Fix: fine-tune (thay vi frozen head) cho phep encoder adapt de giam gap nay
+- Fine-tune top-4 layers ky vong giam MAE xuong 60-70k
+
+**Con lai:**
+- [ ] Chay `day4_v2_06_aitvn_finetune.ipynb` tren vast.ai — bao cao val_mae moi epoch + final test MAE
+- [ ] Neu MAE < 70k: tao `day4_v2_07_ensemble.ipynb` (Ridge stacking 4 models)
+- [ ] Neu MAE > 75k: xem xet tang keep_top_layers=8 hoac dung XLM-RoBERTa
 
 ---
 

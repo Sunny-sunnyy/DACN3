@@ -217,31 +217,25 @@ Data_processing_for_Vietnamese_data/
 │   ├── day4_v2_02_dnn_hashvec.ipynb             # Task 3
 │   ├── day4_v2_03_senttrans.ipynb               # Task 4 — MiniLM 128t baseline
 │   ├── day4_v2_04_e5small.ipynb                 # Task 4b — e5-small 512t [DONE]
-│   ├── day4_v2_05_aitvn.ipynb                   # Task 4d — AITeamVN 1024-dim [DONE]
-│   ├── day4_v2_06_xlmr.ipynb                    # Task 5 — XLM-RoBERTa fine-tune
-│   ├── day4_v2_07_phobert.ipynb                 # Task 6 — PhoBERT-v2 fine-tune
-│   ├── day4_v2_08_ensemble.ipynb                # Task 7 — Ridge stacking
+│   ├── day4_v2_05_aitvn.ipynb                   # Task 4d — AITeamVN frozen + DNN [DONE, MAE=76.1k]
+│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 LLRD+EMA+Huber [PENDING]
+│   ├── day4_v2_07_ensemble.ipynb                # Ensemble — Ridge stacking [PENDING]
 │   ├── weights/
-│   │   ├── dnn_tfidf.pth
-│   │   ├── dnn_hashvec.pth
-│   │   ├── senttrans_dnn.pth
-│   │   ├── e5small_dnn.pth                      # Task 4b
-│   │   ├── aitvn_dnn.pth                        # Task 4d
-│   │   ├── xlmr/                                # HF save_pretrained format
-│   │   └── phobert/
+│   │   ├── dnn_tfidf.pth                        # DONE
+│   │   ├── dnn_hashvec.pth                      # DONE
+│   │   ├── e5small_dnn.pth                      # DONE
+│   │   ├── aitvn_dnn.pth                        # DONE
+│   │   └── aitvn_finetune.pth                   # PENDING (notebook 06)
 │   ├── cache/
-│   │   ├── phobert_seg_cache.pkl                # Word-seg 269K+3926 docs
-│   │   ├── senttrans_embeddings.pkl             # MiniLM 269K × 384 float32
 │   │   ├── e5small_embeddings.pkl               # e5-small 269K × 384
 │   │   └── aitvn_embeddings.pkl                 # AITeamVN 269K × 1024
 │   ├── val_predictions/
-│   │   ├── dnn_tfidf_val.json                   # 3926 val predictions
-│   │   ├── dnn_hashvec_val.json
-│   │   ├── senttrans_val.json
-│   │   ├── e5small_val.json
-│   │   ├── aitvn_val.json
-│   │   ├── xlmr_val.json
-│   │   └── phobert_val.json
+│   │   ├── dnn_tfidf_val.json                   # DONE
+│   │   ├── dnn_hashvec_val.json                 # DONE
+│   │   ├── e5small_val.json                     # DONE
+│   │   ├── aitvn_val.json                       # DONE
+│   │   ├── aitvn_finetune_val.json              # PENDING (notebook 06)
+│   │   └── aitvn_finetune_test.json             # PENDING (notebook 06)
 │   ├── day4_v2_results.json                     # Kết quả tất cả models
 │   └── day4_v2_summary.md
 │
@@ -249,10 +243,9 @@ Data_processing_for_Vietnamese_data/
     ├── items.py                                 # Existing — KHÔNG SỬA
     ├── evaluator.py                             # Existing — KHÔNG SỬA
     ├── __init__.py                              # Existing
-    ├── dnn_sparse.py                            # Task 1: ResidualBlock + PriceDNN + SparseDNNRunner
-    ├── senttrans_model.py                       # Task 1: SentTransRunner — ENCODER_NAME=intfloat/multilingual-e5-small (updated session 20)
-    ├── xlmr_model.py                            # Task 1: XLMRRunner
-    └── phobert_model.py                         # Task 1: PhoBERTRunner
+    ├── deep_neural_network_sparse.py            # SparseDNNRunner + PriceDNN + ResidualBlock
+    ├── senttrans_model.py                       # SentTransRunner (frozen encoder) — updated session 21
+    └── bert_finetune_model.py                   # BERTFinetuneRunner (LLRD+EMA+Huber+AMP) — created session 21
 ```
 
 ---
@@ -1631,14 +1624,19 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 
 ## 4. Kết quả thực tế (điền sau khi chạy)
 
-| Model | Val MAE | Test MAE (200) | R² | Ghi chú |
+| Model | Notebook | Test MAE (200) | R² | Status |
 |---|---|---|---|---|
-| DNN + TF-IDF char_wb | — | — | — | |
-| DNN + HashingVec | — | — | — | |
-| Multilingual SentTrans | — | — | — | |
-| XLM-RoBERTa | — | — | — | |
-| PhoBERT-v2 | — | — | — | |
-| **Ensemble Ridge** | — | — | — | |
+| DNN + TF-IDF char_wb 100K | 01 | **77.3k** | — | DONE |
+| DNN + HashingVec 5000 | 02 | **80.0k** | — | DONE |
+| e5-small frozen + DNN | 04 | **102.7k** | 50.3% | DONE (frozen 384-dim thua) |
+| AITeamVN frozen + DNN | 05 | **76.1k** | 71.7% | DONE (best frozen) |
+| AITeamVN fine-tune top-4 | 06 | — | — | **PENDING** |
+| **Ensemble Ridge** | 07 | — | — | PENDING |
+
+**Observation (session 21):**
+- Frozen e5-small (384-dim) MAE=102.7k thua cả TF-IDF (77.3k) — frozen embeddings không encode price-relevant VN features
+- AITeamVN frozen (1024-dim, VN-MTEB 63.34) MAE=76.1k — embedding tốt hơn nhưng vẫn chưa đạt target 70k
+- Fine-tuning top-4 layers (bert_finetune_model.py) là hướng ưu tiên để cải thiện AITeamVN → target MAE < 65k
 
 ---
 
@@ -1652,7 +1650,7 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 | Target transform | `log1p(price)` + z-normalize (khác Day 3 v2 LGB) |
 | Loss | `nn.L1Loss()` — trực tiếp tối ưu MAE |
 | GPU | RTX 3090 Ti 24GB, vast.ai |
-| num_workers | 0 với WSL2 local, 4 với vast.ai Linux |
+| num_workers | **0** — fix HuggingFace tokenizer fork warning (session 21) |
 | Stacking metric | MAE trên val set (3,926 samples) |
 | KHÔNG sửa | `pricer_vi_2/items.py`, `pricer_vi_2/evaluator.py` |
 
