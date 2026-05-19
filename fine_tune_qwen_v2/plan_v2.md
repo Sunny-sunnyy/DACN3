@@ -8,6 +8,51 @@
 
 **Tech Stack:** Python 3.12, `uv run`, transformers, peft, trl, bitsandbytes, datasets, plotly, sklearn, wandb. All commands: `uv run` never `python3`.
 
+**Hardware:** RTX 5090 32GB (Blackwell). Cho phép `per_device_train_batch_size=32` với `gradient_accumulation_steps=2` (effective batch = 64, bằng English recipe nhưng số steps giảm 2× → train nhanh ~1.8×).
+
+---
+
+## Bản chất bài toán: Token Generation, KHÔNG phải Regression
+
+Mặc dù output là số nguyên (5–1000 K VND), với LLM đây vẫn là bài toán **phân loại token / next-token prediction**, không phải hồi quy. Model học để dự đoán xác suất của token kế tiếp sau chuỗi `"Giá là: "`.
+
+**Luồng forward + loss:**
+
+```
+prompt "...Giá là: " + completion "55" + EOS
+         │
+         ▼ tokenizer
+input_ids [seq_len]
+         │
+         ▼ model(input_ids)
+logits [seq_len, vocab_size]
+         │
+         ▼ shift-by-one, Cross Entropy
+loss = mean( CE(logits[i], input_ids[i+1]) for i where label[i+1] != -100 )
+```
+
+`DataCollatorCompletionOnly` mask prompt tokens với `label = -100` → loss chỉ flow qua các completion token (`"5"`, `"5"`, EOS). Model **không học gì** từ prompt tokens, chỉ học conditional: `P(completion | prompt)`.
+
+**Inference:**
+
+```python
+out = model.generate(prompt_ids, max_new_tokens=8, do_sample=False)
+text = tokenizer.decode(out[prompt_len:])   # "55"
+price_k = float(text.strip())               # 55.0
+```
+
+Model sinh token theo greedy: chọn argmax xác suất tại mỗi bước. `max_new_tokens=8` an toàn vì Qwen tokenize digit-by-digit (`"999"` = 3 tokens) + có thể prefix space/newline.
+
+**Hệ quả thiết kế (cực kỳ quan trọng cho code):**
+
+| Hệ quả | Code action |
+|---|---|
+| CE loss ≠ MAE thực | Best ckpt theo `MaeEvalCallback` (gọi `generate` trên 500 val), KHÔNG theo eval_loss |
+| Chỉ completion tokens vào loss | `DataCollatorCompletionOnly` mask prompt = -100 (tìm template `"\nGiá là: "`) |
+| Greedy generation cần `use_cache=True` | Trong callback toggle `use_cache=True` tạm thời, restore False sau khi predict |
+| Không có "target distribution" | KHÔNG log-scale / standardize target như DNN regression |
+| Token-level metric khác metric người | Loss có thể giảm nhưng MAE vẫn cao (model học format) — chỉ tin MAE callback |
+
 ---
 
 ## Critical Lessons từ V1 (KHÔNG được bỏ qua)
@@ -19,7 +64,9 @@
 | CE loss ≠ generative MAE/RMSLE (hai chỉ số diverge) | Best checkpoint = eval **generative MAE**, KHÔNG phải CE |
 | `val_eval_size=200` quá noisy | Dùng 500 val samples cho MAE callback |
 | `group_by_length=False` lãng phí 10-15% time | `group_by_length=True` |
-| Completion là số nguyên `"55"` (K VND) | `max_new_tokens=4` đủ |
+| `max_new_tokens=4` thiếu nếu model sinh space/newline trước số | Dùng `max_new_tokens=8` (safety margin) |
+| Push `trainer.model` cuối training = push model có thể đã overfit | Sau training: load `best_mae_checkpoint` rồi push, KHÔNG push `trainer.model` |
+| `use_cache=False` (cho grad checkpoint) làm `generate` chậm 5× | Trong MaeEvalCallback: toggle `use_cache=True` tạm thời |
 
 ---
 
@@ -33,12 +80,14 @@ fine_tune_qwen_v2/
 │   ├── items_vn.py             # Item dataclass + load_items()
 │   ├── evaluator_vn.py         # VnTester: MAE, RMSLE, R², charts (adapted từ English evaluator.py)
 │   └── training_utils.py       # BnB config, LoRA config, SFTConfig, DataCollator, MaeEvalCallback
-├── 01_zero_shot.ipynb          # Baseline zero-shot MAE (chạy sau khi có thời gian)
-├── 02_train_v2.ipynb           # Full training: 269K, 3 epochs, r=64, 7 modules
-├── 03_eval_v2.ipynb            # Final eval: load best ckpt, 200 test items, charts
+├── 01_zero_shot.ipynb          # Baseline zero-shot MAE (chạy TRƯỚC training)
+├── 02_pilot_20k.ipynb          # Pilot 20K samples, 3 epochs → verify VRAM/settings + preview MAE
+├── 03_train_v2.ipynb           # Full training: 269K, 3 epochs, batch 32×accum 2
+├── 04_eval_v2.ipynb            # Final eval: load best ckpt, 200 test items, charts
 └── results/
     ├── zero_shot_results.json  # (sau khi chạy 01)
-    └── v2_results.json         # (sau khi chạy 03)
+    ├── pilot_20k_results.json  # (sau khi chạy 02)
+    └── v2_results.json         # (sau khi chạy 04)
 ```
 
 ---
@@ -379,12 +428,13 @@ LEARNING_RATE = 2e-4
 WARMUP_RATIO = 0.03
 WEIGHT_DECAY = 0.001
 MAX_GRAD_NORM = 0.3
-PER_DEVICE_BATCH = 16
-GRAD_ACCUM = 4            # effective batch = 64
+PER_DEVICE_BATCH = 32     # 5090 32GB cho phép gấp đôi 3090Ti
+GRAD_ACCUM = 2            # effective batch = 64 (bằng English recipe)
 LOG_STEPS = 10
 SAVE_STEPS = 500
 EVAL_MAE_STEPS = 500
 VAL_EVAL_SIZE = 500       # val samples cho MAE callback
+MAX_NEW_TOKENS = 8        # safety: Qwen tokenize digit-by-digit + có thể prefix space
 
 # Response template — token sequence sau đó là completion "55"
 RESPONSE_TEMPLATE = "\nGiá là: "
@@ -417,6 +467,8 @@ def get_sft_config(output_dir: str, hub_model_id: str) -> SFTConfig:
         per_device_train_batch_size=PER_DEVICE_BATCH,
         per_device_eval_batch_size=1,
         gradient_accumulation_steps=GRAD_ACCUM,
+        gradient_checkpointing=True,            # an toàn VRAM, đánh đổi ~30% tốc độ
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         optim="paged_adamw_32bit",
         save_strategy="steps",
         save_steps=SAVE_STEPS,
@@ -433,7 +485,7 @@ def get_sft_config(output_dir: str, hub_model_id: str) -> SFTConfig:
         report_to="wandb",
         max_length=MAX_SEQ_LENGTH,
         eval_strategy="no",   # custom MAE callback thay thế CE eval
-        push_to_hub=True,
+        push_to_hub=False,    # push thủ công sau training (load best_mae_checkpoint)
         hub_model_id=hub_model_id,
     )
 
@@ -481,6 +533,9 @@ class MaeEvalCallback(TrainerCallback):
 
     Lưu best checkpoint (theo MAE) vào output_dir/best_mae_checkpoint.
     In history để theo dõi: step → mae K VND.
+
+    QUAN TRỌNG: toggle `use_cache=True` tạm thời trong generate
+    (training để False cho gradient checkpointing).
     """
 
     def __init__(
@@ -490,7 +545,7 @@ class MaeEvalCallback(TrainerCallback):
         val_items,                      # list[Item] từ items_vn.load_items
         output_dir: str,
         eval_steps: int = EVAL_MAE_STEPS,
-        max_new_tokens: int = 4,
+        max_new_tokens: int = MAX_NEW_TOKENS,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -515,32 +570,38 @@ class MaeEvalCallback(TrainerCallback):
         text = self.tokenizer.decode(
             out[0, prompt_len:], skip_special_tokens=True
         ).strip()
-        try:
-            return float(text)
-        except ValueError:
-            return 0.0
+        # parse số đầu tiên (tránh trailing chars)
+        import re
+        m = re.search(r"\d+\.?\d*", text)
+        return float(m.group()) if m else 0.0
 
     def on_step_end(self, args, state, control, **kwargs):
         if state.global_step == 0 or state.global_step % self.eval_steps != 0:
             return
+        # Bật use_cache để generate nhanh ~5×; training tắt cho grad checkpoint
+        prev_cache = self.model.config.use_cache
+        self.model.config.use_cache = True
         self.model.eval()
-        errors = [
-            abs(self._predict_k(item.prompt) - item.price)
-            for item in self.val_items
-        ]
-        mae = float(np.mean(errors))
-        self.history.append((state.global_step, mae))
-        print(
-            f"\n[MAE callback] step={state.global_step:>5}  "
-            f"mae={mae:.2f}K VND  ({mae * 1000:,.0f} VND)"
-        )
-        if mae < self.best_mae:
-            self.best_mae = mae
-            self.best_step = state.global_step
-            best_path = f"{self.output_dir}/best_mae_checkpoint"
-            self.model.save_pretrained(best_path)
-            print(f"  -> New best! Saved to {best_path}")
-        self.model.train()
+        try:
+            errors = [
+                abs(self._predict_k(item.prompt) - item.price)
+                for item in self.val_items
+            ]
+            mae = float(np.mean(errors))
+            self.history.append((state.global_step, mae))
+            print(
+                f"\n[MAE callback] step={state.global_step:>5}  "
+                f"mae={mae:.2f}K VND  ({mae * 1000:,.0f} VND)"
+            )
+            if mae < self.best_mae:
+                self.best_mae = mae
+                self.best_step = state.global_step
+                best_path = f"{self.output_dir}/best_mae_checkpoint"
+                self.model.save_pretrained(best_path)
+                print(f"  -> New best! Saved to {best_path}")
+        finally:
+            self.model.train()
+            self.model.config.use_cache = prev_cache
 ```
 
 - [ ] **Step 2: Verify import thành công**
@@ -567,12 +628,173 @@ git commit -m "feat(qwen-v2): add training_utils.py — LoRA/BnB config, DataCol
 
 ---
 
-## Task 4: `02_train_v2.ipynb` — Full Training
+## Task 4: `01_zero_shot.ipynb` — Baseline (chạy TRƯỚC training)
 
 **Files:**
-- Create: `fine_tune_qwen_v2/02_train_v2.ipynb`
+- Create: `fine_tune_qwen_v2/01_zero_shot.ipynb`
 
-Mỗi cell dưới đây là một Jupyter cell. Chạy tuần tự từ đầu đến cuối.
+> Notebook này cho baseline MAE của Qwen3.5-4B-Base **chưa fine-tune**. ETA ~10 phút trên 5090. Phải chạy trước pilot/full để có điểm so sánh.
+
+- [ ] **Step 1: Cell 1 — Imports**
+
+```python
+# Cell 1
+import os, sys, json, torch, random
+sys.path.insert(0, os.path.abspath(".."))
+
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from utils.items_vn import load_items
+from utils.evaluator_vn import VnTester, _rmsle
+from utils.training_utils import get_bnb_config, MAX_NEW_TOKENS
+
+BASE_MODEL   = "Qwen/Qwen3.5-4B-Base"
+RESULTS_PATH = "results/zero_shot_results.json"
+EVAL_SIZE    = 200
+```
+
+- [ ] **Step 2: Cell 2 — Load base model (no adapter)**
+
+```python
+# Cell 2: torch_dtype=bfloat16 BẮT BUỘC
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+tokenizer.pad_token = tokenizer.eos_token
+model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    quantization_config=get_bnb_config(),
+    torch_dtype=torch.bfloat16,
+    device_map="auto",
+)
+model.eval()
+print(f"VRAM: {torch.cuda.memory_allocated()/1e9:.2f} GB")
+```
+
+- [ ] **Step 3: Cell 3 — Test items (seed=42 reproducible)**
+
+```python
+random.seed(42)
+all_test = load_items("test")
+test_items = random.sample(all_test, min(EVAL_SIZE, len(all_test)))
+```
+
+- [ ] **Step 4: Cell 4 — Predictor + evaluate**
+
+```python
+import re
+def zero_shot_predict(item) -> float:
+    inputs = tokenizer(item.prompt, return_tensors="pt").to(model.device)
+    with torch.no_grad():
+        out = model.generate(
+            **inputs, max_new_tokens=MAX_NEW_TOKENS, do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    prompt_len = inputs["input_ids"].shape[1]
+    text = tokenizer.decode(out[0, prompt_len:], skip_special_tokens=True).strip()
+    m = re.search(r"\d+\.?\d*", text)
+    return float(m.group()) if m else 0.0
+
+tester = VnTester(zero_shot_predict, test_items,
+                  title="Qwen3.5-4B Zero-shot", size=EVAL_SIZE, workers=1)
+tester.run()
+```
+
+- [ ] **Step 5: Cell 5 — Save results JSON**
+
+```python
+import numpy as np
+from sklearn.metrics import mean_squared_error, r2_score
+
+results = {
+    "model": BASE_MODEL,
+    "mode": "zero_shot",
+    "eval_size": EVAL_SIZE,
+    "mae_k_vnd": round(float(np.mean(tester.errors)), 2),
+    "rmsle": round(_rmsle(tester.truths, tester.guesses), 4),
+    "mse": round(float(mean_squared_error(tester.truths, tester.guesses)), 2),
+    "r2": round(float(r2_score(tester.truths, tester.guesses)), 4),
+}
+os.makedirs("results", exist_ok=True)
+with open(RESULTS_PATH, "w") as f:
+    json.dump(results, f, indent=2, ensure_ascii=False)
+print(json.dumps(results, indent=2))
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add fine_tune_qwen_v2/01_zero_shot.ipynb fine_tune_qwen_v2/results/zero_shot_results.json
+git commit -m "feat(qwen-v2): add 01_zero_shot.ipynb — baseline MAE (run before training)"
+```
+
+---
+
+## Task 5: `02_pilot_20k.ipynb` — Pilot Run (verify settings)
+
+**Files:**
+- Create: `fine_tune_qwen_v2/02_pilot_20k.ipynb`
+
+> Train 20K samples đầu (3 epochs, full config) để verify VRAM/settings + lấy MAE preview. ETA ~35-45 phút trên 5090. Pass → tiến đến full run. OOM → bật grad checkpoint hoặc giảm batch.
+
+Notebook giống `03_train_v2.ipynb` nhưng:
+- `train_ds = raw_train.select(range(20_000))`
+- `OUTPUT_DIR = "outputs/qwen_v2_pilot"`
+- `HUB_MODEL_ID = None` (không push pilot lên Hub)
+- `wandb name = "v2-pilot-20k"`
+- Sau train: lưu `results/pilot_20k_results.json` với MAE history + best MAE
+
+Acceptance pilot:
+- Không OOM trong 3 epochs
+- MAE callback chạy ≥ 1 lần (steps ≥ 500 / eff_batch 64 ≈ 312 → callback chạy ở step 500)
+- MAE ở step cuối < 200K VND (sanity check — model học được format)
+
+- [ ] **Step 1: Copy skeleton Task 6 → 02_pilot_20k.ipynb**
+
+Toàn bộ cells giống Task 6 (`03_train_v2.ipynb`) ngoại trừ:
+
+```python
+# Cell 1 - constants
+OUTPUT_DIR    = "outputs/qwen_v2_pilot"
+HUB_MODEL_ID  = None
+PILOT_SIZE    = 20_000
+
+# Cell 3 - dataset (sau khi load_dataset)
+raw_train = load_dataset(DATASET_NAME, split="train").select(range(PILOT_SIZE))
+
+# Cell 7 - SFTConfig với push_to_hub=False (mặc định trong training_utils đã set)
+# Không push pilot lên Hub
+
+# Cell 8 - wandb
+wandb.init(project="qwen-vn-pricer-v2", name="v2-pilot-20k")
+trainer.train()
+
+# Cell 9 - lưu pilot results, KHÔNG push
+import json
+results = {
+    "size": PILOT_SIZE,
+    "best_mae_k": round(mae_callback.best_mae, 2),
+    "best_step": mae_callback.best_step,
+    "history": [[s, round(m, 2)] for s, m in mae_callback.history],
+}
+with open("results/pilot_20k_results.json", "w") as f:
+    json.dump(results, f, indent=2, ensure_ascii=False)
+print(json.dumps(results, indent=2))
+wandb.finish()
+```
+
+- [ ] **Step 2: Chạy pilot, verify acceptance, commit**
+
+```bash
+git add fine_tune_qwen_v2/02_pilot_20k.ipynb fine_tune_qwen_v2/results/pilot_20k_results.json
+git commit -m "feat(qwen-v2): add 02_pilot_20k.ipynb — pilot 20K to verify VRAM/settings"
+```
+
+---
+
+## Task 6: `03_train_v2.ipynb` — Full Training
+
+**Files:**
+- Create: `fine_tune_qwen_v2/03_train_v2.ipynb`
+
+Mỗi cell dưới đây là một Jupyter cell. Chạy tuần tự từ đầu đến cuối. ETA ~7-10h trên 5090 32GB.
 
 - [ ] **Step 1: Cell 1 — Imports + constants**
 
@@ -583,7 +805,7 @@ sys.path.insert(0, os.path.abspath(".."))          # để import từ fine_tune
 
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import get_peft_model, prepare_model_for_kbit_training
+from peft import get_peft_model, prepare_model_for_kbit_training, PeftModel
 from trl import SFTTrainer
 
 from utils.items_vn import load_items, DATASET_NAME
@@ -728,29 +950,39 @@ for step, mae in mae_callback.history:
 print(f"\nBest checkpoint at step {mae_callback.best_step}: MAE={mae_callback.best_mae:.2f}K VND")
 ```
 
-- [ ] **Step 9: Cell 9 — Push final adapter + log**
+- [ ] **Step 9: Cell 9 — Load best ckpt + push (KHÔNG push trainer.model)**
 
 ```python
-# Cell 9: Push to Hub
-trainer.model.push_to_hub(HUB_MODEL_ID, private=True)
-print(f"Pushed to: https://huggingface.co/{HUB_MODEL_ID}")
-print(f"Best MAE checkpoint locally: {OUTPUT_DIR}/best_mae_checkpoint")
+# Cell 9: Reload best_mae_checkpoint (KHÔNG push model cuối, có thể đã overfit)
+del model, trainer
+torch.cuda.empty_cache()
+
+base = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    quantization_config=get_bnb_config(),
+    torch_dtype=torch.bfloat16,
+    device_map="auto",
+)
+best_model = PeftModel.from_pretrained(base, f"{OUTPUT_DIR}/best_mae_checkpoint")
+best_model.push_to_hub(HUB_MODEL_ID, private=True)
+
+print(f"Pushed BEST ckpt (step {mae_callback.best_step}, MAE {mae_callback.best_mae:.2f}K) to: https://huggingface.co/{HUB_MODEL_ID}")
 wandb.finish()
 ```
 
 - [ ] **Step 10: Commit notebook**
 
 ```bash
-git add fine_tune_qwen_v2/02_train_v2.ipynb
-git commit -m "feat(qwen-v2): add 02_train_v2.ipynb — full training 269K, MAE callback"
+git add fine_tune_qwen_v2/03_train_v2.ipynb
+git commit -m "feat(qwen-v2): add 03_train_v2.ipynb — full training 269K, push best MAE ckpt"
 ```
 
 ---
 
-## Task 5: `03_eval_v2.ipynb` — Final Evaluation
+## Task 7: `04_eval_v2.ipynb` — Final Evaluation
 
 **Files:**
-- Create: `fine_tune_qwen_v2/03_eval_v2.ipynb`
+- Create: `fine_tune_qwen_v2/04_eval_v2.ipynb`
 
 Chạy SAU khi training xong. Load best_mae_checkpoint → evaluate 200 test items → charts → lưu results.
 
@@ -766,14 +998,13 @@ from peft import PeftModel
 
 from utils.items_vn import load_items, DATASET_NAME
 from utils.evaluator_vn import VnTester
-from utils.training_utils import get_bnb_config, MAX_SEQ_LENGTH
+from utils.training_utils import get_bnb_config, MAX_SEQ_LENGTH, MAX_NEW_TOKENS
 
 BASE_MODEL   = "Qwen/Qwen3.5-4B-Base"
 BEST_CKPT    = "outputs/qwen_v2/best_mae_checkpoint"
 HUB_MODEL_ID = "SeanSunny/qwen3.5-4b-vn-pricer-v2"
 RESULTS_PATH = "results/v2_results.json"
 EVAL_SIZE    = 200
-MAX_NEW_TOKENS = 4
 ```
 
 - [ ] **Step 2: Cell 2 — Load model + adapter**
@@ -811,6 +1042,7 @@ print(f"Price range: {min(i.price for i in test_items):.0f}K – {max(i.price fo
 
 ```python
 # Cell 4: Predictor function
+import re
 def qwen_v2_predict(item) -> float:
     """Returns predicted price in K VND."""
     inputs = tokenizer(item.prompt, return_tensors="pt").to(model.device)
@@ -823,10 +1055,8 @@ def qwen_v2_predict(item) -> float:
         )
     prompt_len = inputs["input_ids"].shape[1]
     text = tokenizer.decode(out[0, prompt_len:], skip_special_tokens=True).strip()
-    try:
-        return float(text)
-    except ValueError:
-        return 0.0
+    m = re.search(r"\d+\.?\d*", text)
+    return float(m.group()) if m else 0.0
 ```
 
 - [ ] **Step 5: Cell 5 — Run evaluation + charts**
@@ -888,81 +1118,8 @@ Expected output:
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fine_tune_qwen_v2/03_eval_v2.ipynb
-git commit -m "feat(qwen-v2): add 03_eval_v2.ipynb — final eval, charts, results JSON"
-```
-
----
-
-## Task 6: `01_zero_shot.ipynb` — Baseline (chạy sau)
-
-**Files:**
-- Create: `fine_tune_qwen_v2/01_zero_shot.ipynb`
-
-> **Lưu ý:** Notebook này chạy sau khi có thời gian. Nó tạo baseline MAE của mô hình **chưa fine-tune** để so sánh với v2 kết quả.
-
-- [ ] **Step 1: Viết notebook skeleton**
-
-Cấu trúc cells tương tự `03_eval_v2.ipynb` nhưng:
-- Load `Qwen/Qwen3.5-4B-Base` KHÔNG có adapter
-- Predictor gọi model.generate với `max_new_tokens=10` (model chưa học format)
-- Kết quả lưu vào `results/zero_shot_results.json`
-
-```python
-# Cell 1
-import os, sys, json, torch, random
-sys.path.insert(0, os.path.abspath(".."))
-
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from utils.items_vn import load_items
-from utils.evaluator_vn import VnTester
-from utils.training_utils import get_bnb_config
-
-BASE_MODEL   = "Qwen/Qwen3.5-4B-Base"
-RESULTS_PATH = "results/zero_shot_results.json"
-EVAL_SIZE    = 200
-
-# Cell 2: Load base model (no adapter)
-tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained(
-    BASE_MODEL,
-    quantization_config=get_bnb_config(),
-    torch_dtype=torch.bfloat16,
-    device_map="auto",
-)
-model.eval()
-
-# Cell 3: Test items
-random.seed(42)
-all_test = load_items("test")
-test_items = random.sample(all_test, min(EVAL_SIZE, len(all_test)))
-
-# Cell 4: Predictor (zero-shot)
-def zero_shot_predict(item) -> float:
-    inputs = tokenizer(item.prompt, return_tensors="pt").to(model.device)
-    with torch.no_grad():
-        out = model.generate(
-            **inputs, max_new_tokens=10, do_sample=False,
-            pad_token_id=tokenizer.eos_token_id,
-        )
-    prompt_len = inputs["input_ids"].shape[1]
-    text = tokenizer.decode(out[0, prompt_len:], skip_special_tokens=True).strip()
-    try:
-        return float(text.split()[0])
-    except (ValueError, IndexError):
-        return 0.0
-
-# Cell 5: Evaluate
-tester = VnTester(zero_shot_predict, test_items, title="Qwen3.5-4B Zero-shot", size=EVAL_SIZE, workers=1)
-tester.run()
-```
-
-- [ ] **Step 2: Commit skeleton**
-
-```bash
-git add fine_tune_qwen_v2/01_zero_shot.ipynb
-git commit -m "feat(qwen-v2): add 01_zero_shot.ipynb skeleton — baseline eval (run separately)"
+git add fine_tune_qwen_v2/04_eval_v2.ipynb fine_tune_qwen_v2/results/v2_results.json
+git commit -m "feat(qwen-v2): add 04_eval_v2.ipynb — final eval, charts, results JSON"
 ```
 
 ---
@@ -970,12 +1127,18 @@ git commit -m "feat(qwen-v2): add 01_zero_shot.ipynb skeleton — baseline eval 
 ## Execution Order
 
 ```
-Task 1 (items_vn.py)       → smoke test → commit
-Task 2 (evaluator_vn.py)   → smoke test → commit
-Task 3 (training_utils.py) → import check → commit
-Task 4 (02_train_v2.ipynb) → run on GPU → ~15-18h on 3090Ti
-Task 5 (03_eval_v2.ipynb)  → run after training → charts + results JSON
-Task 6 (01_zero_shot.ipynb)→ run separately khi có thời gian
+[Implement utils]
+Task 1 (utils/items_vn.py)        → smoke test → commit
+Task 2 (utils/evaluator_vn.py)    → smoke test → commit
+Task 3 (utils/training_utils.py)  → import check → commit
+
+[Pre-training baselines & verification]
+Task 4 (01_zero_shot.ipynb)       → chạy ~10 phút trên 5090 → baseline MAE
+Task 5 (02_pilot_20k.ipynb)       → chạy ~35-45 phút → verify VRAM/settings + MAE preview
+
+[Full training & evaluation]
+Task 6 (03_train_v2.ipynb)        → chạy ~7-10h trên 5090 → push best ckpt
+Task 7 (04_eval_v2.ipynb)         → chạy sau training → charts + results JSON
 ```
 
 ## Acceptance Criteria
@@ -983,8 +1146,11 @@ Task 6 (01_zero_shot.ipynb)→ run separately khi có thời gian
 | Item | Target |
 |------|--------|
 | `utils/` smoke tests pass | Bắt buộc |
-| `02_train_v2.ipynb` chạy đến cuối không crash | Bắt buộc |
+| `02_pilot_20k.ipynb` chạy 3 epochs không OOM | Bắt buộc |
+| `03_train_v2.ipynb` chạy đến cuối không crash | Bắt buộc |
 | `results/v2_results.json` tồn tại | Bắt buộc |
+| `best_mae_checkpoint` được push lên HF Hub (không phải trainer.model) | Bắt buộc |
+| Beat zero-shot baseline | Bắt buộc |
 | MAE < 80,000 VND (beat v1) | P0 |
 | MAE < 70,000 VND | P1 |
 | MAE < 60,000 VND | Stretch |
@@ -992,4 +1158,4 @@ Task 6 (01_zero_shot.ipynb)→ run separately khi có thời gian
 
 ---
 
-*Created: 2026-05-19 | Branch: feature/day5-qlora-qwen | Model: Qwen3.5-4B-Base*
+*Created: 2026-05-19 | Updated: 2026-05-19 | Branch: feature/day5-qlora-qwen | Model: Qwen3.5-4B-Base | Hardware: RTX 5090 32GB*
