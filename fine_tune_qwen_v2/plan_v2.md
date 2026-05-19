@@ -63,7 +63,7 @@ Model sinh token theo greedy: chọn argmax xác suất tại mỗi bước. `ma
 | `DataCollatorForCompletionOnlyLM` đã bị xóa khỏi TRL 0.24 | Dùng `DataCollatorCompletionOnly` manual |
 | CE loss ≠ generative MAE/RMSLE (hai chỉ số diverge) | Best checkpoint = eval **generative MAE**, KHÔNG phải CE |
 | `val_eval_size=200` quá noisy | Dùng 500 val samples cho MAE callback |
-| `group_by_length=False` lãng phí 10-15% time | `group_by_length=True` |
+| `group_by_length` đã bị TRL 0.24 drop khỏi SFTConfig | KHÔNG truyền arg này — collator pad "longest" trong batch đã đủ hiệu quả cho seq ngắn |
 | `max_new_tokens=4` thiếu nếu model sinh space/newline trước số | Dùng `max_new_tokens=8` (safety margin) |
 | Push `trainer.model` cuối training = push model có thể đã overfit | Sau training: load `best_mae_checkpoint` rồi push, KHÔNG push `trainer.model` |
 | `use_cache=False` (cho grad checkpoint) làm `generate` chậm 5× | Trong MaeEvalCallback: toggle `use_cache=True` tạm thời |
@@ -480,7 +480,6 @@ def get_sft_config(output_dir: str, hub_model_id: str) -> SFTConfig:
         fp16=False,
         max_grad_norm=MAX_GRAD_NORM,
         warmup_ratio=WARMUP_RATIO,
-        group_by_length=True,
         lr_scheduler_type="cosine",
         report_to="wandb",
         max_length=MAX_SEQ_LENGTH,
