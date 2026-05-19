@@ -12,79 +12,127 @@ Nap ngu canh tu cac file:
 - scraping_data_tv/SESSION_HANDOFF.md
 - Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md
 
-Trang thai hien tai (2026-05-18 — session 23 ket thuc):
+Trang thai hien tai (2026-05-19 — session 25 ket thuc):
 - Branch: feature/day5-qlora-qwen
 - Day 3 v2: XONG (MAE=92.6k).
-- Day 4 v2: NB01/02/04/05 DA CHAY. NB06 DANG CHAY (epoch 5+/10).
-  NB09/10 MOI TAO (improved config). NB07/08 code cu, co the bo qua.
+- Day 4 v2: NB01/02/04/05/06/10 DA CHAY. NB07/08 DA XOA.
+  NB09 PENDING (chua chay).
+  NB11 TAO ROI (reference, optional).
+  NB12/13/14 TAO ROI — SAN SANG CHAY.
 
 == DAY 4 V2 — KET QUA DA CO ==
   KET QUA THUC TE (chay tren RTX 3090 Ti):
     Notebook 01 — DNN + TF-IDF char_wb 100K:          test MAE = 77.3k
     Notebook 02 — DNN + HashingVec 5000:               test MAE = 80.0k
     Notebook 04 — e5-small frozen + DNN:               test MAE = 102.7k, R2=50.3%
-    Notebook 05 — AITeamVN frozen + DNN:               test MAE = 76.1k,  R2=71.7%  <- best so far
-    Notebook 06 — AITeamVN fine-tune top-4:            DANG CHAY (epoch 5+/10)
-    Notebook 07 — PhoBERT-base-v2 top-4:               CHUA CHAY (config cu, co the bo qua)
-    Notebook 08 — PhoBERT-large top-4:                 CHUA CHAY (config cu, co the bo qua)
-    Notebook 09 — AITeamVN improved (top-8+R-Drop):    CHUA CHAY (config moi session 23)
-    Notebook 10 — PhoBERT-base improved (top-8+R-Drop): CHUA CHAY (config moi session 23)
+    Notebook 05 — AITeamVN frozen + DNN:               test MAE = 76.1k,  R2=71.7%
+    Notebook 06 — AITeamVN fine-tune top-4:            test MAE = 74.2k,  R2=72.8%  <- BEST
+    Notebook 10 — PhoBERT-base improved (top-8+RDrop): test MAE = 77.6k,  R2=70.8%
+    Notebook 07/08 — DELETED
+    Notebook 09 — AITeamVN top-8 + R-Drop:            PENDING (chua chay)
+    Notebook 11 — Ridge stacking ensemble:             TAO ROI (reference, optional)
+    Notebook 12 — AITeamVN full 24 layers:             TAO ROI — SAN SANG CHAY (session 25)
+    Notebook 13 — PhoBERT-large top-8:                TAO ROI — SAN SANG CHAY (session 25)
+    Notebook 14 — AITeamVN phased + price bins:        TAO ROI — SAN SANG CHAY (session 25)
 
-  Thu tu uu tien chay:
-    1. Doi NB06 xong -> lay ket qua
-    2. Chay NB09 (AITeamVN improved — thay the sweep NB06 top-8)
-    3. Chay NB10 (PhoBERT-base improved)
-    4. Chay NB07/08 neu can them diversity cho ensemble
-    5. Tao NB11 (ensemble Ridge stacking)
-
-== CONFIG MOI NB09/10 (session 23 — research-backed) ==
-  NB09 AITeamVN improved:
-    keep_top_layers=8, batch=24, ema_decay=0.9999, warmup_ratio=0.05
-    weight_decay=0.01, llrd_decay=0.85, r_drop_alpha=0.3
-
-  NB10 PhoBERT-base improved:
-    keep_top_layers=8, batch=48, ema_decay=0.9999, warmup_ratio=0.05
-    weight_decay=0.01, llrd_decay=0.85, r_drop_alpha=0.3
-    Underthesea cache shared voi NB07 (phobert_seg_*.pkl)
-
-== FILE SAN SANG CHAY ==
-  Notebooks (tren vast.ai, theo thu tu uu tien):
-    day4_v2_09_aitvn_improved.ipynb  — AITeamVN 568M, top-8, batch=24, R-Drop, ~50-60 min/ep
-    day4_v2_10_phobert_improved.ipynb — PhoBERT-base 135M, top-8, batch=48, R-Drop, ~20-30 min/ep
-                                        Reuse phobert_seg_*.pkl cache tu NB07 neu co
-    day4_v2_07_phobert_base.ipynb    — Config cu (optional, cho ensemble diversity)
-    day4_v2_08_phobert_large.ipynb   — PhoBERT-large 370M (optional)
-    day4_v2_11_ensemble.ipynb        — CHUA TON TAI, tao sau khi co du val_predictions
-
-  Runner files (da update session 23):
-    pricer_vi_2/bert_finetune_model.py  (them r_drop_alpha param, backward-compatible)
-    pricer_vi_2/phobert_model.py        (them r_drop_alpha param, backward-compatible)
+== FILES DA TAO (session 25) ==
+  pricer_vi_2/bert_finetune_model.py:
+    - Them grad_accum=1 vao BERTFinetuneRunner.train() (backward compat, default=1)
+    - NB12 su dung grad_accum=2 (batch=16 -> effective 32) — xoa GRAD_ACCUM neu OOM
+  pricer_vi_2/bert_finetune_phased_model.py (MOI):
+    - PhasedBERTRegressor: price_bin_head (5 bins) thay category_head (8 classes)
+    - PhasedBERTRunner: 3-phase, rebuild optimizer+scheduler tai ep 1/5/9
+    - Phase 1 (ep1-4): top-4, lr=2e-5
+    - Phase 2 (ep5-8): top-8, lr=1e-5
+    - Phase 3 (ep9-12): top-16, lr=5e-6
+  day4_v2_12_aitvn_full.ipynb:
+    keep_top=24, batch=16, grad_accum=2, llrd=0.70, base_lr=1.5e-5, warmup=0.10, epochs=8
+    Save: weights/aitvn_full.pth, val_predictions/aitvn_full_{val,test}.json
+  day4_v2_13_phobert_large.ipynb:
+    vinai/phobert-large, keep_top=8, batch=32, llrd=0.85, epochs=10
+    Reuse phobert_seg_*.pkl tu NB10 (khong phai chay lai word-segment 2-3h)
+    Save: weights/phobert_large.pth, val_predictions/phobert_large_{val,test}.json
+  day4_v2_14_aitvn_phased.ipynb:
+    PhasedBERTRunner, batch=24, aux_alpha=0.15, epochs=12, patience=5
+    Save: weights/aitvn_phased.pth, val_predictions/aitvn_phased_{val,test}.json
 
 == KEY TECHNICAL NOTES ==
 - PhoBERT bat buoc Underthesea word segmentation TRUOC tokenizer
-  → word_segment(texts, cache_path) trong phobert_model.py co cach cache pkl
-  → Cache phobert_seg_{train,val,test}.pkl dung chung NB07 va NB08
+  → Cache phobert_seg_{train,val,test}.pkl (reuse tu NB10 cho NB13)
 - BERTFinetuneRunner.train() dung AveragedModel (EMA) — inference phai dung ema_model
-- LLRD: heads lr=2e-5, moi layer thap hon x decay=0.9
-- Checkpoint keys: ema_state_dict, y_mean, y_std, model_name, keep_top_layers, cat_classes
-- bert_finetune_model.py fix session 22: .clamp(min=0) sau torch.exp()-1 o val/test_predictions
+- Checkpoint keys (NB12/13): ema_state_dict, y_mean, y_std, model_name, keep_top_layers, cat_classes
+- Checkpoint keys (NB14): ema_state_dict, y_mean, y_std, model_name, price_bin_boundaries
+- bert_finetune_model.py: .clamp(min=0) sau torch.exp()-1 o val/test_predictions
 - num_workers=0 bat buoc tren Linux/WSL2
 
-== SAU KHI CO KET QUA ==
-  Neu NB06 MAE < 70k: tao NB09 ensemble ngay (Ridge stacking NB01+02+05+06+07+08)
-  Neu NB06 MAE > 75k: chay lai top-8 section trong NB06 truoc khi sang NB07
-  Target ensemble: MAE < 65k (P0), < 60k (stretch)
-
 == FILE THAM KHAO ==
-- Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md (CANONICAL)
-- Data_processing_for_Vietnamese_data/pricer_vi_2/evaluator.py
-- Data_processing_for_Vietnamese_data/pricer_vi_2/bert_finetune_model.py
-- Data_processing_for_Vietnamese_data/pricer_vi_2/phobert_model.py
+- Data_processing_for_Vietnamese_data/day4_v2/plan_day4_v2.md (Section 7: A12/13/14 spec)
+- Data_processing_for_Vietnamese_data/pricer_vi_2/bert_finetune_model.py (BERTFinetuneRunner)
+- Data_processing_for_Vietnamese_data/pricer_vi_2/bert_finetune_phased_model.py (PhasedBERTRunner)
+- Data_processing_for_Vietnamese_data/pricer_vi_2/phobert_model.py (PhoBERTRunner)
 
 Coding guidelines:
 - Truoc khi viet/sua code: invoke skill karpathy-guidelines
 - Su dung evaluator.py de ve bieu do (plot_training_history + evaluate)
 ```
+
+---
+
+## Trang thai hien tai (2026-05-19 — session 25)
+
+**Trang thai:** Tao NB12/13/14 + bert_finetune_phased_model.py + grad_accum support. Tat ca san sang chay tren vast.ai.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 25 ket qua (2026-05-19)
+
+**Da lam (code):**
+- [x] `pricer_vi_2/bert_finetune_model.py`: Them `grad_accum=1` vao `BERTFinetuneRunner.train()` (backward compat). NB12 dung `grad_accum=2` (effective batch=32 tu batch=16).
+- [x] `pricer_vi_2/bert_finetune_phased_model.py` (MOI):
+  - `PhasedBERTRegressor`: AutoModel + price_head + `price_bin_head` (5 bins [<50k, 50-150k, 150-350k, 350-650k, >=650k])
+  - `PhasedBERTRunner`: 3-phase training, rebuild optimizer+scheduler tai ep 1, 5, 9
+  - Phase 1/2/3: top-4 lr=2e-5 → top-8 lr=1e-5 → top-16 lr=5e-6
+- [x] `day4_v2/day4_v2_12_aitvn_full.ipynb`: AITeamVN full 24 layers, batch=16, grad_accum=2, llrd=0.70, epochs=8
+- [x] `day4_v2/day4_v2_13_phobert_large.ipynb`: PhoBERT-large top-8, reuse pkl NB10, epochs=10
+- [x] `day4_v2/day4_v2_14_aitvn_phased.ipynb`: PhasedBERTRunner, batch=24, aux_alpha=0.15, epochs=12
+
+**Da lam (docs):**
+- [x] plan_day4_v2.md: cap nhat PLANNED → CREATED cho NB12/13/14, them bert_finetune_phased_model.py vao folder structure, timestamp session 25
+- [x] SESSION_HANDOFF.md: cap nhat prompt + them session 25 block
+
+**Con lai:**
+- [ ] Chay NB09 (AITeamVN top-8 + R-Drop) — PENDING, tuy ket qua quyet dinh thu tu NB12/13/14
+- [ ] Chay NB12 (AITeamVN full 24L) — SAN SANG. Note: xoa GRAD_ACCUM=2 neu OOM
+- [ ] Chay NB13 (PhoBERT-large top-8) — SAN SANG. Reuse phobert_seg_*.pkl tu NB10
+- [ ] Chay NB14 (AITeamVN phased) — SAN SANG (MOST PROMISING, du kien MAE < 65k)
+
+---
+
+## Trang thai hien tai (2026-05-19 — session 24)
+
+**Trang thai:** NB06/10 co ket qua. NB07/08 da xoa. NB11 da tao. Research + plan 3 kien truc moi (A12/13/14). plan_day4_v2.md va SESSION_HANDOFF.md cap nhat day du.
+**Branch hien tai:** `feature/day5-qlora-qwen`
+
+### Session 24 ket qua (2026-05-19)
+
+**Ket qua nhan duoc tu user:**
+- [x] Notebook 06 — AITeamVN fine-tune top-4: **test MAE = 74.2k, R2=72.8%** (val best: 81.06k ep10)
+- [x] Notebook 10 — PhoBERT-base improved (top-8+RDrop): **test MAE = 77.6k, R2=70.8%** (val best: 82.55k ep10)
+  - Nhan xet: ca 2 notebooks chua plateau o epoch 10, loss van giam → con room de cai thien
+  - AITeamVN van vuot PhoBERT du improved config — backbone AITeamVN (568M, BGE-M3) manh hon
+
+**Da lam (doc/cap nhat):**
+- [x] Doc SESSION_HANDOFF.md va plan_day4_v2.md
+- [x] Doc ket qua tu NB06 va NB10 notebooks (agent)
+- [x] Xoa day4_v2_07_phobert_base.ipynb va day4_v2_08_phobert_large.ipynb
+- [x] Tao day4_v2_11_ensemble.ipynb (Ridge stacking reference, optional)
+- [x] Research 3 kien truc moi: A12 (full encoder), A13 (PhoBERT-large), A14 (phased+price bins)
+- [x] Cap nhat plan_day4_v2.md: Section 0.2 (targets), Section 3 (folder), Section 4 (results), Section 5 (constraints), Section 7 (3 kien truc moi)
+- [x] Cap nhat SESSION_HANDOFF.md: prompt + session 24 block
+
+**Con lai:**
+- [ ] Nhan ket qua NB09 (AITeamVN top-8 + R-Drop, mai chay ~8-10h)
+- [ ] Tuy ket qua NB09: chay NB14 (A14, most promising) hoac NB12 (A12)
+- [ ] Implement NB12/13/14 dua tren spec trong plan_day4_v2.md Section 7
 
 ---
 

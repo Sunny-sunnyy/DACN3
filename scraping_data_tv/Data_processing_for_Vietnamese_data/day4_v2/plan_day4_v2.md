@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Train 5 deep learning models trên Vietnamese product data (269K samples), stack thành ensemble đạt MAE < 65k VND, đánh giá bằng `pricer_vi_2/evaluator.py`.
+**Goal:** Tìm single best model đạt MAE thấp nhất trên Vietnamese product price prediction (269K samples). Mục tiêu: MAE < 65k VND (P0), < 60k (stretch).
 
-**Architecture:** 2 DNN sparse-input models (TF-IDF + HashingVec) + 1 frozen-encoder SentenceTransformer + 2 BERT fine-tune models (XLM-RoBERTa + PhoBERT) — tất cả dùng log1p+z-normalize target, L1Loss, ResidualBlock backbone. Ridge stacking trên val predictions để tối ưu MAE.
+**Strategy:** Cải thiện individual model — backbone mạnh hơn (AITeamVN full encoder / PhoBERT-large) + kỹ thuật training tốt hơn (gradual unfreezing, price-bin aux head). Không phụ thuộc ensemble.
 
 **Tech Stack:** PyTorch, transformers (HuggingFace), sentence-transformers, underthesea, lightgbm, scikit-learn, datasets, uv
 
@@ -25,15 +25,16 @@
 
 ### 0.2. Mục tiêu định lượng
 
-| Model | MAE target (k VND) |
-|---|---|
-| DNN + TF-IDF char_wb | < 80k |
-| DNN + HashingVec 5000 | < 85k |
-| Multilingual SentTrans + DNN | < 75k |
-| XLM-RoBERTa fine-tune | < 70k |
-| PhoBERT-v2 fine-tune | < 68k |
-| **Ensemble Ridge (P0)** | **< 65k** |
-| Ensemble (stretch) | < 60k |
+| Model | MAE target (k VND) | Status |
+|---|---|---|
+| DNN + TF-IDF char_wb | < 80k | **DONE 77.3k** |
+| DNN + HashingVec 5000 | < 85k | **DONE 80.0k** |
+| AITeamVN frozen + DNN | < 75k | **DONE 76.1k** |
+| AITeamVN fine-tune top-4 | < 72k | **DONE 74.2k** |
+| AITeamVN top-8 + R-Drop (NB09) | < 70k | PENDING |
+| **A12: AITeamVN full encoder** | **< 68k** | CREATED |
+| **A13: PhoBERT-large top-8** | **< 72k** | CREATED |
+| **A14: AITeamVN phased unfreeze + price bins** | **< 65k** | CREATED |
 
 ### 0.3. Quyết định kỹ thuật cốt lõi
 
@@ -212,60 +213,35 @@ evaluate(make_predictor(model, vec, y_mean, y_std, device), test)
 Data_processing_for_Vietnamese_data/
 ├── day4_v2/
 │   ├── plan_day4_v2.md                          # File này — CANONICAL
-│   ├── day4_v2_00_token_analysis.ipynb          # Phân tích token length dataset [DONE]
-│   ├── day4_v2_01_dnn_tfidf.ipynb               # Task 2
-│   ├── day4_v2_02_dnn_hashvec.ipynb             # Task 3
-│   ├── day4_v2_03_senttrans.ipynb               # Task 4 — MiniLM 128t baseline
-│   ├── day4_v2_04_e5small.ipynb                 # Task 4b — e5-small 512t [DONE]
-│   ├── day4_v2_05_aitvn.ipynb                   # Task 4d — AITeamVN frozen + DNN [DONE, MAE=76.1k]
-│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 (→top-8 nếu MAE>75k) [RUNNING]
-│   ├── day4_v2_07_phobert_base.ipynb            # PhoBERT-base-v2 top-4 (→top-8 nếu MAE>78k) [CREATED]
-│   ├── day4_v2_08_phobert_large.ipynb           # PhoBERT-large top-4 (→top-8 nếu MAE>73k) [CREATED]
-│   ├── day4_v2_09_aitvn_improved.ipynb          # AITeamVN improved: top-8, EMA 0.9999, R-Drop [CREATED session 23]
-│   ├── day4_v2_10_phobert_improved.ipynb        # PhoBERT-base improved: top-8, EMA 0.9999, R-Drop [CREATED session 23]
-│   ├── day4_v2_11_ensemble.ipynb                # Ensemble — Ridge stacking (tạo sau khi có đủ val_predictions)
-│   ├── weights/
-│   │   ├── dnn_tfidf.pth                        # DONE
-│   │   ├── dnn_hashvec.pth                      # DONE
-│   │   ├── e5small_dnn.pth                      # DONE
-│   │   ├── aitvn_dnn.pth                        # DONE
-│   │   ├── aitvn_finetune.pth                   # PENDING (notebook 06)
-│   │   ├── aitvn_improved.pth                   # PENDING (notebook 09)
-│   │   ├── phobert_base_top4.pth                # PENDING (notebook 07)
-│   │   ├── phobert_base_improved.pth            # PENDING (notebook 10)
-│   │   └── phobert_large_top4.pth               # PENDING (notebook 08)
+│   ├── day4_v2_00_token_analysis2.ipynb         # Token profile [DONE]
+│   ├── day4_v2_01_dnn_tfidf_batch_64.ipynb      # DNN + TF-IDF char_wb 100K [DONE, MAE=77.3k]
+│   ├── day4_v2_02_dnn_hashvec.ipynb             # DNN + HashingVec 5000 [DONE, MAE=80.0k]
+│   ├── day4_v2_03_senttrans.ipynb               # MiniLM 128t baseline (reference)
+│   ├── day4_v2_04_e5small.ipynb                 # e5-small frozen + DNN [DONE, MAE=102.7k]
+│   ├── day4_v2_05_aitvn_v1.ipynb                # AITeamVN frozen + DNN [DONE, MAE=76.1k]
+│   ├── day4_v2_06_aitvn_finetune.ipynb          # AITeamVN fine-tune top-4 [DONE, MAE=74.2k]
+│   ├── day4_v2_09_aitvn_improved.ipynb          # AITeamVN top-8 + EMA 0.9999 + R-Drop [PENDING]
+│   ├── day4_v2_10_phobert_improved.ipynb        # PhoBERT-base top-8 + R-Drop [DONE, MAE=77.6k]
+│   ├── day4_v2_11_ensemble.ipynb                # Ridge stacking reference (optional)
+│   ├── day4_v2_12_aitvn_full.ipynb              # A12: AITeamVN all 24 layers [CREATED]
+│   ├── day4_v2_13_phobert_large.ipynb           # A13: PhoBERT-large top-8 [CREATED]
+│   ├── day4_v2_14_aitvn_phased.ipynb            # A14: AITeamVN phased unfreeze + price bins [CREATED]
+│   ├── weights/                                 # .pth files — save khi chạy trên vast.ai
 │   ├── cache/
-│   │   ├── e5small_embeddings.pkl               # e5-small 269K × 384
-│   │   ├── aitvn_embeddings.pkl                 # AITeamVN 269K × 1024
-│   │   ├── phobert_seg_train.pkl                # Underthesea word_segment 269K (shared NB07/08/10, ~2-3h)
-│   │   ├── phobert_seg_val.pkl                  # Underthesea val 3926
-│   │   └── phobert_seg_test.pkl                 # Underthesea test 3872
-│   ├── val_predictions/
-│   │   ├── dnn_tfidf_val.json                   # DONE
-│   │   ├── dnn_hashvec_val.json                 # DONE
-│   │   ├── e5small_val.json                     # DONE
-│   │   ├── aitvn_val.json                       # DONE
-│   │   ├── aitvn_finetune_val.json              # PENDING (notebook 06)
-│   │   ├── aitvn_finetune_test.json             # PENDING (notebook 06)
-│   │   ├── aitvn_improved_val.json              # PENDING (notebook 09)
-│   │   ├── aitvn_improved_test.json             # PENDING (notebook 09)
-│   │   ├── phobert_base_val.json                # PENDING (notebook 07)
-│   │   ├── phobert_base_test.json               # PENDING (notebook 07)
-│   │   ├── phobert_base_improved_val.json       # PENDING (notebook 10)
-│   │   ├── phobert_base_improved_test.json      # PENDING (notebook 10)
-│   │   ├── phobert_large_val.json               # PENDING (notebook 08)
-│   │   └── phobert_large_test.json              # PENDING (notebook 08)
-│   ├── day4_v2_results.json                     # Kết quả tất cả models
-│   └── day4_v2_summary.md
+│   │   ├── phobert_seg_train.pkl                # Underthesea cache (NB10 → reuse NB13)
+│   │   ├── phobert_seg_val.pkl
+│   │   └── phobert_seg_test.pkl
+│   └── val_predictions/                         # list[float] JSON — cần cho NB11 ensemble
 │
 └── pricer_vi_2/
-    ├── items.py                                 # Existing — KHÔNG SỬA
-    ├── evaluator.py                             # Existing — KHÔNG SỬA
-    ├── __init__.py                              # Existing
-    ├── deep_neural_network_sparse.py            # SparseDNNRunner + PriceDNN + ResidualBlock
-    ├── senttrans_model.py                       # SentTransRunner (frozen encoder) — updated session 21
-    ├── bert_finetune_model.py                   # BERTFinetuneRunner — session 21 + R-Drop session 23
-    └── phobert_model.py                         # PhoBERTRunner — session 22 + R-Drop session 23
+    ├── items.py                                 # KHÔNG SỬA
+    ├── evaluator.py                             # KHÔNG SỬA
+    ├── __init__.py
+    ├── deep_neural_network_sparse.py            # SparseDNNRunner + PriceDNN
+    ├── senttrans_model.py                       # SentTransRunner (frozen encoder)
+    ├── bert_finetune_model.py                   # BERTFinetuneRunner + R-Drop + grad_accum
+    ├── bert_finetune_phased_model.py            # PhasedBERTRunner + PriceBinHead (NB14)
+    └── phobert_model.py                         # PhoBERTRunner + R-Drop
 ```
 
 ---
@@ -1642,27 +1618,28 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 
 ---
 
-## 4. Kết quả thực tế (điền sau khi chạy)
+## 4. Kết quả thực tế
 
-| Model | Notebook | Test MAE (200) | R² | Status |
-|---|---|---|---|---|
-| DNN + TF-IDF char_wb 100K | 01 | **77.3k** | — | DONE |
-| DNN + HashingVec 5000 | 02 | **80.0k** | — | DONE |
-| e5-small frozen + DNN | 04 | **102.7k** | 50.3% | DONE (frozen 384-dim thua) |
-| AITeamVN frozen + DNN | 05 | **76.1k** | 71.7% | DONE (best frozen) |
-| AITeamVN fine-tune top-4 (→top-8 nếu MAE>75k) | 06 | — | — | **PENDING** |
-| PhoBERT-base-v2 fine-tune (→top-8 nếu MAE>78k) | 07 | — | — | PENDING |
-| PhoBERT-large fine-tune (→top-8 nếu MAE>73k) | 08 | — | — | PENDING |
-| **Ensemble Ridge (NB01+02+05+06+07+08)** | 09 | — | — | PENDING |
+| Model | NB | Test MAE (200) | Val MAE best | R² | Status |
+|---|---|---|---|---|---|
+| DNN + TF-IDF char_wb 100K | 01 | **77.3k** | — | — | DONE |
+| DNN + HashingVec 5000 | 02 | **80.0k** | — | — | DONE |
+| e5-small frozen + DNN | 04 | **102.7k** | — | 50.3% | DONE |
+| AITeamVN frozen + DNN | 05 | **76.1k** | — | 71.7% | DONE |
+| AITeamVN fine-tune top-4 | 06 | **74.2k** | 81.06k (ep10) | 72.8% | **DONE — best** |
+| PhoBERT-base top-8 + R-Drop | 10 | **77.6k** | 82.55k (ep10) | 70.8% | DONE |
+| AITeamVN top-8 + R-Drop | 09 | — | — | — | **PENDING (mai chạy ~8-10h)** |
+| A12: AITeamVN full encoder | 12 | — | — | — | CREATED |
+| A13: PhoBERT-large top-8 | 13 | — | — | — | CREATED |
+| A14: AITeamVN phased + price bins | 14 | — | — | — | CREATED |
 
-**Observation (session 21-22):**
-- Frozen e5-small (384-dim) MAE=102.7k thua cả TF-IDF (77.3k) — frozen embeddings không encode price-relevant VN features
-- AITeamVN frozen (1024-dim, VN-MTEB 63.34) MAE=76.1k — embedding tốt hơn nhưng vẫn chưa đạt target 70k
-- Fine-tuning top-4 layers (bert_finetune_model.py) là hướng ưu tiên để cải thiện AITeamVN → target MAE < 65k
-- **Sweep logic (session 22):** nếu NB06 MAE > 75k → chạy lại với keep_top_layers=8 (16/24 tầng đóng băng, ~30M params trainable). Ngưỡng NB07=78k, NB08=73k (large mạnh hơn, kỳ vọng cao hơn).
-- **PhoBERT thêm diversity cho ensemble:** tokenizer khác (Underthesea word segmentation bắt buộc), backbone khác (VinAI pre-train 20GB VN corpus), giúp ensemble giảm variance
-- **Thứ tự chạy:** NB06 → NB07 (Underthesea cache ~2-3h, shared NB08) → NB08 (tái dụng cache) → NB09 (ensemble)
-- **bert_finetune_model.py fix (session 22):** thêm `.clamp(min=0)` vào val_predictions() và test_predictions() để tránh giá âm trong early epochs
+**Observations:**
+- Frozen e5-small (102.7k) thua TF-IDF (77.3k) — frozen embeddings không encode price signals
+- AITeamVN fine-tune (74.2k) > frozen (76.1k) — fine-tuning cho phép encoder học price features
+- PhoBERT-base improved (77.6k) thua AITeamVN dù dùng improved config — backbone AITeamVN (568M, BGE-M3) mạnh hơn nhiều
+- Cả NB06 lẫn NB10 đều chưa plateau ở epoch 10 (loss vẫn giảm) → còn dư capacity để cải thiện
+- NB06 train_loss=0.0138 vs val_loss=0.1051 → overfitting moderate; cần regularization mạnh hơn ở full encoder
+- **bert_finetune_model.py:** `.clamp(min=0)` sau exp() ở val/test_predictions() để tránh giá âm early epochs
 
 ---
 
@@ -1673,17 +1650,152 @@ git commit -m "day4_v2 task7: Ridge stacking ensemble + final results"
 | Primary metric | **MAE (k VND)** — KHÔNG dùng RMSLE |
 | Evaluate | `pricer_vi_2/evaluator.py` — 200 test samples |
 | Price unit | `round(price_vnd/1000)` — range 5–1000 |
-| Target transform | `log1p(price)` + z-normalize (khác Day 3 v2 LGB) |
-| Loss | `nn.L1Loss()` — trực tiếp tối ưu MAE |
+| Target transform | `log1p(price)` + z-normalize |
+| Loss | `nn.HuberLoss(delta=1.0)` + aux CE head (alpha=0.1) |
 | GPU | RTX 3090 Ti 24GB, vast.ai |
-| num_workers | **0** — fix HuggingFace tokenizer fork warning (session 21) |
-| Stacking metric | MAE trên val set (3,926 samples) |
+| num_workers | **0** — bắt buộc Linux/WSL2 |
 | KHÔNG sửa | `pricer_vi_2/items.py`, `pricer_vi_2/evaluator.py` |
 
 ---
 
-*Tạo: 2026-05-17 — Day 4 v2 Deep Learning Vietnamese Price Prediction*
-*Cập nhật: 2026-05-18 (session 22) — Thêm PhoBERT-base/large (NB07/08), sweep keep_top_layers 4→8, renumber ensemble NB07→NB09, fix bert_finetune_model clamp*
+*Tạo: 2026-05-17 — Cập nhật: 2026-05-19 (session 25) — Tạo NB12/13/14 + bert_finetune_phased_model.py + grad_accum support*
+
+---
+
+## 7. Kiến trúc tiếp theo — Individual Model Optimization
+
+> **Bối cảnh:** Best hiện tại = AITeamVN top-4, MAE=74.2k. NB09 (top-8 + R-Drop) đang pending.
+> Mục tiêu: single best model MAE < 65k (P0), < 60k (stretch). Không dùng ensemble.
+> GPU budget: ≤ 10h/experiment trên RTX 3090 Ti. Multi-run cho phép.
+
+### A12: AITeamVN Full Encoder Fine-tune — NB12
+
+**Ý tưởng:** Mở khóa toàn bộ 24 layers của AITeamVN (568M). LLRD decay=0.70 rất mạnh:
+bottom layers lr ≈ 1e-7, heads lr = 2e-5. Batch nhỏ hơn để fit VRAM.
+
+**Config đề xuất:**
+```
+model:        AITeamVN/Vietnamese_Embedding
+keep_top_layers: 24  (tất cả layers)
+batch_size:   16     (giảm để fit full grad 568M)
+max_length:   256
+base_lr:      1.5e-5 (giảm do full encoder)
+llrd_decay:   0.70   (rất aggressive: bottom layers ≈ 1e-7)
+weight_decay: 0.01
+ema_decay:    0.9999
+warmup_ratio: 0.10   (tăng warmup cho full encoder)
+r_drop_alpha: 0.3
+epochs:       8      (giảm để fit ≤ 10h)
+```
+
+**Pros:** Maximum capacity; bottom layers học price-domain features; 269K samples đủ dữ liệu để không catastrophic forgetting với LLRD đủ mạnh
+
+**Cons:** VRAM sát giới hạn (full grad 568M + AMP + batch=16); thời gian/epoch tăng ~2x NB09; cần calibrate LLRD kỹ
+
+**Dự kiến:** 66–70k test MAE | ~8–10h
+
+**Checkpoint key:** `ema_state_dict`, `y_mean`, `y_std`, `keep_top_layers=24`
+
+---
+
+### A13: PhoBERT-large Fine-tune (top-8) — NB13
+
+**Ý tưởng:** `vinai/phobert-large` (24L, 1024-dim, 370M) — VinAI pre-train 20GB VN corpus.
+Pipeline giống NB10 nhưng model lớn hơn PhoBERT-base 2.7x. Reuse Underthesea cache từ NB10.
+
+**Config đề xuất:**
+```
+model:        vinai/phobert-large
+keep_top_layers: 8
+batch_size:   32
+max_length:   256
+base_lr:      2e-5
+llrd_decay:   0.85
+weight_decay: 0.01
+ema_decay:    0.9999
+warmup_ratio: 0.05
+r_drop_alpha: 0.3
+epochs:       10
+cache:        reuse phobert_seg_*.pkl từ NB10
+```
+
+**Pros:** VinAI pre-train VN-specific; 1024-dim = same dim AITeamVN; Underthesea tokenization đúng chuẩn VN; cache pkl reuse từ NB10 → không cần 2-3h word-segment lại
+
+**Cons:** Khả năng vẫn thua AITeamVN (568M vs 370M, BGE-M3 pre-training mạnh hơn RoBERTa); bottleneck là backbone quality, không phải training config
+
+**Dự kiến:** 71–74k test MAE | ~6–8h
+
+**Checkpoint key:** `ema_state_dict`, `y_mean`, `y_std`, dùng `PhoBERTRunner` từ `phobert_model.py`
+
+---
+
+### A14: AITeamVN Phased Gradual Unfreezing + Price-Bin Aux Head — NB14
+
+**Ý tưởng:** Hai cải tiến kết hợp:
+
+1. **Phased gradual unfreezing** — thay vì cố định top-8 từ đầu:
+   - Phase 1 (ep 1–4): top-4 layers, lr=2e-5
+   - Phase 2 (ep 5–8): mở thêm top-8, lr=1e-5
+   - Phase 3 (ep 9–12): mở thêm top-16, lr=5e-6
+   → Tránh catastrophic forgetting, encoder học dần từ general → specific
+
+2. **Price-bin aux head** — thay category classification bằng price range bins (5 bins log-spaced):
+   - Bin 0: price < 50k
+   - Bin 1: 50k ≤ price < 150k
+   - Bin 2: 150k ≤ price < 350k
+   - Bin 3: 350k ≤ price < 650k
+   - Bin 4: price ≥ 650k
+   → Aux signal trực tiếp liên quan đến target (vs category coarse 8 classes hiện tại)
+
+**Config đề xuất:**
+```
+model:              AITeamVN/Vietnamese_Embedding
+batch_size:         24
+max_length:         256
+base_lr:            2e-5
+llrd_decay:         0.85
+weight_decay:       0.01
+ema_decay:          0.9999
+warmup_ratio:       0.05
+r_drop_alpha:       0.3
+aux_alpha:          0.15  (tăng vs 0.1 vì price bins signal mạnh hơn)
+epochs:             12    (3 phases × 4 epochs)
+price_bins:         [50, 150, 350, 650]  # 5 buckets
+```
+
+**Phase switching logic:**
+```python
+# Trong training loop — sau mỗi phase:
+if epoch == 4:
+    runner.unfreeze_more(keep_top_layers=8)   # Phase 2
+    optimizer = rebuild_llrd_optimizer(lr=1e-5)
+if epoch == 8:
+    runner.unfreeze_more(keep_top_layers=16)  # Phase 3
+    optimizer = rebuild_llrd_optimizer(lr=5e-6)
+```
+
+**Pros:** Gradual unfreezing tránh forgetting khi unfreeze nhiều layers; price bins là strongest auxiliary signal cho regression; 12 epochs cho model hội tụ đầy đủ
+
+**Cons:** Phức tạp nhất — cần implement phase-switching trong `bert_finetune_model.py` hoặc notebook; 12 epochs có thể sát 10h budget
+
+**Dự kiến:** 65–69k test MAE | ~9–11h
+
+**Implementation notes:**
+- Thêm `unfreeze_to(keep_top_layers)` method vào `BERTFinetuneRunner`
+- Thêm `PriceBinHead` replace `CategoryHead` trong `BERTFineTuneRegressor`
+- Bins tính từ: `pd.qcut(train_prices, 5)` → chọn log-spaced thresholds
+- Save checkpoint keys: thêm `price_bin_thresholds`
+
+---
+
+### Thứ tự chạy
+
+```
+NB09 (đang pending, 8-10h) → lấy kết quả
+→ Nếu NB09 MAE < 68k: chạy NB14 (A14) — most promising
+→ Nếu NB09 MAE > 70k: chạy NB12 (A12) trước để đánh giá full encoder
+→ NB13 (A13) chạy song song nếu có GPU thứ 2, hoặc sau cùng nếu cần diversity
+```
 
 ---
 
@@ -2050,62 +2162,6 @@ def aitvn_pricer(item):
 results = evaluate(aitvn_pricer, test)
 print(f"MAE: {results['mae']:.1f}k VND | R²: {results['r2']:.1f}%")
 ```
-
----
-
-## 7. Cập nhật Folder Structure (sau khi thêm Tasks 4b/4c/4d)
-
-```
-day4_v2/
-├── day4_v2_01_dnn_tfidf.ipynb        # Task 2 — DNN + TF-IDF
-├── day4_v2_02_dnn_hashvec.ipynb       # Task 3 — DNN + HashVec
-├── day4_v2_03_senttrans.ipynb         # Task 4 — paraphrase-multilingual-MiniLM (128-token!)
-├── day4_v2_04_e5small.ipynb           # Task 4b — multilingual-e5-small (RECOMMENDED FIRST)
-├── day4_v2_05_dangvantuan.ipynb       # Task 4c — dangvantuan PhoBERT + PyVi
-├── day4_v2_06_aitvn.ipynb             # Task 4d — AITeamVN BGE-M3 (best expected)
-├── day4_v2_07_xlmr.ipynb              # Task 5 — XLM-RoBERTa fine-tune
-├── day4_v2_08_phobert.ipynb           # Task 6 — PhoBERT fine-tune
-├── day4_v2_09_ensemble.ipynb          # Task 7 — Ridge Stacking
-├── weights/
-│   ├── dnn_tfidf.pth
-│   ├── dnn_hashvec.pth
-│   ├── senttrans_dnn.pth
-│   ├── e5small_dnn.pth
-│   ├── dangvantuan_dnn.pth
-│   └── aitvn_dnn.pth
-├── cache/
-│   ├── senttrans_embeddings.pkl       # 384-dim, ~400MB
-│   ├── e5small_embeddings.pkl         # 384-dim, ~400MB
-│   ├── dangvantuan_embeddings.pkl     # 768-dim, ~800MB
-│   └── aitvn_embeddings.pkl          # 1024-dim, ~1.1GB
-└── val_predictions/
-    ├── dnn_tfidf_val.json / _test.json
-    ├── dnn_hashvec_val.json / _test.json
-    ├── senttrans_val.json / _test.json
-    ├── e5small_val.json / _test.json
-    ├── dangvantuan_val.json / _test.json
-    └── aitvn_val.json / _test.json
-```
-
----
-
-## 8. Cập nhật Kết quả thực tế (điền sau khi chạy)
-
-| Model | Notebook | Config | Val MAE | Test MAE (200) | R² |
-|---|---|---|---|---|---|
-| DNN + TF-IDF | NB01 | 100K sparse | — | **77.3k** | — |
-| DNN + HashVec | NB02 | 5K sparse | — | **80.0k** | — |
-| e5-small frozen + DNN | NB04 | 384-dim | — | **102.7k** | 50.3% |
-| **AITeamVN frozen + DNN** | NB05 | 1024-dim | — | **76.1k** | 71.7% |
-| AITeamVN fine-tune top-4 | NB06 | top-4/24, ema=0.999 | — | PENDING | — |
-| PhoBERT-base top-4 | NB07 | top-4/12, ema=0.999 | — | PENDING | — |
-| PhoBERT-large top-4 | NB08 | top-4/24, ema=0.999 | — | PENDING | — |
-| **AITeamVN improved** | **NB09** | **top-8/24, EMA 0.9999, R-Drop** | — | PENDING | — |
-| **PhoBERT-base improved** | **NB10** | **top-8/12, EMA 0.9999, R-Drop** | — | PENDING | — |
-| **Ensemble Ridge (NB11)** | NB11 | Ridge stacking best models | — | **target <65k** | — |
-
-*NB01/02/04/05: kết quả thực tế trên RTX 3090 Ti.*
-*NB09/10: improved config — ưu tiên chạy trước NB07/08 (old config).*
 
 ---
 
