@@ -188,3 +188,7 @@ day_mcp/
 
 scraping_data_tv/Shopee/step1/chrome_profile/scraping_data_tv/Data_processing_for_Vietnamese_data/day3/tokenized_test_1m.pkl
 scraping_data_tv/Data_processing_for_Vietnamese_data/day3/tokenized_train_1m.pkl
+
+# Large batch data directories — do not commit
+fine_tune_qwen/batches_aug_v3/
+fine_tune_qwen/output_aug_v3/
