@@ -97,5 +97,41 @@
     },
     "estimate": 396.0882278442383,
     "discount": 246.0882278442383
+  },
+  {
+    "deal": {
+      "product_description": "The PuroAir 100i smart HEPA air purifier features a compact design with WiFi connectivity, multi-stage filtration, and a real-time indicator to help maintain clean indoor air in up to around 550 sq. ft.",
+      "price": 45.0,
+      "url": "https://www.dealnews.com/products/Puro-Air/Puro-Air-100-i-Smart-HEPA-Air-Purifier/498879.html?iref=rss-f1912"
+    },
+    "estimate": 208.29395294189456,
+    "discount": 163.29395294189456
+  },
+  {
+    "deal": {
+      "product_description": "Open-Box KitchenAid 5.5-Quart Bowl-Lift Stand Mixer with a spacious 5.5-quart stainless steel bowl, tilt-head design for easy access, and multiple attachments for versatile baking and mixing tasks; includes free shipping and is offered in open-box condition.",
+      "price": 201.0,
+      "url": "https://www.dealnews.com/Open-Box-Kitchen-Aid-5-5-Quart-Bowl-Lift-Stand-Mixer-for-201/21835820.html?iref=rss-c196"
+    },
+    "estimate": 270.1297883911133,
+    "discount": 69.12978839111332
+  },
+  {
+    "deal": {
+      "product_description": "Moen Spring Savings Event features numerous home fixtures and smart home products with discounts and free shipping on orders of $300+, including faucets and leak detectors. Product range emphasizes kitchen and bath fixtures with smart controls.",
+      "price": 30.0,
+      "url": "https://www.dealnews.com/Moen-Spring-Savings-Event-free-shipping-w-300/21835641.html?iref=rss-f1912"
+    },
+    "estimate": 461.62831573486324,
+    "discount": 431.62831573486324
+  },
+  {
+    "deal": {
+      "product_description": "The August Home Father's Day Sale features locking solutions like the Yale August Wi-Fi Smart Lock with Keypad at $174.99, reflecting a smart home entry system with wireless connectivity and keypad entry, with free shipping.",
+      "price": 174.99,
+      "url": "https://www.dealnews.com/August-Home-Fathers-Day-Sale-Up-to-30-off-free-shipping/21835936.html?iref=rss-f1912"
+    },
+    "estimate": 271.0797592163086,
+    "discount": 96.08975921630861
   }
 ]
