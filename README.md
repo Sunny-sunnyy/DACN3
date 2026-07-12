@@ -1,235 +1,221 @@
-# 🤖 AI Price Intelligence System — DACN3
+# AI Price Intelligence System
 
-> **Hệ thống AI tự động săn deal & ước lượng giá sản phẩm từ BestBuy và Amazon**
+Repository này là nền tảng hiện tại cho hệ thống AI hỗ trợ tìm kiếm deal và ước lượng giá sản phẩm. Trạng thái đang chạy được tập trung ở `segment4/search_key.py`: người dùng nhập từ khóa, hệ thống tìm sản phẩm đang giảm giá trên BestBuy và Amazon, chọn các deal đáng chú ý, ước lượng giá trị thực bằng ensemble model, rồi hiển thị kết quả trên giao diện Gradio.
 
----
+Mục tiêu dài hạn của repository là phát triển thành trợ lý mua sắm thông minh tiếng Việt cho TTTN/DATN. Vì vậy repo hiện có cả phần runtime tiếng Anh/US market đang chạy được, phần notebook fine-tune Qwen, và phần dữ liệu/scraping tiếng Việt đang chuẩn bị cho giai đoạn tiếp theo.
 
-## 📌 Giới thiệu dự án
+## Trạng Thái Hiện Tại
 
-Đây là **đồ án chuyên ngành (DACN3)** xây dựng một hệ thống AI đa tác nhân (Multi-Agent System) có khả năng:
+`segment4/search_key.py` là ứng dụng chính hiện tại.
 
-- 🔍 **Tìm kiếm song song** sản phẩm trên BestBuy và Amazon theo từ khóa
-- 🏷️ **Lọc sản phẩm đang giảm giá** (on sale) theo thời gian thực
-- 🧠 **Ước lượng giá trị thực** bằng Ensemble AI gồm 3 models kết hợp
-- 📲 **Thông báo tự động** qua Pushover khi phát hiện deal tốt
-- 🤖 **Chạy tự động hoàn toàn** (Autonomous mode) hoặc theo yêu cầu người dùng
+Luồng chính:
 
----
+1. Người dùng nhập keyword và chọn nguồn tìm kiếm.
+2. BestBuy và Amazon được search/scrape song song bằng `curl_cffi`.
+3. Kết quả từ hai nguồn được chuẩn hóa thành một pool chung.
+4. GPT-5-nano chọn top 3 deal đáng chú ý.
+5. `EnsembleAgent` ước lượng giá trị thực bằng 3 mô hình.
+6. Gradio hiển thị bảng kết quả, log pipeline, và hỗ trợ gửi Pushover notification thủ công.
 
-## 🗂️ Cấu trúc dự án
+`segment4/price_is_right.py` là dự án cũ để tham khảo. File này chạy autonomous deal hunter từ DealNews RSS, lưu `memory.json`, và có logic notification tự động. Nó vẫn hữu ích để học lại kiến trúc autonomous agent, nhưng không phải trọng tâm phát triển hiện tại.
 
-```
-tech2ai/
-│
-├── segment4/                          # 🎯 DỰ ÁN CHÍNH
-│   │
-│   ├── search_key.py                  # Entry point — Multi-Source Deal Finder (Gradio UI)
-│   ├── price_is_right.py              # Entry point — Autonomous Deal Hunter (Gradio UI)
-│   ├── multi_source_framework.py      # Framework điều phối trung tâm
-│   ├── deal_agent_framework.py        # Framework cho autonomous mode
-│   │
-│   ├── price_agents/                  # 🤖 Tất cả AI Agents
-│   │   ├── multi_source_planning_agent.py   # Pipeline 6 bước (BestBuy + Amazon)
-│   │   ├── ensemble_agent.py                # Kết hợp 3 models dự đoán giá
-│   │   ├── frontier_agent.py                # GPT-5.1 + RAG (ChromaDB)
-│   │   ├── specialist_agent.py              # Fine-tuned Llama-3.2-3B (Modal)
-│   │   ├── neural_network_agent.py          # PyTorch DNN (local)
-│   │   ├── bestbuy_deals.py                 # Scraping BestBuy
-│   │   ├── amazon_deals.py                  # Scraping Amazon
-│   │   ├── bestbuy_scanner_agent.py         # Search BestBuy (Brave MCP)
-│   │   ├── amazon_scanner_agent.py          # Search Amazon (Brave MCP)
-│   │   ├── scanner_agent.py                 # RSS feed scanner
-│   │   ├── messaging_agent.py               # Push notification (Pushover)
-│   │   ├── planning_agent.py                # Simple planning agent
-│   │   ├── autonomous_planning_agent.py     # Autonomous planning agent
-│   │   ├── preprocessor.py                  # Text normalization
-│   │   ├── deep_neural_network.py           # PyTorch model architecture
-│   │   ├── deals.py                         # Data classes
-│   │   └── agent.py                         # Base class
-│   │
-│   ├── bestbuy_untils/                # 🛠️ Utilities
-│   │   ├── clarification_agent.py     # Sinh câu hỏi làm rõ nhu cầu
-│   │   ├── unified_deal.py            # Chuẩn hóa deal từ 2 nguồn
-│   │   ├── multi_source_scanner_agent.py  # Chọn top 5 từ pool
-│   │   └── gradio_helpers.py          # Helper cho Gradio UI
-│   │
-│   ├── mo_ta_du_an/                   # 📚 Tài liệu
-│   │   ├── DOCUMENTATION_SEARCHKEY.md
-│   │   ├── DOCUMENTATION_PRICE_IS_RIGHT.md
-│   │   └── COMPLETE_PROJECT_DOCUMENTATION.md
-│   │
-│   └── products_vectorstore/          # ChromaDB (800K products) — không up GitHub
-│
-├── tailieu/                           # 📄 Báo cáo DACN
-├── week7/                             # Fine-tune Llama notebook
-└── day_mcp/                           # MCP experiments
+## Kiến Trúc
+
+Code runtime chính nằm trong `segment4/` và đi theo 3 tầng:
+
+```text
+UI Layer
+  search_key.py
+    |
+Framework Layer
+  multi_source_framework.py
+    |
+Agent Layer
+  price_agents/
+  bestbuy_untils/
 ```
 
----
+Pipeline của `search_key.py`:
 
-## 🔄 Hai ứng dụng chính
-
-### 1. 🔍 Multi-Source Deal Finder (`search_key.py`)
-
-Người dùng **nhập từ khóa** → AI tìm kiếm và chọn deal tốt nhất từ BestBuy + Amazon.
-
-```
-[Nhập keyword: "laptop"]
-       │
-       ▼
-[ClarificationAgent] → 3 câu hỏi làm rõ nhu cầu
-       │
-       ▼
-[Step 1] Search song song BestBuy + Amazon (Brave Search API)
-[Step 2] Filter sản phẩm đang sale (BeautifulSoup + Playwright)
-[Step 3] Scrape chi tiết sản phẩm (Playwright)
-[Step 4] Gộp vào unified pool
-[Step 5] GPT-5-mini chọn top 5 deals tốt nhất
-[Step 6] EnsembleAgent ước lượng giá trị thực
-       │
-       ▼
-[Hiển thị bảng kết quả + Push Notification nếu discount > $100]
-```
-
-### 2. 🤖 Autonomous Deal Hunter (`price_is_right.py`)
-
-Hệ thống **chạy tự động mỗi 5 phút**, tự scan RSS feeds từ DealNews.com.
-
-```
-[Khởi động] → [Tự động scan DealNews RSS mỗi 5 phút]
-       │
-       ▼
-[ScannerAgent] → GPT-5-mini chọn top 5 deals
-[EnsembleAgent] → Ước lượng giá trị thực
-[MessagingAgent] → Push notification nếu discount > $50
-[Lưu vào memory.json] → Tránh duplicate
+```text
+Keyword
+  |
+  v
+search_and_scrape()
+  |-- BestBuy pipeline: curl_cffi + internal BestBuy APIs
+  |-- Amazon pipeline: curl_cffi + HTML parsing
+  |
+  v
+combine()
+  |-- UnifiedScrapedDeal.from_bestbuy()
+  |-- UnifiedScrapedDeal.from_amazon()
+  |
+  v
+select_top_deals()
+  |-- MultiSourceScannerAgent + GPT-5-nano structured outputs
+  |
+  v
+estimate_prices()
+  |-- Preprocessor
+  |-- FrontierAgent: GPT-5.1 + ChromaDB RAG
+  |-- SpecialistAgent: fine-tuned Llama/Qwen-style model endpoint
+  |-- NeuralNetworkAgent: local PyTorch DNN
+  |
+  v
+List[Opportunity]
 ```
 
----
+Ensemble hiện tại:
 
-## 🧠 Ensemble AI — 3 Models Kết Hợp
-
-| Model | Trọng số | Mô tả |
-|-------|----------|-------|
-| **FrontierAgent** | 80% | GPT-5.1 + RAG (ChromaDB 800K products) |
-| **SpecialistAgent** | 10% | Fine-tuned Llama-3.2-3B chạy trên Modal GPU |
-| **NeuralNetworkAgent** | 10% | PyTorch DNN 10-layer (ResidualBlocks) chạy local |
-
-**Công thức:**
-```
-estimated_price = frontier × 0.8 + specialist × 0.1 + neural × 0.1
+```text
+estimated_price = frontier * 0.8 + specialist * 0.1 + neural * 0.1
 discount = estimated_price - sale_price
 ```
 
----
+## Cấu Trúc Thư Mục
 
-## ⚙️ Cài đặt và Chạy
-
-### Yêu cầu hệ thống
-
-- Python 3.10+
-- Node.js 18+ (cho MCP servers)
-- CUDA GPU (khuyến nghị, cho PyTorch)
-- Chromium browser (cho Playwright)
-
-### 1. Cài đặt dependencies
-
-```bash
-cd segment4
-
-# Cài Python packages
-uv sync
-
-# Cài Playwright browsers
-uv run playwright install
+```text
+tech2ai/
+|
+|-- segment4/                         # Runtime chính hiện tại
+|   |-- search_key.py                 # App chính: keyword search BestBuy + Amazon
+|   |-- price_is_right.py             # Legacy/reference: autonomous RSS deal hunter
+|   |-- multi_source_framework.py     # Framework cho search_key.py
+|   |-- deal_agent_framework.py       # Framework cũ cho price_is_right.py
+|   |
+|   |-- price_agents/                 # Agent layer
+|   |   |-- multi_source_planning_agent.py
+|   |   |-- bestbuy_deals.py
+|   |   |-- amazon_deals.py
+|   |   |-- ensemble_agent.py
+|   |   |-- frontier_agent.py
+|   |   |-- specialist_agent.py
+|   |   |-- neural_network_agent.py
+|   |   |-- messaging_agent.py
+|   |   |-- deals.py
+|   |   `-- agent.py
+|   |
+|   |-- bestbuy_untils/               # Utilities cho multi-source pipeline
+|   |   |-- unified_deal.py
+|   |   |-- multi_source_scanner_agent.py
+|   |   |-- gradio_helpers.py
+|   |   `-- clarification_agent.py
+|   |
+|   |-- mo_ta_du_an/                  # Tài liệu thiết kế và kế hoạch
+|   |-- products_vectorstore/         # ChromaDB local
+|   |-- deep_neural_network.pth       # Model weights local
+|   `-- sandbox/                      # Reference cho legacy autonomous mode
+|
+|-- fine_tune_qwen/                   # Notebook/thử nghiệm fine-tune Qwen
+|-- fine_tune_qwen_v2/                # Phiên bản thử nghiệm fine-tune Qwen tiếp theo
+|-- scraping_data_tv/                 # Scraping và xử lý dữ liệu tiếng Việt
+|-- AGENTS.md                         # Quy ước làm việc cho coding agent
+|-- pyproject.toml                    # Dependencies dùng bởi uv
+`-- uv.lock
 ```
 
-### 2. Cấu hình file `.env`
+## Cách Cài Đặt
 
-Tạo file `.env` trong thư mục `segment4/`:
+Project dùng `uv` làm package manager và runtime. Không dùng `pip` hoặc gọi `python` trực tiếp khi chạy script trong repo.
+
+```bash
+uv sync
+```
+
+Yêu cầu chính:
+
+- Python 3.12
+- `uv`
+- Network access khi cần gọi OpenAI, Modal, Pushover hoặc scrape website
+- ChromaDB local trong `segment4/products_vectorstore/`
+- Model weights local `segment4/deep_neural_network.pth`
+
+## Biến Môi Trường
+
+Tạo `.env` ở root hoặc trong `segment4/` tùy cách chạy. Không commit `.env`.
 
 ```env
-# Bắt buộc
-OPENAI_API_KEY=sk-...
-BRAVE_API_KEY=BSA-...
+OPENAI_API_KEY=...
 
-# Tùy chọn (cho push notification)
+# Tùy chọn, chỉ cần nếu gửi push notification
 PUSHOVER_USER=...
 PUSHOVER_TOKEN=...
 
-# Tùy chọn (preprocessor model)
+# Tùy chọn cho preprocessor
 PRICER_PREPROCESSOR_MODEL=ollama/llama3.2
+
+# Legacy hoặc thử nghiệm khác nếu cần
+BRAVE_API_KEY=...
+GOOGLE_API_KEY=...
+HF_TOKEN=...
+GROQ_API_KEY=...
 ```
 
-### 3. Chạy ứng dụng
+## Cách Chạy
 
-**Multi-Source Deal Finder (tìm theo keyword):**
+Chạy app chính:
+
 ```bash
 cd segment4
 uv run search_key.py
 ```
 
-**Autonomous Deal Hunter (tự động mỗi 5 phút):**
+Mở giao diện tại:
+
+```text
+http://127.0.0.1:7860
+```
+
+Chạy app legacy/reference:
+
 ```bash
 cd segment4
 uv run price_is_right.py
 ```
 
-Ứng dụng mở tại: `http://127.0.0.1:7860`
+## Tech Stack
 
----
+| Nhóm | Công nghệ |
+|---|---|
+| Language/runtime | Python 3.12, uv |
+| UI | Gradio |
+| Scraping | curl_cffi, BeautifulSoup4 |
+| LLM | OpenAI GPT-5.1, GPT-5-nano, LiteLLM |
+| Local ML | PyTorch DNN, scikit-learn utilities |
+| Specialist model | Modal endpoint / fine-tuned LLM experiment |
+| Vector DB | ChromaDB |
+| Embeddings | sentence-transformers/all-MiniLM-L6-v2 ở pipeline hiện tại |
+| Notification | Pushover |
+| Agent workflow | Multi-agent classes trong `segment4/price_agents/` |
 
-## 📊 Kết quả mẫu
+## Tài Liệu Chi Tiết
 
-**Keyword:** `"Dell laptop"` | **Thời gian:** ~90-120 giây
+Các tài liệu nên đọc khi cần hiểu sâu:
 
-| Sản phẩm | Nguồn | Giá Sale | Ước lượng | Discount |
-|----------|-------|----------|-----------|----------|
-| Dell Inspiron 15.6" i5 512GB | Amazon | $639.99 | $945.86 | $305.87 🔥 |
-| Dell XPS 14 OLED i7 32GB | BestBuy | $999.99 | $1,450.00 | $450.01 🔥 |
+- `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`: tài liệu chính cho `search_key.py`.
+- `segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md`: tài liệu dự án cũ `price_is_right.py`.
+- `segment4/mo_ta_du_an/Project_Development_Plan.md`: kế hoạch chuyển sang trợ lý mua sắm tiếng Việt.
 
----
+## Hướng Phát Triển
 
-## 💰 Chi phí ước tính mỗi lần chạy
+README này phản ánh trạng thái hiện tại: nền tảng BestBuy/Amazon đang chạy được. Các bước phát triển tiếp theo sẽ cập nhật dần theo tiến độ thực tế:
 
-| Component | Model | Chi phí |
-|-----------|-------|---------|
-| Search Agents | GPT-5-nano | ~$0.001 |
-| Clarification | GPT-5-nano | ~$0.001 |
-| Scan top 5 | GPT-5-mini | ~$0.002 |
-| Estimate (5 deals) | GPT-5.1 | ~$0.005 |
-| Preprocess | Llama local | $0 |
-| **Tổng cộng** | | **~$0.01/lần** |
+- Chuyển dữ liệu và pipeline sang sản phẩm tiếng Việt.
+- Xây scraper cho các sàn TMĐT Việt Nam.
+- Fine-tune Qwen cho bài toán ước lượng giá.
+- Xây ChromaDB tiếng Việt với embedding phù hợp hơn.
+- Nâng cấp từ keyword search thành chatbot trợ lý mua sắm.
+- Bổ sung router intent, compare agent, advisor agent, và ReAct search nếu đủ thời gian.
 
----
+## Ghi Chú Development
 
-## 🛠️ Tech Stack
+- CodeGraph đã được init trong `segment4` để coding agent tra cứu symbol, call path và blast radius nhanh hơn. Index `.codegraph/` là local artifact và không commit.
+- Không commit `.env`, API keys, tokens, model credentials, hoặc dữ liệu nhạy cảm.
+- Các folder notebook như `fine_tune_qwen/`, `fine_tune_qwen_v2/`, `scraping_data_tv/` phục vụ nghiên cứu và thử nghiệm, không phải runtime chính hiện tại.
+- Khi sửa code Python, ưu tiên lệnh dạng `uv run ...` để dùng đúng môi trường của repo.
 
-| Lớp | Công nghệ |
-|-----|-----------|
-| **UI** | Gradio |
-| **Search** | Brave Search API + MCP |
-| **Scraping** | Playwright, BeautifulSoup |
-| **LLM** | OpenAI GPT-5.1 / GPT-5-mini / GPT-5-nano |
-| **Fine-tuned Model** | Llama-3.2-3B (LoRA, 4-bit NF4) trên Modal |
-| **Neural Network** | PyTorch DNN (10 layers, ResidualBlocks) |
-| **Vector DB** | ChromaDB (800K products) |
-| **Embeddings** | sentence-transformers/all-MiniLM-L6-v2 |
-| **Notification** | Pushover API |
-| **Package Manager** | uv |
+## Tác Giả
 
----
+Phạm Minh Hiếu - Sunny-sunnyy
 
-## 📚 Tài liệu chi tiết
-
-- [`DOCUMENTATION_SEARCHKEY.md`](segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md) — Chi tiết về Multi-Source Deal Finder
-- [`DOCUMENTATION_PRICE_IS_RIGHT.md`](segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md) — Chi tiết về Autonomous Deal Hunter
-- [`COMPLETE_PROJECT_DOCUMENTATION.md`](segment4/mo_ta_du_an/COMPLETE_PROJECT_DOCUMENTATION.md) — Tài liệu tổng quan đầy đủ
-
----
-
-## 👤 Tác giả
-
-**Phạm Minh Hiếu** — [@Sunny-sunnyy](https://github.com/Sunny-sunnyy)
-
-Đồ án chuyên ngành — 2026
+Repository này đang được dùng cho quá trình học và phát triển TTTN/DATN về AI Engineering, multi-agent systems, scraping, fine-tuning, RAG và price intelligence.
