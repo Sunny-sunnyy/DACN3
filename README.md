@@ -23,46 +23,45 @@ Luồng chính:
 
 Code runtime chính nằm trong `segment4/` và đi theo 3 tầng:
 
-```text
-UI Layer
-  search_key.py
-    |
-Framework Layer
-  multi_source_framework.py
-    |
-Agent Layer
-  price_agents/
-  bestbuy_untils/
+```mermaid
+flowchart TD
+    User["Người dùng nhập keyword"] --> UI["UI Layer<br/>search_key.py"]
+    UI --> Framework["Framework Layer<br/>multi_source_framework.py"]
+    Framework --> Planner["Agent Layer<br/>MultiSourcePlanningAgent"]
+    Planner --> Scrapers["Scraping agents<br/>bestbuy_deals.py<br/>amazon_deals.py"]
+    Planner --> Selector["Selection agent<br/>MultiSourceScannerAgent"]
+    Planner --> Ensemble["Pricing agent<br/>EnsembleAgent"]
+    Planner --> Messenger["Notification<br/>MessagingAgent"]
+    Ensemble --> Frontier["FrontierAgent<br/>GPT-5.1 + ChromaDB RAG"]
+    Ensemble --> Specialist["SpecialistAgent<br/>Fine-tuned model endpoint"]
+    Ensemble --> Neural["NeuralNetworkAgent<br/>PyTorch DNN"]
 ```
 
 Pipeline của `search_key.py`:
 
-```text
-Keyword
-  |
-  v
-search_and_scrape()
-  |-- BestBuy pipeline: curl_cffi + internal BestBuy APIs
-  |-- Amazon pipeline: curl_cffi + HTML parsing
-  |
-  v
-combine()
-  |-- UnifiedScrapedDeal.from_bestbuy()
-  |-- UnifiedScrapedDeal.from_amazon()
-  |
-  v
-select_top_deals()
-  |-- MultiSourceScannerAgent + GPT-5-nano structured outputs
-  |
-  v
-estimate_prices()
-  |-- Preprocessor
-  |-- FrontierAgent: GPT-5.1 + ChromaDB RAG
-  |-- SpecialistAgent: fine-tuned Llama/Qwen-style model endpoint
-  |-- NeuralNetworkAgent: local PyTorch DNN
-  |
-  v
-List[Opportunity]
+```mermaid
+flowchart TD
+    Keyword["Keyword + source + max URLs"] --> Step1["Step 1/4<br/>search_and_scrape()"]
+    Step1 --> BestBuy["BestBuy pipeline<br/>curl_cffi + internal APIs"]
+    Step1 --> Amazon["Amazon pipeline<br/>curl_cffi + HTML parsing"]
+    BestBuy --> Combine["Step 2/4<br/>combine()"]
+    Amazon --> Combine
+    Combine --> Unified["UnifiedScrapedDeal pool"]
+    Unified --> Select["Step 3/4<br/>select_top_deals()"]
+    Select --> GPT["GPT-5-nano<br/>Structured Outputs"]
+    GPT --> Deals["DealSelection<br/>top 3 deals"]
+    Deals --> Estimate["Step 4/4<br/>estimate_prices()"]
+    Estimate --> Preprocess["Preprocessor"]
+    Preprocess --> Frontier2["FrontierAgent<br/>80%"]
+    Preprocess --> Specialist2["SpecialistAgent<br/>10%"]
+    Preprocess --> Neural2["NeuralNetworkAgent<br/>10%"]
+    Frontier2 --> Opportunities["List[Opportunity]<br/>sorted by discount"]
+    Specialist2 --> Opportunities
+    Neural2 --> Opportunities
+    Opportunities --> Notify{"Best discount > $100?"}
+    Notify -->|Yes| Push["Pushover notification"]
+    Notify -->|No| UIResult["Render results in Gradio"]
+    Push --> UIResult
 ```
 
 Ensemble hiện tại:
