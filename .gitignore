@@ -192,3 +192,7 @@ scraping_data_tv/Data_processing_for_Vietnamese_data/day3/tokenized_train_1m.pkl
 # Large batch data directories — do not commit
 fine_tune_qwen/batches_aug_v3/
 fine_tune_qwen/output_aug_v3/
+
+
+.codegraph/
+segment4/.understand-anything/
