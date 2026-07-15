@@ -18,7 +18,7 @@ Current approved milestone: Phase 3 Async Jobs
 Last approved commit:
 
 ```text
-not committed yet
+2fa46f3 Approve shopping assistant v3 phase 3 async jobs
 ```
 
 Approved report:
@@ -39,7 +39,7 @@ shopping_assistant_v3/reports/phase_3_async_jobs_codex_review.md
 |---|---|---|---|
 | Phase 1: Project Setup | approved | `3e37428` | Runtime skeleton, mock-safe env template, setup verification script, and Phase 1 report are approved. |
 | Phase 2: Backend API And Database | approved | `b9f71d3` | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, and 20-test suite are approved. |
-| Phase 3: Async Jobs | approved | not committed yet | Local daemon-thread worker, async job lifecycle, mock completion, stale-running recovery, structured logs, agent_runs audit rows, and 36-test suite are approved. |
+| Phase 3: Async Jobs | approved | `2fa46f3` | Local daemon-thread worker, async job lifecycle, mock completion, stale-running recovery, structured logs, agent_runs audit rows, and 36-test suite are approved. |
 
 ## Next Allowed Work
 
