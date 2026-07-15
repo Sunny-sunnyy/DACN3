@@ -125,6 +125,8 @@ Không tự ý chạy `codegraph init` nếu index lỗi hoặc thiếu. Báo t�
 shopping_assistant_v2/README.md
 shopping_assistant_v2/PROJECT_DEVELOPMENT_PLAN_V2.md
 shopping_assistant_v2/PROJECT_STRUCTURE_AND_IMPLEMENTATION_ORDER.md
+shopping_assistant_v2/reports/README.md
+shopping_assistant_v2/reports/TEMPLATE_IMPLEMENTATION_REPORT.md
 shopping_assistant_v2/docs/decisions.md
 shopping_assistant_v2/docs/architecture.md
 shopping_assistant_v2/docs/agent_architecture.md
@@ -291,6 +293,20 @@ Trước khi implement:
 
 Không tự ý mở rộng scope.
 
+Sau khi implement một phase:
+
+1. Viết implementation report theo `shopping_assistant_v2/reports/TEMPLATE_IMPLEMENTATION_REPORT.md`.
+2. Lưu report vào `shopping_assistant_v2/reports/`.
+3. Báo rõ files đã tạo/sửa, tests đã chạy, rủi ro còn lại.
+4. Chờ reviewer đọc report và yêu cầu sửa nếu cần.
+5. Không tự ý commit/push khi chưa được người dùng xác nhận.
+
+Sau khi reviewer xác nhận phase đã ổn:
+
+1. Reviewer sẽ cập nhật các file `.md` liên quan để phản ánh implementation thực tế.
+2. Chỉ claim một chức năng đã hoàn thành nếu code và verification đã chứng minh.
+3. Nếu docs/specs/guides không còn chính xác, phải cập nhật trước khi chuyển phase tiếp theo.
+
 ---
 
 ## 8. Verification Rules
@@ -319,8 +335,9 @@ Khi đã được phép implement:
   3. `shopping_assistant_v2/PROJECT_DEVELOPMENT_PLAN_V2.md`.
   4. `shopping_assistant_v2/PROJECT_STRUCTURE_AND_IMPLEMENTATION_ORDER.md`.
   5. Specs trong `shopping_assistant_v2/specs/`.
-  6. Guides/plans/docs.
-  7. Tài liệu cũ trong `segment4/mo_ta_du_an/`.
+  6. Reports đã được reviewer approve trong `shopping_assistant_v2/reports/`.
+  7. Guides/plans/docs.
+  8. Tài liệu cũ trong `segment4/mo_ta_du_an/`.
 
 ---
 

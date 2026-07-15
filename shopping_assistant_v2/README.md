@@ -49,6 +49,7 @@ shopping_assistant_v2/
 ├── specs/        # Technical contracts for coding agents
 ├── guides/       # Step-by-step implementation runbooks
 ├── docs/         # Architecture notes, decisions, UI/UX research
+├── reports/      # Phase implementation handoff reports
 └── scripts/      # Future local helper scripts
 ```
 
@@ -75,3 +76,7 @@ Vietnamese user message
 ## Brainstorming And Research Gate
 
 Before implementation, coding agents must run a focused brainstorming/research pass to validate assumptions, simplify scope, and update this document if a better approach is found.
+
+## Phase Report Gate
+
+After each implementation phase, the implementer must write a report in `reports/` using `reports/TEMPLATE_IMPLEMENTATION_REPORT.md`. The reviewer must approve the phase and update stale docs/specs/guides before the project moves to the next phase.

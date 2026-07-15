@@ -89,6 +89,7 @@ shopping_assistant_v2/
 ├── specs/
 ├── guides/
 ├── docs/
+├── reports/
 └── scripts/
 ```
 
@@ -203,7 +204,25 @@ Khi dùng:
 - Đọc để hiểu quyết định thiết kế.
 - Cập nhật khi có ADR hoặc thay đổi kiến trúc.
 
-### 3.9. `scripts/`
+### 3.9. `reports/`
+
+Vai trò:
+
+- Chứa báo cáo handoff sau mỗi phase do implementer agent viết.
+- Reviewer dùng report để đánh giá phase, yêu cầu sửa, và quyết định docs nào cần cập nhật.
+- Sau khi phase được reviewer xác nhận ổn, reviewer cập nhật các file `.md` liên quan để phản ánh implementation thực tế.
+
+File quan trọng:
+
+- `reports/README.md`
+- `reports/TEMPLATE_IMPLEMENTATION_REPORT.md`
+
+Khi dùng:
+
+- Mỗi phase nên có một report riêng.
+- Không chuyển sang phase tiếp theo nếu phase hiện tại chưa có report và chưa được review.
+
+### 3.10. `scripts/`
 
 Vai trò:
 
@@ -854,7 +873,10 @@ Mỗi coding agent trước khi làm phải:
 6. Hỏi xác nhận nếu scope chưa rõ.
 7. Chỉ implement khi được duyệt.
 8. Verify bằng test nhỏ nhất.
-9. Báo lại thay đổi, test, rủi ro.
+9. Viết implementation report trong `reports/`.
+10. Chờ reviewer xác nhận.
+11. Sau khi phase ổn, reviewer cập nhật docs/specs/guides nếu có thay đổi thực tế.
+12. Báo lại thay đổi, test, rủi ro.
 
 Không được:
 

@@ -341,7 +341,34 @@ Required test categories:
 - Frontend smoke test.
 - Manual opt-in real network/model test.
 
-## 12. Risks And Mitigations
+## 12. Multi-Agent Collaboration Workflow
+
+Recommended roles:
+
+- Implementer agent: writes code for one approved phase.
+- Reviewer/architect agent: reviews the implementation report and code when needed.
+- User: product owner and final decision maker.
+
+Workflow per phase:
+
+1. Implementer reads the prompt, plans, specs, and guides.
+2. Implementer brainstorms with the user before coding.
+3. Implementer executes only the approved phase.
+4. Implementer writes a report in `reports/` using `reports/TEMPLATE_IMPLEMENTATION_REPORT.md`.
+5. Reviewer reads the report first.
+6. Reviewer inspects code/files when needed.
+7. Reviewer returns blocker/major/minor findings.
+8. Implementer fixes issues.
+9. Reviewer approves the phase.
+10. Reviewer updates relevant `.md` files to reflect what was actually implemented.
+11. User decides when to commit/push.
+
+Documentation update rule:
+
+- If implementation changes an API, schema, folder structure, tool behavior, phase status, verification command, or known risk, update the relevant docs/specs/guides after reviewer approval.
+- Do not claim a feature is complete in docs unless implementation and verification prove it.
+
+## 13. Risks And Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
@@ -352,7 +379,7 @@ Required test categories:
 | Hallucinated prices/specs | User trust issue | Tool evidence required, schema validation |
 | Segment4 coupling | V2 becomes messy | Extract/adapt clean modules, keep segment4 read-only |
 
-## 13. Out Of Scope For MVP
+## 14. Out Of Scope For MVP
 
 - Vietnamese marketplace scraping.
 - New Vietnamese price model training.
@@ -363,7 +390,7 @@ Required test categories:
 - Complex personalization.
 - Full product review analysis.
 
-## 14. Success Criteria
+## 15. Success Criteria
 
 The V2 MVP succeeds when:
 
