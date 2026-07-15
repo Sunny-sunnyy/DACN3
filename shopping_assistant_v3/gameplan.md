@@ -367,13 +367,15 @@ Expected test layers by MVP:
 
 Current V3 status:
 
-- Documentation structure is being created.
-- No V3 runtime backend/frontend is implemented yet.
+- Phase 1 Project Setup is approved.
+- Runtime skeleton folders for `backend/`, `frontend/`, and `scripts/` exist.
+- No V3 runtime backend/frontend code is implemented yet.
+- Phase 2 Backend API and Database is the next implementation phase.
 - `shopping_assistant_v2/` remains reference-only.
 - `segment4/` remains prototype/reference-only.
 
-Next recommended implementation phase after documentation review:
+Next recommended implementation phase:
 
-1. Phase 1: Project Setup.
-2. Phase 2: Backend API and Database.
-3. Phase 3: Async Jobs.
+1. Phase 2: Backend API and Database.
+2. Phase 3: Async Jobs.
+3. Phase 4A: Mock Search and Pricing Tools.

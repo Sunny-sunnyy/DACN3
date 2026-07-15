@@ -10,17 +10,33 @@ instead of recreating V2's scattered documentation and unclear boundaries.
 
 ## Current Status
 
-V3 currently contains documentation only:
+Phase 1 has been implemented and approved. V3 now contains the documentation
+source of truth plus runtime skeleton folders:
 
 ```text
 shopping_assistant_v3/
 ├── README.md
+├── .env.example
+├── backend/
+│   ├── README.md
+│   ├── shared/
+│   ├── database/
+│   ├── api/
+│   ├── router/
+│   ├── tools/
+│   └── synthesizer/
+├── frontend/
+│   └── README.md
 ├── gameplan.md
 ├── guides/
-└── reports/
+├── reports/
+└── scripts/
+    ├── README.md
+    └── verify_setup.sh
 ```
 
-No runtime backend or frontend is implemented yet.
+No runtime backend API, database schema, worker, tool, or frontend UI code is
+implemented yet. Phase 2 is the next implementation phase.
 
 ## Scope
 
