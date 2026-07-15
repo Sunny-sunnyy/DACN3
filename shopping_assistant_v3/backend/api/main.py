@@ -1,12 +1,14 @@
 """FastAPI application for Shopping Assistant V3.
 
 Endpoints: GET /health, POST /api/chat-jobs, GET /api/chat-jobs/{job_id}.
-No CORS in Phase 2. No worker execution. Route handlers are thin.
+No CORS in Phase 2. Worker runs via daemon thread (Phase 3).
+Route handlers are thin.
 """
 
 from __future__ import annotations
 
 import json
+import threading
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
@@ -24,6 +26,7 @@ from backend.database.repository import (
     get_job_by_id,
 )
 from backend.database.session import get_db, init_db
+from backend.worker import process_job
 from backend.shared.config import DEMO_USER_ID
 from backend.shared.errors import (
     AppError,
@@ -98,7 +101,10 @@ def health() -> dict[str, str]:
 
 
 @app.post("/api/chat-jobs", response_model=ChatJobResponse, status_code=201)
-def create_chat_job(body: ChatJobRequest, session: Session = Depends(get_db)) -> dict[str, str]:
+def create_chat_job(
+    body: ChatJobRequest,
+    session: Session = Depends(get_db),
+) -> dict[str, str]:
     conversation_id = body.conversation_id
     if conversation_id is None:
         conversation = create_conversation(session, user_id=DEMO_USER_ID)
@@ -121,6 +127,12 @@ def create_chat_job(body: ChatJobRequest, session: Session = Depends(get_db)) ->
         conversation_id=conversation_id,
         request_payload=body.model_dump(mode="json"),
     )
+
+    # Commit so the worker thread can see the job from its own session.
+    session.commit()
+
+    # Run worker in daemon thread so the response returns immediately.
+    threading.Thread(target=process_job, args=(job.id,), daemon=True).start()
 
     return {
         "job_id": job.id,

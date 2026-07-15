@@ -43,6 +43,8 @@ The implementer must:
 - follow the current phase guide and V3 architecture contracts;
 - use mocks and fixtures by default;
 - run the smallest relevant verification first;
+- perform a self-check for security, data safety, reliability, and performance
+  before handing work to Codex;
 - write or update the implementer's own report in
   `shopping_assistant_v3/reports/`;
 - respond to Codex feedback by changing code/docs and the implementer's own
@@ -87,6 +89,30 @@ The report must state:
 - deviations from the guide;
 - whether any real network, scraping, model, deploy, or secret access happened.
 
+## Mandatory Self-Check Before Handoff
+
+Before saying a phase or milestone is ready for Codex review, the implementer
+must check the changed scope for:
+
+- security: no secrets are read, printed, logged, committed, or exposed through
+  API responses; no live scraping, paid model calls, AWS/Terraform/deploy, or
+  new network access happened unless the user explicitly approved it;
+- data safety: persisted payloads, result payloads, URLs, user messages,
+  tool/model errors, and internal exceptions are stored and returned only in
+  intentional safe forms; user/API-visible errors are sanitized;
+- reliability: job/status transitions cannot get stuck in the approved flow;
+  idempotency and failure paths are tested; audit/log records include `job_id`
+  where the guides require it;
+- performance: the implementation does not add obvious avoidable slowness,
+  unbounded work, uncontrolled threads, repeated expensive calls, or polling
+  loops without documenting the local-MVP limitation and risk;
+- tests: default tests use mocks/fixtures and do not require secrets, live
+  scraping, paid model calls, AWS, Terraform, deployment, or external services.
+
+The implementer report must include a short note for this self-check. If a risk
+is accepted as local-MVP behavior, list it under `Known Issues` with severity
+and explain why it does not block the current phase.
+
 ## Responding To Codex Feedback
 
 When Codex writes a review file:
@@ -108,4 +134,3 @@ The implementer may inspect git status but must not commit or push by default.
 
 If a commit or push seems necessary, stop and ask the user to have Codex review
 and approve the action.
-

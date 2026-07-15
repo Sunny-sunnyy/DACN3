@@ -13,24 +13,24 @@ Only Codex updates this file, and only after approving a phase or milestone.
 
 ## Current Approved Status
 
-Current approved milestone: Phase 2 Backend API And Database
+Current approved milestone: Phase 3 Async Jobs
 
 Last approved commit:
 
 ```text
-b9f71d3 Approve shopping assistant v3 phase 2 backend
+not committed yet
 ```
 
 Approved report:
 
 ```text
-shopping_assistant_v3/reports/phase_2_backend_api_and_database_report.md
+shopping_assistant_v3/reports/phase_3_async_jobs_report.md
 ```
 
 Approved reviewer notes:
 
 ```text
-shopping_assistant_v3/reports/phase_2_backend_api_and_database_codex_review.md
+shopping_assistant_v3/reports/phase_3_async_jobs_codex_review.md
 ```
 
 ## Approved History
@@ -39,19 +39,20 @@ shopping_assistant_v3/reports/phase_2_backend_api_and_database_codex_review.md
 |---|---|---|---|
 | Phase 1: Project Setup | approved | `3e37428` | Runtime skeleton, mock-safe env template, setup verification script, and Phase 1 report are approved. |
 | Phase 2: Backend API And Database | approved | `b9f71d3` | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, and 20-test suite are approved. |
+| Phase 3: Async Jobs | approved | not committed yet | Local daemon-thread worker, async job lifecycle, mock completion, stale-running recovery, structured logs, agent_runs audit rows, and 36-test suite are approved. |
 
 ## Next Allowed Work
 
 Next implementation phase:
 
 ```text
-Phase 3: Async Jobs
+Phase 4A: Mock Search/Pricing Tools
 ```
 
-Phase 3 must start from the approved Phase 2 backend/API/database foundation and follow:
+Phase 4A must start from the approved Phase 3 async job foundation and follow:
 
 ```text
-shopping_assistant_v3/guides/3_async_jobs.md
+shopping_assistant_v3/guides/4_search_and_pricing_tools.md
 ```
 
 ## Open Blockers
@@ -67,7 +68,6 @@ user explicitly scopes them:
 ```text
 brainstorming.md
 prompt_session.md
-segment4/mo_ta_du_an/PROMPT_NEW_SESSION_APPLY_ALEX_TRANSFER_TO_DATN.md
 ```
 
 ## Status Update Rules

@@ -42,6 +42,8 @@ Codex must:
 
 - review the implementer's report and the files it claims changed;
 - inspect relevant code, docs, tests, and verification evidence;
+- perform a scope-appropriate review for security, data safety, reliability,
+  and performance before approval;
 - write a separate Codex review file in `shopping_assistant_v3/reports/`;
 - ask for corrections when findings block approval;
 - update `PROJECT_STATUS.md` only after approval;
@@ -98,6 +100,32 @@ Use finding severity:
 - `minor` - should be fixed, but Codex may approve if it does not affect phase
   correctness.
 
+## Mandatory Safety And Quality Review
+
+Before approving any phase or milestone, Codex must explicitly check the changed
+scope for:
+
+- security: no secrets are read, printed, logged, committed, or exposed through
+  API responses; no new live scraping, model calls, deploy actions, or network
+  access happened unless explicitly approved;
+- data safety: user inputs, job payloads, result payloads, URLs, model/tool
+  errors, and internal exceptions are persisted and returned only in safe,
+  intentional forms; user/API-visible errors are sanitized;
+- reliability: state transitions cannot leave accepted workflows stuck forever;
+  failure paths are deterministic, idempotent behavior is tested, and audit/log
+  rows are correlated by `job_id` where required;
+- performance: implementation choices are reasonable for the approved MVP
+  scope, and any known bottlenecks such as unbounded threads, polling loops,
+  SQLite write contention, or repeated expensive work are either fixed or
+  documented as accepted local-MVP limitations;
+- tests: default verification uses mocks/fixtures and does not require secrets,
+  paid APIs, live Amazon/BestBuy scraping, AWS, Terraform, or deployment.
+
+Codex should classify issues from this pass using the normal severity levels.
+Do not block on production-grade hardening that is outside the approved phase,
+but document local-MVP limitations when they affect future phases or the DATN
+demo.
+
 ## Review File Structure
 
 Use this structure:
@@ -127,6 +155,10 @@ Commands run and important results.
 ## Scope Check
 
 State whether scope stayed inside the approved phase or milestone.
+
+## Safety And Quality Check
+
+Security, data safety, reliability, and performance observations.
 
 ## Required Changes
 
@@ -163,4 +195,3 @@ git push
 ```
 
 Report the commit hash and any unrelated remaining worktree changes.
-

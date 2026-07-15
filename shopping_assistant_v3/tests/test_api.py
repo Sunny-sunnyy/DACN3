@@ -210,7 +210,7 @@ class TestCreateChatJobValidation:
 # ---------------------------------------------------------------------------
 
 class TestGetChatJob:
-    def test_existing_job_returns_full_status(self, client: TestClient) -> None:
+    def test_existing_job_returns_valid_status(self, client: TestClient) -> None:
         # Create a job first.
         create_resp = client.post(
             "/api/chat-jobs",
@@ -218,15 +218,47 @@ class TestGetChatJob:
         )
         job_id = create_resp.json()["job_id"]
 
-        # Get it.
+        # Get it — may be pending or completed depending on worker timing.
         response = client.get(f"/api/chat-jobs/{job_id}")
         assert response.status_code == 200
         body = response.json()
         assert body["job_id"] == job_id
-        assert body["status"] == "pending"
+        assert body["status"] in ("pending", "running", "completed")
         assert body["created_at"] is not None
         assert body["error_message"] is None
-        assert body["result"] is None
+
+    def test_api_async_flow_reaches_completed(self, client: TestClient) -> None:
+        """Phase 3 contract: POST -> poll -> completed with mock result."""
+        import time
+
+        create_resp = client.post(
+            "/api/chat-jobs",
+            json={"message": "Tim laptop gaming duoi 800 do"},
+        )
+        assert create_resp.status_code == 201
+        job_id = create_resp.json()["job_id"]
+
+        # Poll up to 5 seconds for the worker to finish.
+        deadline = time.monotonic() + 5.0
+        status = "pending"
+        result = None
+        while time.monotonic() < deadline:
+            resp = client.get(f"/api/chat-jobs/{job_id}")
+            assert resp.status_code == 200
+            body = resp.json()
+            status = body["status"]
+            if status in ("completed", "failed"):
+                result = body.get("result")
+                break
+            time.sleep(0.2)
+
+        assert status == "completed", f"Expected completed, got {status} after 5s"
+        assert result is not None
+        assert "answer_vi" in result
+        assert len(result["answer_vi"]) > 0
+        assert "products" in result
+        assert isinstance(result["products"], list)
+        assert len(result["products"]) >= 1
 
     def test_unknown_job_returns_404_error_shape(self, client: TestClient) -> None:
         response = client.get("/api/chat-jobs/nonexistent-id")

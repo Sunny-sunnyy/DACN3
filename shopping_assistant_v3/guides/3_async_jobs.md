@@ -115,6 +115,7 @@ Before coding:
 1. Confirm Phase 2 report and tests pass.
 2. Choose worker mode for MVP:
    - FastAPI background task for simplest local slice; or
+   - daemon thread after explicit job commit for local MVP compatibility; or
    - separate local worker process for cleaner future queue mapping.
 3. Add worker function for one `job_id`.
 4. Add repository update helpers for status/result/error.
@@ -164,7 +165,10 @@ Include:
 
 ## Risks And Open Questions
 
-- Background tasks are simpler but less production-like than a separate worker.
-  Either is acceptable if documented.
+- Background tasks and daemon threads are simpler but less production-like than
+  a separate worker. Either local approach is acceptable if documented and if
+  API-created jobs are committed before the worker can read them.
+- Daemon-thread workers are local-MVP only: they do not survive process restart
+  and must be replaced by a bounded queue/worker before production.
 - If jobs can get stuck in `running`, the implementation is not acceptable.
 - The mock result should be obviously mocked to avoid claiming real search.
