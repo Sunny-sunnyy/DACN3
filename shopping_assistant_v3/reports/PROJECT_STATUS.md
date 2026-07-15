@@ -18,7 +18,7 @@ Current approved milestone: Phase 2 Backend API And Database
 Last approved commit:
 
 ```text
-not committed yet
+b9f71d3 Approve shopping assistant v3 phase 2 backend
 ```
 
 Approved report:
@@ -38,7 +38,7 @@ shopping_assistant_v3/reports/phase_2_backend_api_and_database_codex_review.md
 | Phase/Milestone | Status | Commit | Notes |
 |---|---|---|---|
 | Phase 1: Project Setup | approved | `3e37428` | Runtime skeleton, mock-safe env template, setup verification script, and Phase 1 report are approved. |
-| Phase 2: Backend API And Database | approved | not committed yet | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, and 20-test suite are approved. |
+| Phase 2: Backend API And Database | approved | `b9f71d3` | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, and 20-test suite are approved. |
 
 ## Next Allowed Work
 
