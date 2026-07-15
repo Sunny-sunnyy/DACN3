@@ -1,0 +1,80 @@
+# Shopping Assistant V3 Project Status
+
+## Purpose
+
+This file is the short status ledger for Shopping Assistant V3. It tracks the
+latest approved phase or milestone without requiring frequent updates to
+`gameplan.md`.
+
+`gameplan.md` remains the product and architecture source of truth. This file is
+the source of truth for current approved progress.
+
+Only Codex updates this file, and only after approving a phase or milestone.
+
+## Current Approved Status
+
+Current approved milestone: Phase 1 Project Setup
+
+Last approved commit:
+
+```text
+3e37428 Approve shopping assistant v3 phase 1 setup
+```
+
+Approved report:
+
+```text
+shopping_assistant_v3/reports/phase_1_project_setup_report.md
+```
+
+Approved reviewer notes:
+
+```text
+Reviewer decision was written inside phase_1_project_setup_report.md before the
+separate Codex review workflow was introduced.
+```
+
+## Approved History
+
+| Phase/Milestone | Status | Commit | Notes |
+|---|---|---|---|
+| Phase 1: Project Setup | approved | `3e37428` | Runtime skeleton, mock-safe env template, setup verification script, and Phase 1 report are approved. |
+
+## Next Allowed Work
+
+Next implementation phase:
+
+```text
+Phase 2: Backend API And Database
+```
+
+Phase 2 must start from the approved Phase 1 skeleton and follow:
+
+```text
+shopping_assistant_v3/guides/2_backend_api_and_database.md
+```
+
+## Open Blockers
+
+No approved blockers.
+
+## Known Worktree Notes
+
+At the time this status file was created, these untracked files were outside the
+Shopping Assistant V3 approved phase flow and should remain untouched unless the
+user explicitly scopes them:
+
+```text
+brainstorming.md
+prompt_session.md
+segment4/mo_ta_du_an/PROMPT_NEW_SESSION_APPLY_ALEX_TRANSFER_TO_DATN.md
+```
+
+## Status Update Rules
+
+- DeepSeek or any implementer must not update this file.
+- Codex updates this file only after approving a phase or milestone.
+- Routine progress should be recorded here, not in `gameplan.md`.
+- `gameplan.md` should change only when product direction, architecture, phase
+  contracts, or long-lived project guidance changes.
+

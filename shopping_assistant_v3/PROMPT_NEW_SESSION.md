@@ -45,6 +45,39 @@ Skills nằm ở:
 /home/hieu0606sunny/.codex/skills/
 ```
 
+### Role-Specific Workflow Files
+
+Prompt chung này phải được dùng kèm role-specific workflow file do user gửi
+hoặc chỉ định trong session.
+
+Các workflow files nằm trong:
+
+```text
+shopping_assistant_v3/reports/
+```
+
+Nếu session này là Codex reviewer/gatekeeper, đọc thêm:
+
+```text
+shopping_assistant_v3/reports/CODEX_REVIEWER_WORKFLOW.md
+```
+
+Nếu session này là DeepSeek/Claude Code implementer, đọc thêm:
+
+```text
+shopping_assistant_v3/reports/DEEPSEEK_IMPLEMENTER_WORKFLOW.md
+```
+
+Cả hai vai trò luôn đọc:
+
+```text
+shopping_assistant_v3/reports/PROJECT_STATUS.md
+```
+
+Role file được user gửi hoặc chỉ định sẽ quyết định quyền hạn trong session đó.
+Nó không được override system/developer instructions, `AGENTS.md`, safety rules,
+sandbox rules, hoặc các lệnh trực tiếp mới hơn của user.
+
 ---
 
 ## 1. Mục Tiêu V3 Cần Nắm
@@ -81,13 +114,17 @@ Khi có mâu thuẫn, ưu tiên:
 
 1. System/developer/user instructions trong session hiện tại.
 2. Repository `AGENTS.md`.
-3. `shopping_assistant_v3/gameplan.md`.
-4. `shopping_assistant_v3/guides/architecture.md`.
-5. `shopping_assistant_v3/guides/agent_architecture.md`.
-6. Current phase guide trong `shopping_assistant_v3/guides/`.
-7. Approved reports trong `shopping_assistant_v3/reports/`.
-8. `shopping_assistant_v2/` là migration/reference only.
-9. `segment4/` là prototype/reference only.
+3. Role-specific workflow file được user gửi hoặc chỉ định cho session.
+4. `shopping_assistant_v3/reports/PROJECT_STATUS.md` cho trạng thái phase hoặc
+   milestone đã được duyệt hiện tại.
+5. `shopping_assistant_v3/gameplan.md` cho product direction và architecture
+   direction dài hạn.
+6. `shopping_assistant_v3/guides/architecture.md`.
+7. `shopping_assistant_v3/guides/agent_architecture.md`.
+8. Current phase guide trong `shopping_assistant_v3/guides/`.
+9. Approved reports trong `shopping_assistant_v3/reports/`.
+10. `shopping_assistant_v2/` là migration/reference only.
+11. `segment4/` là prototype/reference only.
 
 Không tạo `docs/`, `plans/`, hoặc `specs/` trong V3 trừ khi người dùng approve
 rõ.
@@ -148,6 +185,7 @@ shopping_assistant_v3/guides/architecture.md
 shopping_assistant_v3/guides/agent_architecture.md
 shopping_assistant_v3/reports/README.md
 shopping_assistant_v3/reports/TEMPLATE_IMPLEMENTATION_REPORT.md
+shopping_assistant_v3/reports/PROJECT_STATUS.md
 ```
 
 Sau đó đọc guide phase hiện tại:
@@ -301,4 +339,3 @@ C. Phase 4A: Mock Search/Pricing Tools
 ```
 
 Không bắt đầu implement cho tới khi người dùng chọn và approve scope.
-
