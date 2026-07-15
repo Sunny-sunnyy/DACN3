@@ -1,0 +1,20 @@
+[project]
+name = "shopping-assistant-v3"
+version = "0.1.0"
+description = "Shopping Assistant V3 — Vietnamese-speaking US Deal Assistant"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "sqlalchemy>=2.0.0",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.28.0",
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

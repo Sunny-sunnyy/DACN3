@@ -1,0 +1,37 @@
+"""Application configuration loaded from environment variables.
+
+Never logs or prints secret values. Uses python-dotenv to load .env files.
+"""
+
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
+if ENV_FILE.exists():
+    load_dotenv(ENV_FILE)
+
+
+def _get_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name, str(default)).strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+# Safety flags: default mock mode, no network, no paid model calls.
+ENABLE_REAL_SEARCH: bool = _get_bool("ENABLE_REAL_SEARCH", False)
+ENABLE_REAL_MODEL_CALLS: bool = _get_bool("ENABLE_REAL_MODEL_CALLS", False)
+
+# Persistence
+DATABASE_URL: str = os.getenv(
+    "DATABASE_URL",
+    f"sqlite:///{Path(__file__).resolve().parent.parent / 'database' / 'app.db'}",
+)
+
+# Model config (unused in Phase 2 but declared for completeness)
+MODEL_PROVIDER: str = os.getenv("MODEL_PROVIDER", "openai")
+MODEL_ID_ROUTER: str = os.getenv("MODEL_ID_ROUTER", "")
+MODEL_ID_SYNTHESIZER: str = os.getenv("MODEL_ID_SYNTHESIZER", "")
+
+# Demo identity for MVP
+DEMO_USER_ID: str = "demo_user"

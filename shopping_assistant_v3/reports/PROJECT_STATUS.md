@@ -13,25 +13,24 @@ Only Codex updates this file, and only after approving a phase or milestone.
 
 ## Current Approved Status
 
-Current approved milestone: Phase 1 Project Setup
+Current approved milestone: Phase 2 Backend API And Database
 
 Last approved commit:
 
 ```text
-3e37428 Approve shopping assistant v3 phase 1 setup
+not committed yet
 ```
 
 Approved report:
 
 ```text
-shopping_assistant_v3/reports/phase_1_project_setup_report.md
+shopping_assistant_v3/reports/phase_2_backend_api_and_database_report.md
 ```
 
 Approved reviewer notes:
 
 ```text
-Reviewer decision was written inside phase_1_project_setup_report.md before the
-separate Codex review workflow was introduced.
+shopping_assistant_v3/reports/phase_2_backend_api_and_database_codex_review.md
 ```
 
 ## Approved History
@@ -39,19 +38,20 @@ separate Codex review workflow was introduced.
 | Phase/Milestone | Status | Commit | Notes |
 |---|---|---|---|
 | Phase 1: Project Setup | approved | `3e37428` | Runtime skeleton, mock-safe env template, setup verification script, and Phase 1 report are approved. |
+| Phase 2: Backend API And Database | approved | not committed yet | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, and 20-test suite are approved. |
 
 ## Next Allowed Work
 
 Next implementation phase:
 
 ```text
-Phase 2: Backend API And Database
+Phase 3: Async Jobs
 ```
 
-Phase 2 must start from the approved Phase 1 skeleton and follow:
+Phase 3 must start from the approved Phase 2 backend/API/database foundation and follow:
 
 ```text
-shopping_assistant_v3/guides/2_backend_api_and_database.md
+shopping_assistant_v3/guides/3_async_jobs.md
 ```
 
 ## Open Blockers
@@ -77,4 +77,3 @@ segment4/mo_ta_du_an/PROMPT_NEW_SESSION_APPLY_ALEX_TRANSFER_TO_DATN.md
 - Routine progress should be recorded here, not in `gameplan.md`.
 - `gameplan.md` should change only when product direction, architecture, phase
   contracts, or long-lived project guidance changes.
-
