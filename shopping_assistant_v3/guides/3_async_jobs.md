@@ -1,39 +1,39 @@
 # Phase 3: Async Jobs
 
-## Purpose
+## Mục Đích
 
-Implement the local async job lifecycle and deterministic mock completion path.
+Implement local async job lifecycle và deterministic mock completion path.
 
-This phase proves that jobs move from `pending` to `running` to `completed` or
-`failed`, and that the frontend will later be able to poll status without the API
-blocking on long work.
+Phase này chứng minh jobs chuyển từ `pending` sang `running` sang `completed`
+hoặc `failed`, và frontend sau này có thể poll status mà API không block vì
+long work.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Phase 3 starts after Phase 2 backend API and SQLite repositories work.
+Phase 3 bắt đầu sau khi Phase 2 backend API và SQLite repositories hoạt động.
 
-The API can create and read `pending` jobs, but no worker processes them yet.
+API có thể tạo và đọc `pending` jobs, nhưng chưa có worker xử lý chúng.
 
 ## Scope
 
 Implement:
 
-- local worker entry point or background worker path;
+- local worker entry point hoặc background worker path;
 - status transitions;
-- idempotency for already completed jobs;
+- idempotency cho jobs đã completed;
 - deterministic mock result payload;
-- failed job path with sanitized error;
-- structured logs by `job_id`;
-- `agent_runs` audit rows for worker execution.
+- failed job path với sanitized error;
+- structured logs theo `job_id`;
+- `agent_runs` audit rows cho worker execution.
 
 ## Non-Goals
 
-- No real Router model calls.
-- No real search/pricing tools.
-- No frontend implementation.
-- No queue/SQS.
-- No production observability.
-- No live scraping or paid API calls.
+- Không real Router model calls.
+- Không real search/pricing tools.
+- Không frontend implementation.
+- Không queue/SQS.
+- Không production observability.
+- Không live scraping hoặc paid API calls.
 
 ## Inputs From Previous Phases
 
@@ -102,73 +102,73 @@ Required log events:
 
 ## Workflow Gate
 
-Before coding:
+Trước khi code:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Present the Phase 3 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Trình bày Phase 3 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
-1. Confirm Phase 2 report and tests pass.
-2. Choose worker mode for MVP:
-   - FastAPI background task for simplest local slice; or
-   - daemon thread after explicit job commit for local MVP compatibility; or
-   - separate local worker process for cleaner future queue mapping.
-3. Add worker function for one `job_id`.
-4. Add repository update helpers for status/result/error.
-5. Add deterministic mock result.
-6. Add full-worker exception handling.
-7. Add structured logs and `agent_runs` rows.
-8. Add tests for completed and failed paths.
-9. Write Phase 3 report.
+1. Xác nhận Phase 2 report và tests pass.
+2. Chọn worker mode cho MVP:
+   - FastAPI background task cho simplest local slice; hoặc
+   - daemon thread sau explicit job commit để tương thích local MVP; hoặc
+   - separate local worker process để future queue mapping sạch hơn.
+3. Thêm worker function cho một `job_id`.
+4. Thêm repository update helpers cho status/result/error.
+5. Thêm deterministic mock result.
+6. Thêm full-worker exception handling.
+7. Thêm structured logs và `agent_runs` rows.
+8. Thêm tests cho completed và failed paths.
+9. Viết Phase 3 report.
 
 ## Verification
 
 Required checks:
 
-- Create job through API.
-- Process job through local worker.
-- Poll job and see `completed` result.
-- Trigger controlled failure and see `failed` status.
-- Confirm logs include `job_id`.
-- Confirm rerunning completed job does not duplicate/conflict.
+- Tạo job qua API.
+- Xử lý job qua local worker.
+- Poll job và thấy result `completed`.
+- Trigger controlled failure và thấy status `failed`.
+- Xác nhận logs có `job_id`.
+- Xác nhận rerun completed job không duplicate/conflict.
 
-Example commands depend on implementation:
+Example commands phụ thuộc implementation:
 
 ```bash
 uv run pytest <job tests>
 curl -s http://localhost:8000/api/chat-jobs/<job_id>
 ```
 
-No test in this phase may require network/model/scraping.
+Không test nào trong phase này được yêu cầu network/model/scraping.
 
 ## Report Requirements
 
-Write:
+Viết:
 
 ```text
 shopping_assistant_v3/reports/phase_3_async_jobs_report.md
 ```
 
-Include:
+Bao gồm:
 
-- chosen worker mode and why;
+- chosen worker mode và lý do;
 - job transition evidence;
 - failure-path evidence;
-- exact commands run;
+- exact commands đã chạy;
 - test results;
 - idempotency behavior;
 - remaining risks.
 
 ## Risks And Open Questions
 
-- Background tasks and daemon threads are simpler but less production-like than
-  a separate worker. Either local approach is acceptable if documented and if
-  API-created jobs are committed before the worker can read them.
-- Daemon-thread workers are local-MVP only: they do not survive process restart
-  and must be replaced by a bounded queue/worker before production.
-- If jobs can get stuck in `running`, the implementation is not acceptable.
-- The mock result should be obviously mocked to avoid claiming real search.
+- Background tasks và daemon threads đơn giản hơn nhưng ít production-like hơn
+  separate worker. Một trong hai local approach đều chấp nhận được nếu được
+  documented và nếu API-created jobs được commit trước khi worker có thể đọc.
+- Daemon-thread workers chỉ dành cho local-MVP: chúng không survive process
+  restart và phải được thay bằng bounded queue/worker trước production.
+- Nếu jobs có thể bị stuck ở `running`, implementation không acceptable.
+- Mock result nên rõ ràng là mocked để tránh claim real search.

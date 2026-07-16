@@ -1,10 +1,10 @@
 # deal_search
 
-Searches Amazon and/or BestBuy and returns normalized product candidates. Must
-not generate Vietnamese answers.
+Tìm kiếm Amazon và/hoặc BestBuy và trả về normalized product candidates. Không
+được tạo câu trả lời tiếng Việt.
 
-Reference prototype: `segment4/search_key.py` pipeline (reference-only, never
-modified). Contract: `shopping_assistant_v3/guides/agent_architecture.md`.
+Reference prototype: pipeline `segment4/search_key.py` (chỉ reference, không
+bao giờ sửa). Contract: `shopping_assistant_v3/guides/agent_architecture.md`.
 
-Phase 4A implements mock contracts and fixtures; Phase 4B extracts real search.
-No code yet.
+Phase 4A implement mock contracts và fixtures; Phase 4B extract real search.
+Chưa có code.

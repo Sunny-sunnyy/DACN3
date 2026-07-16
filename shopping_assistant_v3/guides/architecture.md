@@ -1,23 +1,23 @@
 # Architecture Guide
 
-## Purpose
+## Mục Đích
 
-This guide defines the target architecture for Shopping Assistant V3. It merges
-the V2 architecture, local/backend/frontend plans, and persistence direction into
-one source-of-truth guide.
+Guide này định nghĩa target architecture cho Shopping Assistant V3. Nó hợp nhất
+V2 architecture, local/backend/frontend plans, và persistence direction vào một
+source-of-truth guide.
 
-Use this guide before any runtime implementation phase.
+Dùng guide này trước bất kỳ runtime implementation phase nào.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-V3 is documentation-first. Runtime folders such as `backend/` and `frontend/`
-do not exist yet unless a later approved phase creates them.
+V3 là documentation-first. Runtime folders như `backend/` và `frontend/` chưa
+tồn tại trừ khi một approved phase sau này tạo chúng.
 
-`segment4/` contains the working prototype for Amazon/BestBuy search and English
-price estimation. It is reference-only.
+`segment4/` chứa working prototype cho Amazon/BestBuy search và English price
+estimation. Nó chỉ dùng để reference.
 
-`shopping_assistant_v2/` contains the previous documentation set. It is
-migration reference only.
+`shopping_assistant_v2/` chứa bộ documentation trước đó. Nó chỉ là migration
+reference.
 
 ## Local MVP Architecture
 
@@ -35,8 +35,8 @@ flowchart TD
     API --> Frontend
 ```
 
-The backend returns `job_id` immediately. Long-running work happens outside the
-request handler through a local worker or background task.
+Backend trả về `job_id` ngay lập tức. Long-running work diễn ra bên ngoài
+request handler thông qua local worker hoặc background task.
 
 ## Backend Architecture
 
@@ -55,42 +55,42 @@ backend/
 └── synthesizer/
 ```
 
-Optional later folders:
+Các folders tùy chọn về sau:
 
 ```text
 backend/comparer/
 backend/advisor/
 ```
 
-Responsibilities:
+Trách nhiệm:
 
-| Module | Responsibility |
+| Module | Trách nhiệm |
 |---|---|
-| `shared/` | Config, logging, common schemas, guardrails, error types, retry helpers. |
-| `database/` | SQLite schema, repositories, migrations if needed, job/product/estimate persistence. |
+| `shared/` | Config, logging, schemas chung, guardrails, error types, retry helpers. |
+| `database/` | SQLite schema, repositories, migrations nếu cần, job/product/estimate persistence. |
 | `api/` | FastAPI app, validation, safe error responses, job endpoints. |
 | `router/` | Job orchestration, intent routing, tool invocation, result saving. |
-| `tools/deal_search/` | Amazon/BestBuy search and normalized candidates. |
-| `tools/price_estimator/` | USD fair value estimation and deal score calculation. |
-| `synthesizer/` | Vietnamese final answer from structured evidence. |
+| `tools/deal_search/` | Amazon/BestBuy search và normalized candidates. |
+| `tools/price_estimator/` | USD fair value estimation và deal score calculation. |
+| `synthesizer/` | Vietnamese final answer từ structured evidence. |
 
-Rules:
+Quy tắc:
 
-- `shared/` must not import from specific tools or agents.
-- FastAPI route handlers stay thin.
-- Route handlers must not run scraping/model work directly.
-- Database access should go through repositories, not scattered SQL.
-- Every module with owned schemas should define them explicitly.
+- `shared/` không được import từ specific tools hoặc agents.
+- FastAPI route handlers phải mỏng.
+- Route handlers không được chạy trực tiếp scraping/model work.
+- Database access nên đi qua repositories, không dùng SQL rải rác.
+- Mọi module sở hữu schemas nên định nghĩa chúng rõ ràng.
 
 ## API Contract
 
-Base URL for local backend:
+Base URL cho local backend:
 
 ```text
 http://localhost:8000
 ```
 
-Required endpoints:
+Các endpoints bắt buộc:
 
 ### `GET /health`
 
@@ -105,7 +105,7 @@ Response:
 
 ### `POST /api/chat-jobs`
 
-Creates a job and returns immediately.
+Tạo một job và trả về ngay lập tức.
 
 Request:
 
@@ -122,7 +122,7 @@ Validation:
 
 - `message`: string, 2 to 1000 chars.
 - `conversation_id`: nullable string.
-- `source`: one of `All`, `Amazon`, `BestBuy`.
+- `source`: một trong `All`, `Amazon`, `BestBuy`.
 - `max_results_per_source`: integer, 1 to 20.
 
 Response:
@@ -197,7 +197,7 @@ Optional debug endpoint:
 GET /api/chat-jobs/{job_id}/events
 ```
 
-Errors use safe shape:
+Errors dùng safe shape:
 
 ```json
 {
@@ -211,7 +211,7 @@ Errors use safe shape:
 
 ## Database Architecture
 
-MVP uses SQLite. Schema should stay close to Postgres to avoid later redesign.
+MVP dùng SQLite. Schema nên giữ gần với Postgres để tránh redesign về sau.
 
 Core tables:
 
@@ -239,19 +239,19 @@ partial
 cancelled
 ```
 
-Table responsibilities:
+Trách nhiệm của bảng:
 
-| Table | Purpose |
+| Table | Mục đích |
 |---|---|
 | `jobs` | Async lifecycle, request payload, result payload, safe error. |
-| `conversations` | Chat sessions for `demo_user` now and real users later. |
+| `conversations` | Chat sessions cho `demo_user` hiện tại và real users sau này. |
 | `messages` | User/assistant/system/tool messages. |
 | `agent_runs` | Audit trail for Router, tools, Synthesizer, worker. |
-| `products` | Normalized product candidates linked to job. |
+| `products` | Normalized product candidates linked với job. |
 | `price_estimates` | Fair value estimate, discount, score, breakdown. |
 
-Use JSON text in SQLite for payloads and metadata. Future Postgres migration can
-move these fields to `jsonb`.
+Dùng JSON text trong SQLite cho payloads và metadata. Future Postgres migration
+có thể chuyển các fields này sang `jsonb`.
 
 ## Frontend Architecture
 
@@ -273,10 +273,10 @@ frontend/
 └── styles/
 ```
 
-Recommended for a new app: Next.js App Router, unless a phase guide or user
-decision chooses Pages Router for simplicity.
+Khuyến nghị cho app mới: Next.js App Router, trừ khi phase guide hoặc user
+decision chọn Pages Router vì simplicity.
 
-Required UI states:
+Các UI states bắt buộc:
 
 - `idle`
 - `submitting`
@@ -285,28 +285,28 @@ Required UI states:
 - `completed`
 - `failed`
 
-Required product card fields:
+Các product card fields bắt buộc:
 
 - source
 - title
-- brand if available
+- brand nếu có
 - sale price USD
 - estimated value USD
 - discount USD
 - deal score
 - URL
-- warning if data is partial
+- warning nếu data partial
 
-The MVP UI should be chat-first, not a marketing landing page.
+MVP UI nên ưu tiên chat, không phải marketing landing page.
 
 ## Local Services
 
-Recommended local ports:
+Local ports khuyến nghị:
 
 - Backend: `http://localhost:8000`
 - Frontend: `http://localhost:3000`
 
-Expected environment categories:
+Các environment categories kỳ vọng:
 
 - `DATABASE_URL`
 - `MODEL_PROVIDER`
@@ -317,14 +317,14 @@ Expected environment categories:
 - `ENABLE_REAL_SEARCH`
 - `ENABLE_REAL_MODEL_CALLS`
 
-Never log secret values.
+Không bao giờ log secret values.
 
-## Logging And Observability
+## Logging Và Observability
 
-Every backend log related to a request or worker run must include `job_id`.
-Before a job exists, use `request_id`.
+Mọi backend log liên quan tới request hoặc worker run phải có `job_id`. Trước
+khi job tồn tại, dùng `request_id`.
 
-Required local events:
+Các local events bắt buộc:
 
 - `JOB_CREATED`
 - `JOB_STARTED`
@@ -337,7 +337,7 @@ Required local events:
 - `JOB_COMPLETED`
 - `JOB_FAILED`
 
-Recommended log shape:
+Log shape khuyến nghị:
 
 ```json
 {
@@ -350,7 +350,7 @@ Recommended log shape:
 }
 ```
 
-Do not log:
+Không log:
 
 - API keys
 - tokens
@@ -369,5 +369,5 @@ Do not log:
 | `demo_user` | Clerk user id |
 | localhost CORS | configured production origins |
 
-AWS, Terraform, Clerk, and production observability are deferred until the local
-MVP works reliably.
+AWS, Terraform, Clerk, và production observability được hoãn cho tới khi local
+MVP hoạt động đáng tin cậy.

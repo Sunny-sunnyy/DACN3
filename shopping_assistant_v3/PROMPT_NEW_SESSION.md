@@ -297,10 +297,10 @@ Sau khi implement:
 2. Run broader checks only when appropriate.
 3. Viết report trong `shopping_assistant_v3/reports/` theo template.
 4. Báo rõ:
-   - files created;
-   - files modified;
-   - commands run;
-   - tests run;
+   - files đã tạo;
+   - files đã sửa;
+   - commands đã chạy;
+   - tests đã chạy;
    - verification evidence;
    - known issues;
    - deviations from guide.
@@ -312,7 +312,7 @@ Chỉ claim phase hoàn thành nếu code và verification chứng minh.
 
 ## 10. Verification Rules
 
-Default tests must not:
+Default tests không được:
 
 - scrape live Amazon/BestBuy;
 - call OpenAI;
@@ -320,9 +320,9 @@ Default tests must not:
 - require AWS;
 - require secrets.
 
-Use mocks/fixtures by default.
+Dùng mocks/fixtures theo mặc định.
 
-Real search/model tests must be separate and opt-in.
+Real search/model tests phải tách riêng và opt-in.
 
 ---
 

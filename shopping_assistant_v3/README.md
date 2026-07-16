@@ -1,19 +1,19 @@
 # Shopping Assistant V3
 
-Vietnamese-speaking US Deal Assistant for DATN/CV demo.
+US Deal Assistant nói tiếng Việt cho demo DATN/CV.
 
-Users chat in Vietnamese. The system searches and prices products from Amazon
-and BestBuy, then explains the results in Vietnamese with USD product cards.
+Người dùng trò chuyện bằng tiếng Việt. Hệ thống tìm kiếm và định giá sản phẩm
+từ Amazon và BestBuy, sau đó giải thích kết quả bằng tiếng Việt với product
+cards dùng giá USD.
 
-V3 is the simplified documentation source of truth for the next implementation.
-Start with:
+V3 là source of truth tài liệu đã được đơn giản hóa cho lần triển khai tiếp
+theo. Bắt đầu với:
 
 - `gameplan.md`
 - `guides/architecture.md`
 - `guides/agent_architecture.md`
-- the current phase guide in `guides/`
+- guide của phase hiện tại trong `guides/`
 
-`shopping_assistant_v2/` is migration reference only. `segment4/` is prototype
-reference only and must not be modified by V3 implementation unless explicitly
-approved.
-
+`shopping_assistant_v2/` chỉ là tài liệu tham chiếu cho migration. `segment4/`
+chỉ là prototype/reference và không được chỉnh sửa bởi implementation V3 trừ
+khi được phê duyệt rõ ràng.

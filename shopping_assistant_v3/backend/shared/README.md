@@ -1,9 +1,9 @@
 # shared
 
-Config, structured logging, common schemas, guardrails, error types, and retry
-helpers shared across backend modules.
+Config, structured logging, schemas chung, guardrails, error types, và retry
+helpers dùng chung giữa các backend modules.
 
-Rule: `shared/` must not import from `api/`, `router/`, `tools/`, or
+Quy tắc: `shared/` không được import từ `api/`, `router/`, `tools/`, hoặc
 `synthesizer/`.
 
-Implemented in Phase 2 and later. No code yet.
+Được implement trong Phase 2 và các phase sau. Chưa có code.

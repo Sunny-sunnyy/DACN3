@@ -12,30 +12,40 @@ Branch: TTTN
 
 Commit reviewed: `not committed yet`
 
-## Summary
+## Tóm Tắt
 
-Implemented the local async job lifecycle using a daemon-thread worker. Jobs move through `pending → running → completed` (or `failed`). The worker produces a deterministic mock result, is idempotent for completed/failed jobs, recovers stale `running` jobs (server crash), creates `agent_runs` audit rows, and emits structured JSON log events with `job_id` correlation.
+Đã implement local async job lifecycle bằng daemon-thread worker. Jobs chuyển
+qua `pending → running → completed` (hoặc `failed`). Worker tạo deterministic
+mock result, idempotent với completed/failed jobs, recover stale `running` jobs
+(server crash), tạo `agent_runs` audit rows, và emit structured JSON log events
+có `job_id` correlation.
 
-Worker mode: `threading.Thread` (daemon), triggered after explicit `session.commit()` in the route handler so the worker's own session can see the new job. The Phase 3 guide listed `BackgroundTasks` as one option, but it proved unreliable with Starlette's TestClient (see Deviations). A daemon thread provides the same async, non-blocking behavior and works deterministically in both tests and real servers.
+Worker mode: `threading.Thread` (daemon), được trigger sau explicit
+`session.commit()` trong route handler để session riêng của worker thấy được job
+mới. Phase 3 guide liệt kê `BackgroundTasks` như một option, nhưng nó tỏ ra
+unreliable với Starlette's TestClient (xem Deviations). Daemon thread cung cấp
+cùng behavior async, non-blocking và hoạt động deterministic trong cả tests lẫn
+real servers.
 
-API-triggered async flow verified: 5/5 jobs created via `POST /api/chat-jobs` reached `completed` after polling (Codex probe).
+API-triggered async flow đã verify: 5/5 jobs tạo qua `POST /api/chat-jobs` đạt
+`completed` sau polling (Codex probe).
 
-## Files Created
+## Files Đã Tạo
 
 ```text
 shopping_assistant_v3/backend/worker.py - process_job(job_id, result_builder), build_mock_result(), structured logging, stale running recovery
 shopping_assistant_v3/tests/test_worker.py - 16 tests: completed path, agent_run audit, idempotency (fresh/stale running), failure path, log events
 ```
 
-## Files Modified
+## Files Đã Sửa
 
 ```text
-shopping_assistant_v3/backend/database/repository.py - added update_job_status, update_job_result, update_job_error, create_agent_run, update_agent_run
-shopping_assistant_v3/backend/api/main.py - explicit session.commit() before daemon thread start; replaced BackgroundTasks with threading.Thread
-shopping_assistant_v3/tests/test_api.py - updated test_existing_job to accept pending/completed; added test_api_async_flow_reaches_completed
+shopping_assistant_v3/backend/database/repository.py - thêm update_job_status, update_job_result, update_job_error, create_agent_run, update_agent_run
+shopping_assistant_v3/backend/api/main.py - explicit session.commit() trước daemon thread start; thay BackgroundTasks bằng threading.Thread
+shopping_assistant_v3/tests/test_api.py - update test_existing_job để accept pending/completed; thêm test_api_async_flow_reaches_completed
 ```
 
-## Commands Run
+## Commands Đã Chạy
 
 ```bash
 # All tests
@@ -89,9 +99,9 @@ curl -s http://127.0.0.1:8000/api/chat-jobs/<job_id> | python3 -m json.tool
 # pass - status=completed, mock result shape matches guide
 ```
 
-## Tests Run
+## Tests Đã Chạy
 
-36 automated tests, all passing:
+36 automated tests, tất cả passing:
 
 | Test group | Count | Result |
 |---|---|---|
@@ -104,58 +114,77 @@ curl -s http://127.0.0.1:8000/api/chat-jobs/<job_id> | python3 -m json.tool
 | Phase 3: Log events (started, completed, failed, JSON shape) | 3 | PASSED |
 
 Key test assertions:
-- `process_job` transitions pending → completed with mock result.
-- `agent_runs` row created on start, updated on completion with duration_ms, output_summary.
-- Completed jobs are idempotent: no re-processing, no duplicate agent_runs.
-- Running/failed jobs are safely skipped.
-- Exception in result_builder → job marked failed with safe error_message, agent_run marked failed.
-- Structured JSON log lines contain job_id, event type, component, and timestamp.
-- Mock result matches the Phase 3 guide contract (answer_vi, products[], warnings[], deal_score).
+- `process_job` transition pending → completed với mock result.
+- `agent_runs` row được tạo khi start, update khi completion với duration_ms, output_summary.
+- Completed jobs idempotent: không re-processing, không duplicate agent_runs.
+- Running/failed jobs được safely skipped.
+- Exception trong result_builder → job marked failed với safe error_message, agent_run marked failed.
+- Structured JSON log lines chứa job_id, event type, component, và timestamp.
+- Mock result khớp Phase 3 guide contract (answer_vi, products[], warnings[], deal_score).
 
-## Verification Evidence
+## Bằng Chứng Verification
 
-- 36/36 pytest pass with temp SQLite (no network, no model calls).
-- End-to-end TestClient flow: POST → pending → daemon thread → completed with mock result.
-- Codex probe: 5/5 jobs via POST reached `completed` after polling.
-- Direct `process_job()` call: job completes, agent_run audit row exists, logs include `JOB_STARTED` and `JOB_COMPLETED`.
+- 36/36 pytest pass với temp SQLite (không network, không model calls).
+- End-to-end TestClient flow: POST → pending → daemon thread → completed với mock result.
+- Codex probe: 5/5 jobs qua POST đạt `completed` sau polling.
+- Direct `process_job()` call: job completes, agent_run audit row tồn tại, logs có `JOB_STARTED` và `JOB_COMPLETED`.
 - Manual curl + uvicorn + poll: job status transitions to completed.
-- `git status --short` confirms no segment4/ or shopping_assistant_v2/ changes.
-- No secrets read, printed, or logged.
-- No live Amazon/BestBuy scraping, no OpenAI/Modal/model API calls.
+- `git status --short` xác nhận không có changes ở segment4/ hoặc shopping_assistant_v2/.
+- Không secrets nào bị read, printed, hoặc logged.
+- Không live Amazon/BestBuy scraping, không OpenAI/Modal/model API calls.
 
 ## Problems Encountered And Solutions
 
 ### Problem 1: BackgroundTasks never executed the task
 
-**Symptom:** `POST /api/chat-jobs` returned `201 pending`, but the job stayed `pending` forever — `process_job` was never called, even after waiting 5+ seconds and polling multiple times.
+**Symptom:** `POST /api/chat-jobs` trả về `201 pending`, nhưng job ở trạng
+thái `pending` mãi — `process_job` không bao giờ được gọi, kể cả sau khi chờ
+5+ giây và polling nhiều lần.
 
-**Debug steps (in order):**
+**Debug steps (theo thứ tự):**
 
-1. Verified `process_job()` works correctly when called directly (confirmed — job transitions to completed).
-2. Verified `add_task(process_job, ...)` IS called in the route handler via monkey-patched `BackgroundTasks.__init__` tracer. The task was scheduled but never executed.
-3. Tried making the route handler `async def` — no change, task still didn't execute.
-4. Traced `threading.Thread.start` via monkey-patch and confirmed the thread WAS started with correct args. But the job stayed pending — meaning the thread started but `process_job` failed silently or the DB session was gone.
-5. Root cause: Starlette's `BackgroundTasks` run after the response is finalized, but with sync route handlers and sync SQLAlchemy sessions, the task execution context in Starlette TestClient (and uvicorn in background-shell mode) was unreliable. The task was scheduled but Starlette did not execute it before the TestClient context exited or the response was fully consumed.
+1. Verified `process_job()` hoạt động đúng khi gọi trực tiếp (confirmed — job transitions to completed).
+2. Verified `add_task(process_job, ...)` CÓ được gọi trong route handler qua monkey-patched `BackgroundTasks.__init__` tracer. Task được scheduled nhưng không bao giờ executed.
+3. Thử đổi route handler thành `async def` — không thay đổi, task vẫn không execute.
+4. Trace `threading.Thread.start` qua monkey-patch và confirm thread ĐÃ start với đúng args. Nhưng job vẫn pending — nghĩa là thread start nhưng `process_job` fail silent hoặc DB session đã mất.
+5. Root cause: Starlette's `BackgroundTasks` chạy sau khi response finalized, nhưng với sync route handlers và sync SQLAlchemy sessions, task execution context trong Starlette TestClient (và uvicorn ở background-shell mode) unreliable. Task được scheduled nhưng Starlette không execute trước khi TestClient context exit hoặc response được consume đầy đủ.
 
-**Solution:** Replaced `BackgroundTasks.add_task(process_job, job.id)` with `threading.Thread(target=process_job, args=(job.id,), daemon=True).start()`. This provides the same async, non-blocking, post-response behavior but works deterministically in both TestClient and uvicorn because the thread is explicitly started by the route handler rather than relying on Starlette's internal task runner.
+**Solution:** Thay `BackgroundTasks.add_task(process_job, job.id)` bằng
+`threading.Thread(target=process_job, args=(job.id,), daemon=True).start()`.
+Cách này cung cấp cùng behavior async, non-blocking, post-response nhưng hoạt
+động deterministic trong cả TestClient và uvicorn vì thread được route handler
+explicitly start thay vì phụ thuộc internal task runner của Starlette.
 
-**Verification after fix:** E2E TestClient flow with 1s sleep confirmed job transitions to `completed`. All 34 tests pass.
+**Verification sau fix:** E2E TestClient flow với 1s sleep confirm job
+transitions tới `completed`. Tất cả 34 tests pass.
 
 ### Problem 2: started_at lost on failure
 
-**Symptom:** Test `test_failure_does_not_leave_stale_running` failed because `job.started_at` was `None` after a failed job.
+**Symptom:** Test `test_failure_does_not_leave_stale_running` failed vì
+`job.started_at` là `None` sau failed job.
 
-**Root cause:** When `process_job` catches an exception, the first DB session (which had `update_job_status(session, job, "running", started_at=...)`) is rolled back. The `_save_failure` function opens a fresh session and only calls `update_job_error`, which sets `status=failed` but does not re-apply `started_at`. So the persistent job record shows `pending → failed` without the transient `running` timestamp.
+**Root cause:** Khi `process_job` catch exception, DB session đầu tiên (đã có
+`update_job_status(session, job, "running", started_at=...)`) bị rolled back.
+Function `_save_failure` mở fresh session và chỉ gọi `update_job_error`, set
+`status=failed` nhưng không re-apply `started_at`. Vì vậy persistent job record
+hiển thị `pending → failed` mà không có transient `running` timestamp.
 
-**Solution:** Accepted as correct behavior. The `agent_runs` row captures the actual start time and duration, which is the authoritative audit record. The test was updated to assert `status == "failed"` without requiring `started_at is not None`.
+**Solution:** Chấp nhận như correct behavior. Row `agent_runs` capture actual
+start time và duration, là authoritative audit record. Test được update để
+assert `status == "failed"` mà không yêu cầu `started_at is not None`.
 
 ### Problem 3: Daemon thread timing in end-to-end tests
 
-**Symptom:** E2E tests that polled immediately after POST (0.2s wait) saw `status=pending` because the daemon thread hadn't finished yet.
+**Symptom:** E2E tests poll ngay sau POST (wait 0.2s) thấy `status=pending` vì
+daemon thread chưa finish.
 
-**Root cause:** The daemon thread opens its own DB session, queries the job, and writes results — this takes 0.5-2s depending on SQLite I/O. A 0.2s poll was too fast.
+**Root cause:** Daemon thread mở DB session riêng, query job, và write results
+— việc này mất 0.5-2s tùy SQLite I/O. Poll 0.2s là quá nhanh.
 
-**Solution:** Automated tests call `process_job()` directly (synchronous, deterministic). For E2E/curl tests, the report documents that polling may need 1-2s delay. This is expected MVP behavior — the frontend will poll on an interval in Phase 6.
+**Solution:** Automated tests gọi trực tiếp `process_job()` (synchronous,
+deterministic). Với E2E/curl tests, report document rằng polling có thể cần
+delay 1-2s. Đây là MVP behavior kỳ vọng — frontend sẽ poll theo interval trong
+Phase 6.
 
 ## Codex Review Response (2026-07-15)
 
@@ -165,32 +194,50 @@ Review file: `shopping_assistant_v3/reports/phase_3_async_jobs_codex_review.md`
 
 Decision: `changes_requested`, 1 major + 2 minor.
 
-**Fix:** Replaced raw `f"Worker error: {exc}"` with sanitized `"Worker failed. Try again later."`. Raw details go to `logger.exception()` (ERROR level, internal only).
+**Fix:** Thay raw `f"Worker error: {exc}"` bằng sanitized `"Worker failed. Try
+again later."`. Raw details đi vào `logger.exception()` (ERROR level, chỉ
+internal).
 
 ### Round 2 — commit-before-thread + stale recovery + API async test (resolved)
 
-Re-review found blocker still present: `{'pending': 5}` — jobs created via API never transitioned to completed because the daemon thread started before the request session committed.
+Re-review thấy blocker vẫn còn: `{'pending': 5}` — jobs tạo qua API không bao
+giờ transitioned to completed vì daemon thread start trước khi request session
+committed.
 
-**Fix applied:**
+**Fix đã áp dụng:**
 
-1. `backend/api/main.py` — added explicit `session.commit()` before `threading.Thread(...).start()`. The worker's independent session can now see the committed job.
-2. `backend/worker.py` — stale running recovery: jobs with `status=running` and `started_at` older than 5 minutes (or `None`) are now treated as stale and re-processed. Fresh running jobs (started within 5 min) are still skipped to avoid double-processing.
-3. `tests/test_api.py` — added `test_api_async_flow_reaches_completed`: POST → poll with 5s timeout → assert completed with mock result. Updated `test_existing_job_returns_valid_status` to accept pending/running/completed (worker timing is nondeterministic).
-4. `tests/test_worker.py` — split `test_running_job_is_skipped` into `test_running_job_is_skipped_when_fresh` (recent started_at, skipped) and `test_stale_running_job_is_recovered` (old started_at, recovered).
+1. `backend/api/main.py` — thêm explicit `session.commit()` trước `threading.Thread(...).start()`. Independent session của worker giờ có thể thấy committed job.
+2. `backend/worker.py` — stale running recovery: jobs có `status=running` và `started_at` cũ hơn 5 phút (hoặc `None`) giờ được treat là stale và re-process. Fresh running jobs (started trong 5 phút) vẫn bị skip để tránh double-processing.
+3. `tests/test_api.py` — thêm `test_api_async_flow_reaches_completed`: POST → poll với 5s timeout → assert completed với mock result. Update `test_existing_job_returns_valid_status` để accept pending/running/completed (worker timing nondeterministic).
+4. `tests/test_worker.py` — split `test_running_job_is_skipped` thành `test_running_job_is_skipped_when_fresh` (recent started_at, skipped) và `test_stale_running_job_is_recovered` (old started_at, recovered).
 
-**Verification:** Codex probe `{'completed': 5}` — all 5 jobs reach completed. 36/36 tests pass.
+**Verification:** Codex probe `{'completed': 5}` — toàn bộ 5 jobs đạt
+completed. 36/36 tests pass.
 
 ## Known Issues
 
-1. **Minor**: `threading.Thread` daemon does not survive server restart. If the server dies during job processing, the job stays in `running` state. The idempotency gate prevents re-processing on restart. This is an acceptable MVP limitation.
+1. **Minor**: `threading.Thread` daemon không survive server restart. Nếu server
+die trong lúc job processing, job ở lại state `running`. Idempotency gate ngăn
+re-processing khi restart. Đây là MVP limitation chấp nhận được.
 
-2. **Minor**: No retry logic for failed jobs. A `failed` job stays failed. The idempotency gate explicitly skips failed jobs. This is by design — retry is a production concern (Phase 8).
+2. **Minor**: Không có retry logic cho failed jobs. Một `failed` job sẽ giữ
+failed. Idempotency gate explicitly skips failed jobs. Đây là by design — retry
+là production concern (Phase 8).
 
-3. **Minor**: `started_at` is lost on failure when the original session is rolled back. The final job record shows `pending → failed` without the transient `running` timestamp. This is acceptable because the `agent_runs` row captures the actual start/duration/failure.
+3. **Minor**: `started_at` mất khi failure nếu original session bị rolled back.
+Final job record hiển thị `pending → failed` mà không có transient `running`
+timestamp. Điều này acceptable vì row `agent_runs` capture actual
+start/duration/failure.
 
-4. **Minor (demo-only)**: Unbounded daemon threads — each `POST /api/chat-jobs` spawns a new thread with no pool, queue, or concurrency limit. Under spam (dozens of concurrent POSTs), the process risks thread exhaustion and SQLite write contention. Acceptable for local single-user MVP. Must be replaced with a proper queue/worker before production.
+4. **Minor (demo-only)**: Unbounded daemon threads — mỗi `POST /api/chat-jobs`
+spawn thread mới mà không có pool, queue, hoặc concurrency limit. Khi bị spam
+(hàng chục concurrent POSTs), process có risk thread exhaustion và SQLite write
+contention. Acceptable cho local single-user MVP. Phải được thay bằng proper
+queue/worker trước production.
 
-5. **Minor**: All timestamps are UTC with explicit timezone. Human-facing UIs (Phase 6 frontend) must convert to local time. No code change needed — this is a documentation note for future implementers.
+5. **Minor**: Tất cả timestamps là UTC với explicit timezone. Human-facing UIs
+(Phase 6 frontend) phải convert sang local time. Không cần code change — đây là
+documentation note cho future implementers.
 
 ## Deviations From Guide
 
@@ -226,21 +273,22 @@ compatibility issues with sync SQLAlchemy sessions.
 
 ## Dual .venv Note
 
-Unchanged from Phase 2. All V3 commands run from `shopping_assistant_v3/` with `uv run`. V3 `.venv` (Python 3.13.12) is isolated from root `.venv` (Python 3.12).
+Không đổi so với Phase 2. Mọi V3 commands chạy từ `shopping_assistant_v3/` với
+`uv run`. V3 `.venv` (Python 3.13.12) isolated khỏi root `.venv` (Python 3.12).
 
 ## Reviewer Checklist
 
-Reviewer should inspect:
+Reviewer nên kiểm tra:
 
-- [x] Scope stayed within the approved Phase 3.
-- [x] No `segment4/` files changed unless explicitly approved.
-- [x] No `shopping_assistant_v2/` files changed.
-- [x] No secrets were read, printed, or committed.
-- [x] Default tests do not call paid APIs or live scraping.
-- [x] API/schema/tool contracts match the relevant guide.
-- [x] Failure paths store safe errors.
-- [x] Logs/audit events include `job_id` — confirmed in test_logs_are_valid_json.
-- [x] Docs that changed reality are updated after approval.
+- [x] Scope nằm trong approved Phase 3.
+- [x] Không có file `segment4/` nào thay đổi trừ khi explicitly approved.
+- [x] Không có file `shopping_assistant_v2/` nào thay đổi.
+- [x] Không có secrets nào bị đọc, in, hoặc commit.
+- [x] Default tests không gọi paid APIs hoặc live scraping.
+- [x] API/schema/tool contracts khớp relevant guide.
+- [x] Failure paths lưu safe errors.
+- [x] Logs/audit events có `job_id` — confirmed trong test_logs_are_valid_json.
+- [x] Docs phản ánh thay đổi thực tế được cập nhật sau approval.
 
 Reviewer decision:
 

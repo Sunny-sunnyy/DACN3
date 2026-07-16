@@ -1,16 +1,16 @@
 # Phase 4: Search And Pricing Tools
 
-## Purpose
+## Mục Đích
 
-Implement V3 tool interfaces for product search and price estimation.
+Implement V3 tool interfaces cho product search và price estimation.
 
-This phase first builds deterministic mock tools, then optionally extracts real
-Amazon/BestBuy search and English ensemble pricing behavior from `segment4`
-without modifying `segment4`.
+Phase này trước tiên xây deterministic mock tools, sau đó optionally extract
+real Amazon/BestBuy search và English ensemble pricing behavior từ `segment4`
+mà không modify `segment4`.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Phase 4 starts after the backend job lifecycle works with a mock result.
+Phase 4 bắt đầu sau khi backend job lifecycle hoạt động với mock result.
 
 `segment4/search_key.py` is the prototype reference:
 
@@ -27,45 +27,46 @@ flowchart TD
 
 ## Scope
 
-Phase 4 includes three internal milestones:
+Phase 4 gồm ba internal milestones:
 
 ### 4A: Mock Tool Contracts
 
-- Define schemas for `deal_search_tool`.
-- Define schemas for `price_estimator_tool`.
-- Add fixture data for Amazon and BestBuy candidates.
-- Add fixture price estimates.
-- Add tests that require no network/model calls.
+- Define schemas cho `deal_search_tool`.
+- Define schemas cho `price_estimator_tool`.
+- Thêm fixture data cho Amazon và BestBuy candidates.
+- Thêm fixture price estimates.
+- Thêm tests không yêu cầu network/model calls.
 
 ### 4B: Real Search Extraction
 
-Only after explicit approval:
+Chỉ sau explicit approval:
 
-- Inspect `segment4` call paths with CodeGraph.
+- Inspect `segment4` call paths bằng CodeGraph.
 - Adapt minimal BestBuy search behavior.
 - Adapt minimal Amazon search behavior.
-- Normalize output to V3 schema.
-- Add opt-in real search test.
+- Normalize output sang V3 schema.
+- Thêm opt-in real search test.
 
 ### 4C: Real Pricing Extraction
 
-Only after explicit approval:
+Chỉ sau explicit approval:
 
-- Inspect `EnsembleAgent` flow with CodeGraph.
-- Adapt/wrap preprocessor behavior as needed.
-- Adapt/wrap Frontier, Specialist, and Neural model calls.
+- Inspect `EnsembleAgent` flow bằng CodeGraph.
+- Adapt/wrap preprocessor behavior khi cần.
+- Adapt/wrap Frontier, Specialist, và Neural model calls.
 - Return V3 price estimate schema.
-- Add opt-in real model test.
+- Thêm opt-in real model test.
 
 ## Non-Goals
 
-- No modification to `segment4/`.
-- No Gradio UI extraction.
-- No Pushover notification extraction.
-- No DealNews RSS/autonomous workflow.
-- No t-SNE visualization.
-- No live scraping/model calls in default tests.
-- No direct import from `segment4` unless explicitly approved and documented.
+- Không modification `segment4/`.
+- Không Gradio UI extraction.
+- Không Pushover notification extraction.
+- Không DealNews RSS/autonomous workflow.
+- Không t-SNE visualization.
+- Không live scraping/model calls trong default tests.
+- Không direct import từ `segment4` trừ khi được explicitly approved và
+  documented.
 
 ## Inputs From Previous Phases
 
@@ -75,9 +76,9 @@ Required:
 - `guides/agent_architecture.md`.
 - `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`.
 
-For 4B/4C:
+Cho 4B/4C:
 
-- CodeGraph query evidence for the exact flow being extracted.
+- CodeGraph query evidence cho exact flow đang được extract.
 
 ## Contracts
 
@@ -157,58 +158,59 @@ Deal score:
 
 Relevant reference behavior:
 
-- BestBuy uses `curl_cffi` with Chrome impersonation and internal APIs.
-- Amazon uses `curl_cffi`, sets ZIP 96150, parses search HTML, and may scrape
-  product pages for missing features.
-- `MultiSourcePlanningAgent.search_and_scrape()` runs BestBuy and Amazon in
-  parallel when source is `All`.
-- `UnifiedScrapedDeal` normalizes source-specific deals.
-- `MultiSourceScannerAgent` uses GPT structured output to choose top deals.
-- `EnsembleAgent.price()` preprocesses text, calls Specialist, Frontier, and
-  Neural estimators, then combines:
+- BestBuy dùng `curl_cffi` với Chrome impersonation và internal APIs.
+- Amazon dùng `curl_cffi`, set ZIP 96150, parse search HTML, và có thể scrape
+  product pages để lấy missing features.
+- `MultiSourcePlanningAgent.search_and_scrape()` chạy BestBuy và Amazon song
+  song khi source là `All`.
+- `UnifiedScrapedDeal` normalize source-specific deals.
+- `MultiSourceScannerAgent` dùng GPT structured output để chọn top deals.
+- `EnsembleAgent.price()` preprocess text, gọi Specialist, Frontier, và Neural
+  estimators, sau đó combine:
 
 ```text
 combined = frontier * 0.8 + specialist * 0.1 + neural * 0.1
 ```
 
-V3 tool modules must expose clean V3 schemas even if behavior is adapted from
+V3 tool modules phải expose clean V3 schemas ngay cả khi behavior được adapt từ
 old code.
 
 ## Workflow Gate
 
-Before coding:
+Trước khi code:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Decide explicitly whether the phase includes only 4A, or also 4B/4C.
-- Use CodeGraph before any real `segment4` extraction.
-- Present the Phase 4 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Quyết định rõ phase chỉ gồm 4A, hay cũng gồm 4B/4C.
+- Dùng CodeGraph trước bất kỳ real `segment4` extraction nào.
+- Trình bày Phase 4 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
-1. Confirm Phase 3 report and tests pass.
-2. Brainstorm whether Phase 4 should execute only 4A or include 4B/4C.
-3. Implement 4A schemas and fixtures first.
-4. Add tests for mock tools.
-5. Integrate mock tools into worker/router path if Phase 5 is ready or planned.
-6. For 4B, run CodeGraph query:
+1. Xác nhận Phase 3 report và tests pass.
+2. Brainstorm xem Phase 4 nên chỉ thực hiện 4A hay gồm cả 4B/4C.
+3. Implement 4A schemas và fixtures trước.
+4. Thêm tests cho mock tools.
+5. Integrate mock tools vào worker/router path nếu Phase 5 sẵn sàng hoặc đã
+   planned.
+6. Với 4B, chạy CodeGraph query:
 
 ```text
 How does search_key.py run Amazon and BestBuy search through MultiSourcePlanningAgent?
 ```
 
-7. Extract/adapt minimal real search behind `ENABLE_REAL_SEARCH=true`.
-8. For 4C, run CodeGraph query:
+7. Extract/adapt minimal real search sau `ENABLE_REAL_SEARCH=true`.
+8. Với 4C, chạy CodeGraph query:
 
 ```text
 How does EnsembleAgent estimate prices using frontier specialist neural network?
 ```
 
-9. Extract/adapt real pricing behind `ENABLE_REAL_MODEL_CALLS=true`.
-10. Preserve mock tests.
-11. Write Phase 4 report, or milestone reports for 4A/4B/4C.
+9. Extract/adapt real pricing sau `ENABLE_REAL_MODEL_CALLS=true`.
+10. Giữ mock tests.
+11. Viết Phase 4 report, hoặc milestone reports cho 4A/4B/4C.
 
 ## Verification
 
@@ -220,20 +222,20 @@ uv run pytest <tool schema and fixture tests>
 
 Mock verification:
 
-- `deal_search_tool` returns Amazon and BestBuy fixture candidates.
-- `price_estimator_tool` returns deterministic estimate/discount/score.
-- invalid input is rejected.
-- warnings are preserved.
-- tests pass without network/model calls.
+- `deal_search_tool` trả về Amazon và BestBuy fixture candidates.
+- `price_estimator_tool` trả về deterministic estimate/discount/score.
+- invalid input bị reject.
+- warnings được preserve.
+- tests pass mà không cần network/model calls.
 
-Opt-in real search verification, only with approval:
+Opt-in real search verification, chỉ khi có approval:
 
 - `ENABLE_REAL_SEARCH=true`
 - source-specific test for BestBuy.
 - source-specific test for Amazon.
 - `segment4/` unchanged.
 
-Opt-in real pricing verification, only with approval:
+Opt-in real pricing verification, chỉ khi có approval:
 
 - `ENABLE_REAL_MODEL_CALLS=true`
 - required env/model files available.
@@ -242,7 +244,7 @@ Opt-in real pricing verification, only with approval:
 
 ## Report Requirements
 
-Possible reports:
+Reports có thể dùng:
 
 ```text
 reports/phase_4a_mock_tools_report.md
@@ -250,27 +252,28 @@ reports/phase_4b_real_search_report.md
 reports/phase_4c_real_pricing_report.md
 ```
 
-Or one combined report:
+Hoặc một combined report:
 
 ```text
 reports/phase_4_search_and_pricing_tools_report.md
 ```
 
-Report must include:
+Report phải bao gồm:
 
-- whether only mock or real modes were implemented;
-- CodeGraph questions used;
-- files adapted from `segment4`;
-- tests run;
-- real calls made, if any;
-- `segment4` unchanged confirmation;
+- chỉ mock hay real modes đã được implement;
+- CodeGraph questions đã dùng;
+- files được adapt từ `segment4`;
+- tests đã chạy;
+- real calls đã thực hiện, nếu có;
+- xác nhận `segment4` unchanged;
 - remaining scraper/model risks.
 
 ## Risks And Open Questions
 
-- Amazon/BestBuy scraping can break or be blocked.
-- Ensemble pricing has heavy dependencies and paid/remote components.
-- Directly importing from `segment4` can create hidden coupling.
-- Source-specific partial failures must become warnings, not hallucinated data.
-- The GPT top-deal selector from `segment4` may belong in Router/tool orchestration
-  later; do not add it to default tests if it calls a model.
+- Amazon/BestBuy scraping có thể break hoặc bị blocked.
+- Ensemble pricing có heavy dependencies và paid/remote components.
+- Direct import từ `segment4` có thể tạo hidden coupling.
+- Source-specific partial failures phải trở thành warnings, không phải
+  hallucinated data.
+- GPT top-deal selector từ `segment4` có thể thuộc Router/tool orchestration về
+  sau; không thêm nó vào default tests nếu nó gọi model.

@@ -1,17 +1,17 @@
 # Agent Architecture Guide
 
-## Purpose
+## Mục Đích
 
-This guide defines the V3 agent workflow, tool contracts, model provider policy,
-and evidence rules. It replaces the separate V2 agent docs, tool specs, and
-agent specs.
+Guide này định nghĩa V3 agent workflow, tool contracts, model provider policy,
+và evidence rules. Nó thay thế các V2 agent docs, tool specs, và agent specs
+tách rời.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-No V3 agents or tools are implemented yet. `segment4/` contains the reference
-pipeline and must remain unchanged.
+Chưa có V3 agents hoặc tools nào được implement. `segment4/` chứa reference
+pipeline và phải giữ nguyên.
 
-The V3 MVP uses controlled routing plus explicit tools. It does not use a
+V3 MVP dùng controlled routing cộng với explicit tools. Nó không dùng
 free-form ReAct loop.
 
 ## MVP Workflow
@@ -24,8 +24,8 @@ flowchart TD
     Synth --> Output[answer_vi + product cards + warnings]
 ```
 
-The Router chooses the allowed path. Tools produce structured evidence. The
-Synthesizer writes the final Vietnamese answer from evidence only.
+Router chọn allowed path. Tools tạo structured evidence. Synthesizer viết câu
+trả lời tiếng Việt cuối cùng chỉ từ evidence.
 
 ## Router Contract
 
@@ -60,23 +60,23 @@ Allowed intents:
 - `advisor`
 - `unsupported`
 
-MVP executes only `search_deals`. Unsupported or not-yet-implemented intents
-must return safe Vietnamese fallback.
+MVP chỉ thực thi `search_deals`. Unsupported hoặc not-yet-implemented intents
+phải trả về safe Vietnamese fallback.
 
-Router responsibilities:
+Trách nhiệm của Router:
 
 - Classify Vietnamese user intent.
-- Produce a concise English search query.
-- Preserve source filter and result limits.
-- Avoid free-form tool selection loops.
-- Save an `agent_runs` audit record.
+- Tạo concise English search query.
+- Giữ source filter và result limits.
+- Tránh free-form tool selection loops.
+- Lưu một `agent_runs` audit record.
 
 ## Deal Search Tool Contract
 
-Responsibility:
+Trách nhiệm:
 
-Search Amazon and/or BestBuy and return normalized product candidates. The tool
-must not generate Vietnamese final answers.
+Search Amazon và/hoặc BestBuy rồi trả về normalized product candidates. Tool
+không được tạo Vietnamese final answers.
 
 Input:
 
@@ -120,14 +120,14 @@ Failure modes:
 - parse failed
 - network timeout
 
-If one source fails and another succeeds, return useful results with warnings.
+Nếu một source fail và source khác succeed, trả về useful results kèm warnings.
 
 ## Price Estimator Tool Contract
 
-Responsibility:
+Trách nhiệm:
 
-Estimate fair value in USD from normalized product evidence. The tool must not
-search the web.
+Estimate fair value bằng USD từ normalized product evidence. Tool không được
+search web.
 
 Input:
 
@@ -161,7 +161,7 @@ Output:
 }
 ```
 
-Recommended MVP deal score:
+MVP deal score khuyến nghị:
 
 - `hot`: discount >= 200
 - `good`: discount >= 100
@@ -191,23 +191,23 @@ Output:
 }
 ```
 
-Rules:
+Quy tắc:
 
-- Answer in Vietnamese.
-- Keep product names in English when clearer.
-- Prices remain USD.
-- Do not invent price, URL, source, specs, or discount.
-- Mention partial source/tool failures when relevant.
-- Sort or highlight by deal value only from tool data.
+- Trả lời bằng tiếng Việt.
+- Giữ product names bằng tiếng Anh khi rõ hơn.
+- Prices giữ USD.
+- Không bịa price, URL, source, specs, hoặc discount.
+- Nhắc tới partial source/tool failures khi liên quan.
+- Chỉ sort hoặc highlight theo deal value từ tool data.
 
 ## Model Provider Policy
 
-Use LiteLLM abstraction for model calls.
+Dùng LiteLLM abstraction cho model calls.
 
 MVP defaults:
 
-- OpenAI-compatible provider for Router.
-- OpenAI-compatible provider for Synthesizer.
+- OpenAI-compatible provider cho Router.
+- OpenAI-compatible provider cho Synthesizer.
 
 Required config:
 
@@ -222,7 +222,7 @@ Future providers:
 
 ## Mock Mode Policy
 
-Default local/test mode must not call external services.
+Default local/test mode không được gọi external services.
 
 Default flags:
 
@@ -231,7 +231,7 @@ ENABLE_REAL_SEARCH=false
 ENABLE_REAL_MODEL_CALLS=false
 ```
 
-Mock mode must cover:
+Mock mode phải cover:
 
 - Router fixture outputs.
 - Deal search fixture outputs.
@@ -240,7 +240,7 @@ Mock mode must cover:
 
 ## Evidence Rules
 
-Tool outputs are source of truth for:
+Tool outputs là source of truth cho:
 
 - URLs
 - prices
@@ -250,17 +250,16 @@ Tool outputs are source of truth for:
 - discount
 - source warnings
 
-The Synthesizer cannot invent fields not present in tool outputs.
+Synthesizer không được bịa fields không có trong tool outputs.
 
-If data is missing, use `unknown`, `not_available`, or a warning instead of
-guessing.
+Nếu thiếu data, dùng `unknown`, `not_available`, hoặc warning thay vì đoán.
 
 ## Segment4 Reference
 
-Use `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md` and CodeGraph for search
-and pricing extraction.
+Dùng `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md` và CodeGraph cho search
+và pricing extraction.
 
-Important reference files:
+Các reference files quan trọng:
 
 - `segment4/search_key.py`
 - `segment4/multi_source_framework.py`
@@ -274,7 +273,7 @@ Important reference files:
 - `segment4/price_agents/specialist_agent.py`
 - `segment4/price_agents/neural_network_agent.py`
 
-Do not extract initially:
+Ban đầu không extract:
 
 - Gradio UI.
 - Pushover notification.
@@ -282,9 +281,9 @@ Do not extract initially:
 - `memory.json` workflow.
 - t-SNE visualization.
 
-## Trace And Audit
+## Trace Và Audit
 
-Each agent/tool run should save:
+Mỗi agent/tool run nên lưu:
 
 - `job_id`
 - component name
@@ -297,12 +296,12 @@ Each agent/tool run should save:
 - sanitized output summary
 - safe error message if failed
 
-## Later Agents
+## Agents Sau Này
 
-Later agents are planned but not required for MVP:
+Các agents sau này đã được lên kế hoạch nhưng không bắt buộc cho MVP:
 
 - Comparer Agent.
 - Advisor Agent.
 
-They must not be implemented before search + price + Vietnamese summary is
-stable.
+Chúng không được implement trước khi search + price + Vietnamese summary ổn
+định.

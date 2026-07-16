@@ -1,17 +1,17 @@
 # Phase 5: Router And Synthesizer
 
-## Purpose
+## Mục Đích
 
-Implement assistant behavior around the tool contracts: route Vietnamese user
-requests, run the allowed tool path, and produce a Vietnamese answer from
-structured evidence.
+Implement assistant behavior quanh tool contracts: route Vietnamese user
+requests, chạy allowed tool path, và tạo câu trả lời tiếng Việt từ structured
+evidence.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Phase 5 starts after job lifecycle exists and mock tools are available.
+Phase 5 bắt đầu sau khi job lifecycle tồn tại và mock tools đã sẵn sàng.
 
-The app can create/process jobs, but it does not yet understand Vietnamese user
-intent or synthesize final answers from tool evidence.
+App có thể tạo/xử lý jobs, nhưng chưa hiểu Vietnamese user intent hoặc
+synthesize final answers từ tool evidence.
 
 ## Scope
 
@@ -19,21 +19,21 @@ Implement:
 
 - Router schemas.
 - deterministic/mock Router behavior.
-- optional LiteLLM/OpenAI Router provider behind opt-in config.
+- optional LiteLLM/OpenAI Router provider sau opt-in config.
 - Vietnamese Synthesizer schemas.
-- deterministic/mock Synthesizer behavior from evidence.
-- optional model-backed Synthesizer behind opt-in config.
+- deterministic/mock Synthesizer behavior từ evidence.
+- optional model-backed Synthesizer sau opt-in config.
 - unsupported intent fallback.
-- validation that final answers do not invent price/spec/URL fields.
-- `agent_runs` audit records for Router and Synthesizer.
+- validation để final answers không bịa price/spec/URL fields.
+- `agent_runs` audit records cho Router và Synthesizer.
 
 ## Non-Goals
 
-- No free-form ReAct loop.
-- No compare/advisor execution.
-- No frontend implementation.
-- No default paid model calls.
-- No live scraping/model calls in tests.
+- Không free-form ReAct loop.
+- Không compare/advisor execution.
+- Không frontend implementation.
+- Không default paid model calls.
+- Không live scraping/model calls trong tests.
 
 ## Inputs From Previous Phases
 
@@ -45,7 +45,7 @@ Required:
 
 Recommended:
 
-- Phase 4B/4C real tools can be absent; mock tools are enough for this phase.
+- Phase 4B/4C real tools có thể chưa có; mock tools là đủ cho phase này.
 
 ## Contracts
 
@@ -71,13 +71,13 @@ Recommended:
 }
 ```
 
-MVP executes only:
+MVP chỉ thực thi:
 
 ```text
 search_deals
 ```
 
-Other intents return safe Vietnamese fallback.
+Các intents khác trả về safe Vietnamese fallback.
 
 ### Synthesizer Input
 
@@ -100,50 +100,50 @@ Other intents return safe Vietnamese fallback.
 }
 ```
 
-Rules:
+Quy tắc:
 
-- answer in Vietnamese;
+- trả lời bằng tiếng Việt;
 - preserve USD;
-- preserve English product names when clearer;
-- mention source/tool warnings if relevant;
-- never invent fields not provided by tools.
+- preserve English product names khi rõ hơn;
+- nhắc source/tool warnings nếu liên quan;
+- không bao giờ bịa fields không được tools cung cấp.
 
 ## Workflow Gate
 
-Before coding:
+Trước khi code:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Confirm whether model-backed Router/Synthesizer is allowed or mock-only.
-- Present the Phase 5 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Xác nhận model-backed Router/Synthesizer có được phép hay chỉ mock-only.
+- Trình bày Phase 5 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
-1. Confirm Phase 4A report and tests pass.
-2. Add Router schemas and fixture tests.
-3. Implement deterministic Router for common Vietnamese search queries.
-4. Add unsupported fallback behavior.
-5. Add Synthesizer schemas and fixture tests.
-6. Implement deterministic Synthesizer from product and estimate evidence.
-7. Integrate Router -> tools -> Synthesizer into worker path.
-8. Add validation that product cards and final text are backed by evidence.
-9. Add optional model provider wrapper only if user approves paid/local provider
+1. Xác nhận Phase 4A report và tests pass.
+2. Thêm Router schemas và fixture tests.
+3. Implement deterministic Router cho common Vietnamese search queries.
+4. Thêm unsupported fallback behavior.
+5. Thêm Synthesizer schemas và fixture tests.
+6. Implement deterministic Synthesizer từ product và estimate evidence.
+7. Integrate Router -> tools -> Synthesizer vào worker path.
+8. Thêm validation để product cards và final text được backed by evidence.
+9. Chỉ thêm optional model provider wrapper nếu user approve paid/local provider
    behavior.
-10. Write Phase 5 report.
+10. Viết Phase 5 report.
 
 ## Verification
 
 Default required tests:
 
-- Vietnamese query routes to `search_deals`.
-- Router produces English query.
-- unsupported query returns fallback.
-- Synthesizer returns Vietnamese answer from fixtures.
-- Synthesizer preserves warnings.
-- Worker completes with Router/tools/Synthesizer mock path.
-- No default test calls OpenAI or live scraping.
+- Vietnamese query route tới `search_deals`.
+- Router tạo English query.
+- unsupported query trả về fallback.
+- Synthesizer trả về Vietnamese answer từ fixtures.
+- Synthesizer preserve warnings.
+- Worker hoàn thành với Router/tools/Synthesizer mock path.
+- Không default test nào gọi OpenAI hoặc live scraping.
 
 Example:
 
@@ -155,29 +155,29 @@ uv run pytest <worker integration test>
 Manual checks:
 
 - Submit: `Tìm laptop gaming dưới 800 đô`.
-- Confirm result includes Vietnamese answer and product cards.
-- Confirm no price/URL appears unless present in tool output.
+- Xác nhận result có Vietnamese answer và product cards.
+- Xác nhận không có price/URL xuất hiện trừ khi có trong tool output.
 
 ## Report Requirements
 
-Write:
+Viết:
 
 ```text
 shopping_assistant_v3/reports/phase_5_router_and_synthesizer_report.md
 ```
 
-Include:
+Bao gồm:
 
-- Router strategy: deterministic, model-backed, or both.
+- Router strategy: deterministic, model-backed, hoặc cả hai.
 - Synthesizer strategy.
-- model calls made, if any.
+- model calls đã thực hiện, nếu có.
 - validation evidence.
 - unsupported intent behavior.
 - remaining hallucination risks.
 
 ## Risks And Open Questions
 
-- Deterministic Router may be too limited, but it is safer for mock MVP.
-- Model-backed Router/Synthesizer require paid/local provider risk management.
-- Vietnamese answer quality should improve later, but correctness from evidence
-  is more important than style in MVP.
+- Deterministic Router có thể quá limited, nhưng an toàn hơn cho mock MVP.
+- Model-backed Router/Synthesizer yêu cầu paid/local provider risk management.
+- Vietnamese answer quality nên cải thiện về sau, nhưng correctness từ evidence
+  quan trọng hơn style trong MVP.

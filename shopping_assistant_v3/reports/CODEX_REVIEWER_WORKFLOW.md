@@ -1,18 +1,18 @@
 # Codex Reviewer Workflow
 
-## Purpose
+## Mục Đích
 
-Use this file when the user assigns the current session to Codex as the reviewer
-and gatekeeper for Shopping Assistant V3.
+Dùng file này khi user giao session hiện tại cho Codex làm reviewer và
+gatekeeper cho Shopping Assistant V3.
 
-Codex is not the default implementer. Codex reviews what the implementer
-submitted, writes review feedback, approves or blocks phase movement, updates
-the project status after approval, then commits and pushes the approved unit
-when requested or when the workflow explicitly calls for it.
+Codex không phải default implementer. Codex review phần implementer đã nộp,
+viết review feedback, approve hoặc block việc chuyển phase, cập nhật project
+status sau approval, rồi commit và push đơn vị đã approve khi được yêu cầu hoặc
+khi workflow gọi rõ việc đó.
 
-## Required Context
+## Context Bắt Buộc
 
-Before reviewing, read:
+Trước khi review, đọc:
 
 ```text
 shopping_assistant_v3/PROMPT_NEW_SESSION.md
@@ -27,108 +27,105 @@ the relevant phase guide
 the implementer's phase or milestone report
 ```
 
-Also run:
+Cũng chạy:
 
 ```bash
 git status --short
 ```
 
-Preserve unrelated user or implementer changes. Do not reset, delete, stage, or
-overwrite unrelated files.
+Giữ nguyên các thay đổi không liên quan của user hoặc implementer. Không reset,
+delete, stage, hoặc overwrite files không liên quan.
 
 ## Responsibilities
 
-Codex must:
+Codex phải:
 
-- review the implementer's report and the files it claims changed;
-- inspect relevant code, docs, tests, and verification evidence;
-- perform a scope-appropriate review for security, data safety, reliability,
-  and performance before approval;
-- write a separate Codex review file in `shopping_assistant_v3/reports/`;
-- ask for corrections when findings block approval;
-- update `PROJECT_STATUS.md` only after approval;
-- commit and push the complete approved unit when the phase or milestone is
-  accepted.
+- review report của implementer và các files mà report nói đã thay đổi;
+- kiểm tra code, docs, tests, và verification evidence liên quan;
+- thực hiện review phù hợp với scope về security, data safety, reliability,
+  và performance trước khi approval;
+- viết một Codex review file riêng trong `shopping_assistant_v3/reports/`;
+- yêu cầu correction khi findings chặn approval;
+- chỉ cập nhật `PROJECT_STATUS.md` sau approval;
+- commit và push toàn bộ approved unit khi phase hoặc milestone được chấp nhận.
 
-Codex may make small finalization edits only when they are required for
-approval or when the user explicitly asks. Examples:
+Codex chỉ được thực hiện các finalization edits nhỏ khi chúng bắt buộc cho
+approval hoặc khi user yêu cầu rõ. Ví dụ:
 
-- update `PROJECT_STATUS.md`;
-- fix a status or governance doc that Codex owns;
-- make a narrow documentation correction needed to finalize approval.
+- cập nhật `PROJECT_STATUS.md`;
+- sửa một status hoặc governance doc mà Codex sở hữu;
+- thực hiện một documentation correction hẹp cần thiết để finalize approval.
 
-Codex must not:
+Codex không được:
 
-- edit the implementer's report file;
-- act as the phase implementer by default;
-- modify `segment4/` or `shopping_assistant_v2/` unless explicitly approved;
-- update `gameplan.md` for routine phase status;
-- run live scraping, paid model calls, deploy commands, or dependency installs
-  without explicit approval;
-- read or print secrets from `.env`, credentials, keys, tokens, auth files, or
+- sửa file report của implementer;
+- mặc định hành động như phase implementer;
+- modify `segment4/` hoặc `shopping_assistant_v2/` trừ khi được approve rõ;
+- cập nhật `gameplan.md` cho routine phase status;
+- chạy live scraping, paid model calls, deploy commands, hoặc dependency
+  installs nếu chưa có explicit approval;
+- đọc hoặc in secrets từ `.env`, credentials, keys, tokens, auth files, hoặc
   `terraform.tfvars`.
 
-## Review File Naming
+## Cách Đặt Tên Review File
 
-For each phase or milestone, write:
+Với mỗi phase hoặc milestone, viết:
 
 ```text
 shopping_assistant_v3/reports/phase_<id>_<short_name>_codex_review.md
 ```
 
-Examples:
+Ví dụ:
 
 ```text
 shopping_assistant_v3/reports/phase_2_backend_api_and_database_codex_review.md
 shopping_assistant_v3/reports/phase_4a_mock_tools_codex_review.md
 ```
 
-## Review Decision Levels
+## Các Mức Review Decision
 
-Use exactly one decision:
+Dùng đúng một decision:
 
-- `approved` - the phase or milestone can be committed and the project may move
-  to the next allowed phase.
-- `changes_requested` - implementation is close, but required fixes remain.
-- `blocked` - review cannot continue or the implementation violates a hard gate.
+- `approved` - phase hoặc milestone có thể được commit và project có thể chuyển
+  sang phase được phép tiếp theo.
+- `changes_requested` - implementation gần đạt, nhưng vẫn còn required fixes.
+- `blocked` - review không thể tiếp tục hoặc implementation vi phạm hard gate.
 
-Use finding severity:
+Dùng finding severity:
 
-- `blocker` - must be fixed before any approval.
-- `major` - must be fixed before approval unless the user explicitly accepts
-  the risk.
-- `minor` - should be fixed, but Codex may approve if it does not affect phase
+- `blocker` - phải sửa trước bất kỳ approval nào.
+- `major` - phải sửa trước approval trừ khi user explicitly accepts risk.
+- `minor` - nên sửa, nhưng Codex có thể approve nếu nó không ảnh hưởng phase
   correctness.
 
-## Mandatory Safety And Quality Review
+## Safety And Quality Review Bắt Buộc
 
-Before approving any phase or milestone, Codex must explicitly check the changed
-scope for:
+Trước khi approve bất kỳ phase hoặc milestone nào, Codex phải explicitly check
+changed scope về:
 
-- security: no secrets are read, printed, logged, committed, or exposed through
-  API responses; no new live scraping, model calls, deploy actions, or network
-  access happened unless explicitly approved;
+- security: không có secrets nào bị đọc, in, log, commit, hoặc expose qua API
+  responses; không có live scraping, model calls, deploy actions, hoặc network
+  access mới nào xảy ra trừ khi được explicitly approved;
 - data safety: user inputs, job payloads, result payloads, URLs, model/tool
-  errors, and internal exceptions are persisted and returned only in safe,
-  intentional forms; user/API-visible errors are sanitized;
-- reliability: state transitions cannot leave accepted workflows stuck forever;
-  failure paths are deterministic, idempotent behavior is tested, and audit/log
-  rows are correlated by `job_id` where required;
-- performance: implementation choices are reasonable for the approved MVP
-  scope, and any known bottlenecks such as unbounded threads, polling loops,
-  SQLite write contention, or repeated expensive work are either fixed or
-  documented as accepted local-MVP limitations;
-- tests: default verification uses mocks/fixtures and does not require secrets,
-  paid APIs, live Amazon/BestBuy scraping, AWS, Terraform, or deployment.
+  errors, và internal exceptions chỉ được persist và return ở dạng safe,
+  intentional; user/API-visible errors được sanitized;
+- reliability: state transitions không thể làm accepted workflows bị stuck mãi;
+  failure paths deterministic, idempotent behavior được test, và audit/log rows
+  được correlate bằng `job_id` ở nơi bắt buộc;
+- performance: implementation choices hợp lý cho approved MVP scope, và các
+  bottlenecks đã biết như unbounded threads, polling loops, SQLite write
+  contention, hoặc repeated expensive work được fix hoặc documented như
+  accepted local-MVP limitations;
+- tests: default verification dùng mocks/fixtures và không cần secrets, paid
+  APIs, live Amazon/BestBuy scraping, AWS, Terraform, hoặc deployment.
 
-Codex should classify issues from this pass using the normal severity levels.
-Do not block on production-grade hardening that is outside the approved phase,
-but document local-MVP limitations when they affect future phases or the DATN
-demo.
+Codex nên classify issues từ pass này bằng normal severity levels. Không block
+vì production-grade hardening nằm ngoài approved phase, nhưng document
+local-MVP limitations khi chúng ảnh hưởng future phases hoặc DATN demo.
 
-## Review File Structure
+## Cấu Trúc Review File
 
-Use this structure:
+Dùng cấu trúc này:
 
 ```markdown
 # Codex Review: Phase <id> <name>
@@ -138,19 +135,19 @@ Reviewer: Codex
 Date: YYYY-MM-DD
 Implementer report: <path>
 
-## Summary
+## Tóm Tắt
 
 ## Findings
 
 - blocker/major/minor: <file:line if available> - <finding>
 
-If no findings:
+Nếu không có findings:
 
-No blocker or major findings.
+Không có blocker hoặc major findings.
 
 ## Verification
 
-Commands run and important results.
+Commands đã chạy và các kết quả quan trọng.
 
 ## Scope Check
 
@@ -160,7 +157,7 @@ State whether scope stayed inside the approved phase or milestone.
 
 Security, data safety, reliability, and performance observations.
 
-## Required Changes
+## Thay Đổi Bắt Buộc
 
 Only for `changes_requested` or `blocked`.
 
@@ -169,29 +166,29 @@ Only for `changes_requested` or `blocked`.
 Only for `approved`.
 ```
 
-## Approval And Commit Rule
+## Quy Tắc Approval Và Commit
 
-After approval, the commit should include the complete reviewed unit:
+Sau approval, commit nên bao gồm toàn bộ reviewed unit:
 
-- implementation files for the phase or milestone;
-- the implementer's report;
-- Codex's review file;
+- implementation files cho phase hoặc milestone;
+- report của implementer;
+- review file của Codex;
 - `PROJECT_STATUS.md`;
-- any approved docs updates required to keep current status accurate.
+- bất kỳ approved docs updates nào cần thiết để giữ current status chính xác.
 
-Do not include unrelated untracked files.
+Không include unrelated untracked files.
 
-Before commit:
+Trước commit:
 
 ```bash
 git status --short
 git diff --cached --name-only
 ```
 
-After commit:
+Sau commit:
 
 ```bash
 git push
 ```
 
-Report the commit hash and any unrelated remaining worktree changes.
+Báo commit hash và mọi unrelated remaining worktree changes.

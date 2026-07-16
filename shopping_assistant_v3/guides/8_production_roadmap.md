@@ -1,23 +1,23 @@
 # Phase 8: Production Roadmap
 
-## Purpose
+## Mục Đích
 
-Document the production path after the local MVP is stable. This phase is a
-planning and hardening roadmap, not a deployment phase by default.
+Document production path sau khi local MVP ổn định. Phase này là planning và
+hardening roadmap, không mặc định là deployment phase.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Production work must not start until:
+Production work không được bắt đầu cho tới khi:
 
-- local MVP works;
+- local MVP hoạt động;
 - tests pass;
-- demo script exists;
-- known failure modes are documented;
+- demo script tồn tại;
+- known failure modes được documented;
 - user explicitly approves production work.
 
 ## Scope
 
-Plan future work for:
+Plan future work cho:
 
 - Clerk auth.
 - Postgres/Supabase/Aurora migration.
@@ -26,19 +26,19 @@ Plan future work for:
 - production observability.
 - cost controls.
 - scraper safety.
-- optional Compare and Advisor agents.
+- optional Compare và Advisor agents.
 
 ## Non-Goals
 
-Unless explicitly approved:
+Trừ khi được explicitly approved:
 
-- no AWS commands;
-- no Terraform;
-- no production deploy;
-- no Clerk implementation;
-- no database migration execution;
-- no paid production observability setup;
-- no live scraping scale work.
+- không AWS commands;
+- không Terraform;
+- không production deploy;
+- không Clerk implementation;
+- không database migration execution;
+- không paid production observability setup;
+- không live scraping scale work.
 
 ## Inputs From Previous Phases
 
@@ -83,61 +83,61 @@ Production readiness concerns:
 
 ## Workflow Gate
 
-Before coding or production planning:
+Trước khi code hoặc production planning:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Confirm production work is explicitly approved.
-- Present the Phase 8 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Xác nhận production work được explicitly approved.
+- Trình bày Phase 8 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
-1. Review Phase 7 report and current known limitations.
-2. Identify blockers to production readiness.
+1. Review Phase 7 report và current known limitations.
+2. Identify blockers với production readiness.
 3. Decide production target:
    - local Docker only;
    - Supabase/Postgres local/managed;
    - AWS;
-   - another deployment platform.
-4. Write an architecture decision for the next production step if approved.
-5. Split production work into separate future guides or update this guide.
-6. Do not deploy until the user approves a specific production implementation
+   - deployment platform khác.
+4. Viết architecture decision cho next production step nếu được approve.
+5. Split production work thành future guides riêng hoặc update guide này.
+6. Không deploy cho tới khi user approve specific production implementation
    plan.
 
 ## Verification
 
-This phase verifies documentation quality, not deployed infrastructure.
+Phase này verify documentation quality, không phải deployed infrastructure.
 
 Checks:
 
-- roadmap clearly says what is planned versus implemented;
-- no production task is marked complete without evidence;
-- local MVP remains the baseline;
-- cost and secret handling are explicit;
-- next production step has a review gate.
+- roadmap nói rõ planned và implemented khác nhau thế nào;
+- không production task nào được mark complete nếu không có evidence;
+- local MVP vẫn là baseline;
+- cost và secret handling explicit;
+- next production step có review gate.
 
 ## Report Requirements
 
-If Phase 8 is run as a planning phase, write:
+Nếu Phase 8 được chạy như planning phase, viết:
 
 ```text
 shopping_assistant_v3/reports/phase_8_production_roadmap_report.md
 ```
 
-Include:
+Bao gồm:
 
-- production option chosen or deferred;
+- production option được chọn hoặc deferred;
 - risks;
 - estimated cost categories;
-- docs updated;
+- docs đã update;
 - next phase recommendation.
 
 ## Risks And Open Questions
 
-- AWS can add cost and operational complexity before the product is stable.
-- Clerk auth changes database ownership assumptions.
-- Real scraping at scale may need proxy/session/rate-limit strategy.
-- Production observability should not expose user data or secrets.
-- Compare/Advisor agents should wait until search + price + summary are stable.
+- AWS có thể thêm cost và operational complexity trước khi product ổn định.
+- Clerk auth thay đổi database ownership assumptions.
+- Real scraping at scale có thể cần proxy/session/rate-limit strategy.
+- Production observability không nên expose user data hoặc secrets.
+- Compare/Advisor agents nên chờ tới khi search + price + summary ổn định.

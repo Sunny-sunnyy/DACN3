@@ -1,40 +1,40 @@
 # Phase 6: Frontend Chat
 
-## Purpose
+## Mục Đích
 
-Build the Next.js chat-first frontend that submits Vietnamese messages, polls
-job status, and renders Vietnamese answers with product cards.
+Xây Next.js chat-first frontend để submit Vietnamese messages, poll job status,
+và render Vietnamese answers với product cards.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Phase 6 starts after the backend can complete a mock end-to-end job and return a
-result payload matching the API contract.
+Phase 6 bắt đầu sau khi backend có thể hoàn thành mock end-to-end job và trả về
+result payload khớp API contract.
 
-No frontend exists until this phase or Phase 1 creates a skeleton.
+Không có frontend cho tới phase này hoặc Phase 1 tạo skeleton.
 
 ## Scope
 
 Implement:
 
 - Next.js frontend app.
-- API client for backend job endpoints.
-- chat input and submit flow.
+- API client cho backend job endpoints.
+- chat input và submit flow.
 - job polling.
 - status display.
 - Vietnamese answer rendering.
 - product cards.
 - warnings display.
-- debug panel with `job_id`.
+- debug panel với `job_id`.
 - failed state display.
 
 ## Non-Goals
 
-- No marketing landing page.
-- No production auth.
-- No payment/subscription.
-- No advanced UI polish before backend contracts work.
-- No direct scraping/model calls from frontend.
-- No server-side product search in frontend.
+- Không marketing landing page.
+- Không production auth.
+- Không payment/subscription.
+- Không advanced UI polish trước khi backend contracts hoạt động.
+- Không direct scraping/model calls từ frontend.
+- Không server-side product search trong frontend.
 
 ## Inputs From Previous Phases
 
@@ -46,7 +46,7 @@ Required:
 
 Optional:
 
-- Phase 7 may later expand demo polish and tests.
+- Phase 7 có thể expand demo polish và tests về sau.
 
 ## Contracts
 
@@ -60,7 +60,7 @@ user enters Vietnamese message
 -> render pending/running/completed/failed
 ```
 
-Required UI states:
+Các UI states bắt buộc:
 
 - `idle`
 - `submitting`
@@ -69,7 +69,7 @@ Required UI states:
 - `completed`
 - `failed`
 
-Required components:
+Các components bắt buộc:
 
 - `ChatPanel`
 - `JobStatus`
@@ -94,55 +94,55 @@ Product card fields:
 
 Polling:
 
-- every 1 second while `pending` or `running`;
-- stop on `completed` or `failed`;
-- show a timeout/long wait warning if needed.
+- mỗi 1 giây khi `pending` hoặc `running`;
+- dừng khi `completed` hoặc `failed`;
+- hiển thị timeout/long wait warning nếu cần.
 
 Accessibility minimum:
 
-- inputs have labels;
-- buttons have readable text;
-- status is visible;
-- product links open safely.
+- inputs có labels;
+- buttons có readable text;
+- status visible;
+- product links mở an toàn.
 
 ## Workflow Gate
 
-Before coding:
+Trước khi code:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Confirm frontend package/router choices before scaffolding.
-- Present the Phase 6 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Xác nhận frontend package/router choices trước khi scaffolding.
+- Trình bày Phase 6 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
-1. Confirm backend can return completed mock result.
-2. Choose App Router or Pages Router explicitly.
-3. Create frontend structure.
-4. Define TypeScript types matching API contract.
+1. Xác nhận backend có thể return completed mock result.
+2. Chọn App Router hoặc Pages Router rõ ràng.
+3. Tạo frontend structure.
+4. Define TypeScript types khớp API contract.
 5. Implement API client.
-6. Implement chat input and submit state.
+6. Implement chat input và submit state.
 7. Implement polling.
 8. Implement status display.
-9. Implement answer and product card rendering.
-10. Implement warning and failed state display.
-11. Add debug panel with `job_id`.
-12. Add frontend smoke tests if project tooling supports them.
-13. Write Phase 6 report.
+9. Implement answer và product card rendering.
+10. Implement warning và failed state display.
+11. Thêm debug panel với `job_id`.
+12. Thêm frontend smoke tests nếu project tooling hỗ trợ.
+13. Viết Phase 6 report.
 
 ## Verification
 
 Manual checks:
 
-- User can submit Vietnamese query.
-- UI receives `job_id`.
-- UI shows `pending`/`running`.
-- UI renders completed Vietnamese answer.
-- UI renders product cards.
-- Failed job renders safe error.
-- Debug `job_id` is visible.
+- User có thể submit Vietnamese query.
+- UI nhận `job_id`.
+- UI hiển thị `pending`/`running`.
+- UI render completed Vietnamese answer.
+- UI render product cards.
+- Failed job render safe error.
+- Debug `job_id` visible.
 
 Commands depend on frontend tooling. Expected examples:
 
@@ -152,30 +152,30 @@ npm run test
 npm run dev
 ```
 
-Only run dependency install or package scripts after the user has approved the
+Chỉ chạy dependency install hoặc package scripts sau khi user đã approve
 frontend package setup.
 
 ## Report Requirements
 
-Write:
+Viết:
 
 ```text
 shopping_assistant_v3/reports/phase_6_frontend_chat_report.md
 ```
 
-Include:
+Bao gồm:
 
-- router choice: App Router or Pages Router;
-- files/components created;
+- router choice: App Router hoặc Pages Router;
+- files/components đã tạo;
 - API contract assumptions;
-- commands run;
-- screenshot/manual validation notes if available;
+- commands đã chạy;
+- screenshot/manual validation notes nếu có;
 - remaining UI risks.
 
 ## Risks And Open Questions
 
-- UI visual style is intentionally not fixed yet.
-- CORS may require backend config updates.
-- Product text can be long; card layout must not break on long English titles.
-- Debug panel is useful for DATN demo but should not expose secrets or stack
+- UI visual style cố ý chưa được cố định.
+- CORS có thể yêu cầu backend config updates.
+- Product text có thể dài; card layout không được vỡ với long English titles.
+- Debug panel hữu ích cho DATN demo nhưng không nên expose secrets hoặc stack
   traces.

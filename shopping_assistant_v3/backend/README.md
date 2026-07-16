@@ -1,51 +1,53 @@
 # Backend
 
-FastAPI backend for Shopping Assistant V3. Created in Phase 1 as structure
-only; no runtime code is implemented yet.
+FastAPI backend cho Shopping Assistant V3. Được tạo trong Phase 1 dưới dạng
+cấu trúc thư mục; chưa có runtime code nào được implement.
 
-## Stack Decisions
+## Quyết Định Stack
 
-- Python via `uv` only. Never call `python` or `pip` directly.
+- Chỉ dùng Python thông qua `uv`. Không gọi trực tiếp `python` hoặc `pip`.
 - Web framework: FastAPI.
-- Persistence: SQLite (schema kept Postgres-compatible).
-- Async jobs: local worker, `job_id` lifecycle.
-- Model calls: LiteLLM abstraction, OpenAI-compatible provider.
-- Default mode: mock/fixture. Real search and real model calls are opt-in.
+- Persistence: SQLite (schema giữ tương thích với Postgres).
+- Async jobs: local worker, lifecycle theo `job_id`.
+- Model calls: LiteLLM abstraction, provider tương thích OpenAI.
+- Default mode: mock/fixture. Real search và real model calls là opt-in.
 
-Python dependency layout (`pyproject.toml`) is deferred to Phase 2.
+Layout dependency Python (`pyproject.toml`) được hoãn đến Phase 2.
 
-## Module Map
+## Bản Đồ Module
 
-| Module | Responsibility |
+| Module | Trách nhiệm |
 |---|---|
-| `shared/` | Config, logging, common schemas, guardrails, error types. |
-| `database/` | SQLite schema, repositories, job/product/estimate persistence. |
+| `shared/` | Config, logging, schemas chung, guardrails, error types. |
+| `database/` | SQLite schema, repositories, persistence cho job/product/estimate. |
 | `api/` | FastAPI app, validation, safe errors, job endpoints. |
 | `router/` | Job orchestration, intent routing, tool invocation. |
 | `tools/deal_search/` | Amazon/BestBuy search, normalized candidates. |
-| `tools/price_estimator/` | USD fair value estimation, deal score. |
-| `synthesizer/` | Vietnamese final answer from structured evidence. |
+| `tools/price_estimator/` | Ước tính fair value USD, deal score. |
+| `synthesizer/` | Câu trả lời tiếng Việt cuối cùng từ structured evidence. |
 
-Rules:
+Quy tắc:
 
-- `shared/` must not import from tools or agents.
-- Route handlers stay thin and never run scraping/model work directly.
-- Database access goes through repositories.
+- `shared/` không được import từ tools hoặc agents.
+- Route handlers phải mỏng và không bao giờ chạy trực tiếp scraping/model work.
+- Database access đi qua repositories.
 
 ## Environment Variables
 
-See `shopping_assistant_v3/.env.example` for the full list. Key safety flags:
+Xem `shopping_assistant_v3/.env.example` để biết danh sách đầy đủ. Các safety
+flags quan trọng:
 
 ```text
 ENABLE_REAL_SEARCH=false
 ENABLE_REAL_MODEL_CALLS=false
 ```
 
-Default tests must never scrape live Amazon/BestBuy or call paid model APIs.
+Default tests không bao giờ được scrape live Amazon/BestBuy hoặc gọi paid model
+APIs.
 
 ## Local Service
 
 - Backend URL: `http://localhost:8000`
-- Contracts: see `shopping_assistant_v3/guides/architecture.md` (API, database)
-  and `shopping_assistant_v3/guides/agent_architecture.md` (Router, tools,
+- Contracts: xem `shopping_assistant_v3/guides/architecture.md` (API, database)
+  và `shopping_assistant_v3/guides/agent_architecture.md` (Router, tools,
   Synthesizer).

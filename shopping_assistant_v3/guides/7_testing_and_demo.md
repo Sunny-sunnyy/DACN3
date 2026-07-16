@@ -1,39 +1,39 @@
 # Phase 7: Testing And Demo
 
-## Purpose
+## Mục Đích
 
-Harden the local MVP for reliable DATN/CV demonstration.
+Harden local MVP để demo DATN/CV đáng tin cậy.
 
-This phase turns the working local app into a repeatable demo with deterministic
-tests, fixtures, known limitations, and opt-in real-mode instructions.
+Phase này biến local app đang hoạt động thành repeatable demo với deterministic
+tests, fixtures, known limitations, và opt-in real-mode instructions.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Phase 7 starts after backend, worker, mock tools, Router/Synthesizer, and
-frontend chat flow work locally.
+Phase 7 bắt đầu sau khi backend, worker, mock tools, Router/Synthesizer, và
+frontend chat flow hoạt động local.
 
 ## Scope
 
-Implement or complete:
+Implement hoặc hoàn thiện:
 
 - backend unit tests;
-- backend integration test for job lifecycle;
+- backend integration test cho job lifecycle;
 - tool fixture tests;
 - Router/Synthesizer fixture tests;
 - frontend smoke/component tests;
 - manual demo script/checklist;
 - opt-in real search/model test documentation;
 - known limitations;
-- verification commands in docs.
+- verification commands trong docs.
 
 ## Non-Goals
 
-- No new major feature development.
-- No production deployment.
-- No Clerk auth.
-- No AWS/Terraform.
-- No default live scraping/model tests.
-- No broad UI redesign unless required for demo reliability.
+- Không new major feature development.
+- Không production deployment.
+- Không Clerk auth.
+- Không AWS/Terraform.
+- Không default live scraping/model tests.
+- Không broad UI redesign trừ khi cần cho demo reliability.
 
 ## Inputs From Previous Phases
 
@@ -47,7 +47,7 @@ Required:
 
 ## Contracts
 
-Default tests must not:
+Default tests không được:
 
 - scrape live Amazon/BestBuy;
 - call OpenAI;
@@ -55,7 +55,7 @@ Default tests must not:
 - require AWS;
 - require secrets.
 
-Required backend tests:
+Backend tests bắt buộc:
 
 - request validation;
 - repository create/update/read;
@@ -64,7 +64,7 @@ Required backend tests:
 - tool input/output schema validation;
 - Synthesizer fixture validation.
 
-Required backend integration test:
+Backend integration test bắt buộc:
 
 ```text
 create job
@@ -72,10 +72,10 @@ create job
 -> poll completed result
 ```
 
-Required frontend tests:
+Frontend tests bắt buộc:
 
 - component render smoke;
-- API client handles pending/completed/failed;
+- API client handle pending/completed/failed;
 - product cards render expected fields.
 
 Manual demo checklist:
@@ -87,32 +87,32 @@ Manual demo checklist:
 - verify Vietnamese answer;
 - verify product cards;
 - verify logs contain `job_id`;
-- verify failure state if possible.
+- verify failure state nếu có thể.
 
 ## Workflow Gate
 
-Before coding:
+Trước khi code:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Confirm which test stacks and demo commands are in scope.
-- Present the Phase 7 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Xác nhận test stacks và demo commands nào nằm trong scope.
+- Trình bày Phase 7 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
 1. Inventory existing tests.
-2. Add missing backend unit tests.
-3. Add backend integration test for mock job lifecycle.
-4. Add tool fixture tests.
-5. Add Router/Synthesizer fixture tests.
-6. Add frontend smoke tests.
-7. Add manual demo script/checklist.
-8. Document opt-in real search/model tests separately.
+2. Thêm missing backend unit tests.
+3. Thêm backend integration test cho mock job lifecycle.
+4. Thêm tool fixture tests.
+5. Thêm Router/Synthesizer fixture tests.
+6. Thêm frontend smoke tests.
+7. Thêm manual demo script/checklist.
+8. Document opt-in real search/model tests riêng.
 9. Document known limitations.
-10. Run full local verification.
-11. Write Phase 7 report.
+10. Chạy full local verification.
+11. Viết Phase 7 report.
 
 ## Verification
 
@@ -124,35 +124,35 @@ npm run test
 npm run lint
 ```
 
-Exact commands depend on implementation and must be recorded in the report.
+Exact commands phụ thuộc implementation và phải được ghi trong report.
 
-Manual verification must show:
+Manual verification phải cho thấy:
 
-- mock mode demo works reliably;
-- no default test requires network/model calls;
-- failed job path is visible and safe;
-- logs can be traced by `job_id`.
+- mock mode demo hoạt động đáng tin cậy;
+- không default test nào yêu cầu network/model calls;
+- failed job path visible và safe;
+- logs trace được bằng `job_id`.
 
 ## Report Requirements
 
-Write:
+Viết:
 
 ```text
 shopping_assistant_v3/reports/phase_7_testing_and_demo_report.md
 ```
 
-Include:
+Bao gồm:
 
-- commands run;
+- commands đã chạy;
 - tests passed/failed;
 - manual demo evidence;
-- opt-in real-mode instructions added;
+- opt-in real-mode instructions đã thêm;
 - known limitations;
-- whether MVP is demo-ready.
+- MVP có demo-ready hay không.
 
 ## Risks And Open Questions
 
-- Frontend testing stack may need dependency decisions.
-- Live scraper reliability should not block mock demo readiness.
-- Real model costs must remain opt-in and documented.
-- Demo script should be short enough for repeatable DATN presentation.
+- Frontend testing stack có thể cần dependency decisions.
+- Live scraper reliability không nên block mock demo readiness.
+- Real model costs phải giữ opt-in và documented.
+- Demo script nên đủ ngắn cho repeatable DATN presentation.

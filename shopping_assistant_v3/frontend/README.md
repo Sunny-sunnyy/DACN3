@@ -1,17 +1,17 @@
 # Frontend
 
-Next.js chat-first frontend for Shopping Assistant V3. Created in Phase 1 as
-structure only; no app is scaffolded yet.
+Next.js frontend ưu tiên chat cho Shopping Assistant V3. Được tạo trong Phase
+1 dưới dạng cấu trúc thư mục; chưa scaffold app.
 
-## Stack Decisions
+## Quyết Định Stack
 
 - Framework: Next.js with App Router.
 - Local URL: `http://localhost:3000`.
-- Talks to backend at `http://localhost:8000` via async job polling
-  (`POST /api/chat-jobs`, then poll `GET /api/chat-jobs/{job_id}`).
-- Package manager: not fixed yet; decided with user approval in Phase 6.
+- Giao tiếp với backend tại `http://localhost:8000` thông qua async job polling
+  (`POST /api/chat-jobs`, sau đó poll `GET /api/chat-jobs/{job_id}`).
+- Package manager: chưa cố định; quyết định với user approval trong Phase 6.
 
-## Planned Structure
+## Cấu Trúc Dự Kiến
 
 ```text
 frontend/
@@ -21,8 +21,8 @@ frontend/
 └── styles/
 ```
 
-Required UI states: `idle`, `submitting`, `pending`, `running`, `completed`,
+Các UI states bắt buộc: `idle`, `submitting`, `pending`, `running`, `completed`,
 `failed`.
 
-Implemented in Phase 6. Contract details:
+Được implement trong Phase 6. Chi tiết contract:
 `shopping_assistant_v3/guides/architecture.md`.

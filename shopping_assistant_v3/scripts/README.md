@@ -1,20 +1,20 @@
 # Scripts
 
-Local helper scripts for Shopping Assistant V3.
+Các local helper scripts cho Shopping Assistant V3.
 
 Conventions:
 
-- Scripts must be deterministic and local: no network, no model calls, no
-  scraping, no secrets.
-- Python scripts run via `uv run`. Shell scripts run via `bash`.
+- Scripts phải deterministic và local: không network, không model calls, không
+  scraping, không secrets.
+- Python scripts chạy qua `uv run`. Shell scripts chạy qua `bash`.
 
-## Available Scripts
+## Scripts Hiện Có
 
-| Script | Purpose |
+| Script | Mục đích |
 |---|---|
-| `verify_setup.sh` | Verify the Phase 1 runtime folder structure exists. |
+| `verify_setup.sh` | Xác minh cấu trúc runtime folder của Phase 1 tồn tại. |
 
-Usage:
+Cách dùng:
 
 ```bash
 bash shopping_assistant_v3/scripts/verify_setup.sh

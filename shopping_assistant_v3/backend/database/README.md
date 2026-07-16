@@ -1,9 +1,9 @@
 # database
 
-SQLite schema and repositories for jobs, conversations, messages, agent runs,
-products, and price estimates.
+SQLite schema và repositories cho jobs, conversations, messages, agent runs,
+products, và price estimates.
 
-Schema stays Postgres-compatible for future migration. All database access goes
-through repositories, not scattered SQL.
+Schema giữ tương thích với Postgres cho migration tương lai. Mọi database
+access đi qua repositories, không dùng SQL rải rác.
 
-Implemented in Phase 2. No code yet.
+Được implement trong Phase 2. Chưa có code.

@@ -1,11 +1,11 @@
 # router
 
-Job orchestration and controlled intent routing. Classifies the Vietnamese user
-message, produces a normalized English query, and invokes tools in a fixed
-order. No free-form ReAct loop.
+Job orchestration và controlled intent routing. Phân loại message tiếng Việt
+của user, tạo normalized English query, và gọi tools theo thứ tự cố định.
+Không có free-form ReAct loop.
 
-MVP executes only `search_deals`. Other intents return safe Vietnamese
+MVP chỉ thực thi `search_deals`. Các intents khác trả về safe Vietnamese
 fallback. Contract: `shopping_assistant_v3/guides/agent_architecture.md`.
 
-Implemented in Phase 5 (orchestration skeleton may arrive in Phase 3). No code
-yet.
+Được implement trong Phase 5 (orchestration skeleton có thể xuất hiện trong
+Phase 3). Chưa có code.

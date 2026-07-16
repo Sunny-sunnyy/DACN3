@@ -1,9 +1,9 @@
 # synthesizer
 
-Writes the final Vietnamese answer from structured tool evidence only. Product
-names may stay English; prices stay USD. Never invents price, URL, source,
-specs, or discount.
+Viết câu trả lời tiếng Việt cuối cùng chỉ từ structured tool evidence. Product
+names có thể giữ tiếng Anh; prices giữ USD. Không bao giờ bịa price, URL,
+source, specs, hoặc discount.
 
 Contract: `shopping_assistant_v3/guides/agent_architecture.md`.
 
-Implemented in Phase 5. No code yet.
+Được implement trong Phase 5. Chưa có code.

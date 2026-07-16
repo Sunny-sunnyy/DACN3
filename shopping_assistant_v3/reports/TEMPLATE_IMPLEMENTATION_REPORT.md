@@ -12,27 +12,27 @@ Branch:
 
 Commit reviewed: `<commit hash or "not committed yet">`
 
-## Summary
+## Tóm Tắt
 
-State exactly what was implemented.
+Nêu chính xác những gì đã được implement.
 
-Be explicit if behavior is mocked, fixture-based, partial, or real.
+Nói rõ behavior là mocked, fixture-based, partial, hay real.
 
-## Files Created
-
-```text
-path/to/file - purpose
-```
-
-## Files Modified
+## Files Đã Tạo
 
 ```text
-path/to/file - what changed and why
+path/to/file - mục đích
 ```
 
-## Commands Run
+## Files Đã Sửa
 
-List exact commands.
+```text
+path/to/file - thay đổi gì và vì sao
+```
+
+## Commands Đã Chạy
+
+Liệt kê các command chính xác.
 
 ```bash
 uv run pytest ...
@@ -40,43 +40,43 @@ npm run ...
 curl ...
 ```
 
-For each command, include pass/fail and important output summary.
+Với mỗi command, ghi pass/fail và tóm tắt output quan trọng.
 
-## Tests Run
+## Tests Đã Chạy
 
-List automated tests and result.
+Liệt kê automated tests và kết quả.
 
-If tests were not run, explain why.
+Nếu tests không được chạy, giải thích lý do.
 
-## Verification Evidence
+## Bằng Chứng Verification
 
-Describe manual checks and evidence.
+Mô tả manual checks và evidence.
 
-Examples:
+Ví dụ:
 
-- Created a chat job through API.
-- Confirmed status moved from `pending` to `completed`.
-- Confirmed result payload matched the phase guide.
-- Confirmed logs include `job_id`.
-- Confirmed no real network/model call was made.
+- Tạo một chat job qua API.
+- Xác nhận status chuyển từ `pending` sang `completed`.
+- Xác nhận result payload khớp phase guide.
+- Xác nhận logs có `job_id`.
+- Xác nhận không có real network/model call nào được thực hiện.
 
 ## Known Issues
 
-Classify each item:
+Phân loại từng item:
 
 - Blocker
 - Major
 - Minor
 
-If none, write:
+Nếu không có, ghi:
 
 ```text
-No known issues.
+Không có known issues.
 ```
 
 ## Deviations From Guide
 
-For each deviation:
+Với mỗi deviation:
 
 ```text
 Guide expectation:
@@ -85,42 +85,42 @@ Reason:
 Should docs be updated? yes/no
 ```
 
-If none, write:
+Nếu không có, ghi:
 
 ```text
-No intentional deviations.
+Không có intentional deviations.
 ```
 
 ## Suggested Doc Updates
 
-List docs/guides that may now be stale.
+Liệt kê docs/guides có thể đã stale.
 
-Examples:
+Ví dụ:
 
 ```text
 gameplan.md - update Current Phase Status.
 guides/2_backend_api_and_database.md - verify command changed.
 ```
 
-If none, write:
+Nếu không có, ghi:
 
 ```text
-No documentation updates appear necessary.
+Không thấy cần documentation updates.
 ```
 
 ## Reviewer Checklist
 
-Reviewer should inspect:
+Reviewer nên kiểm tra:
 
-- Scope stayed within the approved phase.
-- No `segment4/` files changed unless explicitly approved.
-- No `shopping_assistant_v2/` files changed.
-- No secrets were read, printed, or committed.
-- Default tests do not call paid APIs or live scraping.
-- API/schema/tool contracts match the relevant guide.
-- Failure paths store safe errors.
-- Logs/audit events include `job_id` where required.
-- Docs that changed reality are updated after approval.
+- Scope nằm trong approved phase.
+- Không có file `segment4/` nào thay đổi trừ khi được approve rõ.
+- Không có file `shopping_assistant_v2/` nào thay đổi.
+- Không có secrets nào bị đọc, in, hoặc commit.
+- Default tests không gọi paid APIs hoặc live scraping.
+- API/schema/tool contracts khớp guide liên quan.
+- Failure paths lưu safe errors.
+- Logs/audit events có `job_id` ở nơi bắt buộc.
+- Docs phản ánh thay đổi thực tế được cập nhật sau approval.
 
 Reviewer decision:
 
@@ -131,4 +131,3 @@ Date:
 Required changes:
 Docs to update after approval:
 ```
-

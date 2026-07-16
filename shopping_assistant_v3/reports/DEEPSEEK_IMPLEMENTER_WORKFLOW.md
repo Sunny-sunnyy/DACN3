@@ -1,17 +1,17 @@
 # DeepSeek Implementer Workflow
 
-## Purpose
+## Mục Đích
 
-Use this file when the user assigns the current session to DeepSeek or another
-implementation agent for Shopping Assistant V3.
+Dùng file này khi user giao session hiện tại cho DeepSeek hoặc một
+implementation agent khác cho Shopping Assistant V3.
 
-The implementer builds the approved phase or milestone, runs verification, and
-writes an implementation report. The implementer does not approve its own work
-and does not commit or push unless Codex has approved that action.
+Implementer xây approved phase hoặc milestone, chạy verification, và viết
+implementation report. Implementer không approve chính work của mình và không
+commit hoặc push trừ khi Codex đã approve hành động đó.
 
-## Required Context
+## Context Bắt Buộc
 
-Before implementing, read:
+Trước khi implement, đọc:
 
 ```text
 shopping_assistant_v3/PROMPT_NEW_SESSION.md
@@ -26,60 +26,61 @@ the relevant phase guide
 relevant Codex review feedback, if resubmitting fixes
 ```
 
-Also run:
+Cũng chạy:
 
 ```bash
 git status --short
 ```
 
-Preserve unrelated changes. Do not reset, delete, stage, commit, push, or
-overwrite files outside the approved scope.
+Giữ nguyên unrelated changes. Không reset, delete, stage, commit, push, hoặc
+overwrite files ngoài approved scope.
 
 ## Responsibilities
 
-The implementer must:
+Implementer phải:
 
-- implement only the user-approved phase or milestone scope;
-- follow the current phase guide and V3 architecture contracts;
-- use mocks and fixtures by default;
-- run the smallest relevant verification first;
-- perform a self-check for security, data safety, reliability, and performance
-  before handing work to Codex;
-- write or update the implementer's own report in
+- chỉ implement user-approved phase hoặc milestone scope;
+- tuân theo current phase guide và V3 architecture contracts;
+- dùng mocks và fixtures theo mặc định;
+- chạy smallest relevant verification trước;
+- thực hiện self-check về security, data safety, reliability, và performance
+  trước khi hand work cho Codex;
+- viết hoặc cập nhật report riêng của implementer trong
   `shopping_assistant_v3/reports/`;
-- respond to Codex feedback by changing code/docs and the implementer's own
-  report as needed.
+- phản hồi Codex feedback bằng cách sửa code/docs và report riêng của
+  implementer khi cần.
 
-The implementer must not:
+Implementer không được:
 
-- edit Codex review files;
-- update `PROJECT_STATUS.md`;
-- update `gameplan.md` for routine status;
-- commit or push without Codex approval;
-- modify `segment4/` or `shopping_assistant_v2/` unless explicitly approved;
-- run live Amazon/BestBuy scraping, paid model calls, AWS/Terraform/deploy
-  commands, or dependency installs without explicit approval;
-- read or print secrets from `.env`, credentials, keys, tokens, auth files, or
+- sửa Codex review files;
+- cập nhật `PROJECT_STATUS.md`;
+- cập nhật `gameplan.md` cho routine status;
+- commit hoặc push nếu không có Codex approval;
+- modify `segment4/` hoặc `shopping_assistant_v2/` trừ khi được explicitly
+  approved;
+- chạy live Amazon/BestBuy scraping, paid model calls, AWS/Terraform/deploy
+  commands, hoặc dependency installs nếu không có explicit approval;
+- đọc hoặc in secrets từ `.env`, credentials, keys, tokens, auth files, hoặc
   `terraform.tfvars`.
 
-## Implementation Report Rule
+## Quy Tắc Implementation Report
 
-After each approved phase or milestone, write the implementer report using:
+Sau mỗi approved phase hoặc milestone, viết implementer report bằng:
 
 ```text
 shopping_assistant_v3/reports/TEMPLATE_IMPLEMENTATION_REPORT.md
 ```
 
-Naming examples:
+Ví dụ naming:
 
 ```text
 shopping_assistant_v3/reports/phase_2_backend_api_and_database_report.md
 shopping_assistant_v3/reports/phase_4a_mock_tools_report.md
 ```
 
-The report must state:
+Report phải nêu:
 
-- exact scope implemented;
+- exact scope đã implement;
 - files created;
 - files modified;
 - commands run;
@@ -87,50 +88,52 @@ The report must state:
 - verification evidence;
 - known issues;
 - deviations from the guide;
-- whether any real network, scraping, model, deploy, or secret access happened.
+- liệu có real network, scraping, model, deploy, hoặc secret access nào xảy ra
+  hay không.
 
-## Mandatory Self-Check Before Handoff
+## Self-Check Bắt Buộc Trước Handoff
 
-Before saying a phase or milestone is ready for Codex review, the implementer
-must check the changed scope for:
+Trước khi nói một phase hoặc milestone đã sẵn sàng cho Codex review,
+implementer phải check changed scope về:
 
-- security: no secrets are read, printed, logged, committed, or exposed through
-  API responses; no live scraping, paid model calls, AWS/Terraform/deploy, or
-  new network access happened unless the user explicitly approved it;
+- security: không có secrets nào bị đọc, in, log, commit, hoặc expose qua API
+  responses; không có live scraping, paid model calls, AWS/Terraform/deploy,
+  hoặc new network access nào xảy ra trừ khi user explicitly approved;
 - data safety: persisted payloads, result payloads, URLs, user messages,
-  tool/model errors, and internal exceptions are stored and returned only in
-  intentional safe forms; user/API-visible errors are sanitized;
-- reliability: job/status transitions cannot get stuck in the approved flow;
-  idempotency and failure paths are tested; audit/log records include `job_id`
-  where the guides require it;
-- performance: the implementation does not add obvious avoidable slowness,
-  unbounded work, uncontrolled threads, repeated expensive calls, or polling
-  loops without documenting the local-MVP limitation and risk;
-- tests: default tests use mocks/fixtures and do not require secrets, live
-  scraping, paid model calls, AWS, Terraform, deployment, or external services.
+  tool/model errors, và internal exceptions chỉ được lưu và trả về ở intentional
+  safe forms; user/API-visible errors được sanitized;
+- reliability: job/status transitions không thể bị stuck trong approved flow;
+  idempotency và failure paths được test; audit/log records có `job_id` ở nơi
+  guides yêu cầu;
+- performance: implementation không thêm obvious avoidable slowness, unbounded
+  work, uncontrolled threads, repeated expensive calls, hoặc polling loops nếu
+  không document local-MVP limitation và risk;
+- tests: default tests dùng mocks/fixtures và không yêu cầu secrets, live
+  scraping, paid model calls, AWS, Terraform, deployment, hoặc external
+  services.
 
-The implementer report must include a short note for this self-check. If a risk
-is accepted as local-MVP behavior, list it under `Known Issues` with severity
-and explain why it does not block the current phase.
+Implementer report phải bao gồm ghi chú ngắn cho self-check này. Nếu một risk
+được chấp nhận như local-MVP behavior, liệt kê nó dưới `Known Issues` với
+severity và giải thích vì sao nó không block current phase.
 
-## Responding To Codex Feedback
+## Phản Hồi Codex Feedback
 
-When Codex writes a review file:
+Khi Codex viết review file:
 
-1. Read the Codex review file.
-2. Fix every `blocker` and `major` finding unless the user explicitly changes
-   scope.
-3. Fix `minor` findings when they are cheap and local.
-4. Update the implementer's report with:
-   - what changed after review;
-   - new commands/tests run;
+1. Đọc Codex review file.
+2. Sửa mọi `blocker` và `major` finding trừ khi user explicitly changes scope.
+3. Sửa `minor` findings khi chúng cheap và local.
+4. Cập nhật report của implementer với:
+   - những gì đã thay đổi sau review;
+   - commands/tests mới đã chạy;
    - remaining known issues.
-5. Do not edit the Codex review file.
-6. Hand the work back to Codex for another review.
+5. Không sửa Codex review file.
+6. Hand work lại cho Codex để review lần nữa.
 
-## Commit And Push Rule
+## Quy Tắc Commit Và Push
 
-The implementer may inspect git status but must not commit or push by default.
+Implementer có thể inspect git status nhưng mặc định không được commit hoặc
+push.
 
-If a commit or push seems necessary, stop and ask the user to have Codex review
-and approve the action.
+Nếu commit hoặc push có vẻ cần thiết, dừng lại và yêu cầu user để Codex review
+và approve hành động đó.

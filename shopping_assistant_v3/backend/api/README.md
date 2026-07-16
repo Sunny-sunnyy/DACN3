@@ -1,12 +1,12 @@
 # api
 
-FastAPI app with validation, safe error responses, and async job endpoints:
+FastAPI app với validation, safe error responses, và async job endpoints:
 
 - `GET /health`
 - `POST /api/chat-jobs`
 - `GET /api/chat-jobs/{job_id}`
 
-Route handlers stay thin and never run scraping/model work directly. Contract
-details: `shopping_assistant_v3/guides/architecture.md`.
+Route handlers phải mỏng và không bao giờ chạy trực tiếp scraping/model work.
+Chi tiết contract: `shopping_assistant_v3/guides/architecture.md`.
 
-Implemented in Phase 2. No code yet.
+Được implement trong Phase 2. Chưa có code.

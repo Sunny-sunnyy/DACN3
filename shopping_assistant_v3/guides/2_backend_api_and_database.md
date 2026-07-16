@@ -1,18 +1,18 @@
 # Phase 2: Backend API And Database
 
-## Purpose
+## Mục Đích
 
-Implement the local FastAPI backend skeleton and SQLite persistence backbone.
+Implement local FastAPI backend skeleton và SQLite persistence backbone.
 
-This phase proves that the backend can accept a Vietnamese chat request, create
-a durable job, and return job status through polling without running long
-scraping/model work in the request handler.
+Phase này chứng minh backend có thể nhận Vietnamese chat request, tạo durable
+job, và trả về job status qua polling mà không chạy long scraping/model work
+trong request handler.
 
-## Current Status
+## Trạng Thái Hiện Tại
 
-Phase 2 starts after Phase 1 has created or confirmed the V3 runtime structure.
+Phase 2 bắt đầu sau khi Phase 1 đã tạo hoặc xác nhận V3 runtime structure.
 
-Expected runtime folders:
+Runtime folders kỳ vọng:
 
 ```text
 backend/shared/
@@ -30,18 +30,18 @@ Implement:
 - `GET /api/chat-jobs/{job_id}`.
 - safe validation/error response shape.
 - SQLite schema initialization.
-- repository functions for jobs and minimal conversation/message records.
-- config loading without printing secrets.
+- repository functions cho jobs và minimal conversation/message records.
+- config loading không in secrets.
 
 ## Non-Goals
 
-- No worker execution yet.
-- No Router/Synthesizer logic.
-- No search/pricing tools.
-- No frontend.
-- No live scraping/model/API calls.
-- No production auth.
-- No AWS/Terraform.
+- Chưa có worker execution.
+- Không Router/Synthesizer logic.
+- Không search/pricing tools.
+- Không frontend.
+- Không live scraping/model/API calls.
+- Không production auth.
+- Không AWS/Terraform.
 
 ## Inputs From Previous Phases
 
@@ -53,7 +53,7 @@ Required:
 
 Recommended:
 
-- Review `guides/agent_architecture.md` only for future result payload shape.
+- Chỉ review `guides/agent_architecture.md` cho future result payload shape.
 
 ## Contracts
 
@@ -87,7 +87,7 @@ Validation:
 
 - `message`: string, 2 to 1000 chars.
 - `conversation_id`: nullable string.
-- `source`: `All`, `Amazon`, or `BestBuy`.
+- `source`: `All`, `Amazon`, hoặc `BestBuy`.
 - `max_results_per_source`: integer, 1 to 20.
 
 Response:
@@ -128,7 +128,7 @@ Required fields:
 
 ### SQLite Tables
 
-Minimum tables for this phase:
+Minimum tables cho phase này:
 
 - `jobs`
 - `conversations`
@@ -165,31 +165,31 @@ failed
 
 ## Workflow Gate
 
-Before coding:
+Trước khi code:
 
 - Load `using-superpowers`.
-- Use `brainstorming` with the user.
-- Ask only questions that change scope, design, tests, or implementation plan.
-- Present the Phase 2 plan.
-- Wait for explicit approval.
+- Dùng `brainstorming` với user.
+- Chỉ hỏi các câu thay đổi scope, design, tests, hoặc implementation plan.
+- Trình bày Phase 2 plan.
+- Chờ explicit approval.
 
 ## Implementation Order
 
-1. Confirm Phase 1 report or current runtime structure.
-2. Define backend config without logging secrets.
-3. Define database schema initialization.
-4. Implement repository functions for creating and reading jobs.
+1. Xác nhận Phase 1 report hoặc current runtime structure.
+2. Định nghĩa backend config mà không logging secrets.
+3. Định nghĩa database schema initialization.
+4. Implement repository functions để tạo và đọc jobs.
 5. Implement FastAPI app.
 6. Implement Pydantic request/response schemas.
 7. Implement `GET /health`.
 8. Implement `POST /api/chat-jobs`.
 9. Implement `GET /api/chat-jobs/{job_id}`.
-10. Add focused tests for validation, repository operations, and endpoint smoke.
-11. Write Phase 2 report.
+10. Thêm focused tests cho validation, repository operations, và endpoint smoke.
+11. Viết Phase 2 report.
 
 ## Verification
 
-Minimum commands, adjusted to actual backend layout:
+Minimum commands, điều chỉnh theo actual backend layout:
 
 ```bash
 uv run pytest <backend tests>
@@ -199,36 +199,36 @@ curl -s http://localhost:8000/health
 
 Manual API checks:
 
-- Valid `POST /api/chat-jobs` returns `pending`.
-- Invalid short message returns safe validation error.
-- `GET /api/chat-jobs/{job_id}` returns the created job.
-- Unknown job returns a safe 404-style error.
+- Valid `POST /api/chat-jobs` trả về `pending`.
+- Invalid short message trả về safe validation error.
+- `GET /api/chat-jobs/{job_id}` trả về created job.
+- Unknown job trả về safe 404-style error.
 
-Verification must not require network/model/scraping calls.
+Verification không được yêu cầu network/model/scraping calls.
 
 ## Report Requirements
 
-Write:
+Viết:
 
 ```text
 shopping_assistant_v3/reports/phase_2_backend_api_and_database_report.md
 ```
 
-Include:
+Bao gồm:
 
-- API endpoints implemented;
-- schema/tables created;
-- exact commands run;
+- API endpoints đã implement;
+- schema/tables đã tạo;
+- exact commands đã chạy;
 - test results;
-- deviations from this guide;
+- deviations từ guide này;
 - known database/API risks;
-- docs that may need update.
+- docs có thể cần update.
 
 ## Risks And Open Questions
 
-- SQLite migration tooling is not selected yet. A simple schema initializer is
-  acceptable for MVP if documented.
-- Route handlers must stay thin. If API code starts processing jobs directly,
-  stop and move that work to Phase 3.
-- The exact backend package layout should remain simple; avoid abstractions that
-  are not needed for Phase 2.
+- SQLite migration tooling chưa được chọn. Simple schema initializer chấp nhận
+  được cho MVP nếu được documented.
+- Route handlers phải giữ mỏng. Nếu API code bắt đầu trực tiếp xử lý jobs, dừng
+  lại và chuyển work đó sang Phase 3.
+- Exact backend package layout nên giữ đơn giản; tránh abstractions không cần
+  cho Phase 2.
