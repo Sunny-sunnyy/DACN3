@@ -367,13 +367,17 @@ Current V3 status:
 
 - Phase 1 Project Setup đã được approve.
 - Runtime skeleton folders cho `backend/`, `frontend/`, và `scripts/` tồn tại.
-- Chưa có V3 runtime backend/frontend code nào được implement.
-- Phase 2 Backend API and Database là implementation phase tiếp theo.
+- Phase 2 Backend API And Database đã được approve.
+- Phase 3 Async Jobs đã được approve.
+- Backend hiện có FastAPI health/chat-job endpoints, SQLite schema
+  initialization, repositories, safe error shape, và local async worker.
+- Worker hiện dùng daemon thread cho local MVP, có mock completion,
+  stale-running recovery, structured logs, và `agent_runs` audit rows.
 - `shopping_assistant_v2/` vẫn chỉ là reference.
 - `segment4/` vẫn chỉ là prototype/reference.
 
-Next recommended implementation phase:
+Next allowed implementation milestone:
 
-1. Phase 2: Backend API and Database.
-2. Phase 3: Async Jobs.
-3. Phase 4A: Mock Search and Pricing Tools.
+1. Phase 4A: Mock Search/Pricing Tools.
+2. Phase 4B: Real Amazon/BestBuy Search Extraction, chỉ sau explicit approval.
+3. Phase 4C: Real Price Estimator Extraction, chỉ sau explicit approval.

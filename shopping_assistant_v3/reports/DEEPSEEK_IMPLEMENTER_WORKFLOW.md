@@ -24,6 +24,7 @@ shopping_assistant_v3/reports/README.md
 shopping_assistant_v3/reports/TEMPLATE_IMPLEMENTATION_REPORT.md
 the relevant phase guide
 relevant Codex review feedback, if resubmitting fixes
+.claude/skills/karpathy-guidelines/SKILL.md
 ```
 
 Cũng chạy:
@@ -41,6 +42,8 @@ Implementer phải:
 
 - chỉ implement user-approved phase hoặc milestone scope;
 - tuân theo current phase guide và V3 architecture contracts;
+- áp dụng `karpathy-guidelines` để giữ assumptions rõ ràng, code đơn giản,
+  surgical, và success criteria có thể verify;
 - dùng mocks và fixtures theo mặc định;
 - chạy smallest relevant verification trước;
 - thực hiện self-check về security, data safety, reliability, và performance

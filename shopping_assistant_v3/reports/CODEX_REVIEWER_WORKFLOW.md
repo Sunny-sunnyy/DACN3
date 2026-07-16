@@ -25,6 +25,7 @@ shopping_assistant_v3/reports/README.md
 shopping_assistant_v3/reports/TEMPLATE_IMPLEMENTATION_REPORT.md
 the relevant phase guide
 the implementer's phase or milestone report
+.claude/skills/karpathy-guidelines/SKILL.md
 ```
 
 Cũng chạy:
@@ -42,6 +43,8 @@ Codex phải:
 
 - review report của implementer và các files mà report nói đã thay đổi;
 - kiểm tra code, docs, tests, và verification evidence liên quan;
+- áp dụng `karpathy-guidelines` khi review để phát hiện overcomplication,
+  scope creep, assumptions mơ hồ, và verification criteria yếu;
 - thực hiện review phù hợp với scope về security, data safety, reliability,
   và performance trước khi approval;
 - viết một Codex review file riêng trong `shopping_assistant_v3/reports/`;
