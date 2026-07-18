@@ -36,6 +36,10 @@ Phase 4 gồm ba internal milestones:
 - Thêm fixture data cho Amazon và BestBuy candidates.
 - Thêm fixture price estimates.
 - Thêm tests không yêu cầu network/model calls.
+- Chuẩn bị Sidekick-style evidence cho các phase sau: tool outputs phải giữ
+  `source`, normalized product fields, estimate fields, và `warnings` rõ ràng
+  để Phase 5 có thể tạo deterministic progress steps và Phase 7 có thể validate
+  final answer dựa trên evidence.
 
 ### 4B: Real Search Extraction
 
@@ -81,6 +85,17 @@ Cho 4B/4C:
 - CodeGraph query evidence cho exact flow đang được extract.
 
 ## Contracts
+
+### Sidekick Pattern Boundary
+
+V3 được định vị như một Vietnamese Shopping Sidekick, nhưng Phase 4 vẫn giữ
+controlled tool architecture. Không đưa LangChain/LangGraph Sidekick framework,
+free-form browser agent, dynamic LLM todo list, hoặc autonomous evaluator vào
+Phase 4.
+
+Phase 4A chỉ chuẩn bị evidence contracts. `progress_steps` chưa bắt buộc xuất
+hiện ở API response trong phase này; backend progress source of truth được
+định nghĩa ở Phase 5.
 
 ### `deal_search_tool`
 
@@ -226,6 +241,8 @@ Mock verification:
 - `price_estimator_tool` trả về deterministic estimate/discount/score.
 - invalid input bị reject.
 - warnings được preserve.
+- tool outputs có đủ evidence để map sang các future progress steps
+  `search_deals` và `estimate_prices` mà không cần đọc raw scraped payload.
 - tests pass mà không cần network/model calls.
 
 Opt-in real search verification, chỉ khi có approval:
@@ -266,6 +283,8 @@ Report phải bao gồm:
 - tests đã chạy;
 - real calls đã thực hiện, nếu có;
 - xác nhận `segment4` unchanged;
+- evidence/warnings fields nào đã được expose để Phase 5/6 progress panel và
+  Phase 7 evidence validator dùng lại;
 - remaining scraper/model risks.
 
 ## Risks And Open Questions

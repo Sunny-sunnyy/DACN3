@@ -24,6 +24,8 @@ Implement:
 - deterministic/mock Synthesizer behavior từ evidence.
 - optional model-backed Synthesizer sau opt-in config.
 - unsupported intent fallback.
+- deterministic `progress_steps` contract cho backend response, dùng fixed
+  shopping pipeline steps thay vì LLM-generated todo list.
 - validation để final answers không bịa price/spec/URL fields.
 - `agent_runs` audit records cho Router và Synthesizer.
 
@@ -108,6 +110,58 @@ Quy tắc:
 - nhắc source/tool warnings nếu liên quan;
 - không bao giờ bịa fields không được tools cung cấp.
 
+### Progress Steps Contract
+
+Phase 5 thêm deterministic Sidekick-style planning/progress vào job response.
+Đây là fixed pipeline plan, không phải free-form autonomous to-do list.
+
+Initial minimal contract:
+
+```json
+{
+  "progress_steps": [
+    {
+      "step_id": "route_request",
+      "title_vi": "Hiểu nhu cầu mua sắm",
+      "status": "completed",
+      "detail_vi": "Đã xác định yêu cầu và tạo truy vấn tìm kiếm."
+    }
+  ]
+}
+```
+
+Allowed `step_id` values:
+
+```text
+route_request
+search_deals
+estimate_prices
+synthesize_answer
+```
+
+Allowed `status` values:
+
+```text
+pending
+running
+completed
+failed
+skipped
+```
+
+Future optional fields, chỉ thêm sau khi minimal contract ổn:
+
+```text
+component
+started_at
+completed_at
+warnings
+agent_run_id
+```
+
+`progress_steps` phải phản ánh actual orchestration state. Không mark một step
+`completed` nếu evidence tương ứng chưa tồn tại.
+
 ## Workflow Gate
 
 Trước khi code:
@@ -127,11 +181,13 @@ Trước khi code:
 4. Thêm unsupported fallback behavior.
 5. Thêm Synthesizer schemas và fixture tests.
 6. Implement deterministic Synthesizer từ product và estimate evidence.
-7. Integrate Router -> tools -> Synthesizer vào worker path.
-8. Thêm validation để product cards và final text được backed by evidence.
-9. Chỉ thêm optional model provider wrapper nếu user approve paid/local provider
+7. Tạo deterministic `progress_steps` cho fixed pipeline.
+8. Integrate Router -> tools -> Synthesizer vào worker path.
+9. Thêm validation để product cards, progress steps, và final text được backed
+   by evidence.
+10. Chỉ thêm optional model provider wrapper nếu user approve paid/local provider
    behavior.
-10. Viết Phase 5 report.
+11. Viết Phase 5 report.
 
 ## Verification
 
@@ -142,6 +198,8 @@ Default required tests:
 - unsupported query trả về fallback.
 - Synthesizer trả về Vietnamese answer từ fixtures.
 - Synthesizer preserve warnings.
+- `progress_steps` trả về fixed steps với status hợp lệ.
+- Completed progress steps chỉ xuất hiện khi matching evidence tồn tại.
 - Worker hoàn thành với Router/tools/Synthesizer mock path.
 - Không default test nào gọi OpenAI hoặc live scraping.
 
@@ -173,6 +231,7 @@ Bao gồm:
 - model calls đã thực hiện, nếu có.
 - validation evidence.
 - unsupported intent behavior.
+- progress_steps contract và tests.
 - remaining hallucination risks.
 
 ## Risks And Open Questions

@@ -15,6 +15,13 @@ hoặc agents phụ.
 
 Product là US deal assistant nói tiếng Việt.
 
+Sau khi review ý tưởng từ Sidekick V2, V3 cũng được định vị như một
+Vietnamese Shopping Sidekick: một domain-specific sidekick giúp người dùng hiểu
+deal, giá trị thật, và quyết định mua sắm. V3 chỉ lấy Sidekick patterns như
+deterministic planning/progress, evidence-first validation, và future HITL
+roadmap; nó không chuyển sang LangChain/LangGraph hoặc free-form autonomous
+browser agent.
+
 Users viết messages bằng tiếng Việt. Hệ thống có thể search và price dữ liệu
 product tiếng Anh từ:
 
@@ -45,10 +52,11 @@ flowchart TD
     B --> C[Backend returns job_id immediately]
     C --> D[Local worker processes job]
     D --> E[Controlled Router selects search_deals]
-    E --> F[deal_search_tool returns normalized candidates]
-    F --> G[price_estimator_tool estimates fair USD value]
-    G --> H[Vietnamese Synthesizer writes final answer]
-    H --> I[Frontend renders answer and product cards]
+    E --> F[progress_steps track fixed shopping plan]
+    F --> G[deal_search_tool returns normalized candidates]
+    G --> H[price_estimator_tool estimates fair USD value]
+    H --> I[Vietnamese Synthesizer writes final answer]
+    I --> J[Frontend renders answer, progress, and product cards]
 ```
 
 Các capabilities bắt buộc của MVP:
@@ -60,6 +68,7 @@ Các capabilities bắt buộc của MVP:
 - Identity `demo_user`.
 - Controlled Router, không dùng free-form ReAct.
 - Deal search và price estimator tool contracts.
+- Deterministic `progress_steps` cho fixed shopping pipeline, bắt đầu từ Phase 5.
 - Câu trả lời cuối cùng bằng tiếng Việt.
 - Product result cards.
 - Structured logs và audit events được correlate bằng `job_id`.
@@ -76,6 +85,8 @@ Với MVP đầu tiên:
 - Không payment/subscription.
 - Không mobile app.
 - Không free-form ReAct loop.
+- Không generic autonomous Sidekick/browser coworker trong MVP.
+- Không dynamic LLM-generated todo list trước khi deterministic progress ổn.
 - Không production scraper scaling.
 - Không live Amazon/BestBuy scraping trừ khi được explicitly approved.
 - Không paid model calls trừ khi được explicitly approved.
@@ -228,10 +239,12 @@ flowchart TD
     API --> DB[(SQLite)]
     API --> Worker[Local Worker]
     Worker --> Router[Router]
+    Worker --> Progress[progress_steps]
     Router --> Search[deal_search_tool]
     Search --> Pricing[price_estimator_tool]
     Pricing --> Synth[Vietnamese Synthesizer]
     Synth --> DB
+    Progress --> DB
     API --> Frontend
 ```
 
@@ -240,6 +253,7 @@ Nguyên tắc:
 - Local-first trước production.
 - Async jobs trước long-running scraping/model work.
 - Tool evidence trước model narrative.
+- Deterministic progress trước dynamic todo.
 - Vietnamese UX, English product data.
 - SQLite trước, schema được thiết kế để migrate sang Postgres.
 - Mock mode phải hoạt động không cần network hoặc paid model calls.
@@ -254,12 +268,18 @@ flowchart TD
     Router[Router] --> Search[deal_search_tool]
     Search --> Pricing[price_estimator_tool]
     Pricing --> Synth[Vietnamese Synthesizer]
-    Synth --> Answer[Vietnamese answer + product cards]
+    Synth --> Answer[Vietnamese answer + product cards + progress_steps]
 ```
 
 Router classify Vietnamese user request và tạo normalized English query. Search
 tool trả về product evidence. Pricing tool trả về fair value estimates.
 Synthesizer viết output tiếng Việt chỉ từ evidence đó.
+
+V3 uses Sidekick-inspired planning as a deterministic progress contract, not as
+a free-form autonomous todo list. Initial fixed steps are `route_request`,
+`search_deals`, `estimate_prices`, and `synthesize_answer`. Future
+evidence-linked fields and dynamic todo lists remain roadmap items until the
+minimal contract is verified.
 
 Allowed intents:
 
@@ -347,6 +367,8 @@ Các test layers kỳ vọng theo MVP:
 - Job lifecycle tests.
 - Tool schema and fixture tests.
 - Router and Synthesizer fixture tests.
+- Progress steps consistency tests.
+- Test-only rule-based evidence evaluator tests.
 - Backend integration test for job completion.
 - Frontend smoke/component tests.
 - Manual demo checklist.

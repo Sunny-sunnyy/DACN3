@@ -23,6 +23,7 @@ Implement:
 - status display.
 - Vietnamese answer rendering.
 - product cards.
+- Sidekick-style deterministic progress panel từ backend `progress_steps`.
 - warnings display.
 - debug panel với `job_id`.
 - failed state display.
@@ -73,6 +74,7 @@ Các components bắt buộc:
 
 - `ChatPanel`
 - `JobStatus`
+- `ProgressSteps`
 - `ProductResults`
 - `ProductCard`
 - `DebugLogPanel`
@@ -97,6 +99,14 @@ Polling:
 - mỗi 1 giây khi `pending` hoặc `running`;
 - dừng khi `completed` hoặc `failed`;
 - hiển thị timeout/long wait warning nếu cần.
+
+Progress panel:
+
+- render `progress_steps` từ backend nếu response có field này;
+- dùng Vietnamese titles/details từ backend, không tự bịa completed work;
+- hiển thị `pending`, `running`, `completed`, `failed`, và `skipped`;
+- nếu backend chưa trả `progress_steps`, frontend có thể dùng fallback status
+  text đơn giản, nhưng không hardcode một completed plan.
 
 Accessibility minimum:
 
@@ -126,11 +136,12 @@ Trước khi code:
 6. Implement chat input và submit state.
 7. Implement polling.
 8. Implement status display.
-9. Implement answer và product card rendering.
-10. Implement warning và failed state display.
-11. Thêm debug panel với `job_id`.
-12. Thêm frontend smoke tests nếu project tooling hỗ trợ.
-13. Viết Phase 6 report.
+9. Implement progress panel từ `progress_steps`.
+10. Implement answer và product card rendering.
+11. Implement warning và failed state display.
+12. Thêm debug panel với `job_id`.
+13. Thêm frontend smoke tests nếu project tooling hỗ trợ.
+14. Viết Phase 6 report.
 
 ## Verification
 
@@ -140,6 +151,8 @@ Manual checks:
 - UI nhận `job_id`.
 - UI hiển thị `pending`/`running`.
 - UI render completed Vietnamese answer.
+- UI render progress steps từ backend và không claim completed work khi backend
+  chưa gửi completed step.
 - UI render product cards.
 - Failed job render safe error.
 - Debug `job_id` visible.
@@ -168,6 +181,7 @@ Bao gồm:
 - router choice: App Router hoặc Pages Router;
 - files/components đã tạo;
 - API contract assumptions;
+- progress panel behavior;
 - commands đã chạy;
 - screenshot/manual validation notes nếu có;
 - remaining UI risks.

@@ -19,6 +19,11 @@ estimation. Nó chỉ dùng để reference.
 `shopping_assistant_v2/` chứa bộ documentation trước đó. Nó chỉ là migration
 reference.
 
+V3 có thể được định vị như một Vietnamese Shopping Sidekick, nhưng architecture
+target vẫn là controlled local MVP: FastAPI worker, explicit Router/tools, và
+deterministic progress. Không dùng generic autonomous Sidekick framework hoặc
+free-form browser agent trong MVP.
+
 ## Local MVP Architecture
 
 ```mermaid
@@ -28,10 +33,12 @@ flowchart TD
     API --> DB[(SQLite)]
     API --> Worker[Local Worker]
     Worker --> Router[Router]
+    Worker --> Progress[Progress Steps]
     Router --> Search[Deal Search Tool]
     Search --> Pricing[Price Estimator Tool]
     Pricing --> Synth[Vietnamese Synthesizer]
     Synth --> API
+    Progress --> API
     API --> Frontend
 ```
 
@@ -191,6 +198,53 @@ Failed response:
 }
 ```
 
+From Phase 5 onward, `GET /api/chat-jobs/{job_id}` may include top-level
+`progress_steps` for pending, running, completed, and failed jobs. Phase 2/3
+responses may omit this field.
+
+Initial `progress_steps` contract:
+
+```json
+{
+  "progress_steps": [
+    {
+      "step_id": "route_request",
+      "title_vi": "Hiểu nhu cầu mua sắm",
+      "status": "completed",
+      "detail_vi": "Đã xác định yêu cầu và tạo truy vấn tìm kiếm."
+    },
+    {
+      "step_id": "search_deals",
+      "title_vi": "Tìm sản phẩm từ Amazon và BestBuy",
+      "status": "running",
+      "detail_vi": "Đang tìm ứng viên phù hợp."
+    }
+  ]
+}
+```
+
+Allowed `step_id` values:
+
+```text
+route_request
+search_deals
+estimate_prices
+synthesize_answer
+```
+
+Allowed `status` values:
+
+```text
+pending
+running
+completed
+failed
+skipped
+```
+
+Progress must reflect backend orchestration evidence. Frontend should render
+backend-provided progress and must not invent completed steps.
+
 Optional debug endpoint:
 
 ```text
@@ -253,6 +307,10 @@ Trách nhiệm của bảng:
 Dùng JSON text trong SQLite cho payloads và metadata. Future Postgres migration
 có thể chuyển các fields này sang `jsonb`.
 
+`progress_steps` có thể được persisted as JSON trong job payload hoặc derived
+từ `agent_runs` trong MVP. Không tạo bảng progress riêng trừ khi Phase 5/6
+implementation chứng minh cần thiết.
+
 ## Frontend Architecture
 
 Target structure:
@@ -264,6 +322,7 @@ frontend/
 ├── components/
 │   ├── ChatPanel
 │   ├── JobStatus
+│   ├── ProgressSteps
 │   ├── ProductCard
 │   ├── ProductResults
 │   └── DebugLogPanel
@@ -284,6 +343,9 @@ Các UI states bắt buộc:
 - `running`
 - `completed`
 - `failed`
+
+Frontend cũng phải render deterministic progress panel khi backend trả
+`progress_steps`.
 
 Các product card fields bắt buộc:
 

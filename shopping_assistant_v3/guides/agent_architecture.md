@@ -14,6 +14,12 @@ pipeline và phải giữ nguyên.
 V3 MVP dùng controlled routing cộng với explicit tools. Nó không dùng
 free-form ReAct loop.
 
+Sidekick pattern boundary: V3 có thể được gọi là Vietnamese Shopping Sidekick,
+nhưng nó là specialist sidekick cho shopping. V3 lấy các pattern như
+deterministic progress, evidence-first validation, và future HITL roadmap; nó
+không dùng LangChain/LangGraph Sidekick framework, free-form browser agent, hay
+LLM-generated todo list trong MVP.
+
 ## MVP Workflow
 
 ```mermaid
@@ -21,11 +27,14 @@ flowchart TD
     Router[Router] --> Search[deal_search_tool]
     Search --> Pricing[price_estimator_tool]
     Pricing --> Synth[Vietnamese Synthesizer]
-    Synth --> Output[answer_vi + product cards + warnings]
+    Synth --> Output[answer_vi + product cards + warnings + progress_steps]
 ```
 
 Router chọn allowed path. Tools tạo structured evidence. Synthesizer viết câu
 trả lời tiếng Việt cuối cùng chỉ từ evidence.
+
+Worker/orchestration tạo `progress_steps` deterministic để frontend hiển thị
+kế hoạch mua sắm đang chạy. Progress không do LLM tự do sinh ra.
 
 ## Router Contract
 
@@ -200,6 +209,56 @@ Quy tắc:
 - Nhắc tới partial source/tool failures khi liên quan.
 - Chỉ sort hoặc highlight theo deal value từ tool data.
 
+## Progress Steps Contract
+
+Initial contract:
+
+```json
+{
+  "progress_steps": [
+    {
+      "step_id": "route_request",
+      "title_vi": "Hiểu nhu cầu mua sắm",
+      "status": "completed",
+      "detail_vi": "Đã xác định yêu cầu và tạo truy vấn tìm kiếm."
+    }
+  ]
+}
+```
+
+Allowed `step_id` values:
+
+```text
+route_request
+search_deals
+estimate_prices
+synthesize_answer
+```
+
+Allowed `status` values:
+
+```text
+pending
+running
+completed
+failed
+skipped
+```
+
+Future optional fields:
+
+```text
+component
+started_at
+completed_at
+warnings
+agent_run_id
+```
+
+Progress steps must be backed by orchestration/tool evidence. A step must not
+be marked `completed` before the matching Router, tool, pricing, or Synthesizer
+evidence exists.
+
 ## Model Provider Policy
 
 Dùng LiteLLM abstraction cho model calls.
@@ -253,6 +312,10 @@ Tool outputs là source of truth cho:
 Synthesizer không được bịa fields không có trong tool outputs.
 
 Nếu thiếu data, dùng `unknown`, `not_available`, hoặc warning thay vì đoán.
+
+Phase 7 should add a rule-based test-only evidence evaluator. It should verify
+that final answers, product cards, warnings, and progress steps are backed by
+tool/result evidence. Runtime LLM-as-a-Judge remains future opt-in work.
 
 ## Segment4 Reference
 

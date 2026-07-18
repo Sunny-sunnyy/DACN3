@@ -21,6 +21,8 @@ Implement hoặc hoàn thiện:
 - tool fixture tests;
 - Router/Synthesizer fixture tests;
 - frontend smoke/component tests;
+- progress_steps consistency tests;
+- test-only rule-based evidence evaluator;
 - manual demo script/checklist;
 - opt-in real search/model test documentation;
 - known limitations;
@@ -77,6 +79,17 @@ Frontend tests bắt buộc:
 - component render smoke;
 - API client handle pending/completed/failed;
 - product cards render expected fields.
+- progress panel render expected step statuses from backend response.
+
+Evidence evaluator:
+
+- Phase 7 dùng rule-based test-only validator, không runtime LLM judge.
+- Validator kiểm tra `answer_vi`, product cards, warnings, và `progress_steps`
+  đều được backed by tool/result evidence.
+- Default evaluator tests không được gọi OpenAI, Modal, live scraping, AWS, hoặc
+  secrets.
+- Optional LLM-as-a-Judge kiểu Sidekick chỉ được đưa vào Phase 8 roadmap hoặc
+  future opt-in work.
 
 Manual demo checklist:
 
@@ -108,11 +121,13 @@ Trước khi code:
 4. Thêm tool fixture tests.
 5. Thêm Router/Synthesizer fixture tests.
 6. Thêm frontend smoke tests.
-7. Thêm manual demo script/checklist.
-8. Document opt-in real search/model tests riêng.
-9. Document known limitations.
-10. Chạy full local verification.
-11. Viết Phase 7 report.
+7. Thêm progress_steps consistency tests.
+8. Thêm test-only evidence evaluator.
+9. Thêm manual demo script/checklist.
+10. Document opt-in real search/model tests riêng.
+11. Document known limitations.
+12. Chạy full local verification.
+13. Viết Phase 7 report.
 
 ## Verification
 
@@ -131,6 +146,9 @@ Manual verification phải cho thấy:
 - mock mode demo hoạt động đáng tin cậy;
 - không default test nào yêu cầu network/model calls;
 - failed job path visible và safe;
+- progress panel phản ánh đúng backend `progress_steps`;
+- evidence evaluator phát hiện hallucinated price/URL/title/warnings trong test
+  fixtures;
 - logs trace được bằng `job_id`.
 
 ## Report Requirements
@@ -146,6 +164,7 @@ Bao gồm:
 - commands đã chạy;
 - tests passed/failed;
 - manual demo evidence;
+- progress/evidence evaluator evidence;
 - opt-in real-mode instructions đã thêm;
 - known limitations;
 - MVP có demo-ready hay không.

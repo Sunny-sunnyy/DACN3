@@ -26,6 +26,9 @@ Plan future work cho:
 - production observability.
 - cost controls.
 - scraper safety.
+- Sidekick-inspired upgrades after local MVP: evidence-linked progress,
+  dynamic todo lists, runtime evaluator, LLM-as-a-Judge, HITL approvals, and
+  budget/error policy hardening.
 - optional Compare và Advisor agents.
 
 ## Non-Goals
@@ -74,12 +77,29 @@ Production readiness concerns:
 - prompt injection guardrails.
 - structured logs.
 - audit events.
+- evidence-linked progress events.
+- runtime answer validation.
+- HITL approval gates for costly or sensitive actions.
 - retries and timeouts.
 - dead-letter queue.
 - model timeout/fallback.
 - scraper source safety.
 - dashboard and alarms.
 - cost tracking.
+
+Sidekick pattern roadmap:
+
+- Keep V3 as a domain-specific Vietnamese Shopping Sidekick, not a generic
+  autonomous browser coworker.
+- Preserve controlled Router + explicit tools as the default execution model.
+- Upgrade `progress_steps` from minimal user-facing fields to optional
+  evidence-linked fields only after the Phase 5/6 minimal contract is stable.
+- Consider dynamic LLM-generated todo lists only after deterministic progress
+  proves useful in demo.
+- Start with Phase 7 rule-based test-only evidence evaluator; consider runtime
+  validator or LLM-as-a-Judge only as opt-in future work.
+- Add HITL approval only for costly/sensitive actions such as real model calls,
+  real scraping retries, notifications, or production-side effects.
 
 ## Workflow Gate
 
@@ -116,6 +136,8 @@ Checks:
 - không production task nào được mark complete nếu không có evidence;
 - local MVP vẫn là baseline;
 - cost và secret handling explicit;
+- Sidekick-inspired features are clearly marked as planned, opt-in, or future
+  unless implementation evidence exists;
 - next production step có review gate.
 
 ## Report Requirements
@@ -131,6 +153,7 @@ Bao gồm:
 - production option được chọn hoặc deferred;
 - risks;
 - estimated cost categories;
+- Sidekick pattern upgrades accepted, deferred, or rejected;
 - docs đã update;
 - next phase recommendation.
 
