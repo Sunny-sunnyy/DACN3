@@ -23,7 +23,7 @@ class ChatJobRequest(BaseModel):
     message: str = Field(..., min_length=2, max_length=1000)
     conversation_id: str | None = Field(default=None)
     source: SourceEnum = Field(default=SourceEnum.All)
-    max_results_per_source: int = Field(default=6, ge=1, le=20)
+    max_results_per_source: int = Field(default=5, ge=1, le=20)
 
 
 # ---------------------------------------------------------------------------

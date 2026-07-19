@@ -79,7 +79,7 @@ Request:
   "message": "Tìm laptop gaming dưới 800 đô",
   "conversation_id": null,
   "source": "All",
-  "max_results_per_source": 6
+  "max_results_per_source": 5
 }
 ```
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from backend.database.schema import AgentRun, Conversation, Job, Message
+from backend.database.schema import AgentRun, Conversation, Job, Message, PriceEstimate, Product
 
 
 def _utcnow() -> datetime.datetime:
@@ -187,3 +187,101 @@ def update_agent_run(
     if error_message is not None:
         run.error_message = error_message
     session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Product repository
+# ---------------------------------------------------------------------------
+
+def create_product(
+    session: Session,
+    *,
+    job_id: str,
+    source: str,
+    title: str,
+    brand: str | None = None,
+    sale_price_usd: float | None = None,
+    url: str | None = None,
+    features: str | None = None,
+    raw_source_payload: dict[str, Any] | None = None,
+) -> Product:
+    """Store a normalized product candidate linked to a job."""
+    product = Product(
+        job_id=job_id,
+        source=source,
+        title=title,
+        brand=brand,
+        sale_price_usd=sale_price_usd,
+        url=url,
+        features=features,
+        raw_source_payload=(
+            json.dumps(raw_source_payload, ensure_ascii=False)
+            if raw_source_payload is not None
+            else None
+        ),
+    )
+    session.add(product)
+    session.flush()
+    return product
+
+
+def get_products_by_job_id(session: Session, job_id: str) -> list[Product]:
+    """Return all products linked to a job, ordered by creation time."""
+    return (
+        session.query(Product)
+        .filter(Product.job_id == job_id)
+        .order_by(Product.created_at)
+        .all()
+    )
+
+
+# ---------------------------------------------------------------------------
+# Price estimate repository
+# ---------------------------------------------------------------------------
+
+def create_price_estimate(
+    session: Session,
+    *,
+    product_id: str,
+    estimated_value_usd: float | None = None,
+    discount_usd: float | None = None,
+    deal_score: str | None = None,
+    confidence: float | None = None,
+    model_breakdown: dict[str, Any] | None = None,
+    warnings: list[str] | None = None,
+) -> PriceEstimate:
+    """Store a price estimate linked to a product."""
+    estimate = PriceEstimate(
+        product_id=product_id,
+        estimated_value_usd=estimated_value_usd,
+        discount_usd=discount_usd,
+        deal_score=deal_score,
+        confidence=confidence,
+        model_breakdown=(
+            json.dumps(model_breakdown, ensure_ascii=False)
+            if model_breakdown is not None
+            else None
+        ),
+        warnings=(
+            json.dumps(warnings, ensure_ascii=False)
+            if warnings is not None
+            else None
+        ),
+    )
+    session.add(estimate)
+    session.flush()
+    return estimate
+
+
+def get_price_estimates_by_product_ids(
+    session: Session, product_ids: list[str]
+) -> list[PriceEstimate]:
+    """Return price estimates for a batch of product IDs."""
+    if not product_ids:
+        return []
+    return (
+        session.query(PriceEstimate)
+        .filter(PriceEstimate.product_id.in_(product_ids))
+        .order_by(PriceEstimate.created_at)
+        .all()
+    )

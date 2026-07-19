@@ -31,10 +31,90 @@ Cũng chạy:
 
 ```bash
 git status --short
+codegraph status shopping_assistant_v3
 ```
 
 Giữ nguyên unrelated changes. Không reset, delete, stage, commit, push, hoặc
 overwrite files ngoài approved scope.
+
+## CodeGraph Cho V3
+
+`shopping_assistant_v3/` đã có local CodeGraph index. Index nằm trong
+`.codegraph/`, là generated local artifact, và không được stage hoặc commit.
+
+Implementer nên dùng CodeGraph khi cần hiểu call flow, symbol ownership, hoặc
+impact trước khi sửa runtime code, đặc biệt ở các khu vực:
+
+- FastAPI route handlers;
+- worker lifecycle;
+- database schema và repositories;
+- future router/tool/synthesizer modules.
+
+Trước khi implement một phase hoặc milestone, chạy:
+
+```bash
+codegraph status shopping_assistant_v3
+```
+
+Nếu status báo index up to date, tiếp tục làm việc bình thường. CodeGraph có
+auto-sync theo file changes trong điều kiện bình thường.
+
+Nếu status báo stale hoặc thiếu symbols cần cho implementation/review handoff,
+chạy:
+
+```bash
+codegraph sync shopping_assistant_v3
+```
+
+Không chạy `codegraph init`, `codegraph uninit`, hoặc xóa `.codegraph/` trừ khi
+user explicitly approve. Nếu CodeGraph không khả dụng, dùng `rg` và file reads
+thay thế, rồi ghi chú trong implementation report nếu điều đó ảnh hưởng
+verification hoặc handoff.
+
+### Cách Sử Dụng CodeGraph Khi Implement
+
+Ưu tiên MCP `codegraph_explore` khi tool có sẵn, vì nó trả về source liên quan,
+call paths, và blast radius trong một lần hỏi. Luôn truyền `projectPath` để
+tránh query nhầm repo:
+
+```text
+projectPath: /home/hieu0606sunny/price2026wsl/tech2ai/shopping_assistant_v3
+query: "How does the worker process a chat job and persist the result?"
+```
+
+Các implementation prompts hữu ích theo phase:
+
+```text
+Phase 4A: What backend modules and tests should a mock deal_search_tool integrate with?
+Phase 4A: What schemas or repository functions are affected by adding product evidence?
+Phase 5: How should router and synthesizer modules connect to the existing worker?
+Phase 6: What API response schemas does the frontend need to poll and render?
+```
+
+Nếu MCP không có sẵn, dùng CLI từ repo root:
+
+```bash
+codegraph explore -p shopping_assistant_v3 "How does the worker process a chat job and persist the result?"
+codegraph query -p shopping_assistant_v3 "ChatJobCreate"
+codegraph impact -p shopping_assistant_v3 "JobResponse"
+codegraph affected -p shopping_assistant_v3 shopping_assistant_v3/backend/api/schemas.py
+```
+
+Cách chọn lệnh:
+
+- `explore`: dùng trước khi sửa flow hoặc module boundary.
+- `query`: tìm symbol/file khi đã biết tên gần đúng.
+- `impact`: kiểm tra files/functions có thể bị ảnh hưởng bởi một thay đổi.
+- `affected`: gợi ý tests cần chạy từ changed files; vẫn phải chạy verification
+  theo phase guide và implementation report.
+
+Không dùng CodeGraph để bypass việc đọc source-of-truth docs hoặc phase guide.
+Không paste raw output dài vào report; chỉ ghi command/question đã dùng và kết
+luận ảnh hưởng tới implementation hoặc verification.
+
+Sau khi hoàn thành một phase hoặc một guide có thay đổi runtime đáng kể,
+implementer nên kiểm tra lại `codegraph status shopping_assistant_v3`. Nếu
+auto-sync đã cập nhật và status up to date thì không cần sync thủ công.
 
 ## Responsibilities
 

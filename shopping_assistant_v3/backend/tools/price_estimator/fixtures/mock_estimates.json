@@ -1,0 +1,34 @@
+{
+  "BestBuy|ASUS ROG Strix G16 Gaming Laptop": {
+    "estimated_value_usd": 949.99,
+    "model_breakdown": {
+      "frontier": 960.0,
+      "specialist": 920.0,
+      "neural": 940.0
+    }
+  },
+  "BestBuy|Sony WH-1000XM5 Wireless Noise Cancelling Headphones": {
+    "estimated_value_usd": 399.99,
+    "model_breakdown": {
+      "frontier": 400.0,
+      "specialist": 390.0,
+      "neural": 410.0
+    }
+  },
+  "Amazon|Acer Nitro V Gaming Laptop 15.6-inch": {
+    "estimated_value_usd": 879.99,
+    "model_breakdown": {
+      "frontier": 890.0,
+      "specialist": 850.0,
+      "neural": 880.0
+    }
+  },
+  "Amazon|Samsung 990 PRO 2TB NVMe M.2 SSD": {
+    "estimated_value_usd": 199.99,
+    "model_breakdown": {
+      "frontier": 200.0,
+      "specialist": 195.0,
+      "neural": 205.0
+    }
+  }
+}

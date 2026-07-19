@@ -32,10 +32,94 @@ Cũng chạy:
 
 ```bash
 git status --short
+codegraph status shopping_assistant_v3
 ```
 
 Giữ nguyên các thay đổi không liên quan của user hoặc implementer. Không reset,
 delete, stage, hoặc overwrite files không liên quan.
+
+## CodeGraph Cho V3
+
+`shopping_assistant_v3/` đã có local CodeGraph index. Index nằm trong
+`.codegraph/`, là generated local artifact, và không được stage hoặc commit.
+
+Trước mỗi review, Codex phải chạy:
+
+```bash
+codegraph status shopping_assistant_v3
+```
+
+Mục đích:
+
+- xác nhận CodeGraph đã initialized cho `shopping_assistant_v3/`;
+- xác nhận index đang `up to date`;
+- nắm nhanh số files/nodes/edges hiện tại nếu cần so với changed scope;
+- phát hiện tình huống index stale hoặc thiếu sau một phase/guide.
+
+Nếu status báo index up to date, không cần làm gì thêm. CodeGraph có auto-sync
+theo file changes trong điều kiện bình thường.
+
+Nếu status báo stale hoặc thiếu symbols cần cho review, chạy sync hẹp:
+
+```bash
+codegraph sync shopping_assistant_v3
+```
+
+Không chạy `codegraph init`, `codegraph uninit`, hoặc xóa `.codegraph/` trừ khi
+user explicitly approve. Nếu CodeGraph lỗi hoặc không initialized, báo trong
+review notes và tiếp tục review bằng `rg`/file reads khi cần.
+
+### Cách Sử Dụng CodeGraph Khi Review
+
+Ưu tiên MCP `codegraph_explore` khi tool có sẵn, vì nó trả về source liên quan,
+call paths, và blast radius trong một lần hỏi. Luôn truyền `projectPath` để
+tránh query nhầm repo:
+
+```text
+projectPath: /home/hieu0606sunny/price2026wsl/tech2ai/shopping_assistant_v3
+query: "How does POST /api/chat-jobs create a job and start worker processing?"
+```
+
+Các review prompts hữu ích:
+
+```text
+How does POST /api/chat-jobs create a job and start worker processing?
+How does process_job update job status, result payload, and agent_runs?
+What code is affected if JobResponse or ChatJobCreate changes?
+How do repository functions persist jobs, products, and agent run audit rows?
+```
+
+Nếu MCP không có sẵn, dùng CLI từ repo root:
+
+```bash
+codegraph explore -p shopping_assistant_v3 "How does POST /api/chat-jobs create a job and start worker processing?"
+codegraph query -p shopping_assistant_v3 "process_job"
+codegraph impact -p shopping_assistant_v3 "process_job"
+codegraph affected -p shopping_assistant_v3 shopping_assistant_v3/backend/worker.py
+```
+
+Cách chọn lệnh:
+
+- `explore`: dùng đầu tiên cho architecture/call-flow/review context.
+- `query`: tìm symbol hoặc file khi đã biết tên gần đúng.
+- `impact`: kiểm tra blast radius khi một schema/function/shared helper đổi.
+- `affected`: gợi ý tests liên quan tới files đã thay đổi; vẫn phải dùng
+  judgment, không thay thế phase guide hoặc report evidence.
+
+Không paste raw CodeGraph output dài vào review file. Chỉ ghi command/question
+đã dùng và kết luận quan trọng trong phần `Verification` hoặc `Scope Check`.
+
+Khi review code runtime phức tạp, Codex nên dùng CodeGraph nếu nó giúp giảm
+guesswork, đặc biệt cho:
+
+- API route -> worker -> repository flow;
+- database schema/repository impact;
+- future router/tool/synthesizer call flow;
+- blast radius của thay đổi shared schemas hoặc shared config.
+
+Sau mỗi phase hoặc guide update có thay đổi runtime đáng kể, Codex nên kiểm tra
+lại `codegraph status shopping_assistant_v3`. Nếu auto-sync đã cập nhật và
+status up to date thì không chạy sync thủ công.
 
 ## Responsibilities
 

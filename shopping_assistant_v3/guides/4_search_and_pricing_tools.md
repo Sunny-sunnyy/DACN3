@@ -105,7 +105,7 @@ Input:
 {
   "query_en": "gaming laptop under 800 dollars",
   "source": "All",
-  "max_results_per_source": 6
+  "max_results_per_source": 5
 }
 ```
 

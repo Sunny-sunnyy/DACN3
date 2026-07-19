@@ -152,6 +152,19 @@ class TestCreateChatJob:
         assert stored["source"] == "Amazon"
         assert stored["max_results_per_source"] == 10
 
+    def test_default_max_results_is_5(self, client: TestClient, db_session: Session) -> None:
+        """Phase 4A contract: default max_results_per_source changed from 6 to 5."""
+        response = client.post(
+            "/api/chat-jobs",
+            json={"message": "Tim laptop"},
+        )
+        assert response.status_code == 201
+        body = response.json()
+        job = get_job_by_id(db_session, body["job_id"])
+        assert job is not None
+        stored = json.loads(job.request_payload)
+        assert stored["max_results_per_source"] == 5
+
 
 # ---------------------------------------------------------------------------
 # POST /api/chat-jobs — validation

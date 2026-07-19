@@ -1,0 +1,92 @@
+[
+  {
+    "source": "BestBuy",
+    "title": "ASUS ROG Strix G16 Gaming Laptop",
+    "brand": "ASUS",
+    "sale_price_usd": 749.99,
+    "url": "https://www.bestbuy.com/site/asus-rog-strix-g16",
+    "features": "16-inch FHD 165Hz, Intel Core i7-13650HX, 16GB DDR5, NVIDIA GeForce RTX 4060, 512GB SSD",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "BestBuy",
+    "title": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
+    "brand": "Sony",
+    "sale_price_usd": 328.00,
+    "url": "https://www.bestbuy.com/site/sony-wh-1000xm5",
+    "features": "30hr battery, Multipoint connection, Auto NC Optimizer, Hi-Res Audio, Crystal clear hands-free calling",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "BestBuy",
+    "title": "Samsung 32-inch Odyssey G55A Gaming Monitor",
+    "brand": "Samsung",
+    "sale_price_usd": 279.99,
+    "url": "https://www.bestbuy.com/site/samsung-odyssey-g55a",
+    "features": "WQHD 2560x1440, 165Hz, 1ms MPRT, AMD FreeSync Premium, HDR10, HDMI 2.1",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "BestBuy",
+    "title": "Apple iPad Air 11-inch M3 chip",
+    "brand": "Apple",
+    "sale_price_usd": 549.99,
+    "url": "https://www.bestbuy.com/site/apple-ipad-air-m3",
+    "features": "11-inch Liquid Retina, M3 chip, 128GB, Wi-Fi 6E, 12MP camera, Apple Pencil Pro support",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "BestBuy",
+    "title": "Anker 7-in-1 USB-C Hub",
+    "brand": "Anker",
+    "sale_price_usd": 34.99,
+    "url": "https://www.bestbuy.com/site/anker-usb-c-hub",
+    "features": "7-in-1, 4K HDMI, 100W Power Delivery, USB 3.0, SD/microSD card reader",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "Amazon",
+    "title": "Acer Nitro V Gaming Laptop 15.6-inch",
+    "brand": "Acer",
+    "sale_price_usd": 699.99,
+    "url": "https://www.amazon.com/dp/acer-nitro-v-gaming",
+    "features": "15.6 FHD IPS 144Hz, Intel Core i5-13420H, 16GB DDR5, RTX 4050, 512GB NVMe SSD",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "Amazon",
+    "title": "Keychron K8 Pro Mechanical Keyboard Wireless",
+    "brand": "Keychron",
+    "sale_price_usd": 89.99,
+    "url": "https://www.amazon.com/dp/keychron-k8-pro",
+    "features": "TKL, Gateron G Pro Red switches, Bluetooth 5.1, QMK/VIA, Hot-swappable, Aluminum frame",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "Amazon",
+    "title": "Samsung 990 PRO 2TB NVMe M.2 SSD",
+    "brand": "Samsung",
+    "sale_price_usd": 149.99,
+    "url": "https://www.amazon.com/dp/samsung-990-pro-2tb",
+    "features": "PCIe 4.0 x4, Read 7450MB/s Write 6900MB/s, V-NAND, 256-bit AES encryption",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "Amazon",
+    "title": "Spigen Ultra Hybrid Case for iPhone 16 Pro",
+    "brand": "Spigen",
+    "sale_price_usd": 16.99,
+    "url": "https://www.amazon.com/dp/spigen-iphone-16-pro-case",
+    "features": "Air Cushion Technology, Crystal Clear, Anti-Yellowing, Slim Fit, Military Drop Protection",
+    "raw_source_payload": {}
+  },
+  {
+    "source": "Amazon",
+    "title": "Logitech Brio 4K Webcam",
+    "brand": "Logitech",
+    "sale_price_usd": 129.99,
+    "url": "https://www.amazon.com/dp/logitech-brio-4k",
+    "features": "4K Ultra HD, Auto Light Correction, 5x Digital Zoom, Dual Noise-Cancelling Mics, USB-C",
+    "raw_source_payload": {}
+  }
+]

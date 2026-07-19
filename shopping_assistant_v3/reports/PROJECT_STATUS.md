@@ -13,24 +13,24 @@ Chỉ Codex cập nhật file này, và chỉ sau khi approve một phase hoặc
 
 ## Trạng Thái Đã Approve Hiện Tại
 
-Current approved milestone: Phase 3 Async Jobs
+Current approved milestone: Phase 4A Mock Search/Pricing Tools
 
 Last approved commit:
 
 ```text
-2fa46f3 Approve shopping assistant v3 phase 3 async jobs
+This commit: Approve shopping assistant v3 phase 4a mock tools
 ```
 
 Approved report:
 
 ```text
-shopping_assistant_v3/reports/phase_3_async_jobs_report.md
+shopping_assistant_v3/reports/phase_4a_mock_tools_report.md
 ```
 
 Approved reviewer notes:
 
 ```text
-shopping_assistant_v3/reports/phase_3_async_jobs_codex_review.md
+shopping_assistant_v3/reports/phase_4a_mock_tools_codex_review.md
 ```
 
 ## Lịch Sử Approved
@@ -40,20 +40,25 @@ shopping_assistant_v3/reports/phase_3_async_jobs_codex_review.md
 | Phase 1: Project Setup | approved | `3e37428` | Runtime skeleton, mock-safe env template, setup verification script, và Phase 1 report đã được approve. |
 | Phase 2: Backend API And Database | approved | `b9f71d3` | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, và bộ 20 tests đã được approve. |
 | Phase 3: Async Jobs | approved | `2fa46f3` | Local daemon-thread worker, async job lifecycle, mock completion, stale-running recovery, structured logs, agent_runs audit rows, và bộ 36 tests đã được approve. |
+| Phase 4A: Mock Search/Pricing Tools | approved | this commit | Mock search/pricing tool contracts, JSON fixtures, product/price estimate persistence, worker pipeline wiring, tool/worker audit rows, safe real-mode failure gates, and 81 mock-only tests đã được approve. |
 
 ## Công Việc Tiếp Theo Được Phép
 
 Next implementation phase:
 
 ```text
-Phase 4A: Mock Search/Pricing Tools
+Phase 4B: Real Amazon/BestBuy Search Extraction
 ```
 
-Phase 4A must start from the approved Phase 3 async job foundation and follow:
+Phase 4B must start from the approved Phase 4A mock tool foundation and follow:
 
 ```text
 shopping_assistant_v3/guides/4_search_and_pricing_tools.md
 ```
+
+Phase 4B requires separate brainstorming and explicit user approval before any
+live search extraction work. Default verification must remain mock-only unless
+the user opts into real Amazon/BestBuy tests.
 
 ## Open Blockers
 
