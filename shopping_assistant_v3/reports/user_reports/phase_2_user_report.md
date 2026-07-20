@@ -40,23 +40,23 @@ GET  /api/chat-jobs/{job_id}
 
 Luồng tạo job:
 
-```text
-User gửi message
-  -> POST /api/chat-jobs
-  -> backend validate message
-  -> tạo conversation nếu chưa có
-  -> lưu user message
-  -> tạo job status=pending
-  -> trả job_id cho client
+```mermaid
+flowchart TD
+    A[User gửi message] --> B[POST /api/chat-jobs]
+    B --> C[Validate message]
+    C --> D{Tạo conversation<br>nếu chưa có}
+    D --> E[Lưu user message]
+    E --> F[Tạo job status=pending]
+    F --> G[Trả job_id cho client]
 ```
 
 Luồng xem job:
 
-```text
-Client có job_id
-  -> GET /api/chat-jobs/{job_id}
-  -> backend đọc SQLite
-  -> trả status, timestamps, result hoặc error
+```mermaid
+flowchart TD
+    A[Client có job_id] --> B[GET /api/chat-jobs/...]
+    B --> C[Đọc SQLite]
+    C --> D[Trả status, timestamps,<br>result hoặc error]
 ```
 
 Ở Phase 2, job mới chỉ ở trạng thái `pending`. Worker xử lý nền chưa có, nên

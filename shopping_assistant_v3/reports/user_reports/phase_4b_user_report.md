@@ -36,36 +36,39 @@ thống cố gắng giữ kết quả còn dùng được từ source khác và 
 
 ## 4. Chức Năng Hoạt Động Như Thế Nào?
 
-Luồng search:
+Luồng search dispatch:
 
-```text
-deal_search(input)
-  -> nếu ENABLE_REAL_SEARCH=false: đọc mock fixtures
-  -> nếu ENABLE_REAL_SEARCH=true: gọi real_deal_search()
-       -> BestBuy search nếu source cho phép
-       -> Amazon search nếu source cho phép
-       -> normalize về ProductCandidate
-       -> trả products + warnings
+```mermaid
+flowchart TD
+    A[deal_search input] --> B{ENABLE_REAL_SEARCH?}
+    B -->|false| C[Đọc mock fixtures]
+    B -->|true| D[Gọi real_deal_search]
+    D --> E{source filter}
+    E -->|All/BestBuy| F[BestBuy search]
+    E -->|All/Amazon| G[Amazon search]
+    F --> H[Normalize → ProductCandidate]
+    G --> H
+    H --> I[Trả products + warnings]
 ```
 
 BestBuy flow:
 
-```text
-search page
-  -> Apollo SSR cache
-  -> SKU ids
-  -> priceBlocks API
-  -> product details API
-  -> ProductCandidate
+```mermaid
+flowchart LR
+    A[Search page] --> B[Apollo SSR cache]
+    B --> C[SKU ids]
+    C --> D[priceBlocks API]
+    D --> E[Product details API]
+    E --> F[ProductCandidate]
 ```
 
 Amazon flow hiện tại:
 
-```text
-search page HTML
-  -> parse product cards
-  -> lấy title, brand, prices, features nếu có
-  -> ProductCandidate
+```mermaid
+flowchart LR
+    A[Search page HTML] --> B[Parse product cards]
+    B --> C[Lấy title, brand,<br>prices, features]
+    C --> D[ProductCandidate]
 ```
 
 Amazon product detail page scraping được để lại cho future milestone.

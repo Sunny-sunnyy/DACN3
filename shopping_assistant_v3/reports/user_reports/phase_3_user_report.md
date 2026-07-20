@@ -39,21 +39,26 @@ daemon thread xử lý job.
 
 Luồng sau Phase 3:
 
-```text
-POST /api/chat-jobs
-  -> tạo job pending
-  -> commit database
-  -> start daemon thread
-  -> worker đọc job
-  -> status running
-  -> tạo mock result
-  -> status completed
+```mermaid
+flowchart TD
+    A[POST /api/chat-jobs] --> B[Tạo job pending]
+    B --> C[Commit database]
+    C --> D[Start daemon thread]
+    D --> E[Worker đọc job]
+    E --> F[Status → running]
+    F --> G[Tạo mock result]
+    G --> H[Status → completed]
 ```
 
 Nếu worker gặp lỗi:
 
-```text
-running -> failed
+```mermaid
+flowchart TD
+    A[Worker đang xử lý] --> B{Gặp lỗi?}
+    B -->|Không| C[Status → completed]
+    B -->|Có| D[Status → failed]
+    D --> E[Sanitize error message]
+    E --> F[Trả safe error cho API]
 ```
 
 Error trả cho API/user được sanitize, ví dụ:

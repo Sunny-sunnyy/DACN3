@@ -54,31 +54,32 @@ cấp bằng env path riêng.
 
 Luồng pricing:
 
-```text
-estimate_price(input)
-  -> nếu ENABLE_REAL_MODEL_CALLS=false:
-       dùng mock fixture hoặc fallback 10%
-  -> nếu ENABLE_REAL_MODEL_CALLS=true:
-       estimate_price_real(product)
-         -> format_product_for_pricing(product)
-         -> NeuralPriceAdapter.estimate(text)
-         -> assemble PriceEstimateOutput
+```mermaid
+flowchart TD
+    A[estimate_price input] --> B{ENABLE_REAL_MODEL_CALLS?}
+    B -->|false| C[Mock fixture<br>hoặc fallback 10%]
+    B -->|true| D[estimate_price_real product]
+    D --> E[format_product_for_pricing]
+    E --> F[NeuralPriceAdapter.estimate]
+    F --> G[assemble PriceEstimateOutput]
 ```
 
 Nếu neural chạy được:
 
-```text
-estimated_value_usd = neural_value
-model_breakdown.neural = neural_value
-warnings gồm ensemble_partial:neural_only
+```mermaid
+flowchart TD
+    A[Neural available] --> B[estimated_value_usd<br>= neural_value]
+    A --> C[model_breakdown.neural<br>= neural_value]
+    A --> D[warnings: ensemble_partial:neural_only,<br>frontier_unavailable:deferred_to_4c2,<br>specialist_unavailable:deferred_to_4c3]
 ```
 
 Nếu neural không chạy được:
 
-```text
-estimated_value_usd = sale_price * 1.05
-deal_score = ok
-warnings gồm real_pricing_fallback_used:sale_price_markup
+```mermaid
+flowchart TD
+    A[Neural unavailable] --> B[estimated_value_usd<br>= sale_price * 1.05]
+    A --> C[deal_score = ok]
+    A --> D[warnings: neural_unavailable:missing_weights_path,<br>real_pricing_fallback_used:sale_price_markup,<br>ensemble_partial:fallback_only, ...]
 ```
 
 Frontend hoặc Synthesizer sau này sẽ thấy rõ đây là partial ensemble, không phải

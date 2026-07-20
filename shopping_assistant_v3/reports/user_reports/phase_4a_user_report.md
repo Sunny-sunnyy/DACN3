@@ -37,29 +37,18 @@ Default `max_results_per_source` được chốt là `5`.
 
 Luồng worker sau Phase 4A:
 
-```text
-job request payload
-  -> _normalize_query()
-  -> deal_search()
-  -> lưu products vào SQLite
-  -> estimate_price() cho từng product
-  -> lưu price_estimates vào SQLite
-  -> build result_payload
+```mermaid
+flowchart TD
+    A[Job request payload] --> B[_normalize_query]
+    B --> C[deal_search]
+    C --> D[Lưu products vào SQLite]
+    D --> E[estimate_price<br>cho từng product]
+    E --> F[Lưu price_estimates<br>vào SQLite]
+    F --> G[Build result_payload]
 ```
 
-Ví dụ user nhập tiếng Việt:
-
-```text
-Tìm Gaming LAPTOP dưới 800
-```
-
-Worker tạm normalize thành:
-
-```text
-gaming laptop 800
-```
-
-Đây chỉ là bridge tạm. Router thật sẽ đến ở Phase 5.
+Ví dụ user nhập tiếng Việt `Tìm Gaming LAPTOP dưới 800`. Worker tạm normalize
+thành `gaming laptop 800`. Đây chỉ là bridge tạm — Router thật sẽ đến ở Phase 5.
 
 ## 5. Kỹ Thuật Được Sử Dụng
 

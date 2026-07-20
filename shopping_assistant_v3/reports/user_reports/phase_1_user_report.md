@@ -37,17 +37,15 @@ phase này.
 
 Chức năng duy nhất ở Phase 1 là kiểm tra setup:
 
-```text
-bash shopping_assistant_v3/scripts/verify_setup.sh
+```mermaid
+flowchart LR
+    A[Chạy verify_setup.sh] --> B{Kiểm tra cấu trúc}
+    B -->|Đủ folder| C[In: verify_setup: OK]
+    B -->|Thiếu folder| D[In: lỗi chi tiết]
 ```
 
-Nếu cấu trúc đúng, script in:
-
-```text
-verify_setup: OK
-```
-
-Đây là cách đơn giản để biết project skeleton chưa bị thiếu folder quan trọng.
+Nếu cấu trúc đúng, script in `verify_setup: OK`. Đây là cách đơn giản để biết
+project skeleton chưa bị thiếu folder quan trọng.
 
 ## 5. Kỹ Thuật Được Sử Dụng
 
