@@ -15,13 +15,14 @@ này là bản dễ đọc hơn, giúp bạn nắm dự án mà không cần đ�
 Shopping Assistant V3 hiện đã hoàn thành tới:
 
 ```text
-Phase 4C.1: Real Price Estimator Extraction - Neural Adapter + Formatter + Boundary
+Phase 4C.2: Frontier Price Estimator Extraction - Frontier Adapter + Boundary
 ```
 
 Nói ngắn gọn: backend local đã có API, database, async worker, mock search và
-mock pricing pipeline, real Amazon/BestBuy search opt-in, và real neural pricing
-boundary opt-in. Frontend chat, Router tiếng Việt, Synthesizer tiếng Việt, demo
-flow cuối cùng, và production roadmap vẫn là các phase sau.
+mock pricing pipeline, real Amazon/BestBuy search opt-in, real neural pricing
+boundary opt-in, và Frontier pricing boundary opt-in qua ChromaDB + OpenAI.
+Frontend chat, Router tiếng Việt, Synthesizer tiếng Việt, demo flow cuối cùng,
+và production roadmap vẫn là các phase sau.
 
 ## Nên Đọc Theo Thứ Tự Nào?
 
@@ -33,6 +34,7 @@ flow cuối cùng, và production roadmap vẫn là các phase sau.
 | `phase_4a_user_report.md` | Mock search/pricing tools hoạt động thế nào để test không cần mạng. |
 | `phase_4b_user_report.md` | Real Amazon/BestBuy search được đưa vào V3 như opt-in feature ra sao. |
 | `phase_4c1_user_report.md` | Real neural price estimator boundary hoạt động thế nào và còn thiếu gì. |
+| `phase_4c2_user_report.md` | Frontier pricing dùng ChromaDB + OpenAI được đưa vào V3 như opt-in boundary ra sao. |
 
 ## Bức Tranh Lớn Của Hệ Thống Hiện Tại
 
@@ -62,15 +64,17 @@ phải Synthesizer thật. Điều đó đúng với phase order: Router và Syn
 - Không đọc hoặc in secrets.
 - Real search cần `ENABLE_REAL_SEARCH=true`.
 - Real model pricing cần `ENABLE_REAL_MODEL_CALLS=true` và config riêng.
+- Frontier pricing cần `PRICER_CHROMADB_PATH`, `PRICER_FRONTIER_MODEL_ID`, và
+  API key được set trong local env.
 
 ## Milestone Tiếp Theo
 
 Milestone được phép tiếp theo là:
 
 ```text
-Phase 4C.2: Frontier Price Estimator Extraction
+Phase 4C.3: Specialist Price Estimator Extraction
 ```
 
-Phase này sẽ cần brainstorming riêng vì nó liên quan tới ChromaDB vectorstore,
-SentenceTransformer, và OpenAI model calls. Không nên bắt đầu nếu chưa chốt
-scope, cost, dependency, và verification plan.
+Phase này sẽ cần brainstorming riêng vì Specialist trong prototype là Modal
+remote wrapper. Không nên bắt đầu nếu chưa chốt scope, cost, dependency,
+secret handling, và verification plan.

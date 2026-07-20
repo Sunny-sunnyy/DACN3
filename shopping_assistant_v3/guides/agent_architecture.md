@@ -263,6 +263,12 @@ evidence exists.
 
 Dùng LiteLLM abstraction cho model calls.
 
+Approved exception: Phase 4C.2 Frontier pricing uses the OpenAI Python SDK
+directly inside an opt-in tool adapter. This is an intentional extraction
+boundary because `segment4` FrontierAgent used OpenAI directly and the V3
+adapter has one narrow model call. LiteLLM remains the target abstraction for
+Phase 5 Router and Synthesizer model-backed behavior.
+
 MVP defaults:
 
 - OpenAI-compatible provider cho Router.

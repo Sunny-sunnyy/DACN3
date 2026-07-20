@@ -61,6 +61,12 @@ Chỉ sau explicit approval:
 - Return V3 price estimate schema.
 - Thêm opt-in real model test.
 
+Approved status:
+
+- 4C.1 Neural Adapter + Formatter + Boundary đã được approve.
+- 4C.2 Frontier Adapter + Boundary đã được approve.
+- 4C.3 Specialist extraction vẫn pending và cần brainstorming riêng.
+
 ## Non-Goals
 
 - Không modification `segment4/`.

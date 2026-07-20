@@ -37,5 +37,13 @@ MODEL_ID_SYNTHESIZER: str = os.getenv("MODEL_ID_SYNTHESIZER", "")
 # No default — real neural pricing requires explicit path via env.
 PRICER_NEURAL_WEIGHTS_PATH: str = os.getenv("PRICER_NEURAL_WEIGHTS_PATH", "")
 
+# Frontier pricing (Phase 4C.2): path to ChromaDB vectorstore directory.
+# No default — real frontier requires explicit path via env.
+PRICER_CHROMADB_PATH: str = os.getenv("PRICER_CHROMADB_PATH", "")
+
+# Frontier pricing (Phase 4C.2): model ID for OpenAI-compatible API call.
+# No default — real frontier requires explicit model via env.
+PRICER_FRONTIER_MODEL_ID: str = os.getenv("PRICER_FRONTIER_MODEL_ID", "")
+
 # Demo identity for MVP
 DEMO_USER_ID: str = "demo_user"

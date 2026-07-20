@@ -391,15 +391,25 @@ Current V3 status:
 - Runtime skeleton folders cho `backend/`, `frontend/`, và `scripts/` tồn tại.
 - Phase 2 Backend API And Database đã được approve.
 - Phase 3 Async Jobs đã được approve.
+- Phase 4A Mock Search/Pricing Tools đã được approve.
+- Phase 4B Real Amazon/BestBuy Search Extraction đã được approve.
+- Phase 4C.1 Real Price Estimator Extraction — Neural Adapter + Formatter +
+  Boundary đã được approve.
+- Phase 4C.2 Frontier Price Estimator Extraction — Frontier Adapter +
+  Boundary đã được approve.
 - Backend hiện có FastAPI health/chat-job endpoints, SQLite schema
   initialization, repositories, safe error shape, và local async worker.
 - Worker hiện dùng daemon thread cho local MVP, có mock completion,
   stale-running recovery, structured logs, và `agent_runs` audit rows.
+- Search/pricing hiện có mock-safe default path, opt-in real Amazon/BestBuy
+  search, opt-in Neural pricing boundary, và opt-in Frontier pricing boundary
+  qua configurable ChromaDB path + OpenAI SDK.
 - `shopping_assistant_v2/` vẫn chỉ là reference.
 - `segment4/` vẫn chỉ là prototype/reference.
 
 Next allowed implementation milestone:
 
-1. Phase 4A: Mock Search/Pricing Tools.
-2. Phase 4B: Real Amazon/BestBuy Search Extraction, chỉ sau explicit approval.
-3. Phase 4C: Real Price Estimator Extraction, chỉ sau explicit approval.
+1. Phase 4C.3: Specialist Price Estimator Extraction, chỉ sau explicit
+   approval.
+2. Phase 5: Router And Synthesizer, chỉ sau Phase 4C.3 hoặc sau explicit
+   decision defer Specialist.

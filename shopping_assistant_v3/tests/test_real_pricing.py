@@ -1,7 +1,7 @@
-"""Tests for Phase 4C.1 real price estimator — formatter, boundary, assembly, adapter.
+"""Tests for Phase 4C.2 real price estimator — formatter, boundary, assembly, adapters.
 
-All tests are mock/fixture-only — no neural deps, no model files, no network.
-deep_neural_network.py must NOT be imported by any test in this file.
+All tests are mock/fixture-only — no ChromaDB, no OpenAI, no neural deps, no network.
+deep_neural_network.py and frontier heavy deps must NOT be imported by any test.
 """
 
 from __future__ import annotations
@@ -12,6 +12,10 @@ import sys
 import pytest
 
 from backend.tools.deal_search.schemas import ProductCandidate
+from backend.tools.price_estimator.frontier.adapter import (
+    FrontierEstimateResult,
+    FrontierPriceAdapter,
+)
 from backend.tools.price_estimator.neural.adapter import (
     NeuralEstimateResult,
     NeuralPriceAdapter,
@@ -123,27 +127,38 @@ class TestFormatterMissingFields:
 
 
 class TestRealEstimatorFallback:
-    """Real mode with no weights → safe fallback markup."""
+    """Real mode with no config → both adapters unavailable → safe fallback markup."""
 
     def test_fallback_uses_5_percent_markup(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
-            "",
+            "backend.tools.price_estimator.real_estimator.PRICER_CHROMADB_PATH", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product(sale_price_usd=100.0)
         output = estimate_price_real(p)
         assert output.estimated_value_usd == 105.0  # 5% markup
         assert output.deal_score == "ok"
         assert output.model_breakdown.neural == 0.0
+        assert output.model_breakdown.frontier == 0.0
 
     def test_fallback_includes_all_required_warnings(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
-            "",
+            "backend.tools.price_estimator.real_estimator.PRICER_CHROMADB_PATH", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product()
         output = estimate_price_real(p)
-        assert "frontier_unavailable:deferred_to_4c2" in output.warnings
+        assert "frontier_unavailable:missing_chromadb_path" in output.warnings
         assert "specialist_unavailable:deferred_to_4c3" in output.warnings
         assert "neural_unavailable:missing_weights_path" in output.warnings
         assert "real_pricing_fallback_used:sale_price_markup" in output.warnings
@@ -151,13 +166,18 @@ class TestRealEstimatorFallback:
 
     def test_fallback_with_zero_sale_price(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
-            "",
+            "backend.tools.price_estimator.real_estimator.PRICER_CHROMADB_PATH", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product(sale_price_usd=0.0)
         output = estimate_price_real(p)
         assert output.estimated_value_usd == 0.0  # 0 * 1.05 = 0
-        assert output.deal_score == "ok"  # fallback always "ok" per plan
+        assert output.deal_score == "ok"
 
 
 class TestRealEstimatorWarnings:
@@ -165,23 +185,31 @@ class TestRealEstimatorWarnings:
 
     def test_warning_format_no_spaces(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
-            "",
+            "backend.tools.price_estimator.real_estimator.PRICER_CHROMADB_PATH", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product()
         output = estimate_price_real(p)
         for w in output.warnings:
-            # Every warning uses key:value (colon directly after key)
             assert ":" in w
             key, value = w.split(":", 1)
-            assert key  # non-empty
-            # No space between key and colon
+            assert key
             assert " " not in key
 
     def test_no_duplicate_warnings(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
-            "",
+            "backend.tools.price_estimator.real_estimator.PRICER_CHROMADB_PATH", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product()
         output = estimate_price_real(p)
@@ -189,39 +217,93 @@ class TestRealEstimatorWarnings:
 
 
 class TestAssembly:
-    """_assemble_output pure-function tests with fake NeuralEstimateResult."""
+    """_assemble_output pure-function tests with fake results."""
 
-    def test_neural_success_produces_neural_value(self) -> None:
+    def test_frontier_available_takes_priority(self) -> None:
+        """Frontier available → use frontier_value, ignore neural."""
         p = _make_product(sale_price_usd=100.0)
-        neural = NeuralEstimateResult(value_usd=150.0, available=True)
-        output = _assemble_output(p, neural)
+        fr = FrontierEstimateResult(value_usd=150.0, available=True)
+        nr = NeuralEstimateResult(value_usd=200.0, available=True)
+        output = _assemble_output(p, fr, nr)
         assert output.estimated_value_usd == 150.0
-        assert output.model_breakdown.neural == 150.0
+        assert output.model_breakdown.frontier == 150.0
+        assert output.model_breakdown.neural == 0.0
+        assert output.model_breakdown.specialist == 0.0
+        assert output.discount_usd == 50.0
+        assert output.deal_score == "ok"  # discount 50 < 100
+        assert "ensemble_partial:frontier_only" in output.warnings
+        assert "ensemble_partial:neural_only" not in output.warnings
+        assert "specialist_unavailable:deferred_to_4c3" in output.warnings
+
+    def test_neural_success_frontier_unavailable(self) -> None:
+        """Frontier unavailable, neural available → use neural_value + frontier_unavailable warning."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(available=False, error_code="missing_chromadb_path")
+        nr = NeuralEstimateResult(value_usd=150.0, available=True)
+        output = _assemble_output(p, fr, nr)
+        assert output.estimated_value_usd == 150.0
         assert output.model_breakdown.frontier == 0.0
+        assert output.model_breakdown.neural == 150.0
         assert output.model_breakdown.specialist == 0.0
         assert output.discount_usd == 50.0
         assert output.deal_score == "ok"  # discount 50 < 100
         assert "ensemble_partial:neural_only" in output.warnings
+        assert "frontier_unavailable:missing_chromadb_path" in output.warnings
+        assert "ensemble_partial:frontier_only" not in output.warnings
 
-    def test_neural_unavailable_produces_fallback(self) -> None:
+    def test_both_unavailable_produces_fallback(self) -> None:
+        """Both adapters unavailable → 5% markup fallback."""
         p = _make_product(sale_price_usd=100.0)
-        neural = NeuralEstimateResult(
-            available=False,
-            error_code="missing_weights_path",
-        )
-        output = _assemble_output(p, neural)
+        fr = FrontierEstimateResult(available=False, error_code="missing_chromadb_path")
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        output = _assemble_output(p, fr, nr)
         assert output.estimated_value_usd == 105.0
         assert output.deal_score == "ok"
-        assert "real_pricing_fallback_used:sale_price_markup" in output.warnings
+        assert output.model_breakdown.frontier == 0.0
+        assert output.model_breakdown.neural == 0.0
+        assert "frontier_unavailable:missing_chromadb_path" in output.warnings
         assert "neural_unavailable:missing_weights_path" in output.warnings
+        assert "real_pricing_fallback_used:sale_price_markup" in output.warnings
         assert "ensemble_partial:fallback_only" in output.warnings
 
-    def test_hot_deal_score(self) -> None:
+    def test_hot_deal_score_frontier(self) -> None:
+        """Frontier estimate with large discount → hot."""
         p = _make_product(sale_price_usd=100.0)
-        neural = NeuralEstimateResult(value_usd=350.0, available=True)
-        output = _assemble_output(p, neural)
+        fr = FrontierEstimateResult(value_usd=350.0, available=True)
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        output = _assemble_output(p, fr, nr)
         assert output.deal_score == "hot"
         assert output.discount_usd == 250.0
+        assert "ensemble_partial:frontier_only" in output.warnings
+
+    def test_good_deal_score_frontier(self) -> None:
+        """Frontier estimate with moderate discount → good."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=210.0, available=True)
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        output = _assemble_output(p, fr, nr)
+        assert output.deal_score == "good"
+        assert output.discount_usd == 110.0
+
+    def test_overpriced_frontier(self) -> None:
+        """Frontier estimate below sale price → overpriced."""
+        p = _make_product(sale_price_usd=200.0)
+        fr = FrontierEstimateResult(value_usd=150.0, available=True)
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        output = _assemble_output(p, fr, nr)
+        assert output.deal_score == "overpriced"
+        assert output.discount_usd == -50.0
+
+    def test_frontier_available_neural_available_frontier_wins(self) -> None:
+        """Both available → frontier takes priority, neural value in breakdown is 0.0."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=180.0, available=True)
+        nr = NeuralEstimateResult(value_usd=250.0, available=True)
+        output = _assemble_output(p, fr, nr)
+        assert output.estimated_value_usd == 180.0  # frontier, not neural
+        assert output.model_breakdown.frontier == 180.0
+        assert output.model_breakdown.neural == 0.0
+        assert "ensemble_partial:frontier_only" in output.warnings
 
 
 # ====================================================================
@@ -336,6 +418,175 @@ class TestNeuralAdapterSanitizedError:
 # ====================================================================
 
 
+# ====================================================================
+# Frontier adapter tests (mock-safe, no heavy deps)
+# ====================================================================
+
+
+class TestFrontierAdapterMissingPath:
+    """Adapter fails cleanly when chromadb path is missing."""
+
+    def test_empty_path_returns_missing_chromadb_path(self) -> None:
+        adapter = FrontierPriceAdapter(chromadb_path="", model_id="gpt-5.1")
+        result = adapter.try_estimate("test text")
+        assert not result.available
+        assert result.error_code == "missing_chromadb_path"
+
+    def test_nonexistent_path_returns_missing_chromadb_path(self) -> None:
+        adapter = FrontierPriceAdapter(
+            chromadb_path="/tmp/nonexistent_chromadb_4c2_test",
+            model_id="gpt-5.1",
+        )
+        result = adapter.try_estimate("test text")
+        assert not result.available
+        assert result.error_code == "missing_chromadb_path"
+
+    def test_result_is_idempotent(self) -> None:
+        adapter = FrontierPriceAdapter(chromadb_path="", model_id="gpt-5.1")
+        r1 = adapter.try_estimate("text a")
+        r2 = adapter.try_estimate("text b")
+        assert not r1.available
+        assert not r2.available
+        assert r1.error_code == r2.error_code
+
+
+class TestFrontierAdapterMissingModelId:
+    """Adapter fails cleanly when model_id is empty."""
+
+    def test_empty_model_id_with_valid_path(self, tmp_path) -> None:
+        """Path exists but model_id empty → model_config_missing."""
+        adapter = FrontierPriceAdapter(
+            chromadb_path=str(tmp_path),
+            model_id="",
+        )
+        result = adapter.try_estimate("test text")
+        assert not result.available
+        assert result.error_code == "model_config_missing"
+
+
+class TestFrontierAdapterMissingDependency:
+    """Adapter returns missing_dependency when heavy deps cannot be imported."""
+
+    def test_missing_dependency_returns_safe_error(self, monkeypatch, tmp_path) -> None:
+        """With valid config but blocked chromadb import → missing_dependency."""
+        import builtins
+
+        real_import = builtins.__import__
+
+        def _block_heavy(name, *args, **kwargs):
+            if name in ("chromadb",):
+                raise ImportError(f"No module named '{name}'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _block_heavy)
+
+        adapter = FrontierPriceAdapter(
+            chromadb_path=str(tmp_path),
+            model_id="gpt-5.1",
+        )
+        result = adapter.try_estimate("test")
+        assert not result.available
+        assert result.error_code == "missing_dependency"
+        assert result.error_detail is not None
+        assert len(result.error_detail) <= 200
+
+    def test_missing_dependency_sanitized_detail(self, monkeypatch, tmp_path) -> None:
+        """Long import error message is bounded to 200 chars."""
+        import builtins
+
+        real_import = builtins.__import__
+
+        def _fail_long(name, *args, **kwargs):
+            if name == "chromadb":
+                raise ImportError("X" * 500)
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _fail_long)
+
+        adapter = FrontierPriceAdapter(
+            chromadb_path=str(tmp_path),
+            model_id="gpt-5.1",
+        )
+        result = adapter.try_estimate("test")
+        assert not result.available
+        assert result.error_code == "missing_dependency"
+        assert result.error_detail is not None
+        assert len(result.error_detail) <= 200
+
+
+class TestFrontierAdapterSanitizedError:
+    """Frontier adapter error_detail is bounded, safe, no stack traces."""
+
+    def test_sanitize_detail_bounds_long_strings(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _sanitize_detail
+
+        long_msg = "A" * 500
+        result = _sanitize_detail(long_msg)
+        assert len(result) <= 200
+
+    def test_sanitize_detail_flattens_newlines(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _sanitize_detail
+
+        result = _sanitize_detail("line1\nline2\r\nline3")
+        assert "\n" not in result
+        assert "\r" not in result
+
+    def test_sanitize_detail_handles_non_strings(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _sanitize_detail
+
+        result = _sanitize_detail(Exception(42))  # type: ignore[arg-type]
+        assert len(result) <= 200
+        assert "42" in result
+
+
+class TestFrontierExtractPrice:
+    """_extract_price is deterministic, stdlib-only."""
+
+    def test_extracts_dollar_amount(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _extract_price
+
+        assert _extract_price("Estimated price: $899.99") == 899.99
+
+    def test_extracts_with_commas(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _extract_price
+
+        assert _extract_price("The price is 1,299.50 dollars") == 1299.50
+
+    def test_returns_none_when_no_number(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _extract_price
+
+        assert _extract_price("No numbers here") is None
+
+    def test_extracts_integer(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _extract_price
+
+        assert _extract_price("42") == 42.0
+
+    def test_extracts_zero(self) -> None:
+        from backend.tools.price_estimator.frontier.adapter import _extract_price
+
+        assert _extract_price("$0.00") == 0.0
+
+
+# ====================================================================
+# Frontier config tests
+# ====================================================================
+
+
+class TestFrontierConfig:
+    """PRICER_CHROMADB_PATH and PRICER_FRONTIER_MODEL_ID env var handling."""
+
+    def test_chromadb_path_default_empty(self) -> None:
+        from backend.shared.config import PRICER_CHROMADB_PATH
+
+        assert PRICER_CHROMADB_PATH == ""
+
+    def test_frontier_model_id_default_empty(self) -> None:
+        from backend.shared.config import PRICER_FRONTIER_MODEL_ID
+
+        assert PRICER_FRONTIER_MODEL_ID == ""
+
+
 class TestConfig:
     """PRICER_NEURAL_WEIGHTS_PATH env var handling."""
 
@@ -368,6 +619,14 @@ class TestRealModeDispatch:
             True,
         )
         monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_CHROMADB_PATH",
+            "",
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID",
+            "",
+        )
+        monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
             "",
         )
@@ -376,6 +635,9 @@ class TestRealModeDispatch:
         assert result.estimated_value_usd > 0
         assert isinstance(result.model_breakdown.frontier, float)
         assert isinstance(result.model_breakdown.specialist, float)
+        # With no config, frontier and neural should be 0.0
+        assert result.model_breakdown.frontier == 0.0
+        assert result.model_breakdown.neural == 0.0
 
 
 # ====================================================================
@@ -389,3 +651,12 @@ def test_neural_heavy_module_not_imported() -> None:
     assert heavy not in sys.modules, (
         f"{heavy} was imported — default tests must not pull heavy deps"
     )
+
+
+def test_frontier_heavy_modules_not_imported() -> None:
+    """Default test suite must not pull chromadb/sentence_transformers/openai."""
+    for mod_start in ("chromadb", "sentence_transformers", "openai"):
+        leaked = [m for m in sys.modules if m.startswith(mod_start)]
+        assert not leaked, (
+            f"{mod_start} was imported — default tests must not pull frontier deps: {leaked}"
+        )
