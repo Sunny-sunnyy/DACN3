@@ -121,6 +121,37 @@ Sau mỗi phase hoặc guide update có thay đổi runtime đáng kể, Codex n
 lại `codegraph status shopping_assistant_v3`. Nếu auto-sync đã cập nhật và
 status up to date thì không chạy sync thủ công.
 
+## Human-Assisted Tasks
+
+Nếu `CODEX_REVIEWER` hoặc `DEEPSEEK_IMPLEMENTER` không thể tự thực hiện một tác
+vụ cụ thể vì giới hạn sandbox, quyền truy cập, môi trường local, browser UI, tài
+khoản, hoặc secret handling, agent phải yêu cầu user hỗ trợ thay vì đoán hoặc
+bỏ qua âm thầm.
+
+Các ví dụ gồm:
+
+- tạo, migrate, seed, hoặc kiểm tra database mà agent không truy cập được;
+- duyệt một website cụ thể, thao tác tab cụ thể, mở DevTools/F12, hoặc lấy HTML
+  mà browser/tooling của agent không thể lấy đúng;
+- cài browser extension, package hệ thống, app desktop, hoặc công cụ local nằm
+  ngoài quyền của agent;
+- cấu hình service/account, lấy API key/env key, hoặc xác nhận secret tồn tại;
+- thực hiện thao tác trên máy tính/trang web mà agent không thể tự làm an toàn
+  hoặc không có quyền.
+
+Khi cần user hỗ trợ, agent phải hỏi rõ:
+
+- mục tiêu của thao tác;
+- các bước user cần làm;
+- output hoặc evidence cần gửi lại;
+- dữ liệu nào không được paste trực tiếp, đặc biệt là secrets, tokens, private
+  keys, credentials, hoặc nội dung nhạy cảm.
+
+Nếu cần secret/env key, agent không được yêu cầu user paste secret vào chat.
+Thay vào đó, yêu cầu user tự đặt vào file/env phù hợp trên máy local hoặc gửi
+evidence đã redact, ví dụ tên biến đã tồn tại, status command, hoặc error message
+đã ẩn giá trị secret.
+
 ## Responsibilities
 
 Codex phải:
