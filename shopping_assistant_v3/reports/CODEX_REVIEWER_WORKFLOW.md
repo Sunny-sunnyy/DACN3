@@ -200,6 +200,38 @@ shopping_assistant_v3/reports/phase_2_backend_api_and_database_codex_review.md
 shopping_assistant_v3/reports/phase_4a_mock_tools_codex_review.md
 ```
 
+## User-Facing Reports
+
+Sau khi một phase, milestone, hoặc guide thay đổi thực tế project được approve,
+Codex phải kiểm tra và cập nhật báo cáo dễ đọc cho user trong:
+
+```text
+shopping_assistant_v3/reports/user_reports/
+```
+
+Mục đích của các file này là giúp project owner hiểu hệ thống đang có gì mà
+không phải đọc toàn bộ implementation reports kỹ thuật.
+
+Quy tắc:
+
+- Mỗi completed phase hoặc milestone có một file riêng:
+  `phase_<id>_user_report.md`.
+- Nếu phase có sub-milestone, dùng id rõ ràng, ví dụ
+  `phase_4c1_user_report.md`.
+- `README.md` trong `user_reports/` phải phản ánh current approved milestone,
+  thứ tự đọc, và milestone tiếp theo.
+- Mỗi report nên dưới 500 dòng.
+- Viết bằng tiếng Việt dễ hiểu; technical terms giữ English khi rõ hơn.
+- Không copy nguyên implementation report. Tóm tắt lại thành: mục tiêu, vấn đề
+  phase giải quyết, chức năng đã có, kỹ thuật dùng, luồng hoạt động, file quan
+  trọng và quan hệ giữa chúng, cách tự kiểm tra, giới hạn hiện tại, và phase
+  sau nối tiếp.
+- Không claim functionality chưa được implementation và verification chứng
+  minh.
+- Khi guide thay đổi product/architecture behavior dài hạn, cập nhật
+  `README.md` hoặc phase report liên quan nếu user-facing understanding bị
+  stale.
+
 ## Các Mức Review Decision
 
 Dùng đúng một decision:
