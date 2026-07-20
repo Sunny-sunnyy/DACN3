@@ -338,18 +338,26 @@ class TestRealModeInWorker:
         assert "products" in result
         assert "warnings" in result
 
-    def test_real_model_flag_fails_job_with_safe_error(
+    def test_real_model_flag_completes_job_with_fallback(
         self, db_session: Session, monkeypatch
     ) -> None:
+        """Phase 4C.1: ENABLE_REAL_MODEL_CALLS=true completes with fallback.
+
+        Without PRICER_NEURAL_WEIGHTS_PATH, neural is unavailable, but
+        real estimator returns safe fallback — job completes, not fails.
+        """
         monkeypatch.setattr(
             "backend.tools.price_estimator.tool.ENABLE_REAL_MODEL_CALLS", True
         )
         job = _create_pending_job(db_session)
         process_job(job.id)
         db_session.refresh(job)
-        assert job.status == "failed"
-        assert "Phase 4A" in job.error_message
-        assert "NotImplementedError" not in job.error_message
+        assert job.status == "completed"
+        result = json.loads(job.result_payload or "{}")
+        assert "products" in result
+        # Verify fallback warnings are present in result
+        warnings = result.get("warnings", [])
+        assert any("real_pricing_fallback_used" in w for w in warnings)
 
 
 # ---------------------------------------------------------------------------

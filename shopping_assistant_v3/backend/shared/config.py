@@ -33,5 +33,9 @@ MODEL_PROVIDER: str = os.getenv("MODEL_PROVIDER", "openai")
 MODEL_ID_ROUTER: str = os.getenv("MODEL_ID_ROUTER", "")
 MODEL_ID_SYNTHESIZER: str = os.getenv("MODEL_ID_SYNTHESIZER", "")
 
+# Neural pricing (Phase 4C): path to deep_neural_network.pth weights file.
+# No default — real neural pricing requires explicit path via env.
+PRICER_NEURAL_WEIGHTS_PATH: str = os.getenv("PRICER_NEURAL_WEIGHTS_PATH", "")
+
 # Demo identity for MVP
 DEMO_USER_ID: str = "demo_user"

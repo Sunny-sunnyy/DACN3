@@ -1,7 +1,7 @@
 """price_estimator_tool — deterministic mock estimation using JSON fixture lookup.
 
-Phase 4A: fixed lookup + rule-based fallback. Real model calls (Phase 4C) gated
-behind ENABLE_REAL_MODEL_CALLS, which raises NotImplementedError in this phase.
+Phase 4A: fixed lookup + rule-based fallback.
+Phase 4C.1: real path dispatched to real_estimator when ENABLE_REAL_MODEL_CALLS=true.
 """
 
 from __future__ import annotations
@@ -50,22 +50,27 @@ def _fallback_estimate(sale_price: float) -> tuple[float, ModelBreakdown]:
 
 
 def estimate_price(input: PriceEstimateInput) -> PriceEstimateOutput:
-    """Estimate fair USD value for a product using fixture lookup or fallback rule.
+    """Estimate fair USD value for a product.
+
+    When ENABLE_REAL_MODEL_CALLS=false (default): fixture lookup with
+    deterministic 10% markup fallback rule.
+
+    When ENABLE_REAL_MODEL_CALLS=true (Phase 4C.1): dispatches to
+    real_estimator which uses the neural adapter if available, with
+    safe fallback markup and explicit component-availability warnings.
 
     Args:
         input: PriceEstimateInput wrapping a ProductCandidate.
 
     Returns:
-        PriceEstimateOutput with estimated value, discount, deal score, and breakdown.
-
-    Raises:
-        NotImplementedError: If ENABLE_REAL_MODEL_CALLS is True (Phase 4A mock-only).
+        PriceEstimateOutput with estimated value, discount, deal score,
+        model breakdown, and warnings.
     """
     if ENABLE_REAL_MODEL_CALLS:
-        raise NotImplementedError(
-            "Real model calls are not available in Phase 4A mock-only mode. "
-            "Set ENABLE_REAL_MODEL_CALLS=false or wait for Phase 4C."
-        )
+        # Phase 4C.1: real path with neural + fallback warnings.
+        # Imported inline so mock path never touches neural deps.
+        from backend.tools.price_estimator.real_estimator import estimate_price_real
+        return estimate_price_real(input.product)
 
     product = input.product
     sale_price = product.sale_price_usd or 0.0

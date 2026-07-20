@@ -324,17 +324,25 @@ class TestRealModeFlags:
         assert called_with[0].query_en == "laptop"
         assert result.warnings == ["ok"]
 
-    def test_real_model_calls_still_not_implemented(
+    def test_real_model_calls_dispatches_to_real_path(
         self, monkeypatch
     ) -> None:
-        """Phase 4B does NOT implement real pricing — still NotImplementedError."""
+        """Phase 4C.1: ENABLE_REAL_MODEL_CALLS=true dispatches to real path.
+
+        Without PRICER_NEURAL_WEIGHTS_PATH, neural is unavailable.
+        Real estimator returns fallback markup + explicit warnings.
+        """
         monkeypatch.setattr(
             "backend.tools.price_estimator.tool.ENABLE_REAL_MODEL_CALLS",
             True,
         )
         p = _make_product()
-        with pytest.raises(NotImplementedError, match="Phase 4A"):
-            estimate_price(PriceEstimateInput(product=p))
+        result = estimate_price(PriceEstimateInput(product=p))
+        # Real path with missing weights → fallback
+        assert result.estimated_value_usd > 0
+        assert result.model_breakdown.neural == 0.0  # neural unavailable
+        assert "real_pricing_fallback_used:sale_price_markup" in result.warnings
+        assert "neural_unavailable:missing_weights_path" in result.warnings
 
 
 # ====================================================================
