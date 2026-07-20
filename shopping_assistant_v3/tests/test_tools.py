@@ -303,17 +303,300 @@ class TestPriceEstimatorMock:
 # ====================================================================
 
 class TestRealModeFlags:
-    def test_real_search_raises_not_implemented(self, monkeypatch) -> None:
+    def test_real_search_dispatches_to_real_path(
+        self, monkeypatch
+    ) -> None:
+        """Phase 4B: ENABLE_REAL_SEARCH=true calls real_deal_search."""
+        from backend.tools.deal_search import real_search
+
+        called_with = []
+
+        def fake_real_search(inp):
+            called_with.append(inp)
+            return DealSearchOutput(products=[], warnings=["ok"])
+
+        monkeypatch.setattr(real_search, "real_deal_search", fake_real_search)
         monkeypatch.setattr(
             "backend.tools.deal_search.tool.ENABLE_REAL_SEARCH", True
         )
-        with pytest.raises(NotImplementedError, match="Phase 4A"):
-            deal_search(DealSearchInput(query_en="laptop"))
+        result = deal_search(DealSearchInput(query_en="laptop"))
+        assert len(called_with) == 1
+        assert called_with[0].query_en == "laptop"
+        assert result.warnings == ["ok"]
 
-    def test_real_model_calls_raises_not_implemented(self, monkeypatch) -> None:
+    def test_real_model_calls_still_not_implemented(
+        self, monkeypatch
+    ) -> None:
+        """Phase 4B does NOT implement real pricing — still NotImplementedError."""
         monkeypatch.setattr(
-            "backend.tools.price_estimator.tool.ENABLE_REAL_MODEL_CALLS", True
+            "backend.tools.price_estimator.tool.ENABLE_REAL_MODEL_CALLS",
+            True,
         )
         p = _make_product()
         with pytest.raises(NotImplementedError, match="Phase 4A"):
             estimate_price(PriceEstimateInput(product=p))
+
+
+# ====================================================================
+# BestBuy Apollo parser tests (fixture-based, no network)
+# ====================================================================
+
+BESTBUY_FIXTURE_HTML = (
+    Path(__file__).resolve().parent
+    / "fixtures" / "bestbuy_search_page.html"
+)
+
+
+class TestBestBuyApolloParser:
+    """Deterministic parser tests using saved BestBuy search page HTML."""
+
+    def test_parse_extracts_sku_ids(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        html = BESTBUY_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_apollo_search_page(html)
+        assert len(result) >= 2, f"Expected >= 2 SKUs, got {len(result)}"
+        assert all("skuId" in item for item in result)
+        assert all("pdpUrl" in item for item in result)
+
+    def test_parse_sku_ids_are_numeric(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        html = BESTBUY_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_apollo_search_page(html)
+        for item in result:
+            assert item["skuId"].isdigit(), (
+                f"skuId must be numeric, got {item['skuId']}"
+            )
+            assert len(item["skuId"]) >= 5, (
+                f"skuId too short: {item['skuId']}"
+            )
+
+    def test_parse_excludes_openbox_urls(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        html_with_openbox = (
+            BESTBUY_FIXTURE_HTML.read_text(encoding="utf-8")
+            + '\n{"skuId":"99999999"},"pdpUrl":"https://www.bestbuy.com/product/openbox/99999999"'
+        )
+        result = _parse_apollo_search_page(html_with_openbox)
+        for item in result:
+            if item["skuId"] == "99999999":
+                assert "openbox" not in item.get("pdpUrl", ""), (
+                    "openbox URL should be excluded"
+                )
+
+    def test_parse_empty_html_returns_empty(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        result = _parse_apollo_search_page("<html></html>")
+        assert result == []
+
+
+# ====================================================================
+# Amazon search page parser tests (fixture-based, no network)
+# ====================================================================
+
+AMAZON_FIXTURE_HTML = (
+    Path(__file__).resolve().parent
+    / "fixtures" / "amazon_search_page.html"
+)
+
+
+class TestAmazonSearchPageParser:
+    """Deterministic parser tests using saved Amazon search page HTML."""
+
+    def test_parse_extracts_product_cards(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        assert len(result) == 2, f"Expected 2 products, got {len(result)}"
+
+    def test_parse_extracts_asin(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        asins = {p["asin"] for p in result}
+        assert "B0TEST0001" in asins
+        assert "B0TEST0002" in asins
+
+    def test_parse_extracts_title(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        titles = [p["title"] for p in result]
+        assert any("ASUS" in t for t in titles)
+        assert any("Headphones" in t for t in titles)
+
+    def test_parse_extracts_prices(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        for p in result:
+            assert p["current_price"] > 0, (
+                f"current_price must be > 0 for {p['asin']}"
+            )
+
+    def test_parse_detects_on_sale(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        for p in result:
+            assert p["on_sale"] is True, (
+                f"Fixture products should be on_sale (list > current), "
+                f"got on_sale={p['on_sale']} for {p['asin']}"
+            )
+
+    def test_parse_extracts_specs(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        # First product has detailed specs.
+        asus = [p for p in result if p["asin"] == "B0TEST0001"][0]
+        assert len(asus["specs"]) >= 30, (
+            f"ASUS product should have detailed specs, got {len(asus['specs'])} chars"
+        )
+        # Second product has thin specs (< 50 chars).
+        sa = [p for p in result if p["asin"] == "B0TEST0002"][0]
+        assert len(sa["specs"]) < 50, (
+            f"SimpleAudio product should have thin specs, got {len(sa['specs'])} chars"
+        )
+
+    def test_parse_extracts_brand_from_specs(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        asus = [p for p in result if p["asin"] == "B0TEST0001"][0]
+        assert asus["brand"] == "ASUS"
+
+    def test_parse_empty_html_returns_empty(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        result = _parse_amazon_search_page("<html></html>")
+        assert result == []
+
+
+# ====================================================================
+# _parse_price unit tests
+# ====================================================================
+
+
+class TestAmazonParsePrice:
+    """Unit tests for Amazon price string parser."""
+
+    def test_standard_price(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("$1,099.99") == 1099.99
+
+    def test_whole_dollar(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("$499") == 499.0
+
+    def test_cents_only(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("$0.99") == 0.99
+
+    def test_empty_string(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("") == 0.0
+
+    def test_invalid_string(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("not a price") == 0.0
+
+
+# ====================================================================
+# amazon_features_limited warning test (mock-safe, no network)
+# ====================================================================
+
+
+class TestAmazonFeaturesLimitedWarning:
+    """Verify amazon_features_limited warning is returned in tool output.
+
+    Uses a fake curl_cffi session + local Amazon fixture HTML so the test
+    runs without network. Default test — always runs.
+    """
+
+    def test_thin_specs_product_emits_features_limited_warning(
+        self, monkeypatch
+    ) -> None:
+        from backend.tools.deal_search import amazon_search
+        from backend.tools.deal_search.amazon_search import (
+            search_amazon_real,
+        )
+
+        # Load the fixture HTML (contains 1 thin-specs product).
+        fixture_html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+
+        # Fake session that returns the fixture.
+        class FakeResponse:
+            text = fixture_html
+
+        class FakeSession:
+            def get(self, url, timeout=None):
+                return FakeResponse()
+            def post(self, url, data=None, timeout=None):
+                return FakeResponse()
+
+        # Patch the module-level guard and session factory.
+        monkeypatch.setattr(amazon_search, "_CURL_CFFI_AVAILABLE", True)
+        monkeypatch.setattr(
+            amazon_search, "_create_session", lambda: FakeSession()
+        )
+
+        products, warnings = search_amazon_real(
+            query="gaming laptop", max_results=5
+        )
+
+        # Fixture has 2 products, both on_sale.
+        assert len(products) == 2
+
+        # Second product (B0TEST0002) has thin specs — must get warning.
+        features_limited = [
+            w for w in warnings if w.startswith("amazon_features_limited:")
+        ]
+        assert len(features_limited) == 1, (
+            f"Expected 1 amazon_features_limited warning, got {len(features_limited)}: {warnings}"
+        )
+        assert "Simple Budget Headphones" in features_limited[0]
+
+        # Verify the warning is properly truncated (< 80 chars title + prefix).
+        assert len(features_limited[0]) < 120, (
+            f"Warning too long: {len(features_limited[0])} chars"
+        )

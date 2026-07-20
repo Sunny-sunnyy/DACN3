@@ -13,24 +13,24 @@ Chỉ Codex cập nhật file này, và chỉ sau khi approve một phase hoặc
 
 ## Trạng Thái Đã Approve Hiện Tại
 
-Current approved milestone: Phase 4A Mock Search/Pricing Tools
+Current approved milestone: Phase 4B Real Amazon/BestBuy Search Extraction
 
 Last approved commit:
 
 ```text
-This commit: Approve shopping assistant v3 phase 4a mock tools
+This commit: Approve shopping assistant v3 phase 4b real search
 ```
 
 Approved report:
 
 ```text
-shopping_assistant_v3/reports/phase_4a_mock_tools_report.md
+shopping_assistant_v3/reports/phase_4b_real_search_report.md
 ```
 
 Approved reviewer notes:
 
 ```text
-shopping_assistant_v3/reports/phase_4a_mock_tools_codex_review.md
+shopping_assistant_v3/reports/phase_4b_real_search_codex_review.md
 ```
 
 ## Lịch Sử Approved
@@ -41,24 +41,26 @@ shopping_assistant_v3/reports/phase_4a_mock_tools_codex_review.md
 | Phase 2: Backend API And Database | approved | `b9f71d3` | FastAPI health/chat-job endpoints, SQLite schema initialization, repositories, safe error shape, và bộ 20 tests đã được approve. |
 | Phase 3: Async Jobs | approved | `2fa46f3` | Local daemon-thread worker, async job lifecycle, mock completion, stale-running recovery, structured logs, agent_runs audit rows, và bộ 36 tests đã được approve. |
 | Phase 4A: Mock Search/Pricing Tools | approved | this commit | Mock search/pricing tool contracts, JSON fixtures, product/price estimate persistence, worker pipeline wiring, tool/worker audit rows, safe real-mode failure gates, and 81 mock-only tests đã được approve. |
+| Phase 4B: Real Amazon/BestBuy Search Extraction | approved | this commit | Opt-in real Amazon/BestBuy search extraction behind `ENABLE_REAL_SEARCH=true`, copy/adapt modules independent from `segment4`, local parser fixtures, bounded warnings, and default mock/fixture verification đã được approve. |
 
 ## Công Việc Tiếp Theo Được Phép
 
 Next implementation phase:
 
 ```text
-Phase 4B: Real Amazon/BestBuy Search Extraction
+Phase 4C: Real Price Estimator Extraction
 ```
 
-Phase 4B must start from the approved Phase 4A mock tool foundation and follow:
+Phase 4C must start from the approved Phase 4A mock tool foundation and Phase
+4B opt-in real search modules, and follow:
 
 ```text
 shopping_assistant_v3/guides/4_search_and_pricing_tools.md
 ```
 
-Phase 4B requires separate brainstorming and explicit user approval before any
-live search extraction work. Default verification must remain mock-only unless
-the user opts into real Amazon/BestBuy tests.
+Phase 4C requires separate brainstorming and explicit user approval before any
+real pricing/model extraction work. Default verification must remain mock-only
+unless the user opts into real model tests.
 
 ## Open Blockers
 
@@ -71,8 +73,8 @@ approved phase flow của Shopping Assistant V3 và nên được giữ nguyên 
 user explicitly scope chúng:
 
 ```text
-brainstorming.md
-prompt_session.md
+shopping_assistant_v2/README_Project_Sidekick.md
+shopping_assistant_v2/README_codegraph.md
 ```
 
 ## Quy Tắc Cập Nhật Status

@@ -317,18 +317,26 @@ class TestFailurePath:
 # ---------------------------------------------------------------------------
 
 class TestRealModeInWorker:
-    def test_real_search_flag_fails_job_with_safe_error(
+    def test_real_search_flag_completes_job_with_real_path(
         self, db_session: Session, monkeypatch
     ) -> None:
+        """Phase 4B: ENABLE_REAL_SEARCH=true dispatches to real search.
+
+        Real search modules may fail at network level (no connectivity),
+        but the job should complete (not crash) with sanitized warnings.
+        """
         monkeypatch.setattr(
             "backend.tools.deal_search.tool.ENABLE_REAL_SEARCH", True
         )
         job = _create_pending_job(db_session)
         process_job(job.id)
         db_session.refresh(job)
-        assert job.status == "failed"
-        assert "Phase 4A" in job.error_message
-        assert "NotImplementedError" not in job.error_message
+        # Phase 4B: real search is implemented. Job completes even if
+        # network calls fail — failures become warnings, not job errors.
+        assert job.status == "completed"
+        result = json.loads(job.result_payload or "{}")
+        assert "products" in result
+        assert "warnings" in result
 
     def test_real_model_flag_fails_job_with_safe_error(
         self, db_session: Session, monkeypatch

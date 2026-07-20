@@ -1,0 +1,1793 @@
+# Phase 4B: Real Amazon/BestBuy Search Extraction — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Adapt real Amazon and BestBuy search from segment4 into V3 as independent opt-in modules behind `ENABLE_REAL_SEARCH=true`, without modifying segment4.
+
+**Architecture:** Copy + Adapt approach. Two new source-specific search modules (`bestbuy_search.py`, `amazon_search.py`) plus a thin orchestrator (`real_search.py`). Each module uses try/except for curl_cffi import so modules remain importable without the dependency. Mock path (Phase 4A) unchanged. Sequential execution for `source="All"`.
+
+**Tech Stack:** Python 3.12, `curl_cffi>=0.7.0`, `beautifulsoup4>=4.12.0`, Pydantic schemas from Phase 4A.
+
+## Global Constraints
+
+- `ENABLE_REAL_SEARCH=false` by default — mock path unchanged
+- No runtime imports from `segment4/`
+- No edits to `segment4/`
+- Amazon: Approach A only (search page parsing), no product page scraping
+- Sequential source execution for `source="All"`
+- Source failures become warnings using bounded grammar, never crash the job
+- `curl_cffi` import uses try/except — modules importable without it
+- No `logger.exception` in source modules for expected failures (network, timeout, parse)
+- Timeout is per-request, documented honestly (not source-level deadline)
+- No `bestbuy_skipped`/`amazon_skipped` warnings for normal source filters
+- Default tests mock/fixture-only, no network
+- Real search tests opt-in, skipped by default
+- Dependencies: update `pyproject.toml` AND `uv.lock`; `uv lock` only after user approval
+- Report must include CodeGraph evidence, adapted functions table, and confirm segment4 untouched
+
+## Bounded Warning Grammar
+
+All warning strings follow this grammar (sanitized, no raw exceptions/payloads/stack traces):
+
+```
+<source>_search_failed: <reason>
+  reason ∈ {timeout, blocked, request_failed}
+
+<source>_no_results
+<source>_no_sale_products
+
+amazon_features_limited: <product_title_truncated_80_chars>
+
+partial_results: <src_a>_ok=true <src_b>_failed=true
+
+no_products_found: <source_list>
+  source_list ∈ {all_sources, bestbuy_only, amazon_only}
+```
+
+`<source>` is always `bestbuy` or `amazon`. Warnings never contain raw HTML, headers, cookies, stack traces, or secret-like data.
+
+---
+
+## Task 0: CodeGraph evidence — pre-extraction flow documentation
+
+**Files:** None created/modified. Evidence recorded for report.
+
+- [ ] **Step 1: CodeGraph precheck (mandatory)**
+
+```bash
+codegraph --version
+```
+
+Expected: version printed. If `codegraph` not found, skip all CodeGraph steps, note in report, continue with file-read context.
+
+```bash
+codegraph status segment4
+```
+
+Expected: status report. If status is `error`, `stale`, `missing`, or command fails: **do NOT run `codegraph init`**. Record the status in the report and continue using file-read context from segment4 documentation and source files already read. If the user wants to fix the index, ask before proceeding.
+
+- [ ] **Step 2: Explore BestBuy search flow in segment4**
+
+```bash
+codegraph explore -p /home/hieu0606sunny/price2026wsl/tech2ai/segment4 "How does search_filter_scrape_bestbuy call search_bestbuy, get_price_blocks, and get_product_details? Show the complete BestBuy search pipeline."
+```
+
+Expected: Returns call chain from `search_filter_scrape_bestbuy` through `_init_session`, `search_bestbuy`, `get_price_blocks`, `get_product_details`. Save output for report.
+
+- [ ] **Step 3: Explore Amazon search flow in segment4**
+
+```bash
+codegraph explore -p /home/hieu0606sunny/price2026wsl/tech2ai/segment4 "How does search_filter_scrape_amazon call init_amazon_session, search_amazon, parse_search_results, and scrape_product_page? Show the complete Amazon search pipeline including ZIP code setting."
+```
+
+Expected: Returns call chain from `search_filter_scrape_amazon` through `init_amazon_session`, `search_amazon`, `parse_search_results`, `scrape_product_page`. Save output for report.
+
+- [ ] **Step 4: Check impact of target functions**
+
+```bash
+codegraph impact -p /home/hieu0606sunny/price2026wsl/tech2ai/segment4 search_filter_scrape_bestbuy
+codegraph impact -p /home/hieu0606sunny/price2026wsl/tech2ai/segment4 search_filter_scrape_amazon
+```
+
+Expected: Shows callers and callees. Confirms no V3 files reference these — clean extraction boundary.
+
+- [ ] **Step 5: Record baseline CodeGraph status for shopping_assistant_v3**
+
+```bash
+codegraph status shopping_assistant_v3
+```
+
+Expected: up to date, 25 files. Save baseline for post-implementation comparison.
+
+---
+
+### Task 1: Add dependencies to pyproject.toml AND uv.lock
+
+**Files:**
+- Modify: `shopping_assistant_v3/pyproject.toml`
+- Modify: `shopping_assistant_v3/uv.lock` (auto-generated by `uv lock`)
+
+**Produces:** `curl_cffi` and `beautifulsoup4` declared. Lock file updated atomically.
+
+- [ ] **Step 1: Add dependencies to pyproject.toml**
+
+```toml
+dependencies = [
+    "fastapi>=0.115.0",
+    "sqlalchemy>=2.0.0",
+    "uvicorn[standard]>=0.34.0",
+    "curl_cffi>=0.7.0",
+    "beautifulsoup4>=4.12.0",
+]
+```
+
+- [ ] **Step 2: Verify pyproject.toml is valid TOML**
+
+```bash
+uv run python -c "import tomllib; tomllib.load(open('shopping_assistant_v3/pyproject.toml','rb')); print('OK')"
+```
+
+Expected: exits 0, `OK`.
+
+- [ ] **Step 3: Update uv.lock (REQUIRES USER APPROVAL for network)**
+
+```bash
+cd shopping_assistant_v3 && uv lock
+```
+
+Expected: `uv.lock` updated with curl_cffi and beautifulsoup4 and their transitive deps. This command requires network access. **Only run after user explicitly approves.**
+
+After lock:
+```bash
+cd shopping_assistant_v3 && uv sync
+```
+
+Expected: dependencies installed into `.venv`.
+
+- [ ] **Step 4: Verify imports resolve**
+
+```bash
+cd shopping_assistant_v3 && uv run python -c "from curl_cffi import requests; from bs4 import BeautifulSoup; print('OK')"
+```
+
+Expected: `OK`.
+
+---
+
+### Task 2: Create HTML fixture files for parser tests
+
+**Files:**
+- Create: `shopping_assistant_v3/tests/fixtures/__init__.py`
+- Create: `shopping_assistant_v3/tests/fixtures/amazon_search_page.html`
+- Create: `shopping_assistant_v3/tests/fixtures/bestbuy_search_page.html`
+
+**Produces:** Deterministic parser test fixtures for Task 7.
+
+- [ ] **Step 1: Create fixtures __init__.py**
+
+```python
+"""Test fixtures — saved HTML snippets for deterministic parser tests."""
+```
+
+- [ ] **Step 2: Create amazon_search_page.html**
+
+Two product cards: one with detailed specs (exercises full extraction), one with thin specs (exercises `amazon_features_limited` warning path).
+
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Amazon.com : gaming laptop</title></head>
+<body>
+<div data-component-type="s-search-result" data-asin="B0TEST0001">
+  <h2 aria-label="ASUS ROG Strix G16 Gaming Laptop 16 inch FHD 165Hz Intel Core i7-13650HX NVIDIA GeForce RTX 4060 16GB DDR5 1TB SSD Eclipse Gray">
+    <span>ASUS ROG Strix G16 Gaming Laptop</span>
+  </h2>
+  <div data-cy="price-recipe">
+    <span class="a-price">
+      <span class="a-offscreen">$1,099.99</span>
+    </span>
+    <span class="a-price" data-a-strike="true">
+      <span class="a-offscreen">$1,399.99</span>
+    </span>
+  </div>
+  <div data-cy="product-details-recipe">
+    <span class="a-color-secondary">Brand:</span>
+    <span class="a-text-bold">ASUS</span>
+    <span class="a-color-secondary">RAM:</span>
+    <span class="a-text-bold">16 GB DDR5</span>
+    <span class="a-color-secondary">Screen Size:</span>
+    <span class="a-text-bold">16 Inches</span>
+    <span class="a-color-secondary">CPU Model:</span>
+    <span class="a-text-bold">Intel Core i7</span>
+  </div>
+</div>
+<div data-component-type="s-search-result" data-asin="B0TEST0002">
+  <h2 aria-label="Simple Budget Headphones Wired Lightweight 3.5mm Jack Black">
+    <span>Simple Budget Headphones Wired Lightweight</span>
+  </h2>
+  <div data-cy="price-recipe">
+    <span class="a-price">
+      <span class="a-offscreen">$19.99</span>
+    </span>
+    <span class="a-price" data-a-strike="true">
+      <span class="a-offscreen">$39.99</span>
+    </span>
+  </div>
+  <div data-cy="product-details-recipe">
+    <span class="a-color-secondary">Brand:</span>
+    <span class="a-text-bold">SimpleAudio</span>
+  </div>
+</div>
+</body>
+</html>
+```
+
+- [ ] **Step 3: Create bestbuy_search_page.html**
+
+Simulates BestBuy search page with Apollo SSR cache containing 2 SKUs.
+
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Best Buy: gaming laptop</title></head>
+<body>
+<script>
+window.__APOLLO_STATE__ = {
+  "Product:skuId:6501234":{"skuId":"6501234"},
+  "Product:skuId:6501235":{"skuId":"6501235"}
+};
+</script>
+<div class="sku-item"><a href="/site/sku/6501234.p?skuId=6501234">Laptop A</a></div>
+<div class="sku-item"><a href="/site/sku/6501235.p?skuId=6501235">Laptop B</a></div>
+<script type="application/json">
+{"skuId":"6501234"},"pdpUrl":"https://www.bestbuy.com/product/sku/6501234"
+{"skuId":"6501235"},"pdpUrl":"https://www.bestbuy.com/product/sku/6501235"
+</script>
+</body>
+</html>
+```
+
+- [ ] **Step 4: Verify fixture file sizes**
+
+```bash
+wc -c shopping_assistant_v3/tests/fixtures/amazon_search_page.html
+wc -c shopping_assistant_v3/tests/fixtures/bestbuy_search_page.html
+```
+
+Expected: both > 200 bytes.
+
+---
+
+### Task 3: Create bestbuy_search.py
+
+**Files:**
+- Create: `shopping_assistant_v3/backend/tools/deal_search/bestbuy_search.py`
+
+**Interfaces:**
+- Consumes: `ProductCandidate` from `backend.tools.deal_search.schemas`
+- Produces: `_parse_apollo_search_page(html: str) -> list[dict[str, str]]`, `search_bestbuy_real(query: str, max_results: int = 5, timeout: int = 15) -> tuple[list[ProductCandidate], list[str]]`
+
+**Key design decisions vs segment4:**
+- `curl_cffi` imported via try/except — module importable without it
+- `logger.exception` replaced with `logger.warning` + sanitized reason codes
+- Timeout documented as per-request (not source-level deadline)
+- Returns `ProductCandidate` directly (no intermediate `ScrapedBestBuyDeal`)
+
+- [ ] **Step 1: Write bestbuy_search.py**
+
+```python
+"""BestBuy real search — adapted from segment4/price_agents/bestbuy_deals.py.
+
+Phase 4B: curl_cffi + internal APIs. No Playwright.
+Product pages blocked from WSL2 (HTTP/2 + Akamai CDN). Uses:
+1. Search page -> Apollo SSR cache -> skuIds + pdpUrls
+2. priceBlocks API -> batch price, brand, onSale
+3. v2 product API -> features, clean URL
+
+Adapted functions (segment4 -> V3, copy+adapt, no runtime imports):
+  _init_session           -> _create_session
+  search_bestbuy          -> _parse_apollo_search_page (testable parser)
+  get_price_blocks        -> _fetch_price_blocks
+  get_product_details     -> _fetch_product_details
+  search_filter_scrape_bestbuy -> search_bestbuy_real
+
+Timeout note: BESTBUY_TIMEOUT is a per-request timeout applied to each
+HTTP call, not a source-level deadline. One BestBuy search makes up to
+1 (search) + 1 (priceBlocks) + max_results (product details) requests.
+Worst-case wall time ≈ BESTBUY_TIMEOUT * (2 + max_results).
+Source-level deadline wrapping is deferred to a future hardening milestone.
+
+Warning grammar (sanitized, bounded reason codes):
+  bestbuy_search_failed: request_failed
+  bestbuy_no_results
+  bestbuy_no_sale_products
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any
+
+try:
+    from curl_cffi import requests as curl_requests
+    _CURL_CFFI_AVAILABLE = True
+except ImportError:
+    curl_requests = None  # type: ignore[assignment]
+    _CURL_CFFI_AVAILABLE = False
+
+from backend.tools.deal_search.schemas import ProductCandidate
+
+logger = logging.getLogger("shopping_assistant_v3.bestbuy_search")
+
+BESTBUY_TIMEOUT = 15  # per-request timeout, not source-level deadline
+
+
+# ---------------------------------------------------------------------------
+# Testable parser (no network, no curl_cffi)
+# ---------------------------------------------------------------------------
+
+
+def _parse_apollo_search_page(html: str) -> list[dict[str, str]]:
+    """Parse BestBuy search page HTML for Apollo SSR cache entries.
+
+    Extracts unique (skuId, pdpUrl) pairs from inline JSON. Testable with
+    saved HTML fixture — no network required.
+
+    Args:
+        html: Raw HTML from BestBuy /site/searchpage.jsp response.
+
+    Returns:
+        List of dicts with keys "skuId" and "pdpUrl".
+    """
+    products: dict[str, dict[str, str]] = {}
+    all_skus = set(re.findall(r'"skuId":"(\d{5,8})"', html))
+
+    for sku_id in all_skus:
+        pattern = (
+            rf'"skuId":"{sku_id}"\}},"pdpUrl":"'
+            rf'(https://www\.bestbuy\.com/product/[^"]+)"'
+        )
+        for m in re.finditer(pattern, html):
+            pdp_url = m.group(1)
+            if "openbox" in pdp_url or "refurbished" in pdp_url:
+                continue
+            clean_url = re.sub(r"/sku/\d+/?$", "", pdp_url)
+            products[sku_id] = {"skuId": sku_id, "pdpUrl": clean_url}
+            break
+
+    for sku_id in all_skus:
+        if sku_id not in products:
+            products[sku_id] = {"skuId": sku_id, "pdpUrl": ""}
+
+    logger.debug("Apollo parse: %d unique SKUs from %d raw matches",
+                 len(products), len(all_skus))
+    return list(products.values())
+
+
+# ---------------------------------------------------------------------------
+# Network functions (require curl_cffi)
+# ---------------------------------------------------------------------------
+
+
+def _create_session() -> curl_requests.Session:
+    """Create curl_cffi session with Chrome impersonation, bypass country splash."""
+    session = curl_requests.Session(impersonate="chrome")
+    session.get("https://www.bestbuy.com/?intl=nosplash", timeout=BESTBUY_TIMEOUT)
+    return session
+
+
+def _fetch_price_blocks(
+    session: curl_requests.Session, sku_ids: list[str]
+) -> dict[str, dict[str, Any]]:
+    """Batch fetch price, brand, onSale from BestBuy /api/3.0/priceBlocks."""
+    skus_param = ",".join(sku_ids)
+    url = f"https://www.bestbuy.com/api/3.0/priceBlocks?skus={skus_param}"
+    logger.debug("Fetching priceBlocks for %d SKUs", len(sku_ids))
+
+    resp = session.get(
+        url, timeout=BESTBUY_TIMEOUT, headers={"Accept": "application/json"}
+    )
+
+    results: dict[str, dict[str, Any]] = {}
+    for item in resp.json():
+        sku = item.get("sku", {})
+        if "error" in item:
+            continue
+        sku_id = sku.get("buttonState", {}).get("skuId", "")
+        price_data = sku.get("price", {})
+        price_domain = price_data.get("priceDomain", {})
+        results[sku_id] = {
+            "brand": sku.get("brand", {}).get("brand", ""),
+            "name": sku.get("names", {}).get("short", ""),
+            "currentPrice": price_data.get("currentPrice", 0),
+            "regularPrice": price_data.get("regularPrice", 0),
+            "savingsAmount": price_data.get("savingsAmount", 0),
+            "totalSavingsPercent": price_domain.get("totalSavingsPercent", 0),
+            "onSale": price_data.get("pricingType") == "onSale",
+        }
+
+    logger.debug("priceBlocks: got %d/%d SKUs", len(results), len(sku_ids))
+    return results
+
+
+def _fetch_product_details(
+    session: curl_requests.Session, sku_id: str
+) -> dict[str, str]:
+    """Fetch features + clean URL from BestBuy /api/v2/product/<skuId>."""
+    url = f"https://www.bestbuy.com/api/v2/product/{sku_id}"
+    resp = session.get(
+        url, timeout=BESTBUY_TIMEOUT, headers={"Accept": "application/json"}
+    )
+
+    if resp.status_code != 200:
+        return {"features": "", "url": ""}
+
+    data = resp.json()
+    product_url = data.get("links", {}).get("seoPdpUrl", {}).get("href", "")
+
+    features_list = data.get("features", [])
+    parts = []
+    for f in features_list:
+        title = f.get("title", "")
+        desc = f.get("description", "")
+        if title and desc:
+            parts.append(f"{title}: {desc}")
+        elif title:
+            parts.append(title)
+
+    return {"features": ". ".join(parts), "url": product_url}
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+
+def search_bestbuy_real(
+    query: str,
+    max_results: int = 5,
+    timeout: int = BESTBUY_TIMEOUT,
+) -> tuple[list[ProductCandidate], list[str]]:
+    """Real BestBuy search: session -> search -> priceBlocks -> product details.
+
+    Pipeline:
+    1. Create curl_cffi session (Chrome impersonation).
+    2. GET /site/searchpage.jsp, parse Apollo SSR cache for SKU ids.
+    3. Batch GET /api/3.0/priceBlocks for price + brand + onSale status.
+    4. For each on-sale SKU: GET /api/v2/product/<skuId> for features + URL.
+    5. Return normalized ProductCandidate list + sanitized warnings.
+
+    Never raises — expected failures become sanitized warning strings
+    using bounded reason codes. No raw exceptions, HTML, or stack traces
+    in warnings.
+
+    Args:
+        query: English search query (e.g. "gaming laptop under 800").
+        max_results: Max sale products to return.
+        timeout: Per-request timeout in seconds (NOT source-level deadline).
+
+    Returns:
+        (products, warnings) — both lists may be empty.
+    """
+    if not _CURL_CFFI_AVAILABLE:
+        return [], ["bestbuy_search_failed: request_failed"]
+
+    try:
+        session = _create_session()
+    except Exception:
+        logger.warning("BestBuy session creation failed for query=%s", query)
+        return [], ["bestbuy_search_failed: request_failed"]
+
+    try:
+        # Step 1: Search page -> SKU ids.
+        url = (
+            "https://www.bestbuy.com/site/searchpage.jsp?"
+            f"st={query.replace(' ', '+')}"
+        )
+        resp = session.get(url, timeout=timeout)
+        apollo_products = _parse_apollo_search_page(resp.text)
+
+        if not apollo_products:
+            logger.info("BestBuy: no products found for query=%s", query)
+            return [], ["bestbuy_no_results"]
+
+        # Step 2: Batch price check.
+        sku_ids = [p["skuId"] for p in apollo_products]
+        price_data = _fetch_price_blocks(session, sku_ids)
+
+        # Step 3: Filter onSale + fetch details.
+        products: list[ProductCandidate] = []
+        for sku, pd in price_data.items():
+            if not pd["onSale"]:
+                continue
+
+            details = _fetch_product_details(session, sku)
+
+            products.append(
+                ProductCandidate(
+                    source="BestBuy",
+                    title=pd["name"][:200] if pd["name"] else "Unknown",
+                    brand=pd["brand"] if pd["brand"] else None,
+                    sale_price_usd=float(pd["currentPrice"]),
+                    url=details["url"] or f"https://www.bestbuy.com/site/{sku}.p",
+                    features=details["features"] or pd["name"],
+                )
+            )
+
+            if len(products) >= max_results:
+                break
+
+        if not products:
+            logger.info("BestBuy: no sale products for query=%s", query)
+            return [], ["bestbuy_no_sale_products"]
+
+        logger.info("BestBuy real search: %d products for query=%s",
+                     len(products), query)
+        return products, []
+
+    except Exception:
+        logger.warning("BestBuy real search failed for query=%s", query)
+        return [], ["bestbuy_search_failed: request_failed"]
+```
+
+- [ ] **Step 2: Verify module imports without network**
+
+```bash
+cd shopping_assistant_v3 && uv run python -c "from backend.tools.deal_search.bestbuy_search import _parse_apollo_search_page, search_bestbuy_real; print('OK')"
+```
+
+Expected: `OK` (module importable even if curl_cffi not installed, thanks to try/except).
+
+---
+
+### Task 4: Create amazon_search.py
+
+**Files:**
+- Create: `shopping_assistant_v3/backend/tools/deal_search/amazon_search.py`
+
+**Interfaces:**
+- Consumes: `ProductCandidate` from `backend.tools.deal_search.schemas`
+- Produces: `_parse_amazon_search_page(html: str) -> list[dict]`, `search_amazon_real(query: str, max_results: int = 5, timeout: int = 15) -> tuple[list[ProductCandidate], list[str]]`
+
+**Key design decisions vs segment4:**
+- `curl_cffi` imported via try/except — module importable without it
+- `bs4` imported at module level (pure Python, no system deps)
+- `logger.exception` replaced with `logger.warning` + sanitized reason codes
+- Timeout documented as per-request
+- `scrape_product_page` (Approach B) deferred — boundary documented in comment only, no stub function
+
+- [ ] **Step 1: Write amazon_search.py**
+
+```python
+"""Amazon real search — adapted from segment4/price_agents/amazon_deals.py.
+
+Phase 4B: curl_cffi + HTML parsing. Approach A only (search page parsing).
+Product page scraping (Approach B) deferred to reduce live scraping risk.
+
+Adapted functions (segment4 -> V3, copy+adapt, no runtime imports):
+  init_amazon_session     -> _create_session
+  search_amazon           -> inline fetch + _parse_amazon_search_page
+  parse_search_results    -> _parse_amazon_search_page (testable parser)
+  _parse_price            -> _parse_price (identical)
+  scrape_product_page     -> DEFERRED (see bottom-of-file boundary comment)
+  search_filter_scrape_amazon -> search_amazon_real
+
+Timeout note: AMAZON_TIMEOUT is a per-request timeout. One Amazon search
+makes 1 (search page) request total in Phase 4B. Approach B would add
+1 request per product with thin features.
+
+Warning grammar (sanitized, bounded reason codes):
+  amazon_search_failed: <reason>   reason ∈ {timeout, blocked, request_failed}
+  amazon_no_results
+  amazon_no_sale_products
+  amazon_features_limited: <title_truncated_80_chars>
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+
+from bs4 import BeautifulSoup
+
+try:
+    from curl_cffi import requests as curl_requests
+    _CURL_CFFI_AVAILABLE = True
+except ImportError:
+    curl_requests = None  # type: ignore[assignment]
+    _CURL_CFFI_AVAILABLE = False
+
+from backend.tools.deal_search.schemas import ProductCandidate
+
+logger = logging.getLogger("shopping_assistant_v3.amazon_search")
+
+ZIP_CODE = "96150"
+AMAZON_TIMEOUT = 15  # per-request timeout, not source-level deadline
+MIN_FEATURES_LEN = 50  # threshold for amazon_features_limited warning
+
+
+# ---------------------------------------------------------------------------
+# Testable parser + helpers (no network, no curl_cffi)
+# ---------------------------------------------------------------------------
+
+
+def _parse_price(text: str) -> float:
+    """Parse '$1,799.00' -> 1799.0."""
+    if not text:
+        return 0.0
+    cleaned = re.sub(r"[^\d.]", "", text)
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+def _parse_amazon_search_page(html: str) -> list[dict]:
+    """Parse Amazon search page HTML for product cards.
+
+    Extracts asin, title, brand, current_price, list_price, on_sale,
+    specs, and url from each s-search-result card.
+
+    Testable with saved HTML fixture — no network required.
+
+    Args:
+        html: Raw HTML from Amazon /s?k= search page.
+
+    Returns:
+        List of dicts with keys: asin, title, brand, current_price,
+        list_price, on_sale, specs, url. Products with current_price <= 0
+        are excluded.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    cards = soup.select('div[data-component-type="s-search-result"][data-asin]')
+    products: list[dict] = []
+
+    for card in cards:
+        asin = card.get("data-asin", "").strip()
+        if not asin:
+            continue
+
+        # --- Title ---
+        h2 = card.select_one("h2")
+        if not h2:
+            continue
+        title = h2.get("aria-label", "") or h2.get_text(strip=True)
+        if title.startswith("Sponsored Ad - "):
+            title = title[len("Sponsored Ad - "):]
+        if len(title) < 20:
+            img = card.select_one("img.s-image")
+            if img:
+                alt = img.get("alt", "")
+                alt = re.sub(r"^Sponsored Ad - ", "", alt)
+                if len(alt) > len(title):
+                    title = alt.rstrip(".")
+        if not title:
+            continue
+
+        # --- Prices ---
+        brand = None
+        price_block = card.select_one('div[data-cy="price-recipe"]')
+        current_price = 0.0
+        list_price = 0.0
+
+        if price_block:
+            for ps in price_block.select("span.a-price"):
+                if ps.get("data-a-strike") == "true":
+                    offscreen = ps.select_one("span.a-offscreen")
+                    if offscreen:
+                        list_price = _parse_price(offscreen.get_text())
+                else:
+                    if current_price == 0.0:
+                        offscreen = ps.select_one("span.a-offscreen")
+                        if offscreen:
+                            current_price = _parse_price(offscreen.get_text())
+
+        if current_price <= 0:
+            continue
+
+        on_sale = list_price > current_price
+
+        # --- Specs ---
+        specs_parts: list[str] = []
+        specs_block = card.select_one(
+            'div[data-cy="product-details-recipe"]'
+        )
+        if specs_block:
+            labels = specs_block.select("span.a-color-secondary")
+            values = specs_block.select("span.a-text-bold")
+            for label, value in zip(labels, values):
+                l_text = label.get_text(strip=True).rstrip(":")
+                v_text = value.get_text(strip=True)
+                if l_text and v_text and v_text != "-":
+                    specs_parts.append(f"{l_text}: {v_text}")
+
+        specs = ", ".join(specs_parts)
+
+        # Extract brand from specs.
+        for part in specs_parts:
+            if part.startswith("Brand:"):
+                brand = part.split(":", 1)[1].strip()
+                break
+
+        products.append({
+            "asin": asin,
+            "title": title,
+            "brand": brand,
+            "current_price": current_price,
+            "list_price": list_price,
+            "on_sale": on_sale,
+            "specs": specs,
+            "url": f"https://www.amazon.com/dp/{asin}",
+        })
+
+    logger.debug("Amazon parse: %d cards -> %d valid products",
+                 len(cards), len(products))
+    return products
+
+
+# ---------------------------------------------------------------------------
+# Network functions (require curl_cffi)
+# ---------------------------------------------------------------------------
+
+
+def _create_session() -> curl_requests.Session:
+    """Create curl_cffi session with Chrome impersonation and US ZIP 96150."""
+    session = curl_requests.Session(impersonate="chrome")
+    session.get("https://www.amazon.com", timeout=AMAZON_TIMEOUT)
+
+    try:
+        session.post(
+            "https://www.amazon.com/gp/delivery/ajax/address-change.html",
+            data={
+                "locationType": "LOCATION_INPUT",
+                "zipCode": ZIP_CODE,
+                "storeContext": "generic",
+                "deviceType": "web",
+                "pageType": "Search",
+                "actionSource": "glow",
+            },
+            timeout=AMAZON_TIMEOUT,
+        )
+    except Exception:
+        logger.warning("Amazon ZIP code setting failed — continuing anyway")
+
+    return session
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+
+def search_amazon_real(
+    query: str,
+    max_results: int = 5,
+    timeout: int = AMAZON_TIMEOUT,
+) -> tuple[list[ProductCandidate], list[str]]:
+    """Real Amazon search using curl_cffi + HTML parsing (Approach A only).
+
+    Pipeline:
+    1. Create curl_cffi session + set ZIP 96150.
+    2. GET /s?k= search page, check CAPTCHA.
+    3. Parse product cards via _parse_amazon_search_page.
+    4. Filter on_sale, apply max_results limit.
+    5. Return normalized ProductCandidate list + sanitized warnings.
+
+    Phase 4B limitation: search page only (Approach A). Products with
+    thin specs (< 50 chars) get an amazon_features_limited warning.
+    Product page scraping (Approach B) is deferred.
+
+    Never raises — expected failures become sanitized warning strings
+    using bounded reason codes. No raw exceptions, HTML, or stack traces
+    in warnings.
+
+    Args:
+        query: English search query (e.g. "gaming laptop under 800").
+        max_results: Max sale products to return.
+        timeout: Per-request timeout in seconds (NOT source-level deadline).
+
+    Returns:
+        (products, warnings) — both lists may be empty.
+    """
+    if not _CURL_CFFI_AVAILABLE:
+        return [], ["amazon_search_failed: request_failed"]
+
+    try:
+        session = _create_session()
+    except Exception:
+        logger.warning("Amazon session creation failed for query=%s", query)
+        return [], ["amazon_search_failed: request_failed"]
+
+    try:
+        url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
+        resp = session.get(url, timeout=timeout)
+
+        if "/errors/validateCaptcha" in resp.text:
+            logger.warning("Amazon CAPTCHA detected for query=%s", query)
+            return [], ["amazon_search_failed: blocked"]
+
+        parsed = _parse_amazon_search_page(resp.text)
+
+        if not parsed:
+            logger.info("Amazon: no products parsed for query=%s", query)
+            return [], ["amazon_no_results"]
+
+        sale_products = [p for p in parsed if p["on_sale"]]
+        if not sale_products:
+            logger.info("Amazon: no sale products for query=%s", query)
+            return [], ["amazon_no_sale_products"]
+
+        sale_products = sale_products[:max_results]
+
+        products: list[ProductCandidate] = []
+        for p in sale_products:
+            features = p["specs"]
+
+            if len(features) < MIN_FEATURES_LEN:
+                short_title = (
+                    p["title"][:80] if len(p["title"]) > 80 else p["title"]
+                )
+                logger.info(
+                    "Amazon features_limited: asin=%s title=%s len=%d",
+                    p["asin"], short_title, len(features),
+                )
+
+            products.append(
+                ProductCandidate(
+                    source="Amazon",
+                    title=p["title"][:200],
+                    brand=p["brand"] if p["brand"] else None,
+                    sale_price_usd=p["current_price"],
+                    url=p["url"],
+                    features=features if features else p["title"],
+                )
+            )
+
+        logger.info("Amazon real search: %d products for query=%s",
+                     len(products), query)
+        return products, []
+
+    except Exception:
+        logger.warning("Amazon real search failed for query=%s", query)
+        return [], ["amazon_search_failed: request_failed"]
+
+
+# ---------------------------------------------------------------------------
+# Future boundary: Approach B — product page detail enrichment
+#
+# To add optional product-page scraping in a future milestone (e.g. 4B.1):
+# 1. Gate behind ENABLE_AMAZON_DETAIL_SCRAPE=true flag in shared/config.py.
+# 2. Implement _fetch_product_details(session, url) -> {"features", "brand"}
+#    that GETs the product page and extracts #feature-bullets + #bylineInfo,
+#    adapted from segment4/price_agents/amazon_deals.scrape_product_page().
+# 3. In search_amazon_real, after the on_sale filter, call
+#    _fetch_product_details for products with len(features) < 50.
+# 4. Add opt-in test gated by the same flag.
+#
+# Do NOT add empty stub functions in Phase 4B. This comment is the boundary.
+# ---------------------------------------------------------------------------
+```
+
+- [ ] **Step 2: Verify module imports without network**
+
+```bash
+cd shopping_assistant_v3 && uv run python -c "from backend.tools.deal_search.amazon_search import _parse_amazon_search_page, search_amazon_real; print('OK')"
+```
+
+Expected: `OK` (module importable even without curl_cffi, bs4 always available).
+
+---
+
+### Task 5: Create real_search.py (orchestrator)
+
+**Files:**
+- Create: `shopping_assistant_v3/backend/tools/deal_search/real_search.py`
+
+**Interfaces:**
+- Consumes: `DealSearchInput`, `DealSearchOutput` from schemas; `search_bestbuy_real`, `search_amazon_real`
+- Produces: `real_deal_search(input: DealSearchInput) -> DealSearchOutput`
+
+**Key design:** Sequential execution. Source filter is normal — no `skipped` warnings. `no_products_found` reflects the actually-queried source scope. Cross-source summary via `partial_results` only when one fails.
+
+- [ ] **Step 1: Write real_search.py**
+
+```python
+"""Real search orchestrator for Phase 4B.
+
+Dispatches to BestBuy and Amazon real search modules based on source filter.
+Sequential execution for source="All": BestBuy first, then Amazon.
+
+A source failure becomes a sanitized warning — partial results are returned
+when at least one source succeeds. Only when all queried sources return
+empty or fail is the output truly empty.
+"""
+
+from __future__ import annotations
+
+import logging
+
+from backend.tools.deal_search.bestbuy_search import search_bestbuy_real
+from backend.tools.deal_search.amazon_search import search_amazon_real
+from backend.tools.deal_search.schemas import (
+    DealSearchInput,
+    DealSearchOutput,
+    ProductCandidate,
+)
+
+logger = logging.getLogger("shopping_assistant_v3.real_search")
+
+
+def _source_list(source: str) -> str:
+    """Return the grammar-compliant source_list value for no_products_found."""
+    if source == "All":
+        return "all_sources"
+    elif source == "BestBuy":
+        return "bestbuy_only"
+    else:
+        return "amazon_only"
+
+
+def real_deal_search(input: DealSearchInput) -> DealSearchOutput:
+    """Execute real deal search against Amazon and/or BestBuy.
+
+    Sequential execution when source="All" (BestBuy first, then Amazon).
+    Each source that fails adds a sanitized warning using bounded reason
+    codes — the other source's results are preserved.
+
+    Source filter is normal operation: no warning is emitted when a source
+    is skipped due to the source field (e.g. source="Amazon" does not
+    produce "bestbuy_skipped").
+
+    Args:
+        input: DealSearchInput with query_en, source filter, and limit.
+
+    Returns:
+        DealSearchOutput with products from all queried sources and
+        sanitized bounded warnings.
+    """
+    all_products: list[ProductCandidate] = []
+    all_warnings: list[str] = []
+    bb_failed = False
+    az_failed = False
+
+    # --- BestBuy ---
+    if input.source in ("All", "BestBuy"):
+        bb_products, bb_warnings = search_bestbuy_real(
+            query=input.query_en,
+            max_results=input.max_results_per_source,
+        )
+        all_products.extend(bb_products)
+        all_warnings.extend(bb_warnings)
+        bb_failed = any(
+            w.startswith("bestbuy_search_failed") for w in bb_warnings
+        )
+        logger.info(
+            "real_search BestBuy: %d products, %d warnings",
+            len(bb_products), len(bb_warnings),
+        )
+
+    # --- Amazon ---
+    if input.source in ("All", "Amazon"):
+        az_products, az_warnings = search_amazon_real(
+            query=input.query_en,
+            max_results=input.max_results_per_source,
+        )
+        all_products.extend(az_products)
+        all_warnings.extend(az_warnings)
+        az_failed = any(
+            w.startswith("amazon_search_failed") for w in az_warnings
+        )
+        logger.info(
+            "real_search Amazon: %d products, %d warnings",
+            len(az_products), len(az_warnings),
+        )
+
+    # --- Cross-source partial results summary (source="All" only) ---
+    if input.source == "All":
+        if bb_failed and not az_failed:
+            all_warnings.append(
+                "partial_results: bestbuy_failed=true amazon_ok=true"
+            )
+        elif az_failed and not bb_failed:
+            all_warnings.append(
+                "partial_results: bestbuy_ok=true amazon_failed=true"
+            )
+
+    # --- Final emptiness check scoped to requested sources ---
+    if not all_products:
+        all_warnings.append(
+            f"no_products_found: {_source_list(input.source)}"
+        )
+
+    logger.info(
+        "real_search total: %d products, %d warnings",
+        len(all_products), len(all_warnings),
+    )
+    return DealSearchOutput(products=all_products, warnings=all_warnings)
+```
+
+- [ ] **Step 2: Verify module imports**
+
+```bash
+cd shopping_assistant_v3 && uv run python -c "from backend.tools.deal_search.real_search import real_deal_search; print('OK')"
+```
+
+Expected: `OK`.
+
+---
+
+### Task 6: Update tool.py to wire real search path
+
+**Files:**
+- Modify: `shopping_assistant_v3/backend/tools/deal_search/tool.py`
+
+**Change:** Replace `NotImplementedError` gate. Import the `real_search` module at module level (the search modules use try/except for curl_cffi, so this import is always safe). The module reference (not the function) is imported so tests can patch `real_search.real_deal_search` and the lookup happens at call time.
+
+- [ ] **Step 1: Edit tool.py imports and function**
+
+Replace the file content. Key changes:
+1. Add module-level import of `real_deal_search`
+2. Replace `NotImplementedError` raise with call to `real_deal_search`
+3. Update docstring
+
+```python
+"""deal_search_tool — mock + real search implementations.
+
+Phase 4A mock path (default): JSON fixture keyword matching.
+Phase 4B real path (opt-in): ENABLE_REAL_SEARCH=true dispatches to
+BestBuy and Amazon curl_cffi search modules.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from backend.shared.config import ENABLE_REAL_SEARCH
+from backend.tools.deal_search import real_search
+from backend.tools.deal_search.schemas import (
+    DealSearchInput,
+    DealSearchOutput,
+    ProductCandidate,
+)
+
+FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "mock_products.json"
+
+
+def _load_products() -> list[ProductCandidate]:
+    raw = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    return [ProductCandidate(**item) for item in raw]
+
+
+def _keyword_match(product: ProductCandidate, query: str) -> bool:
+    """Case-insensitive ANY-token match in title or features.
+
+    A product matches if at least one query token appears in its title or
+    features. Empty query matches everything. Uses any-token (not all-token)
+    so Vietnamese messages that have been normalized still match.
+    """
+    q = query.strip()
+    if not q:
+        return True
+    searchable = product.title.lower()
+    if product.features:
+        searchable += " " + product.features.lower()
+    tokens = q.split()
+    return any(token in searchable for token in tokens)
+
+
+def deal_search(input: DealSearchInput) -> DealSearchOutput:
+    """Run a product search — mock (default) or real (opt-in).
+
+    Args:
+        input: DealSearchInput with query_en, source filter, and result limit.
+
+    Returns:
+        DealSearchOutput with matching products and any warnings.
+    """
+    if ENABLE_REAL_SEARCH:
+        return real_search.real_deal_search(input)
+
+    # --- Phase 4A mock path (unchanged) ---
+    all_products = _load_products()
+    warnings: list[str] = []
+
+    # Filter by source.
+    if input.source in ("Amazon", "BestBuy"):
+        candidates = [p for p in all_products if p.source == input.source]
+    else:
+        candidates = list(all_products)
+
+    # Filter by keyword match if query is provided.
+    if input.query_en.strip():
+        candidates = [p for p in candidates if _keyword_match(p, input.query_en)]
+
+    if not candidates:
+        return DealSearchOutput(
+            products=[],
+            warnings=[f"No products found for query: {input.query_en}"],
+        )
+
+    # Limit per source.
+    per_source_limit = input.max_results_per_source
+    by_source: dict[str, list[ProductCandidate]] = {}
+    for p in candidates:
+        by_source.setdefault(p.source, []).append(p)
+
+    limited: list[ProductCandidate] = []
+    for source_products in by_source.values():
+        limited.extend(source_products[:per_source_limit])
+
+    if len(candidates) > len(limited):
+        warnings.append(
+            f"Results truncated to {per_source_limit} per source. "
+            f"Total: {len(candidates)} matched, returning {len(limited)}."
+        )
+
+    return DealSearchOutput(products=limited, warnings=warnings)
+```
+
+- [ ] **Step 2: Verify mock path still works**
+
+```bash
+cd shopping_assistant_v3 && uv run python -c "
+from backend.tools.deal_search.schemas import DealSearchInput
+from backend.tools.deal_search.tool import deal_search
+result = deal_search(DealSearchInput(query_en='gaming laptop'))
+assert len(result.products) >= 2
+print('Mock path OK:', len(result.products), 'products')
+"
+```
+
+Expected: `Mock path OK: <N> products`.
+
+- [ ] **Step 3: Verify module import resolves correctly**
+
+```bash
+cd shopping_assistant_v3 && uv run python -c "
+from backend.tools.deal_search import real_search
+print('Module import OK, real_search =', real_search)
+print('real_deal_search attr =', real_search.real_deal_search)
+"
+```
+
+Expected: `Module import OK` and function reference printed.
+
+---
+
+### Task 7: Add deterministic parser tests with HTML fixtures
+
+**Files:**
+- Modify: `shopping_assistant_v3/tests/test_tools.py` (append new test classes after existing `TestRealModeFlags`)
+
+**Tests added:** 15 deterministic tests using local HTML fixtures — no network, no secrets.
+
+- [ ] **Step 1: Append parser test classes to test_tools.py**
+
+```python
+# ====================================================================
+# BestBuy Apollo parser tests (fixture-based, no network)
+# ====================================================================
+
+BESTBUY_FIXTURE_HTML = (
+    Path(__file__).resolve().parent
+    / "fixtures" / "bestbuy_search_page.html"
+)
+
+
+class TestBestBuyApolloParser:
+    """Deterministic parser tests using saved BestBuy search page HTML."""
+
+    def test_parse_extracts_sku_ids(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        html = BESTBUY_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_apollo_search_page(html)
+        assert len(result) >= 2, f"Expected >= 2 SKUs, got {len(result)}"
+        assert all("skuId" in item for item in result)
+        assert all("pdpUrl" in item for item in result)
+
+    def test_parse_sku_ids_are_numeric(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        html = BESTBUY_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_apollo_search_page(html)
+        for item in result:
+            assert item["skuId"].isdigit(), (
+                f"skuId must be numeric, got {item['skuId']}"
+            )
+            assert len(item["skuId"]) >= 5, (
+                f"skuId too short: {item['skuId']}"
+            )
+
+    def test_parse_excludes_openbox_urls(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        html_with_openbox = (
+            BESTBUY_FIXTURE_HTML.read_text(encoding="utf-8")
+            + '\n{"skuId":"99999999"},"pdpUrl":"https://www.bestbuy.com/product/openbox/99999999"'
+        )
+        result = _parse_apollo_search_page(html_with_openbox)
+        for item in result:
+            if item["skuId"] == "99999999":
+                assert "openbox" not in item.get("pdpUrl", ""), (
+                    "openbox URL should be excluded"
+                )
+
+    def test_parse_empty_html_returns_empty(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            _parse_apollo_search_page,
+        )
+
+        result = _parse_apollo_search_page("<html></html>")
+        assert result == []
+
+
+# ====================================================================
+# Amazon search page parser tests (fixture-based, no network)
+# ====================================================================
+
+AMAZON_FIXTURE_HTML = (
+    Path(__file__).resolve().parent
+    / "fixtures" / "amazon_search_page.html"
+)
+
+
+class TestAmazonSearchPageParser:
+    """Deterministic parser tests using saved Amazon search page HTML."""
+
+    def test_parse_extracts_product_cards(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        assert len(result) == 2, f"Expected 2 products, got {len(result)}"
+
+    def test_parse_extracts_asin(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        asins = {p["asin"] for p in result}
+        assert "B0TEST0001" in asins
+        assert "B0TEST0002" in asins
+
+    def test_parse_extracts_title(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        titles = [p["title"] for p in result]
+        assert any("ASUS" in t for t in titles)
+        assert any("Headphones" in t for t in titles)
+
+    def test_parse_extracts_prices(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        for p in result:
+            assert p["current_price"] > 0, (
+                f"current_price must be > 0 for {p['asin']}"
+            )
+
+    def test_parse_detects_on_sale(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        for p in result:
+            assert p["on_sale"] is True, (
+                f"Fixture products should be on_sale (list > current), "
+                f"got on_sale={p['on_sale']} for {p['asin']}"
+            )
+
+    def test_parse_extracts_specs(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        # First product has detailed specs.
+        asus = [p for p in result if p["asin"] == "B0TEST0001"][0]
+        assert len(asus["specs"]) >= 30, (
+            f"ASUS product should have detailed specs, got {len(asus['specs'])} chars"
+        )
+        # Second product has thin specs (< 50 chars).
+        sa = [p for p in result if p["asin"] == "B0TEST0002"][0]
+        assert len(sa["specs"]) < 50, (
+            f"SimpleAudio product should have thin specs, got {len(sa['specs'])} chars"
+        )
+
+    def test_parse_extracts_brand_from_specs(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        html = AMAZON_FIXTURE_HTML.read_text(encoding="utf-8")
+        result = _parse_amazon_search_page(html)
+        asus = [p for p in result if p["asin"] == "B0TEST0001"][0]
+        assert asus["brand"] == "ASUS"
+
+    def test_parse_empty_html_returns_empty(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            _parse_amazon_search_page,
+        )
+
+        result = _parse_amazon_search_page("<html></html>")
+        assert result == []
+
+
+# ====================================================================
+# _parse_price unit tests
+# ====================================================================
+
+
+class TestAmazonParsePrice:
+    """Unit tests for Amazon price string parser."""
+
+    def test_standard_price(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("$1,099.99") == 1099.99
+
+    def test_whole_dollar(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("$499") == 499.0
+
+    def test_cents_only(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("$0.99") == 0.99
+
+    def test_empty_string(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("") == 0.0
+
+    def test_none_is_zero(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("") == 0.0  # _parse_price receives str, not None
+
+    def test_invalid_string(self) -> None:
+        from backend.tools.deal_search.amazon_search import _parse_price
+
+        assert _parse_price("not a price") == 0.0
+```
+
+- [ ] **Step 2: Run parser tests**
+
+```bash
+cd shopping_assistant_v3 && uv run pytest tests/test_tools.py -v -k "BestBuyApollo or AmazonSearchPage or AmazonParsePrice"
+```
+
+Expected: 4 + 8 + 6 = 18 passed (or similar count).
+
+- [ ] **Step 3: Verify all existing mock tests still pass**
+
+```bash
+cd shopping_assistant_v3 && uv run pytest tests/test_tools.py -v
+```
+
+Expected: all existing 31 + ~18 new parser tests passed. No regressions.
+
+---
+
+### Task 8: Update real-mode flag tests
+
+**Files:**
+- Modify: `shopping_assistant_v3/tests/test_tools.py` (edit `TestRealModeFlags` class)
+
+**Change:** `test_real_search_raises_not_implemented` -> test that patches `real_search.real_deal_search` directly (since `tool.py` now has module-level import). The `ENABLE_REAL_MODEL_CALLS` test for price estimator remains unchanged (still Phase 4A).
+
+- [ ] **Step 1: Replace TestRealModeFlags**
+
+```python
+class TestRealModeFlags:
+    def test_real_search_dispatches_to_real_path(
+        self, monkeypatch
+    ) -> None:
+        """Phase 4B: ENABLE_REAL_SEARCH=true calls real_deal_search."""
+        from backend.tools.deal_search import real_search
+
+        called_with = []
+
+        def fake_real_search(inp):
+            called_with.append(inp)
+            return DealSearchOutput(products=[], warnings=["ok"])
+
+        monkeypatch.setattr(real_search, "real_deal_search", fake_real_search)
+        monkeypatch.setattr(
+            "backend.tools.deal_search.tool.ENABLE_REAL_SEARCH", True
+        )
+        result = deal_search(DealSearchInput(query_en="laptop"))
+        assert len(called_with) == 1
+        assert called_with[0].query_en == "laptop"
+        assert result.warnings == ["ok"]
+
+    def test_real_model_calls_still_not_implemented(
+        self, monkeypatch
+    ) -> None:
+        """Phase 4B does NOT implement real pricing — still NotImplementedError."""
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.tool.ENABLE_REAL_MODEL_CALLS",
+            True,
+        )
+        p = _make_product()
+        with pytest.raises(NotImplementedError, match="Phase 4A"):
+            estimate_price(PriceEstimateInput(product=p))
+```
+
+- [ ] **Step 2: Run real-mode flag tests**
+
+```bash
+cd shopping_assistant_v3 && uv run pytest tests/test_tools.py::TestRealModeFlags -v
+```
+
+Expected: 2 passed.
+
+---
+
+### Task 9: Add opt-in real search integration tests
+
+**Files:**
+- Create: `shopping_assistant_v3/tests/test_real_search.py`
+
+**Interface:** All tests skipped by default. Run manually with `ENABLE_REAL_SEARCH=true`.
+
+**Key improvements over previous version:**
+- No `assert len(output.products) >= 0` (meaningless)
+- Validate warning prefixes match grammar
+- Assert product fields when products are returned
+- Assert sanitization (no stack traces, HTML, cookies, secrets)
+
+- [ ] **Step 1: Write test_real_search.py**
+
+```python
+"""Opt-in real search integration tests.
+
+ALL tests are skipped by default. They require:
+- ENABLE_REAL_SEARCH=true
+- curl_cffi installed
+- Live network access to Amazon.com and BestBuy.com
+
+Run manually with:
+  ENABLE_REAL_SEARCH=true uv run pytest tests/test_real_search.py -v
+"""
+
+from __future__ import annotations
+
+import os
+
+import pytest
+
+from backend.tools.deal_search.schemas import DealSearchInput
+
+REAL_SEARCH_ENABLED = (
+    os.getenv("ENABLE_REAL_SEARCH", "false").strip().lower()
+    in ("1", "true", "yes", "on")
+)
+
+pytestmark = pytest.mark.skipif(
+    not REAL_SEARCH_ENABLED,
+    reason="ENABLE_REAL_SEARCH is not true. Set ENABLE_REAL_SEARCH=true to run.",
+)
+
+# Allowed warning prefixes per bounded grammar.
+_ALLOWED_WARNING_PREFIXES = (
+    "bestbuy_search_failed:",
+    "amazon_search_failed:",
+    "bestbuy_no_results",
+    "amazon_no_results",
+    "bestbuy_no_sale_products",
+    "amazon_no_sale_products",
+    "amazon_features_limited:",
+    "partial_results:",
+    "no_products_found:",
+)
+
+# Banned substrings in warnings (safety check).
+_BANNED_IN_WARNINGS = (
+    "Traceback", "<html", "cookie", "Bearer ", "sk-",
+)
+
+
+def _validate_warnings(warnings: list[str]) -> None:
+    """Assert all warnings use bounded grammar and contain no raw data."""
+    for w in warnings:
+        assert len(w) < 500, f"Warning too long ({len(w)} chars): {w[:100]}..."
+        for banned in _BANNED_IN_WARNINGS:
+            assert banned not in w, (
+                f"Warning contains banned substring '{banned}': {w[:100]}..."
+            )
+        assert any(
+            w.startswith(prefix) for prefix in _ALLOWED_WARNING_PREFIXES
+        ), f"Warning does not match allowed grammar: {w[:100]}..."
+
+
+def _validate_products(products) -> None:
+    """Assert all products have required fields with valid values."""
+    for p in products:
+        assert p.source in ("Amazon", "BestBuy"), f"Bad source: {p.source}"
+        assert p.title and len(p.title) > 0, "Missing title"
+        assert p.sale_price_usd is not None and p.sale_price_usd > 0, (
+            f"Bad sale_price_usd: {p.sale_price_usd}"
+        )
+        assert p.url and len(p.url) > 0, "Missing url"
+        if p.source == "BestBuy":
+            assert "bestbuy.com" in p.url
+        elif p.source == "Amazon":
+            assert "amazon.com" in p.url
+
+
+class TestBestBuyRealSearch:
+    """Live BestBuy search — requires network."""
+
+    def test_search_returns_products_or_sanitized_warnings(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            search_bestbuy_real,
+        )
+
+        products, warnings = search_bestbuy_real(
+            query="laptop", max_results=3
+        )
+        _validate_warnings(warnings)
+        if products:
+            _validate_products(products)
+
+    def test_no_results_for_nonsense_query(self) -> None:
+        from backend.tools.deal_search.bestbuy_search import (
+            search_bestbuy_real,
+        )
+
+        products, warnings = search_bestbuy_real(
+            query="xyznonexistentproduct12345zzz", max_results=3
+        )
+        _validate_warnings(warnings)
+        assert len(products) == 0
+        # Must have at least one grammar-compliant warning.
+        assert any(
+            w.startswith("bestbuy_no") for w in warnings
+        ), f"Expected bestbuy_no_* warning, got: {warnings}"
+
+
+class TestAmazonRealSearch:
+    """Live Amazon search — requires network."""
+
+    def test_search_returns_products_or_sanitized_warnings(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            search_amazon_real,
+        )
+
+        products, warnings = search_amazon_real(
+            query="laptop", max_results=3
+        )
+        _validate_warnings(warnings)
+        if products:
+            _validate_products(products)
+
+    def test_no_results_for_nonsense_query(self) -> None:
+        from backend.tools.deal_search.amazon_search import (
+            search_amazon_real,
+        )
+
+        products, warnings = search_amazon_real(
+            query="xyznonexistentproduct12345zzz", max_results=3
+        )
+        _validate_warnings(warnings)
+        assert len(products) == 0
+        assert any(
+            w.startswith("amazon_no") for w in warnings
+        ), f"Expected amazon_no_* warning, got: {warnings}"
+
+
+class TestRealSearchOrchestrator:
+    """End-to-end real search dispatch — requires network."""
+
+    def test_all_source_returns_results_or_clean_warnings(self) -> None:
+        from backend.tools.deal_search.real_search import real_deal_search
+
+        output = real_deal_search(
+            DealSearchInput(
+                query_en="laptop", source="All", max_results_per_source=2
+            )
+        )
+        _validate_warnings(output.warnings)
+        if output.products:
+            _validate_products(output.products)
+            sources = {p.source for p in output.products}
+            # With source="All", both sources should appear if they return data.
+            assert len(sources) >= 1
+
+    def test_source_filter_returns_only_requested_source(self) -> None:
+        from backend.tools.deal_search.real_search import real_deal_search
+
+        output = real_deal_search(
+            DealSearchInput(
+                query_en="headphones", source="Amazon",
+                max_results_per_source=2,
+            )
+        )
+        _validate_warnings(output.warnings)
+        if output.products:
+            for p in output.products:
+                assert p.source == "Amazon"
+            # No bestbuy_skipped warnings for normal source filter.
+            assert not any(
+                "bestbuy" in w for w in output.warnings
+            ), f"Source filter should not produce bestbuy warnings: {output.warnings}"
+
+    def test_nonsense_query_returns_no_products_found(self) -> None:
+        from backend.tools.deal_search.real_search import real_deal_search
+
+        output = real_deal_search(
+            DealSearchInput(
+                query_en="xyznonexistent987654321zzz", source="All",
+                max_results_per_source=2,
+            )
+        )
+        _validate_warnings(output.warnings)
+        assert len(output.products) == 0
+        assert any(
+            w.startswith("no_products_found:") for w in output.warnings
+        ), f"Expected no_products_found warning, got: {output.warnings}"
+
+    def test_all_warnings_are_sanitized(self) -> None:
+        from backend.tools.deal_search.real_search import real_deal_search
+
+        output = real_deal_search(
+            DealSearchInput(
+                query_en="laptop", source="All", max_results_per_source=2,
+            )
+        )
+        _validate_warnings(output.warnings)
+```
+
+- [ ] **Step 2: Verify tests are skipped by default**
+
+```bash
+cd shopping_assistant_v3 && uv run pytest tests/test_real_search.py -v
+```
+
+Expected: all tests `SKIPPED`.
+
+---
+
+### Task 10: Run full test suite, verify no regressions, update CodeGraph
+
+- [ ] **Step 1: Run all default tests**
+
+```bash
+cd shopping_assistant_v3 && uv run pytest tests/ -v
+```
+
+Expected: all mock + parser tests pass, real search tests skipped. Total ~80 + 18 = ~98 tests. Count may vary slightly. No regressions.
+
+- [ ] **Step 2: Verify mock path unchanged**
+
+```bash
+cd shopping_assistant_v3 && uv run pytest tests/test_tools.py -v -k "not (BestBuyApollo or AmazonSearchPage or AmazonParsePrice or RealModeFlags)"
+```
+
+Expected: all 29 core Phase 4A tests still pass unchanged.
+
+- [ ] **Step 3: Verify no segment4 runtime imports**
+
+```bash
+rg -n "from segment4\|import segment4" shopping_assistant_v3/backend/ shopping_assistant_v3/tests/
+```
+
+Expected: no matches (empty output).
+
+- [ ] **Step 4: Verify segment4 untouched**
+
+```bash
+git diff --name-only segment4/
+```
+
+Expected: no output.
+
+- [ ] **Step 5: CodeGraph sync and status after changes**
+
+```bash
+codegraph status shopping_assistant_v3
+```
+
+If status shows stale, run:
+```bash
+codegraph sync shopping_assistant_v3
+```
+
+Then:
+```bash
+codegraph status shopping_assistant_v3
+```
+
+Expected: up to date with new files counted. Record new file/node count for report.
+
+- [ ] **Step 6: Final git status summary**
+
+```bash
+git status --short
+```
+
+Expected: only Phase 4B files + pre-existing untracked v2 files.
+
+---
+
+### Task 11: Write implementation report
+
+**Files:**
+- Create: `shopping_assistant_v3/reports/phase_4b_real_search_report.md`
+
+Use `TEMPLATE_IMPLEMENTATION_REPORT.md`. Include:
+
+1. **Phase:** Phase 4B Real Amazon/BestBuy Search Extraction
+2. **Scope:** Copy + Adapt real search from segment4, opt-in behind ENABLE_REAL_SEARCH=true
+3. **Files created:** 7 (bestbuy_search.py, amazon_search.py, real_search.py, test_real_search.py, 2 HTML fixtures, fixtures/__init__.py)
+4. **Files modified:** 4 (tool.py, pyproject.toml, uv.lock, test_tools.py)
+5. **Adapted functions table:**
+
+| segment4 | V3 | Notes |
+|---|---|---|
+| `_init_session()` | `_create_session()` in bestbuy_search | Same logic |
+| `search_bestbuy()` | `_parse_apollo_search_page()` | Extracted as testable parser |
+| `get_price_blocks()` | `_fetch_price_blocks()` | Same logic |
+| `get_product_details()` | `_fetch_product_details()` | Same logic |
+| `search_filter_scrape_bestbuy()` | `search_bestbuy_real()` | Returns ProductCandidate directly |
+| `init_amazon_session()` | `_create_session()` in amazon_search | Same logic |
+| `parse_search_results()` | `_parse_amazon_search_page()` | Same logic |
+| `_parse_price()` | `_parse_price()` | Identical |
+| `scrape_product_page()` | DEFERRED | Comment boundary only |
+| `search_filter_scrape_amazon()` | `search_amazon_real()` | Approach A only |
+
+6. **CodeGraph evidence:** Queries run, output summaries
+7. **Commands run:** All pytest, codegraph, rg, git commands with pass/fail
+8. **Tests run:** Count pass + skip, table format
+9. **Verification evidence:** Mock path unchanged, no segment4 imports, sanitized warnings, parser tests use fixtures
+10. **Known issues:** Per-request timeout (not source-level deadline), Amazon Approach B deferred
+11. **Deviations from guide:**
+    - Sequential execution (not parallel) — intentional simplification
+    - Amazon product page fallback deferred — reduces live scraping risk
+    - `max_results_per_source` default 5 (Phase 4A contract change, documented)
+12. **Self-check:** security, data safety, reliability, performance, tests
+13. **Dependency commands:** `uv lock` and `uv sync` commands run, network approval noted
+
+---
+
+## Task Dependency Graph
+
+```
+Task 0 (CodeGraph) ── (parallel, informational only)
+Task 1 (deps) ──┬── Task 3 (bestbuy_search.py) ────┐
+                │                                   ├── Task 5 (real_search.py) ── Task 6 (tool.py)
+                ├── Task 4 (amazon_search.py) ──────┘         │
+                │                                              └── Task 8 (flag tests)
+                └── Task 2 (fixtures) ── Task 7 (parser tests)
+
+Task 9 (opt-in tests) ← depends on Tasks 3, 4, 5
+Task 10 (full suite + CodeGraph) ← depends on all Tasks 1-9
+Task 11 (report) ← depends on Task 10
+```
+
+Tasks 0, 1, 2, 3, 4 can run in parallel.

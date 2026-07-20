@@ -1,7 +1,8 @@
-"""deal_search_tool — mock implementation using JSON fixtures.
+"""deal_search_tool — mock + real search implementations.
 
-Phase 4A: always returns fixture data. Real search (Phase 4B) gated behind
-ENABLE_REAL_SEARCH, which raises NotImplementedError in this phase.
+Phase 4A mock path (default): JSON fixture keyword matching.
+Phase 4B real path (opt-in): ENABLE_REAL_SEARCH=true dispatches to
+BestBuy and Amazon curl_cffi search modules.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ import json
 from pathlib import Path
 
 from backend.shared.config import ENABLE_REAL_SEARCH
+from backend.tools.deal_search import real_search
 from backend.tools.deal_search.schemas import DealSearchInput, DealSearchOutput, ProductCandidate
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "mock_products.json"
@@ -38,22 +40,22 @@ def _keyword_match(product: ProductCandidate, query: str) -> bool:
 
 
 def deal_search(input: DealSearchInput) -> DealSearchOutput:
-    """Run a mock product search using local JSON fixtures.
+    """Run a product search — mock (default) or real (opt-in).
+
+    When ENABLE_REAL_SEARCH=false (default): keyword match against
+    local JSON fixture products (Phase 4A mock path).
+
+    When ENABLE_REAL_SEARCH=true: dispatch to BestBuy and Amazon
+    real search via curl_cffi (Phase 4B real path).
 
     Args:
         input: DealSearchInput with query_en, source filter, and result limit.
 
     Returns:
-        DealSearchOutput with matching products and any warnings.
-
-    Raises:
-        NotImplementedError: If ENABLE_REAL_SEARCH is True (Phase 4A mock-only).
+        DealSearchOutput with matching products and any sanitized warnings.
     """
     if ENABLE_REAL_SEARCH:
-        raise NotImplementedError(
-            "Real search is not available in Phase 4A mock-only mode. "
-            "Set ENABLE_REAL_SEARCH=false or wait for Phase 4B."
-        )
+        return real_search.real_deal_search(input)
 
     all_products = _load_products()
     warnings: list[str] = []

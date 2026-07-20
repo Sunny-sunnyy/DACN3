@@ -1,0 +1,1 @@
+"""Test fixtures — saved HTML snippets for deterministic parser tests."""
