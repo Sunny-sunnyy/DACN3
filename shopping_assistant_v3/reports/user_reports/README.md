@@ -84,4 +84,6 @@ Phase 5B: Optional OpenAI Agents SDK Router/Synthesizer Providers
 Phase này sẽ thêm optional model-backed Router/Synthesizer providers bằng
 OpenAI Agents SDK, nhưng deterministic Phase 5A vẫn là default/fallback. Không
 nên bắt đầu nếu chưa chốt scope, cost, tracing, dependency, secret handling,
-và verification plan.
+verification plan, và cách xử lý test harness cho `tests/test_api.py` sau khi
+Codex sandbox gặp timeout với `TestClient`/AnyIO threadpool nhưng local
+unsandboxed tests vẫn pass.

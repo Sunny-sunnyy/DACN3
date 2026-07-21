@@ -67,7 +67,9 @@ Phase 5B requires separate brainstorming and explicit user approval before any
 SDK implementation. Approved direction is hybrid controlled OpenAI Agents SDK
 as an optional model-backed layer; deterministic Phase 5A must remain default
 and default verification must remain mock-only unless the user opts into real
-model tests.
+model tests. Phase 5B must also include a test harness preflight for the known
+Codex sandbox `TestClient`/AnyIO threadpool timeout and the Starlette/httpx
+deprecation warning before changing dependencies or SDK test strategy.
 
 ## Open Blockers
 

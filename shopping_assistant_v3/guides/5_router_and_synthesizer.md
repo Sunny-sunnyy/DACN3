@@ -214,6 +214,35 @@ OpenAI Agents SDK dependency must be optional until user explicitly approves
 install/runtime model calls. Default import path should not require the package
 unless the SDK feature flag is enabled or SDK-specific tests are running.
 
+### Phase 5B Test Harness Preflight
+
+Before implementing optional SDK providers in Phase 5B, explicitly handle the
+API test harness issue observed during Codex review:
+
+```text
+In the Codex sandbox, tests/test_api.py timed out because FastAPI/Starlette
+sync endpoints use AnyIO threadpool execution, and anyio.to_thread.run_sync()
+also timed out in that sandbox. The same API tests passed outside the sandbox:
+22 passed for tests/test_api.py and 230 passed, 18 skipped for the full default
+suite.
+```
+
+This is not a Phase 5A runtime blocker, but Phase 5B must not ignore it because
+SDK integration will add more async/model-provider surface area.
+
+Phase 5B preflight requirements:
+
+- Reproduce `anyio.to_thread.run_sync()` and `fastapi.testclient.TestClient`
+  behavior in the target environment before adding SDK code.
+- Keep default API tests mock-only and free of OpenAI/Modal/live scraping.
+- Decide whether to keep `TestClient`, add the Starlette-recommended `httpx2`
+  dev dependency, or move API tests to an async `httpx.AsyncClient` /
+  `ASGITransport` harness.
+- Do not change API test harness dependencies without explicit user approval,
+  because dependency changes affect `pyproject.toml` and `uv.lock`.
+- Document verification evidence in the Phase 5B report, including whether
+  tests were run inside Codex sandbox, outside sandbox, or both.
+
 ## Workflow Gate
 
 Trước khi code:
@@ -225,6 +254,9 @@ Trước khi code:
   trong scope.
 - Nếu dùng Agents SDK, xác nhận feature flags, optional dependency strategy,
   tracing policy, và no-sensitive-data policy.
+- Xác nhận Phase 5B test harness strategy cho `tests/test_api.py`,
+  `TestClient`/AnyIO threadpool behavior, và Starlette/httpx warning trước khi
+  thêm SDK dependency hoặc SDK tests.
 - Trình bày Phase 5 plan.
 - Chờ explicit approval.
 
@@ -240,11 +272,13 @@ Trước khi code:
 8. Integrate Router -> tools -> Synthesizer vào worker path.
 9. Thêm validation để product cards, progress steps, và final text được backed
    by evidence.
-10. Thêm optional OpenAI Agents SDK provider wrapper chỉ nếu user approve
+10. Phase 5B preflight: xác minh API test harness, AnyIO threadpool behavior,
+    và Starlette/httpx warning trong môi trường sẽ dùng để verify.
+11. Thêm optional OpenAI Agents SDK provider wrapper chỉ nếu user approve
     hybrid SDK scope.
-11. Với SDK path, cấu hình safe `RunConfig`, disabled sensitive trace payloads,
+12. Với SDK path, cấu hình safe `RunConfig`, disabled sensitive trace payloads,
     bounded tool/model errors, và `agent_runs` audit rows.
-12. Viết Phase 5 report.
+13. Viết Phase 5 report.
 
 ## Verification
 
@@ -263,6 +297,9 @@ Default required tests:
   optional.
 - Agents SDK tests dùng fake/stub runner hoặc bị skip mặc định nếu cần package
   thật.
+- Phase 5B report phải ghi rõ kết quả API test harness preflight:
+  `anyio.to_thread.run_sync()`, minimal `TestClient.get()`, `tests/test_api.py`,
+  và full default suite trong môi trường verify được approve.
 
 Example:
 
@@ -292,6 +329,8 @@ Bao gồm:
 - Router strategy: deterministic, model-backed, hoặc cả hai.
 - Synthesizer strategy.
 - Agents SDK usage nếu có: flags, models, tracing policy, và fallback behavior.
+- API test harness decision: giữ `TestClient`, thêm `httpx2`, hoặc chuyển sang
+  async ASGI tests; kèm verification evidence và lý do.
 - model calls đã thực hiện, nếu có.
 - validation evidence.
 - unsupported intent behavior.
@@ -309,3 +348,6 @@ Bao gồm:
   progress và khó review; Phase 5 giữ worker-owned tool order.
 - Vietnamese answer quality nên cải thiện về sau, nhưng correctness từ evidence
   quan trọng hơn style trong MVP.
+- Codex sandbox hiện có thể timeout với AnyIO threadpool/TestClient trong khi
+  local unsandboxed tests pass. Phase 5B phải document hoặc xử lý test harness
+  trước khi thêm SDK surface area.

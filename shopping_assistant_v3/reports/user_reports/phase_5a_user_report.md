@@ -172,6 +172,12 @@ ENABLE_REAL_MODEL_CALLS=true
 ENABLE_AGENTS_SDK=true
 ```
 
+Phase 5B cũng nên xử lý hoặc document test harness issue đã thấy khi review:
+trong Codex sandbox, `tests/test_api.py` timeout vì `TestClient` dùng AnyIO
+threadpool cho sync endpoints; ngoài sandbox, `tests/test_api.py` và full suite
+đều pass. Đây không phải blocker của Phase 5A, nhưng là preflight cần chốt
+trước khi thêm SDK dependency hoặc SDK tests.
+
 ## 10. Tóm Tắt Ngắn
 
 Phase 5A biến backend từ tool pipeline có placeholder answer thành assistant
