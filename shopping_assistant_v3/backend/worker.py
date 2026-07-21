@@ -6,6 +6,9 @@ It runs in the same process, no separate worker or queue.
 Lifecycle: pending -> running -> completed (or failed).
 Idempotent: completed jobs return existing result; running/failed jobs are skipped.
 All persistence goes through repository helpers. Structured JSON logs include job_id.
+
+Phase 5A: deterministic Router + Synthesizer integrated into the pipeline.
+Phase 4A _normalize_query() and PLACEHOLDER_ANSWER_VI have been removed.
 """
 
 from __future__ import annotations
@@ -28,6 +31,7 @@ from backend.database.repository import (
     update_job_status,
 )
 from backend.database.session import get_session_factory
+from backend.shared.progress import build_progress_steps
 from backend.tools.deal_search.schemas import DealSearchInput, DealSearchOutput
 from backend.tools.price_estimator.schemas import PriceEstimateInput, PriceEstimateOutput
 
@@ -35,32 +39,6 @@ logger = logging.getLogger("shopping_assistant_v3.worker")
 
 DealSearchRunner = Callable[[DealSearchInput], DealSearchOutput]
 PriceEstimatorRunner = Callable[[PriceEstimateInput], PriceEstimateOutput]
-
-PLACEHOLDER_ANSWER_VI = (
-    "Minh da tim thay mot so san pham phu hop. Duoi day la ket qua phan tich deal."
-)
-
-VIETNAMESE_STOP_WORDS = {
-    "tìm", "tim", "mua", "cho", "giúp", "giup", "mình", "minh",
-    "tôi", "toi", "với", "voi", "cần", "can", "muốn", "muon",
-    "một", "mot", "cái", "cai", "nào", "nao", "giá", "gia",
-    "dưới", "duoi", "trên", "tren", "khoảng", "khoang",
-}
-
-
-# ---------------------------------------------------------------------------
-# Query normalization (Phase 4A bridge — Router replaces this in Phase 5)
-# ---------------------------------------------------------------------------
-
-def _normalize_query(message: str) -> str:
-    """Normalize a Vietnamese user message into English-like search tokens.
-
-    Phase 4A temporary bridge: lowercase + strip Vietnamese intent/filler words.
-    Phase 5 Router will replace this with actual translation/intent extraction.
-    """
-    tokens = message.strip().lower().split()
-    meaningful = [t for t in tokens if t not in VIETNAMESE_STOP_WORDS]
-    return " ".join(meaningful)
 
 
 # ---------------------------------------------------------------------------
@@ -204,13 +182,12 @@ def process_job(
         message = request.get("message", "")
         source = request.get("source", "All")
         max_results = request.get("max_results_per_source", 5)
-        query_en = _normalize_query(message)
 
         # --- Start job ---
         update_job_status(session, job, "running", started_at=started_at)
         _log_event("JOB_STARTED", job_id)
 
-        # Create worker-level audit record (preserved from Phase 3).
+        # Create worker-level audit record.
         worker_run = create_agent_run(
             session,
             job_id=job_id,
@@ -219,23 +196,143 @@ def process_job(
             status="started",
         )
 
-        # --- Phase 4A pipeline ---
+        # --- Phase 5A pipeline ---
 
-        # Step 1: Deal search.
+        # Step 1: Router — classify intent.
+        from backend.router.deterministic import deterministic_route
+
+        route_output = deterministic_route(message)
+        _log_event(
+            "ROUTER_COMPLETED",
+            job_id,
+            intent=route_output.intent.value,
+            query_en=route_output.query_en,
+            confidence=route_output.confidence,
+        )
+        router_audit = create_agent_run(
+            session,
+            job_id=job_id,
+            component="router",
+            run_type="router",
+            status="started",
+            input_summary=f"message_vi={message[:200]}",
+        )
+        update_agent_run(
+            session,
+            router_audit,
+            status="completed",
+            ended_at=datetime.datetime.now(datetime.timezone.utc),
+            output_summary=(
+                f"intent={route_output.intent.value}, "
+                f"query_en={route_output.query_en[:100]}, "
+                f"confidence={route_output.confidence}"
+            ),
+        )
+        # Track router completion so _save_pipeline_failure can recreate it
+        # when a later tool fails and the main session is rolled back.
+        _tool_timings.append({
+            "component": "router",
+            "run_type": "router",
+            "input_summary": f"message_vi={message[:200]}",
+            "t0": time.monotonic(),
+        })
+        _tool_timings[-1]["status"] = "completed"
+        _tool_timings[-1]["output_summary"] = (
+            f"intent={route_output.intent.value}, "
+            f"query_en={route_output.query_en[:100]}"
+        )
+
+        if not route_output.needs_tool or route_output.intent.value == "unsupported":
+            # --- Unsupported path ---
+            from backend.synthesizer.deterministic import deterministic_synthesize
+            from backend.synthesizer.schemas import SynthesizerInput
+
+            synth_input = SynthesizerInput(
+                message_vi=message,
+                intent=route_output.intent.value,
+                products=[],
+                price_estimates=[],
+                warnings=[],
+            )
+            synth_output = deterministic_synthesize(synth_input)
+
+            # Synthesizer audit
+            synth_audit = create_agent_run(
+                session,
+                job_id=job_id,
+                component="synthesizer",
+                run_type="synthesizer",
+                status="started",
+                input_summary=(
+                    f"intent={route_output.intent.value}, "
+                    f"products=0, warnings=0"
+                ),
+            )
+            update_agent_run(
+                session,
+                synth_audit,
+                status="completed",
+                ended_at=datetime.datetime.now(datetime.timezone.utc),
+                output_summary=f"answer_vi={synth_output.answer_vi[:200]}",
+            )
+
+            progress_steps = build_progress_steps(
+                route_completed=True,
+                search_skipped=True,
+                pricing_skipped=True,
+                synth_completed=True,
+                route_detail=(
+                    f"Da xac dinh yeu cau: {route_output.intent.value}."
+                    if route_output.intent.value != "unsupported"
+                    else "Yeu cau chua duoc ho tro. Vui long thu tim san pham cu the."
+                ),
+                synth_detail="Da tao cau tra loi cho ban.",
+            )
+
+            result = {
+                "answer_vi": synth_output.answer_vi,
+                "products": [],
+                "warnings": [],
+                "summary_cards": [],
+                "progress_steps": [s.model_dump() for s in progress_steps],
+            }
+            update_job_result(session, job, result)
+
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            update_agent_run(
+                session,
+                worker_run,
+                status="completed",
+                ended_at=datetime.datetime.now(datetime.timezone.utc),
+                duration_ms=duration_ms,
+                output_summary="unsupported intent — safe fallback",
+            )
+
+            _log_event("JOB_COMPLETED", job_id, duration_ms=duration_ms, product_count=0)
+            session.commit()
+            return
+
+        # --- Supported path (search_deals) ---
+
+        query_en = route_output.query_en or message
+        source = route_output.source if route_output.source != "All" else source
+        max_results = route_output.max_results_per_source
+
+        # Step 2: Deal search.
         _tool_timings.append({
             "component": "deal_search_tool",
+            "run_type": "tool",
             "input_summary": f"query_en={query_en}, source={source}",
             "t0": time.monotonic(),
         })
         search_output = _run_deal_search(
             session, job_id, query_en, source, max_results, deal_search_runner
         )
-        # Success: create completed audit row in main session.
         _finalize_tool_run(
             session, job_id, _tool_timings[-1], search_output
         )
 
-        # Step 2: Persist products.
+        # Step 3: Persist products.
         all_warnings: list[str] = list(search_output.warnings)
         db_products: list[Any] = []
         for sp in search_output.products:
@@ -252,11 +349,13 @@ def process_job(
             )
             db_products.append(p)
 
-        # Step 3: Estimate prices per product.
+        # Step 4: Estimate prices per product.
         result_products: list[dict[str, Any]] = []
+        price_estimates: list[PriceEstimateOutput] = []
         for db_p in db_products:
             _tool_timings.append({
                 "component": "price_estimator_tool",
+                "run_type": "tool",
                 "input_summary": f"product={db_p.title[:80]}, source={db_p.source}",
                 "t0": time.monotonic(),
             })
@@ -277,6 +376,7 @@ def process_job(
                 warnings=est_output.warnings,
             )
             all_warnings.extend(est_output.warnings)
+            price_estimates.append(est_output)
             result_products.append(
                 {
                     "source": db_p.source,
@@ -290,11 +390,80 @@ def process_job(
                 }
             )
 
-        # Step 4: Build result payload.
+        # Step 5: Synthesizer — Vietnamese answer from evidence.
+        from backend.synthesizer.deterministic import deterministic_synthesize
+        from backend.synthesizer.schemas import SynthesizerInput
+        from backend.tools.deal_search.schemas import ProductCandidate as PC
+
+        synth_products = [
+            PC(
+                source=db_p.source,
+                title=db_p.title,
+                brand=db_p.brand,
+                sale_price_usd=db_p.sale_price_usd,
+                url=db_p.url,
+                features=db_p.features,
+            )
+            for db_p in db_products
+        ]
+        synth_input = SynthesizerInput(
+            message_vi=message,
+            intent=route_output.intent.value,
+            products=synth_products,
+            price_estimates=price_estimates,
+            warnings=all_warnings,
+        )
+        synth_output = deterministic_synthesize(synth_input)
+
+        synth_audit = create_agent_run(
+            session,
+            job_id=job_id,
+            component="synthesizer",
+            run_type="synthesizer",
+            status="started",
+            input_summary=(
+                f"intent={route_output.intent.value}, "
+                f"products={len(synth_products)}, "
+                f"warnings={len(all_warnings)}"
+            ),
+        )
+        update_agent_run(
+            session,
+            synth_audit,
+            status="completed",
+            ended_at=datetime.datetime.now(datetime.timezone.utc),
+            output_summary=f"answer_vi={synth_output.answer_vi[:200]}",
+        )
+
+        # Step 6: Build progress_steps.
+        search_detail = (
+            f"Da tim thay {len(search_output.products)} san pham phu hop."
+            if search_output.products
+            else "Khong tim thay san pham nao."
+        )
+        pricing_detail = (
+            f"Da uoc tinh gia tri cho {len(price_estimates)} san pham."
+            if price_estimates
+            else "Khong co san pham de uoc tinh gia."
+        )
+        progress_steps = build_progress_steps(
+            route_completed=True,
+            search_completed=True,
+            pricing_completed=bool(price_estimates),
+            synth_completed=True,
+            route_detail=f"Da xac dinh yeu cau: tim san pham.",
+            search_detail=search_detail,
+            pricing_detail=pricing_detail,
+            synth_detail="Da tong hop ket qua cho ban.",
+        )
+
+        # Step 7: Build result payload.
         result = {
-            "answer_vi": PLACEHOLDER_ANSWER_VI,
+            "answer_vi": synth_output.answer_vi,
             "products": result_products,
             "warnings": all_warnings,
+            "summary_cards": [c.model_dump() for c in synth_output.summary_cards],
+            "progress_steps": [s.model_dump() for s in progress_steps],
         }
         update_job_result(session, job, result)
 
@@ -414,13 +583,16 @@ def _save_pipeline_failure(
         update_job_error(session, job, error_message)
         now = datetime.datetime.now(datetime.timezone.utc)
 
-        # Recreate tool runs with their true status.
-        # Tools that completed before the failure are recreated as
-        # completed; the active failing tool is recreated as failed.
+        # Recreate component runs with their true status.
+        # Components that completed before the failure are recreated as
+        # completed; the active failing component is recreated as failed.
+        # Phase 5A: router entries use run_type from timing dict, not
+        # hardcoded "tool".
         for timing in tool_timings:
             t0_val = float(timing["t0"])  # type: ignore[arg-type]
             duration_ms = int((time.monotonic() - t0_val) * 1000)
             component = str(timing["component"])
+            run_type = str(timing.get("run_type", "tool"))
             input_summary = str(timing.get("input_summary", ""))
             was_completed = timing.get("status") == "completed"
 
@@ -429,7 +601,7 @@ def _save_pipeline_failure(
                     session,
                     job_id=job_id,
                     component=component,
-                    run_type="tool",
+                    run_type=run_type,
                     status="completed",
                     input_summary=input_summary[:500],
                 )
@@ -446,7 +618,7 @@ def _save_pipeline_failure(
                     session,
                     job_id=job_id,
                     component=component,
-                    run_type="tool",
+                    run_type=run_type,
                     status="failed",
                     input_summary=input_summary[:500],
                 )

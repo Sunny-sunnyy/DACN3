@@ -15,16 +15,16 @@ này là bản dễ đọc hơn, giúp bạn nắm dự án mà không cần đ�
 Shopping Assistant V3 hiện đã hoàn thành tới:
 
 ```text
-Phase 4C.3: Specialist Price Estimator Extraction - Specialist Adapter + Boundary
+Phase 5A: Router And Synthesizer - Deterministic Path
 ```
 
 Nói ngắn gọn: backend local đã có API, database, async worker, mock search và
-mock pricing pipeline, real Amazon/BestBuy search opt-in, real neural pricing
-boundary opt-in, Frontier pricing boundary opt-in qua ChromaDB + OpenAI, và
-Specialist pricing boundary opt-in qua Modal. Khi cả ba pricing adapters
-available, real estimator có thể dùng ensemble formula gốc. Frontend chat,
-Router tiếng Việt, Synthesizer tiếng Việt, demo flow cuối cùng, và production
-roadmap vẫn là các phase sau.
+mock pricing pipeline, real Amazon/BestBuy search opt-in, real neural/frontier/
+specialist pricing boundaries opt-in, Router tiếng Việt deterministic,
+Synthesizer tiếng Việt deterministic, progress steps, summary cards, và
+agent_runs audit cho Router/Synthesizer. Frontend chat, optional OpenAI Agents
+SDK providers, demo flow cuối cùng, và production roadmap vẫn là các milestone
+sau.
 
 ## Nên Đọc Theo Thứ Tự Nào?
 
@@ -38,6 +38,7 @@ roadmap vẫn là các phase sau.
 | `phase_4c1_user_report.md` | Real neural price estimator boundary hoạt động thế nào và còn thiếu gì. |
 | `phase_4c2_user_report.md` | Frontier pricing dùng ChromaDB + OpenAI được đưa vào V3 như opt-in boundary ra sao. |
 | `phase_4c3_user_report.md` | Specialist pricing dùng Modal được đưa vào V3 như opt-in boundary ra sao và ensemble 3 model hoạt động thế nào. |
+| `phase_5a_user_report.md` | Router tiếng Việt, Synthesizer tiếng Việt, progress steps, summary cards, và audit rows deterministic hoạt động ra sao. |
 
 ## Bức Tranh Lớn Của Hệ Thống Hiện Tại
 
@@ -48,16 +49,16 @@ User message
   -> POST /api/chat-jobs
   -> tạo job trong SQLite
   -> local worker xử lý job
+  -> Router hiểu intent và tạo query_en
   -> search tool tìm sản phẩm
   -> price estimator định giá
+  -> Synthesizer tổng hợp câu trả lời tiếng Việt từ evidence
   -> lưu products, estimates, audit logs
   -> GET /api/chat-jobs/{job_id} trả kết quả
 ```
 
-MVP vẫn đang ở backend/tool foundation. Người dùng cuối chưa có frontend chat
-hoàn chỉnh. Câu trả lời tiếng Việt hiện tại vẫn là placeholder từ worker, chưa
-phải Synthesizer thật. Điều đó đúng với phase order: Router và Synthesizer sẽ
-đến ở Phase 5, Frontend chat ở Phase 6.
+MVP backend đã có câu trả lời tiếng Việt deterministic từ Synthesizer. Người
+dùng cuối vẫn chưa có frontend chat hoàn chỉnh; phần đó thuộc Phase 6.
 
 ## Những Quy Tắc An Toàn Đang Được Giữ
 
@@ -77,10 +78,10 @@ phải Synthesizer thật. Điều đó đúng với phase order: Router và Syn
 Milestone được phép tiếp theo là:
 
 ```text
-Phase 5: Router And Synthesizer
+Phase 5B: Optional OpenAI Agents SDK Router/Synthesizer Providers
 ```
 
-Phase này sẽ thêm Router cho tiếng Việt, Synthesizer trả lời tiếng Việt từ
-evidence, deterministic progress steps, và optional hybrid controlled OpenAI
-Agents SDK path. Không nên bắt đầu nếu chưa chốt scope, cost, tracing,
-dependency, secret handling, và verification plan.
+Phase này sẽ thêm optional model-backed Router/Synthesizer providers bằng
+OpenAI Agents SDK, nhưng deterministic Phase 5A vẫn là default/fallback. Không
+nên bắt đầu nếu chưa chốt scope, cost, tracing, dependency, secret handling,
+và verification plan.

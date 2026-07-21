@@ -13,25 +13,25 @@ Chỉ Codex cập nhật file này, và chỉ sau khi approve một phase hoặc
 
 ## Trạng Thái Đã Approve Hiện Tại
 
-Current approved milestone: Phase 4C.3 Specialist Price Estimator Extraction —
-Specialist Adapter + Boundary
+Current approved milestone: Phase 5A Router And Synthesizer —
+Deterministic Router/Synthesizer Path
 
 Last approved commit:
 
 ```text
-This commit: Approve shopping assistant v3 phase 4c.3 specialist pricing adapter
+This commit: Approve shopping assistant v3 phase 5a deterministic router synthesizer
 ```
 
 Approved report:
 
 ```text
-shopping_assistant_v3/reports/phase_4c3_specialist_pricing_report.md
+shopping_assistant_v3/reports/phase_5a_router_and_synthesizer_report.md
 ```
 
 Approved reviewer notes:
 
 ```text
-shopping_assistant_v3/reports/phase_4c3_specialist_pricing_codex_review.md
+shopping_assistant_v3/reports/phase_5a_router_and_synthesizer_codex_review.md
 ```
 
 ## Lịch Sử Approved
@@ -46,27 +46,28 @@ shopping_assistant_v3/reports/phase_4c3_specialist_pricing_codex_review.md
 | Phase 4C.1: Real Price Estimator Extraction — Neural Adapter + Formatter + Boundary | approved | this commit | Deterministic formatter, copy/adapt neural DNN math, lazy neural adapter behind `ENABLE_REAL_MODEL_CALLS=true`, optional neural dependencies, fallback warnings, and `127 passed, 12 skipped` mock-only default verification đã được approve. |
 | Phase 4C.2: Frontier Price Estimator Extraction — Frontier Adapter + Boundary | approved | this commit | Configurable ChromaDB path, lazy Frontier adapter with optional ChromaDB/SentenceTransformer/OpenAI deps, `frontier > neural > fallback` pricing priority, opt-in Frontier smoke tests, and `148 passed, 16 skipped` mock-only default verification đã được approve. |
 | Phase 4C.3: Specialist Price Estimator Extraction — Specialist Adapter + Boundary | approved | this commit | Lazy Modal Specialist adapter behind `ENABLE_REAL_MODEL_CALLS=true`, optional `modal` dependency, full `frontier/specialist/neural` ensemble when all three are available, deterministic partial fallback priority, opt-in Specialist smoke tests, and `171 passed, 18 skipped` mock-only default verification đã được approve. |
+| Phase 5A: Router And Synthesizer — Deterministic Path | approved | this commit | Deterministic Vietnamese Router, evidence-based Vietnamese Synthesizer, fixed `progress_steps`, API `summary_cards`, Router/Synthesizer audit rows, unsupported-intent fallback, and mock-only verification đã được approve. |
 
 ## Công Việc Tiếp Theo Được Phép
 
 Next implementation milestone:
 
 ```text
-Phase 5: Router And Synthesizer
+Phase 5B: Optional OpenAI Agents SDK Router/Synthesizer Providers
 ```
 
-Phase 5 must start from the approved Phase 4A mock tool foundation, Phase 4B
-opt-in real search modules, and complete Phase 4C real pricing boundary
-including Neural, Frontier, and Specialist adapters. It must follow:
+Phase 5B may add optional OpenAI Agents SDK providers behind the same Router and
+Synthesizer contracts created in Phase 5A. It must follow:
 
 ```text
 shopping_assistant_v3/guides/5_router_and_synthesizer.md
 ```
 
-Phase 5 requires separate brainstorming and explicit user approval before any
-Router/Synthesizer implementation. Approved direction is hybrid controlled
-OpenAI Agents SDK as an optional model-backed layer; default verification must
-remain mock-only unless the user opts into real model tests.
+Phase 5B requires separate brainstorming and explicit user approval before any
+SDK implementation. Approved direction is hybrid controlled OpenAI Agents SDK
+as an optional model-backed layer; deterministic Phase 5A must remain default
+and default verification must remain mock-only unless the user opts into real
+model tests.
 
 ## Open Blockers
 

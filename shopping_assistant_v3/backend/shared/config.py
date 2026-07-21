@@ -21,6 +21,7 @@ def _get_bool(name: str, default: bool) -> bool:
 # Safety flags: default mock mode, no network, no paid model calls.
 ENABLE_REAL_SEARCH: bool = _get_bool("ENABLE_REAL_SEARCH", False)
 ENABLE_REAL_MODEL_CALLS: bool = _get_bool("ENABLE_REAL_MODEL_CALLS", False)
+ENABLE_AGENTS_SDK: bool = _get_bool("ENABLE_AGENTS_SDK", False)  # Phase 5B — unused in 5A
 
 # Persistence
 DATABASE_URL: str = os.getenv(

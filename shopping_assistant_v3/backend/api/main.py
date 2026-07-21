@@ -148,8 +148,11 @@ def get_chat_job(job_id: str, session: Session = Depends(get_db)) -> dict[str, o
         raise NotFoundError(f"Job {job_id} not found.")
 
     result = None
+    progress_steps = None
     if job.result_payload:
-        result = json.loads(job.result_payload)
+        parsed = json.loads(job.result_payload)
+        result = parsed
+        progress_steps = parsed.get("progress_steps")
 
     return {
         "job_id": job.id,
@@ -159,4 +162,5 @@ def get_chat_job(job_id: str, session: Session = Depends(get_db)) -> dict[str, o
         "completed_at": job.completed_at,
         "result": result,
         "error_message": job.error_message,
+        "progress_steps": progress_steps,
     }

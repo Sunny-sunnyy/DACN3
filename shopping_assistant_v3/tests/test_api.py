@@ -272,6 +272,20 @@ class TestGetChatJob:
         assert "products" in result
         assert isinstance(result["products"], list)
         assert len(result["products"]) >= 1
+        # Phase 5A: progress_steps at top level
+        progress = body.get("progress_steps")
+        assert progress is not None, "Phase 5A: progress_steps must be in response"
+        assert len(progress) == 4
+        # Phase 5A: summary_cards in result
+        assert "summary_cards" in result
+        cards = result["summary_cards"]
+        assert isinstance(cards, list)
+        if cards:
+            card = cards[0]
+            assert "source" in card
+            assert "title" in card
+            assert "highlight_vi" in card
+            assert "url" in card
 
     def test_unknown_job_returns_404_error_shape(self, client: TestClient) -> None:
         response = client.get("/api/chat-jobs/nonexistent-id")
@@ -286,7 +300,20 @@ class TestGetChatJob:
             user_id=DEMO_USER_ID,
             status="completed",
             result_payload=json.dumps(
-                {"answer_vi": "Khong co deal nao.", "products": [], "warnings": []}
+                {
+                    "answer_vi": "Khong co deal nao.",
+                    "products": [],
+                    "warnings": [],
+                    "summary_cards": [
+                        {"source": "Amazon", "title": "Test", "highlight_vi": "ok", "url": "https://example.com"}
+                    ],
+                    "progress_steps": [
+                        {"step_id": "route_request", "title_vi": "Hiểu nhu cầu mua sắm", "status": "completed", "detail_vi": "ok"},
+                        {"step_id": "search_deals", "title_vi": "Tìm sản phẩm", "status": "skipped", "detail_vi": "skipped"},
+                        {"step_id": "estimate_prices", "title_vi": "Ước tính giá", "status": "skipped", "detail_vi": "skipped"},
+                        {"step_id": "synthesize_answer", "title_vi": "Tổng hợp", "status": "completed", "detail_vi": "done"},
+                    ],
+                }
             ),
         )
         db_session.add(job)
@@ -297,6 +324,13 @@ class TestGetChatJob:
         body = response.json()
         assert body["status"] == "completed"
         assert body["result"] is not None
+        # Phase 5A: progress_steps at top level
+        assert body.get("progress_steps") is not None
+        assert len(body["progress_steps"]) == 4
+        # Phase 5A: summary_cards in result
+        assert "summary_cards" in body["result"]
+        assert len(body["result"]["summary_cards"]) == 1
+        assert body["result"]["summary_cards"][0]["url"] == "https://example.com"
         assert body["result"]["answer_vi"] == "Khong co deal nao."
 
 

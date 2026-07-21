@@ -1,5 +1,6 @@
 """Worker tests: job lifecycle, idempotency, failure path, audit, and log events.
 
+Phase 5A: tests now cover Router, Synthesizer, progress_steps, and unsupported path.
 All tests call process_job() directly. No network, no model calls, no real search.
 Uses the isolated temp SQLite from conftest.py.
 """
@@ -53,6 +54,12 @@ def _result_shape(result: dict) -> None:
     assert isinstance(result["products"], list)
     assert "warnings" in result
     assert isinstance(result["warnings"], list)
+    # Phase 5A additions
+    assert "summary_cards" in result
+    assert isinstance(result["summary_cards"], list)
+    assert "progress_steps" in result
+    assert isinstance(result["progress_steps"], list)
+    assert len(result["progress_steps"]) == 4
 
 
 # ---------------------------------------------------------------------------
@@ -110,13 +117,16 @@ class TestProcessJob:
         )
         components = {r.component for r in runs}
         assert "worker" in components, "Phase 3 worker audit row must be preserved"
+        assert "router" in components, "Phase 5A Router audit missing"
         assert "deal_search_tool" in components
         assert "price_estimator_tool" in components
+        assert "synthesizer" in components, "Phase 5A Synthesizer audit missing"
 
         for run in runs:
             assert run.status == "completed", f"{run.component} should be completed"
-            assert run.duration_ms is not None
-            assert run.duration_ms >= 0
+            if run.component in ("deal_search_tool", "price_estimator_tool"):
+                assert run.duration_ms is not None
+                assert run.duration_ms >= 0
 
     def test_answer_vi_is_non_empty(self, db_session: Session) -> None:
         job = _create_pending_job(db_session)
@@ -266,6 +276,37 @@ class TestFailurePath:
         worker_run = [r for r in runs if r.component == "worker"][0]
         assert worker_run.status == "failed"
 
+    def test_router_audit_survives_search_failure(
+        self, db_session: Session
+    ) -> None:
+        """Phase 5A: when deal_search fails after routing, router audit must survive."""
+        job = _create_pending_job(db_session)
+
+        def _failing_search(_input: DealSearchInput) -> DealSearchOutput:
+            raise RuntimeError("mock search failure")
+
+        process_job(job.id, deal_search_runner=_failing_search)
+        db_session.refresh(job)
+
+        runs = (
+            db_session.query(AgentRun)
+            .filter(AgentRun.job_id == job.id)
+            .all()
+        )
+        components = {r.component for r in runs}
+        assert "router" in components, "Router audit must survive rollback"
+        assert "deal_search_tool" in components
+        assert "worker" in components
+
+        router_run = [r for r in runs if r.component == "router"][0]
+        assert router_run.run_type == "router"
+        assert router_run.status == "completed"
+        assert router_run.input_summary is not None
+        assert router_run.output_summary is not None
+
+        search_run = [r for r in runs if r.component == "deal_search_tool"][0]
+        assert search_run.status == "failed"
+
     def test_later_tool_failure_preserves_earlier_completed_runs(
         self, db_session: Session
     ) -> None:
@@ -358,6 +399,111 @@ class TestRealModeInWorker:
         # Verify fallback warnings are present in result
         warnings = result.get("warnings", [])
         assert any("real_pricing_fallback_used" in w for w in warnings)
+
+
+# ---------------------------------------------------------------------------
+# Phase 5A — Router + Synthesizer + progress_steps
+# ---------------------------------------------------------------------------
+
+
+class TestPhase5APipeline:
+    def test_progress_steps_has_four_entries(self, db_session: Session) -> None:
+        job = _create_pending_job(db_session)
+        process_job(job.id)
+        db_session.refresh(job)
+        result = json.loads(job.result_payload)
+        steps = result["progress_steps"]
+        assert len(steps) == 4
+        step_ids = [s["step_id"] for s in steps]
+        assert step_ids == [
+            "route_request",
+            "search_deals",
+            "estimate_prices",
+            "synthesize_answer",
+        ]
+
+    def test_progress_steps_all_completed_for_search(self, db_session: Session) -> None:
+        job = _create_pending_job(db_session, message="Tim laptop gaming")
+        process_job(job.id)
+        db_session.refresh(job)
+        result = json.loads(job.result_payload)
+        steps = result["progress_steps"]
+        for s in steps:
+            assert s["status"] == "completed", f"{s['step_id']} should be completed"
+
+    def test_router_and_synthesizer_agent_runs_created(
+        self, db_session: Session
+    ) -> None:
+        job = _create_pending_job(db_session)
+        process_job(job.id)
+        db_session.refresh(job)
+
+        runs = (
+            db_session.query(AgentRun)
+            .filter(AgentRun.job_id == job.id)
+            .all()
+        )
+        router_runs = [r for r in runs if r.component == "router"]
+        assert len(router_runs) == 1
+        assert router_runs[0].run_type == "router"
+        assert router_runs[0].status == "completed"
+
+        synth_runs = [r for r in runs if r.component == "synthesizer"]
+        assert len(synth_runs) == 1
+        assert synth_runs[0].run_type == "synthesizer"
+        assert synth_runs[0].status == "completed"
+
+    def test_unsupported_intent_skips_search_and_pricing(
+        self, db_session: Session
+    ) -> None:
+        job = _create_pending_job(db_session, message="Xin chao ban")
+        process_job(job.id)
+        db_session.refresh(job)
+
+        assert job.status == "completed"
+        result = json.loads(job.result_payload)
+        steps = result["progress_steps"]
+        assert len(steps) == 4
+
+        statuses = {s["step_id"]: s["status"] for s in steps}
+        assert statuses["route_request"] == "completed"
+        assert statuses["search_deals"] == "skipped"
+        assert statuses["estimate_prices"] == "skipped"
+        assert statuses["synthesize_answer"] == "completed"
+
+        # No products for unsupported
+        assert result["products"] == []
+        assert len(result["answer_vi"]) > 0
+
+    def test_unsupported_intent_has_safe_vietnamese_answer(
+        self, db_session: Session
+    ) -> None:
+        job = _create_pending_job(db_session, message="Thoi tiet hom nay")
+        process_job(job.id)
+        db_session.refresh(job)
+        result = json.loads(job.result_payload)
+        assert "tro ly mua sam" in result["answer_vi"].lower()
+
+    def test_no_placeholder_answer_remains(self, db_session: Session) -> None:
+        """Phase 5A: the old PLACEHOLDER_ANSWER_VI must not appear anywhere."""
+        job = _create_pending_job(db_session, message="Tim laptop")
+        process_job(job.id)
+        db_session.refresh(job)
+        result = json.loads(job.result_payload)
+        assert "Minh da tim thay mot so san pham phu hop" not in result["answer_vi"]
+
+    def test_summary_cards_present(self, db_session: Session) -> None:
+        job = _create_pending_job(db_session, message="Tim laptop gaming")
+        process_job(job.id)
+        db_session.refresh(job)
+        result = json.loads(job.result_payload)
+        assert "summary_cards" in result
+        assert len(result["summary_cards"]) >= 1
+        card = result["summary_cards"][0]
+        assert "source" in card
+        assert "title" in card
+        assert "highlight_vi" in card
+        assert "url" in card
 
 
 # ---------------------------------------------------------------------------

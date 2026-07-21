@@ -51,10 +51,22 @@ class ProductResult(BaseModel):
     url: str | None = None
 
 
+class SummaryCardResult(BaseModel):
+    source: str
+    title: str
+    sale_price_usd: float | None = None
+    estimated_value_usd: float | None = None
+    discount_usd: float | None = None
+    deal_score: str | None = None
+    url: str | None = None
+    highlight_vi: str = ""
+
+
 class ChatJobResult(BaseModel):
     answer_vi: str
     products: list[ProductResult] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    summary_cards: list[SummaryCardResult] = Field(default_factory=list)
 
 
 class JobStatusResponse(BaseModel):
@@ -65,6 +77,7 @@ class JobStatusResponse(BaseModel):
     completed_at: datetime.datetime | None = None
     result: ChatJobResult | None = None
     error_message: str | None = None
+    progress_steps: list[dict] | None = None  # Phase 5A — deterministic progress
 
 
 # ---------------------------------------------------------------------------
