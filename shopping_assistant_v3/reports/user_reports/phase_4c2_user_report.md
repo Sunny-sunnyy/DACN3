@@ -127,8 +127,10 @@ uv run pytest tests/test_real_pricing_frontier.py -v
 - SpecialistAgent vẫn chưa được extract.
 - Full ensemble formula `frontier*0.8 + specialist*0.1 + neural*0.1` chưa bật.
 - Frontier real mode cần ChromaDB vectorstore local và OpenAI API key.
-- OpenAI direct là intentional deviation; LiteLLM được để dành cho Router và
-  Synthesizer ở Phase 5.
+- OpenAI direct là intentional deviation trong pricing adapter.
+- Phase 5 direction mới là hybrid controlled OpenAI Agents SDK cho optional
+  Router/Synthesizer model-backed behavior; deterministic mock path vẫn là mặc
+  định.
 
 ## 9. Phase Sau Sẽ Xây Tiếp Gì?
 

@@ -1,15 +1,17 @@
-"""Real price estimator orchestrator — Phase 4C.2.
+"""Real price estimator orchestrator — Phase 4C.3.
 
 Assembles PriceEstimateOutput from available components:
   - Frontier adapter (via PRICER_CHROMADB_PATH + PRICER_FRONTIER_MODEL_ID) — Phase 4C.2.
+  - Specialist adapter (via PRICER_SPECIALIST_SERVICE + PRICER_SPECIALIST_CLASS) — Phase 4C.3.
   - Neural adapter (via PRICER_NEURAL_WEIGHTS_PATH) — Phase 4C.1.
-Deferred: Specialist (4C.3).
 
 Mock path is in tool.py; this module is only reached when
 ENABLE_REAL_MODEL_CALLS=true.
 
-Priority: frontier > neural > fallback 5% markup.
-Frontier short-circuits neural when available.
+Assembly policy:
+  - All 3 available → ensemble formula 0.8*f + 0.1*s + 0.1*n (success, no partial warning).
+  - Partial → priority fallback: frontier > specialist > neural > 5% markup.
+    Exactly one ensemble_partial:<mode> warning + model-specific unavailable codes.
 """
 
 from __future__ import annotations
@@ -20,6 +22,8 @@ from backend.shared.config import (
     PRICER_CHROMADB_PATH,
     PRICER_FRONTIER_MODEL_ID,
     PRICER_NEURAL_WEIGHTS_PATH,
+    PRICER_SPECIALIST_CLASS,
+    PRICER_SPECIALIST_SERVICE,
 )
 from backend.tools.deal_search.schemas import ProductCandidate
 from backend.tools.price_estimator.formatter import format_product_for_pricing
@@ -35,12 +39,16 @@ from backend.tools.price_estimator.schemas import (
     ModelBreakdown,
     PriceEstimateOutput,
 )
+from backend.tools.price_estimator.specialist.adapter import (
+    SpecialistEstimateResult,
+    SpecialistPriceAdapter,
+)
 
 logger = logging.getLogger("shopping_assistant_v3.real_estimator")
 
 # ── warning grammar (key:value, no space after colon) ──────────────────
-_WARN_SPECIALIST = "specialist_unavailable:deferred_to_4c3"
 _WARN_ENSEMBLE_FRONTIER = "ensemble_partial:frontier_only"
+_WARN_ENSEMBLE_SPECIALIST = "ensemble_partial:specialist_only"
 _WARN_ENSEMBLE_NEURAL = "ensemble_partial:neural_only"
 _WARN_ENSEMBLE_FALLBACK = "ensemble_partial:fallback_only"
 _WARN_FALLBACK_USED = "real_pricing_fallback_used:sale_price_markup"
@@ -61,52 +69,90 @@ def _assemble_output(
     product: ProductCandidate,
     frontier_result: FrontierEstimateResult,
     neural_result: NeuralEstimateResult,
+    specialist_result: SpecialistEstimateResult,
 ) -> PriceEstimateOutput:
-    """Pure function: assemble PriceEstimateOutput with frontier > neural > fallback.
+    """Pure function: assemble PriceEstimateOutput from 3 adapter results.
 
-    Priority:
-      1. Frontier available → use frontier_value directly (dominant model, 80% weight).
-      2. Frontier unavailable, neural available → use neural_value (4C.1 behavior).
-      3. Neither available → 5% markup fallback.
+    Assembly policy:
+      1. All 3 available → ensemble formula 0.8*f + 0.1*s + 0.1*n.
+         This is a success state — no ensemble_partial warning.
+      2. Frontier available (partial) → use frontier value.
+      3. Frontier unavailable, specialist available → use specialist value.
+      4. Frontier+specialist unavailable, neural available → use neural value.
+      5. None available → 5% markup fallback.
+
+    Partial cases (2-5) always include exactly one ensemble_partial:<mode>
+    warning plus model-specific unavailable codes.
 
     Testable without any heavy deps — just pass real or fake result objects.
     """
     sale_price = product.sale_price_usd or 0.0
-    warnings: list[str] = [_WARN_SPECIALIST]
+    warnings: list[str] = []
 
-    frontier_value = 0.0
-    neural_value = 0.0
+    f_ok = frontier_result.available and frontier_result.value_usd is not None
+    s_ok = specialist_result.available and specialist_result.value_usd is not None
+    n_ok = neural_result.available and neural_result.value_usd is not None
 
-    # ── Priority 1: Frontier ──
-    if frontier_result.available and frontier_result.value_usd is not None:
-        estimated_value = frontier_result.value_usd
-        frontier_value = frontier_result.value_usd
+    f_raw = frontier_result.value_usd if f_ok else 0.0
+    s_raw = specialist_result.value_usd if s_ok else 0.0
+    n_raw = neural_result.value_usd if n_ok else 0.0
+
+    # Breakdown shows only contributing model values (non-winning = 0.0).
+    b_frontier = 0.0
+    b_specialist = 0.0
+    b_neural = 0.0
+
+    # ── Case 1: All 3 available → ensemble formula ──
+    if f_ok and s_ok and n_ok:
+        estimated_value = round(
+            0.8 * f_raw + 0.1 * s_raw + 0.1 * n_raw, 2
+        )
+        discount = round(estimated_value - sale_price, 2)
+        deal_score = _compute_deal_score(sale_price, estimated_value)
+        b_frontier = f_raw
+        b_specialist = s_raw
+        b_neural = n_raw
+        # Success state — no ensemble_partial warning.
+
+    # ── Case 2: Frontier available (partial) ──
+    elif f_ok:
+        estimated_value = f_raw
+        discount = round(estimated_value - sale_price, 2)
+        deal_score = _compute_deal_score(sale_price, estimated_value)
+        b_frontier = f_raw
         warnings.append(_WARN_ENSEMBLE_FRONTIER)
+
+    # ── Case 3: Specialist available (frontier unavailable) ──
+    elif s_ok:
+        estimated_value = s_raw
         discount = round(estimated_value - sale_price, 2)
         deal_score = _compute_deal_score(sale_price, estimated_value)
+        b_specialist = s_raw
+        warnings.append(_WARN_ENSEMBLE_SPECIALIST)
 
-    # ── Priority 2: Neural (frontier unavailable) ──
-    elif neural_result.available and neural_result.value_usd is not None:
-        estimated_value = neural_result.value_usd
-        neural_value = neural_result.value_usd
-        if frontier_result.error_code:
-            warnings.append(f"frontier_unavailable:{frontier_result.error_code}")
+    # ── Case 4: Neural available (frontier+specialist unavailable) ──
+    elif n_ok:
+        estimated_value = n_raw
+        discount = round(estimated_value - sale_price, 2)
+        deal_score = _compute_deal_score(sale_price, estimated_value)
+        b_neural = n_raw
         warnings.append(_WARN_ENSEMBLE_NEURAL)
-        discount = round(estimated_value - sale_price, 2)
-        deal_score = _compute_deal_score(sale_price, estimated_value)
 
-    # ── Priority 3: Fallback ──
+    # ── Case 5: Fallback ──
     else:
         estimated_value = round(sale_price * 1.05, 2)
         discount = round(estimated_value - sale_price, 2)
         deal_score = "ok"
-
-        if frontier_result.error_code:
-            warnings.append(f"frontier_unavailable:{frontier_result.error_code}")
-        if neural_result.error_code:
-            warnings.append(f"neural_unavailable:{neural_result.error_code}")
         warnings.append(_WARN_FALLBACK_USED)
         warnings.append(_WARN_ENSEMBLE_FALLBACK)
+
+    # ── Model-specific unavailable warnings (partial/fallback cases) ──
+    if not f_ok and frontier_result.error_code:
+        warnings.append(f"frontier_unavailable:{frontier_result.error_code}")
+    if not s_ok and specialist_result.error_code:
+        warnings.append(f"specialist_unavailable:{specialist_result.error_code}")
+    if not n_ok and neural_result.error_code:
+        warnings.append(f"neural_unavailable:{neural_result.error_code}")
 
     return PriceEstimateOutput(
         estimated_value_usd=estimated_value,
@@ -114,26 +160,25 @@ def _assemble_output(
         deal_score=deal_score,
         confidence=None,
         model_breakdown=ModelBreakdown(
-            frontier=frontier_value,
-            specialist=0.0,
-            neural=neural_value,
+            frontier=b_frontier,
+            specialist=b_specialist,
+            neural=b_neural,
         ),
         warnings=warnings,
     )
 
 
 def estimate_price_real(product: ProductCandidate) -> PriceEstimateOutput:
-    """Real price estimation using available components.
+    """Real price estimation using all configured adapters.
 
-    Current available:
-      - Frontier (4C.2): GPT + ChromaDB RAG via PRICER_CHROMADB_PATH
-      - Neural (4C.1): PyTorch DNN via PRICER_NEURAL_WEIGHTS_PATH
-    Deferred: Specialist (4C.3).
+    Attempts all adapters whose config is present. Fail-fast on missing
+    config (returns unavailable result immediately, no network calls).
+    Then assembles output via _assemble_output.
 
-    Short-circuits: if frontier succeeds, neural is skipped entirely.
-    This makes ensemble_partial:frontier_only accurate and avoids
-    unnecessary neural deps loading. If frontier fails, falls back
-    to neural, then to 5% markup.
+    Current adapters:
+      - Frontier (4C.2): GPT + ChromaDB RAG
+      - Specialist (4C.3): Modal fine-tuned Llama
+      - Neural (4C.1): PyTorch DNN
 
     Never raises — all failure paths produce valid PriceEstimateOutput
     with explicit warnings.
@@ -154,21 +199,29 @@ def estimate_price_real(product: ProductCandidate) -> PriceEstimateOutput:
         frontier_result.error_code,
     )
 
-    # Short-circuit: if frontier available, skip neural entirely.
-    if frontier_result.available:
-        neural_result = NeuralEstimateResult(
-            available=False, error_code="skipped_frontier_available"
-        )
-    else:
-        # Run neural adapter (lazy-loads on first call)
-        neural_adapter = NeuralPriceAdapter(weights_path=PRICER_NEURAL_WEIGHTS_PATH)
-        neural_result = neural_adapter.estimate(text)
+    # Run specialist adapter (lazy-loads on first call)
+    specialist_adapter = SpecialistPriceAdapter(
+        service_name=PRICER_SPECIALIST_SERVICE,
+        class_name=PRICER_SPECIALIST_CLASS,
+    )
+    specialist_result = specialist_adapter.try_estimate(text)
 
-        logger.debug(
-            "Real estimator: neural available=%s value=%s error=%s",
-            neural_result.available,
-            neural_result.value_usd,
-            neural_result.error_code,
-        )
+    logger.debug(
+        "Real estimator: specialist available=%s value=%s error=%s",
+        specialist_result.available,
+        specialist_result.value_usd,
+        specialist_result.error_code,
+    )
 
-    return _assemble_output(product, frontier_result, neural_result)
+    # Run neural adapter (lazy-loads on first call)
+    neural_adapter = NeuralPriceAdapter(weights_path=PRICER_NEURAL_WEIGHTS_PATH)
+    neural_result = neural_adapter.estimate(text)
+
+    logger.debug(
+        "Real estimator: neural available=%s value=%s error=%s",
+        neural_result.available,
+        neural_result.value_usd,
+        neural_result.error_code,
+    )
+
+    return _assemble_output(product, frontier_result, neural_result, specialist_result)

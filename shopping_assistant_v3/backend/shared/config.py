@@ -45,5 +45,10 @@ PRICER_CHROMADB_PATH: str = os.getenv("PRICER_CHROMADB_PATH", "")
 # No default — real frontier requires explicit model via env.
 PRICER_FRONTIER_MODEL_ID: str = os.getenv("PRICER_FRONTIER_MODEL_ID", "")
 
+# Specialist pricing (Phase 4C.3): Modal service and class names.
+# No default — real specialist requires explicit Modal config via env.
+PRICER_SPECIALIST_SERVICE: str = os.getenv("PRICER_SPECIALIST_SERVICE", "")
+PRICER_SPECIALIST_CLASS: str = os.getenv("PRICER_SPECIALIST_CLASS", "")
+
 # Demo identity for MVP
 DEMO_USER_ID: str = "demo_user"

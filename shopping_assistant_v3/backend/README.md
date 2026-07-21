@@ -9,7 +9,8 @@ cấu trúc thư mục; chưa có runtime code nào được implement.
 - Web framework: FastAPI.
 - Persistence: SQLite (schema giữ tương thích với Postgres).
 - Async jobs: local worker, lifecycle theo `job_id`.
-- Model calls: LiteLLM abstraction, provider tương thích OpenAI.
+- Model-backed Router/Synthesizer: Phase 5 direction là hybrid controlled
+  OpenAI Agents SDK sau opt-in config.
 - Default mode: mock/fixture. Real search và real model calls là opt-in.
 
 Layout dependency Python (`pyproject.toml`) được hoãn đến Phase 2.
@@ -40,6 +41,7 @@ flags quan trọng:
 ```text
 ENABLE_REAL_SEARCH=false
 ENABLE_REAL_MODEL_CALLS=false
+ENABLE_AGENTS_SDK=false
 ```
 
 Default tests không bao giờ được scrape live Amazon/BestBuy hoặc gọi paid model

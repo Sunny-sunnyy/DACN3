@@ -374,6 +374,7 @@ Các environment categories kỳ vọng:
 - `MODEL_PROVIDER`
 - `MODEL_ID_ROUTER`
 - `MODEL_ID_SYNTHESIZER`
+- `ENABLE_AGENTS_SDK`
 - `OPENAI_API_KEY`
 - `PRICER_PREPROCESSOR_MODEL`
 - `PRICER_CHROMADB_PATH`
@@ -381,6 +382,11 @@ Các environment categories kỳ vọng:
 - `PRICER_NEURAL_WEIGHTS_PATH`
 - `ENABLE_REAL_SEARCH`
 - `ENABLE_REAL_MODEL_CALLS`
+
+Phase 5 approved direction is hybrid controlled OpenAI Agents SDK for optional
+Router/Synthesizer model-backed behavior. The SDK does not replace FastAPI,
+SQLite, local worker orchestration, deterministic progress, or V3 tool
+contracts.
 
 Không bao giờ log secret values.
 

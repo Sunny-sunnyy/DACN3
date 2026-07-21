@@ -13,25 +13,25 @@ Chỉ Codex cập nhật file này, và chỉ sau khi approve một phase hoặc
 
 ## Trạng Thái Đã Approve Hiện Tại
 
-Current approved milestone: Phase 4C.2 Frontier Price Estimator Extraction —
-Frontier Adapter + Boundary
+Current approved milestone: Phase 4C.3 Specialist Price Estimator Extraction —
+Specialist Adapter + Boundary
 
 Last approved commit:
 
 ```text
-This commit: Approve shopping assistant v3 phase 4c.2 frontier pricing adapter
+This commit: Approve shopping assistant v3 phase 4c.3 specialist pricing adapter
 ```
 
 Approved report:
 
 ```text
-shopping_assistant_v3/reports/phase_4c2_frontier_pricing_report.md
+shopping_assistant_v3/reports/phase_4c3_specialist_pricing_report.md
 ```
 
 Approved reviewer notes:
 
 ```text
-shopping_assistant_v3/reports/phase_4c2_frontier_pricing_codex_review.md
+shopping_assistant_v3/reports/phase_4c3_specialist_pricing_codex_review.md
 ```
 
 ## Lịch Sử Approved
@@ -45,26 +45,28 @@ shopping_assistant_v3/reports/phase_4c2_frontier_pricing_codex_review.md
 | Phase 4B: Real Amazon/BestBuy Search Extraction | approved | this commit | Opt-in real Amazon/BestBuy search extraction behind `ENABLE_REAL_SEARCH=true`, copy/adapt modules independent from `segment4`, local parser fixtures, bounded warnings, and default mock/fixture verification đã được approve. |
 | Phase 4C.1: Real Price Estimator Extraction — Neural Adapter + Formatter + Boundary | approved | this commit | Deterministic formatter, copy/adapt neural DNN math, lazy neural adapter behind `ENABLE_REAL_MODEL_CALLS=true`, optional neural dependencies, fallback warnings, and `127 passed, 12 skipped` mock-only default verification đã được approve. |
 | Phase 4C.2: Frontier Price Estimator Extraction — Frontier Adapter + Boundary | approved | this commit | Configurable ChromaDB path, lazy Frontier adapter with optional ChromaDB/SentenceTransformer/OpenAI deps, `frontier > neural > fallback` pricing priority, opt-in Frontier smoke tests, and `148 passed, 16 skipped` mock-only default verification đã được approve. |
+| Phase 4C.3: Specialist Price Estimator Extraction — Specialist Adapter + Boundary | approved | this commit | Lazy Modal Specialist adapter behind `ENABLE_REAL_MODEL_CALLS=true`, optional `modal` dependency, full `frontier/specialist/neural` ensemble when all three are available, deterministic partial fallback priority, opt-in Specialist smoke tests, and `171 passed, 18 skipped` mock-only default verification đã được approve. |
 
 ## Công Việc Tiếp Theo Được Phép
 
 Next implementation milestone:
 
 ```text
-Phase 4C.3: Specialist Price Estimator Extraction
+Phase 5: Router And Synthesizer
 ```
 
-Phase 4C.3 must start from the approved Phase 4A mock tool foundation, Phase
-4B opt-in real search modules, Phase 4C.1 neural pricing boundary, and Phase
-4C.2 Frontier pricing boundary. It must follow:
+Phase 5 must start from the approved Phase 4A mock tool foundation, Phase 4B
+opt-in real search modules, and complete Phase 4C real pricing boundary
+including Neural, Frontier, and Specialist adapters. It must follow:
 
 ```text
-shopping_assistant_v3/guides/4_search_and_pricing_tools.md
+shopping_assistant_v3/guides/5_router_and_synthesizer.md
 ```
 
-Phase 4C.3 requires separate brainstorming and explicit user approval before
-any Specialist/Modal extraction work. Default verification must remain
-mock-only unless the user opts into real model tests.
+Phase 5 requires separate brainstorming and explicit user approval before any
+Router/Synthesizer implementation. Approved direction is hybrid controlled
+OpenAI Agents SDK as an optional model-backed layer; default verification must
+remain mock-only unless the user opts into real model tests.
 
 ## Open Blockers
 

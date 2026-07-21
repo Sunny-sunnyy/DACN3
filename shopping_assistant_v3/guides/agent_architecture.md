@@ -261,13 +261,23 @@ evidence exists.
 
 ## Model Provider Policy
 
-Dùng LiteLLM abstraction cho model calls.
+Default MVP behavior vẫn là mock/fixture và không gọi external services.
+Model-backed behavior chỉ chạy sau opt-in config.
 
 Approved exception: Phase 4C.2 Frontier pricing uses the OpenAI Python SDK
 directly inside an opt-in tool adapter. This is an intentional extraction
 boundary because `segment4` FrontierAgent used OpenAI directly and the V3
-adapter has one narrow model call. LiteLLM remains the target abstraction for
-Phase 5 Router and Synthesizer model-backed behavior.
+adapter has one narrow model call.
+
+Approved Phase 5 direction: use hybrid controlled OpenAI Agents SDK for
+Router/Synthesizer model-backed behavior. FastAPI, SQLite, local worker,
+deterministic progress, and V3 tool contracts remain the orchestration source
+of truth. The SDK must be an optional runtime layer, not a replacement for the
+worker-owned `Router -> tools -> Synthesizer` pipeline.
+
+LiteLLM remains a future-compatible option for non-OpenAI providers after the
+Router/Synthesizer contracts are stable, but it is no longer the required Phase
+5 abstraction.
 
 MVP defaults:
 
@@ -279,11 +289,25 @@ Required config:
 - `MODEL_PROVIDER`
 - `MODEL_ID_ROUTER`
 - `MODEL_ID_SYNTHESIZER`
+- `ENABLE_AGENTS_SDK`
 
 Future providers:
 
 - Qwen/vLLM local or remote OpenAI-compatible endpoint.
 - Other providers only after contracts are stable.
+
+OpenAI Agents SDK policy for Phase 5:
+
+- SDK path requires `ENABLE_REAL_MODEL_CALLS=true` and
+  `ENABLE_AGENTS_SDK=true`.
+- Router Agent and Synthesizer Agent may use structured outputs.
+- The worker still calls search and pricing tools in fixed order.
+- Do not expose Amazon/BestBuy search or price estimation as free-form tools to
+  a main LLM in Phase 5.
+- Tracing must use safe metadata correlated by `job_id`.
+- Sensitive trace payload capture must be disabled by default.
+- SDK sessions must not replace V3 SQLite conversation/message persistence in
+  MVP.
 
 ## Mock Mode Policy
 

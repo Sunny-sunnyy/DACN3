@@ -1,7 +1,7 @@
-"""Tests for Phase 4C.2 real price estimator — formatter, boundary, assembly, adapters.
+"""Tests for Phase 4C.3 real price estimator — formatter, boundary, assembly, adapters.
 
-All tests are mock/fixture-only — no ChromaDB, no OpenAI, no neural deps, no network.
-deep_neural_network.py and frontier heavy deps must NOT be imported by any test.
+All tests are mock/fixture-only — no ChromaDB, no OpenAI, no neural deps, no Modal, no network.
+deep_neural_network.py, frontier heavy deps, and modal must NOT be imported by any test.
 """
 
 from __future__ import annotations
@@ -25,6 +25,9 @@ from backend.tools.price_estimator.real_estimator import (
     estimate_price_real,
 )
 from backend.tools.price_estimator.schemas import PriceEstimateInput
+from backend.tools.price_estimator.specialist.adapter import (
+    SpecialistEstimateResult,
+)
 from backend.tools.price_estimator.tool import estimate_price
 
 
@@ -44,6 +47,13 @@ def _make_product(**overrides) -> ProductCandidate:
     }
     defaults.update(overrides)
     return ProductCandidate(**defaults)
+
+
+def _sr(**overrides) -> SpecialistEstimateResult:
+    """Build a SpecialistEstimateResult with defaults (unavailable, no error)."""
+    defaults: dict = {"available": False}
+    defaults.update(overrides)
+    return SpecialistEstimateResult(**defaults)
 
 
 # ====================================================================
@@ -127,7 +137,7 @@ class TestFormatterMissingFields:
 
 
 class TestRealEstimatorFallback:
-    """Real mode with no config → both adapters unavailable → safe fallback markup."""
+    """Real mode with no config → all adapters unavailable → safe fallback markup."""
 
     def test_fallback_uses_5_percent_markup(self, monkeypatch) -> None:
         monkeypatch.setattr(
@@ -135,6 +145,12 @@ class TestRealEstimatorFallback:
         )
         monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_SERVICE", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_CLASS", ""
         )
         monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
@@ -145,6 +161,7 @@ class TestRealEstimatorFallback:
         assert output.deal_score == "ok"
         assert output.model_breakdown.neural == 0.0
         assert output.model_breakdown.frontier == 0.0
+        assert output.model_breakdown.specialist == 0.0
 
     def test_fallback_includes_all_required_warnings(self, monkeypatch) -> None:
         monkeypatch.setattr(
@@ -154,15 +171,23 @@ class TestRealEstimatorFallback:
             "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
         )
         monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_SERVICE", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_CLASS", ""
+        )
+        monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product()
         output = estimate_price_real(p)
         assert "frontier_unavailable:missing_chromadb_path" in output.warnings
-        assert "specialist_unavailable:deferred_to_4c3" in output.warnings
+        assert "specialist_unavailable:missing_service_config" in output.warnings
         assert "neural_unavailable:missing_weights_path" in output.warnings
         assert "real_pricing_fallback_used:sale_price_markup" in output.warnings
         assert "ensemble_partial:fallback_only" in output.warnings
+        # Verify no deferred_to_4c3 legacy warning
+        assert not any("deferred_to_4c3" in w for w in output.warnings)
 
     def test_fallback_with_zero_sale_price(self, monkeypatch) -> None:
         monkeypatch.setattr(
@@ -170,6 +195,12 @@ class TestRealEstimatorFallback:
         )
         monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_SERVICE", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_CLASS", ""
         )
         monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
@@ -191,6 +222,12 @@ class TestRealEstimatorWarnings:
             "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
         )
         monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_SERVICE", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_CLASS", ""
+        )
+        monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product()
@@ -209,6 +246,12 @@ class TestRealEstimatorWarnings:
             "backend.tools.price_estimator.real_estimator.PRICER_FRONTIER_MODEL_ID", ""
         )
         monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_SERVICE", ""
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_CLASS", ""
+        )
+        monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH", ""
         )
         p = _make_product()
@@ -217,14 +260,17 @@ class TestRealEstimatorWarnings:
 
 
 class TestAssembly:
-    """_assemble_output pure-function tests with fake results."""
+    """_assemble_output pure-function tests with fake results (4 params)."""
+
+    # ── Existing tests (updated to pass 4th specialist param) ──────────
 
     def test_frontier_available_takes_priority(self) -> None:
-        """Frontier available → use frontier_value, ignore neural."""
+        """Frontier available → use frontier_value (partial, specialist unavailable)."""
         p = _make_product(sale_price_usd=100.0)
         fr = FrontierEstimateResult(value_usd=150.0, available=True)
         nr = NeuralEstimateResult(value_usd=200.0, available=True)
-        output = _assemble_output(p, fr, nr)
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
         assert output.estimated_value_usd == 150.0
         assert output.model_breakdown.frontier == 150.0
         assert output.model_breakdown.neural == 0.0
@@ -232,36 +278,39 @@ class TestAssembly:
         assert output.discount_usd == 50.0
         assert output.deal_score == "ok"  # discount 50 < 100
         assert "ensemble_partial:frontier_only" in output.warnings
-        assert "ensemble_partial:neural_only" not in output.warnings
-        assert "specialist_unavailable:deferred_to_4c3" in output.warnings
+        assert "specialist_unavailable:missing_service_config" in output.warnings
 
     def test_neural_success_frontier_unavailable(self) -> None:
-        """Frontier unavailable, neural available → use neural_value + frontier_unavailable warning."""
+        """Frontier unavailable, specialist unavailable, neural available → neural."""
         p = _make_product(sale_price_usd=100.0)
         fr = FrontierEstimateResult(available=False, error_code="missing_chromadb_path")
         nr = NeuralEstimateResult(value_usd=150.0, available=True)
-        output = _assemble_output(p, fr, nr)
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
         assert output.estimated_value_usd == 150.0
         assert output.model_breakdown.frontier == 0.0
         assert output.model_breakdown.neural == 150.0
         assert output.model_breakdown.specialist == 0.0
         assert output.discount_usd == 50.0
-        assert output.deal_score == "ok"  # discount 50 < 100
+        assert output.deal_score == "ok"
         assert "ensemble_partial:neural_only" in output.warnings
         assert "frontier_unavailable:missing_chromadb_path" in output.warnings
-        assert "ensemble_partial:frontier_only" not in output.warnings
+        assert "specialist_unavailable:missing_service_config" in output.warnings
 
     def test_both_unavailable_produces_fallback(self) -> None:
-        """Both adapters unavailable → 5% markup fallback."""
+        """All adapters unavailable → 5% markup fallback."""
         p = _make_product(sale_price_usd=100.0)
         fr = FrontierEstimateResult(available=False, error_code="missing_chromadb_path")
         nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
-        output = _assemble_output(p, fr, nr)
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
         assert output.estimated_value_usd == 105.0
         assert output.deal_score == "ok"
         assert output.model_breakdown.frontier == 0.0
         assert output.model_breakdown.neural == 0.0
+        assert output.model_breakdown.specialist == 0.0
         assert "frontier_unavailable:missing_chromadb_path" in output.warnings
+        assert "specialist_unavailable:missing_service_config" in output.warnings
         assert "neural_unavailable:missing_weights_path" in output.warnings
         assert "real_pricing_fallback_used:sale_price_markup" in output.warnings
         assert "ensemble_partial:fallback_only" in output.warnings
@@ -271,7 +320,8 @@ class TestAssembly:
         p = _make_product(sale_price_usd=100.0)
         fr = FrontierEstimateResult(value_usd=350.0, available=True)
         nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
-        output = _assemble_output(p, fr, nr)
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
         assert output.deal_score == "hot"
         assert output.discount_usd == 250.0
         assert "ensemble_partial:frontier_only" in output.warnings
@@ -281,7 +331,8 @@ class TestAssembly:
         p = _make_product(sale_price_usd=100.0)
         fr = FrontierEstimateResult(value_usd=210.0, available=True)
         nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
-        output = _assemble_output(p, fr, nr)
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
         assert output.deal_score == "good"
         assert output.discount_usd == 110.0
 
@@ -290,20 +341,126 @@ class TestAssembly:
         p = _make_product(sale_price_usd=200.0)
         fr = FrontierEstimateResult(value_usd=150.0, available=True)
         nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
-        output = _assemble_output(p, fr, nr)
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
         assert output.deal_score == "overpriced"
         assert output.discount_usd == -50.0
 
     def test_frontier_available_neural_available_frontier_wins(self) -> None:
-        """Both available → frontier takes priority, neural value in breakdown is 0.0."""
+        """Both available but specialist missing → frontier priority, neural in breakdown is 0.0."""
         p = _make_product(sale_price_usd=100.0)
         fr = FrontierEstimateResult(value_usd=180.0, available=True)
         nr = NeuralEstimateResult(value_usd=250.0, available=True)
-        output = _assemble_output(p, fr, nr)
-        assert output.estimated_value_usd == 180.0  # frontier, not neural
+        sr = _sr(available=False, error_code="missing_service_config")
+        output = _assemble_output(p, fr, nr, sr)
+        assert output.estimated_value_usd == 180.0  # frontier wins, not neural
         assert output.model_breakdown.frontier == 180.0
         assert output.model_breakdown.neural == 0.0
+        assert output.model_breakdown.specialist == 0.0
         assert "ensemble_partial:frontier_only" in output.warnings
+
+    # ── New specialist tests ────────────────────────────────────────────
+
+    def test_all_three_available_uses_ensemble_formula(self) -> None:
+        """All 3 available → ensemble formula 0.8*f + 0.1*s + 0.1*n."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=900.0, available=True)
+        nr = NeuralEstimateResult(value_usd=800.0, available=True)
+        sr = _sr(value_usd=850.0, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        # 0.8*900 + 0.1*850 + 0.1*800 = 720 + 85 + 80 = 885
+        assert output.estimated_value_usd == 885.0
+        assert output.model_breakdown.frontier == 900.0
+        assert output.model_breakdown.specialist == 850.0
+        assert output.model_breakdown.neural == 800.0
+        assert output.discount_usd == 785.0
+        assert output.deal_score == "hot"
+        # Success — no ensemble_partial warning
+        assert not any("ensemble_partial" in w for w in output.warnings)
+
+    def test_all_three_available_rounds_to_2_decimals(self) -> None:
+        """Ensemble formula result is rounded to 2 decimal places."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=100.0, available=True)
+        nr = NeuralEstimateResult(value_usd=100.0, available=True)
+        sr = _sr(value_usd=100.0, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        assert output.estimated_value_usd == 100.0
+
+    def test_all_three_available_good_deal_score(self) -> None:
+        """Ensemble with moderate discount → good."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=200.0, available=True)
+        nr = NeuralEstimateResult(value_usd=200.0, available=True)
+        sr = _sr(value_usd=200.0, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        assert output.estimated_value_usd == 200.0
+        assert output.deal_score == "good"
+        assert "ensemble_partial" not in str(output.warnings)
+
+    def test_specialist_only_frontier_and_neural_unavailable(self) -> None:
+        """Specialist available, frontier+neural unavailable → specialist_only."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(available=False, error_code="missing_chromadb_path")
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        sr = _sr(value_usd=300.0, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        assert output.estimated_value_usd == 300.0
+        assert output.model_breakdown.specialist == 300.0
+        assert output.model_breakdown.frontier == 0.0
+        assert output.model_breakdown.neural == 0.0
+        assert output.discount_usd == 200.0
+        assert output.deal_score == "hot"
+        assert "ensemble_partial:specialist_only" in output.warnings
+        assert "frontier_unavailable:missing_chromadb_path" in output.warnings
+        assert "neural_unavailable:missing_weights_path" in output.warnings
+
+    def test_frontier_and_specialist_available_neural_unavailable(self) -> None:
+        """Frontier+specialist available, neural unavailable → frontier wins (priority)."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=500.0, available=True)
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        sr = _sr(value_usd=400.0, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        # frontier > specialist in priority chain → frontier only
+        assert output.estimated_value_usd == 500.0
+        assert output.model_breakdown.frontier == 500.0
+        assert output.model_breakdown.specialist == 0.0
+        assert "ensemble_partial:frontier_only" in output.warnings
+        assert "neural_unavailable:missing_weights_path" in output.warnings
+
+    def test_specialist_error_code_preserved_in_warnings(self) -> None:
+        """Specialist error_code appears in warning even when another model succeeds."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(value_usd=150.0, available=True)
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        sr = _sr(available=False, error_code="modal_error",
+                 error_detail="connection refused")
+        output = _assemble_output(p, fr, nr, sr)
+        assert "specialist_unavailable:modal_error" in output.warnings
+        assert "ensemble_partial:frontier_only" in output.warnings
+
+    def test_specialist_value_is_none_treated_as_unavailable(self) -> None:
+        """Specialist available=True but value_usd=None → treated as unavailable."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(available=False, error_code="missing_chromadb_path")
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        sr = _sr(value_usd=None, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        # None value → specialist treated as unavailable → fallback
+        assert output.estimated_value_usd == 105.0  # 5% markup
+        assert "ensemble_partial:fallback_only" in output.warnings
+
+    def test_exactly_one_ensemble_partial_warning(self) -> None:
+        """Partial case produces exactly one ensemble_partial:* warning."""
+        p = _make_product(sale_price_usd=100.0)
+        fr = FrontierEstimateResult(available=False, error_code="model_config_missing")
+        nr = NeuralEstimateResult(available=False, error_code="missing_weights_path")
+        sr = _sr(value_usd=200.0, available=True)
+        output = _assemble_output(p, fr, nr, sr)
+        partial_warnings = [w for w in output.warnings if w.startswith("ensemble_partial")]
+        assert len(partial_warnings) == 1
+        assert partial_warnings[0] == "ensemble_partial:specialist_only"
 
 
 # ====================================================================
@@ -627,6 +784,14 @@ class TestRealModeDispatch:
             "",
         )
         monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_SERVICE",
+            "",
+        )
+        monkeypatch.setattr(
+            "backend.tools.price_estimator.real_estimator.PRICER_SPECIALIST_CLASS",
+            "",
+        )
+        monkeypatch.setattr(
             "backend.tools.price_estimator.real_estimator.PRICER_NEURAL_WEIGHTS_PATH",
             "",
         )
@@ -635,8 +800,9 @@ class TestRealModeDispatch:
         assert result.estimated_value_usd > 0
         assert isinstance(result.model_breakdown.frontier, float)
         assert isinstance(result.model_breakdown.specialist, float)
-        # With no config, frontier and neural should be 0.0
+        # With no config, all models should be 0.0
         assert result.model_breakdown.frontier == 0.0
+        assert result.model_breakdown.specialist == 0.0
         assert result.model_breakdown.neural == 0.0
 
 
@@ -654,9 +820,9 @@ def test_neural_heavy_module_not_imported() -> None:
 
 
 def test_frontier_heavy_modules_not_imported() -> None:
-    """Default test suite must not pull chromadb/sentence_transformers/openai."""
-    for mod_start in ("chromadb", "sentence_transformers", "openai"):
+    """Default test suite must not pull chromadb/sentence_transformers/openai/modal."""
+    for mod_start in ("chromadb", "sentence_transformers", "openai", "modal"):
         leaked = [m for m in sys.modules if m.startswith(mod_start)]
         assert not leaked, (
-            f"{mod_start} was imported — default tests must not pull frontier deps: {leaked}"
+            f"{mod_start} was imported — default tests must not pull heavy deps: {leaked}"
         )

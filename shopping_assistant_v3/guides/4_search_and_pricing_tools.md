@@ -65,7 +65,11 @@ Approved status:
 
 - 4C.1 Neural Adapter + Formatter + Boundary đã được approve.
 - 4C.2 Frontier Adapter + Boundary đã được approve.
-- 4C.3 Specialist extraction vẫn pending và cần brainstorming riêng.
+- 4C.3 Specialist Adapter + Boundary đã được approve.
+- Phase 4C real pricing boundary hiện có opt-in Neural, Frontier, và
+  Specialist adapters. Khi cả ba model available, real estimator dùng formula
+  gốc `0.8*frontier + 0.1*specialist + 0.1*neural`; partial cases dùng
+  deterministic fallback priority với warnings rõ ràng.
 
 ## Non-Goals
 

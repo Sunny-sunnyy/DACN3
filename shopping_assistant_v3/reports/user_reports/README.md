@@ -15,14 +15,16 @@ này là bản dễ đọc hơn, giúp bạn nắm dự án mà không cần đ�
 Shopping Assistant V3 hiện đã hoàn thành tới:
 
 ```text
-Phase 4C.2: Frontier Price Estimator Extraction - Frontier Adapter + Boundary
+Phase 4C.3: Specialist Price Estimator Extraction - Specialist Adapter + Boundary
 ```
 
 Nói ngắn gọn: backend local đã có API, database, async worker, mock search và
 mock pricing pipeline, real Amazon/BestBuy search opt-in, real neural pricing
-boundary opt-in, và Frontier pricing boundary opt-in qua ChromaDB + OpenAI.
-Frontend chat, Router tiếng Việt, Synthesizer tiếng Việt, demo flow cuối cùng,
-và production roadmap vẫn là các phase sau.
+boundary opt-in, Frontier pricing boundary opt-in qua ChromaDB + OpenAI, và
+Specialist pricing boundary opt-in qua Modal. Khi cả ba pricing adapters
+available, real estimator có thể dùng ensemble formula gốc. Frontend chat,
+Router tiếng Việt, Synthesizer tiếng Việt, demo flow cuối cùng, và production
+roadmap vẫn là các phase sau.
 
 ## Nên Đọc Theo Thứ Tự Nào?
 
@@ -35,6 +37,7 @@ và production roadmap vẫn là các phase sau.
 | `phase_4b_user_report.md` | Real Amazon/BestBuy search được đưa vào V3 như opt-in feature ra sao. |
 | `phase_4c1_user_report.md` | Real neural price estimator boundary hoạt động thế nào và còn thiếu gì. |
 | `phase_4c2_user_report.md` | Frontier pricing dùng ChromaDB + OpenAI được đưa vào V3 như opt-in boundary ra sao. |
+| `phase_4c3_user_report.md` | Specialist pricing dùng Modal được đưa vào V3 như opt-in boundary ra sao và ensemble 3 model hoạt động thế nào. |
 
 ## Bức Tranh Lớn Của Hệ Thống Hiện Tại
 
@@ -66,15 +69,18 @@ phải Synthesizer thật. Điều đó đúng với phase order: Router và Syn
 - Real model pricing cần `ENABLE_REAL_MODEL_CALLS=true` và config riêng.
 - Frontier pricing cần `PRICER_CHROMADB_PATH`, `PRICER_FRONTIER_MODEL_ID`, và
   API key được set trong local env.
+- Specialist pricing cần `PRICER_SPECIALIST_SERVICE`,
+  `PRICER_SPECIALIST_CLASS`, Modal dependency, và Modal auth/config local.
 
 ## Milestone Tiếp Theo
 
 Milestone được phép tiếp theo là:
 
 ```text
-Phase 4C.3: Specialist Price Estimator Extraction
+Phase 5: Router And Synthesizer
 ```
 
-Phase này sẽ cần brainstorming riêng vì Specialist trong prototype là Modal
-remote wrapper. Không nên bắt đầu nếu chưa chốt scope, cost, dependency,
-secret handling, và verification plan.
+Phase này sẽ thêm Router cho tiếng Việt, Synthesizer trả lời tiếng Việt từ
+evidence, deterministic progress steps, và optional hybrid controlled OpenAI
+Agents SDK path. Không nên bắt đầu nếu chưa chốt scope, cost, tracing,
+dependency, secret handling, và verification plan.

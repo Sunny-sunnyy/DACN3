@@ -1,7 +1,7 @@
 """price_estimator_tool — deterministic mock estimation using JSON fixture lookup.
 
 Phase 4A: fixed lookup + rule-based fallback.
-Phase 4C.2: real path dispatched to real_estimator when ENABLE_REAL_MODEL_CALLS=true.
+Phase 4C.3: real path dispatches to real_estimator when ENABLE_REAL_MODEL_CALLS=true.
 """
 
 from __future__ import annotations
@@ -55,9 +55,9 @@ def estimate_price(input: PriceEstimateInput) -> PriceEstimateOutput:
     When ENABLE_REAL_MODEL_CALLS=false (default): fixture lookup with
     deterministic 10% markup fallback rule.
 
-    When ENABLE_REAL_MODEL_CALLS=true (Phase 4C.2): dispatches to
-    real_estimator, which tries Frontier first, falls back to Neural,
-    then uses safe fallback markup with explicit component warnings.
+    When ENABLE_REAL_MODEL_CALLS=true (Phase 4C.3): dispatches to
+    real_estimator, which tries Frontier, Specialist, and Neural before
+    assembling an ensemble or safe fallback with explicit component warnings.
 
     Args:
         input: PriceEstimateInput wrapping a ProductCandidate.

@@ -26,6 +26,9 @@ frontier = [
     "sentence-transformers>=3.0.0",
     "openai>=1.0.0",
 ]
+specialist = [
+    "modal>=0.60.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

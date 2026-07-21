@@ -281,6 +281,12 @@ a free-form autonomous todo list. Initial fixed steps are `route_request`,
 evidence-linked fields and dynamic todo lists remain roadmap items until the
 minimal contract is verified.
 
+Approved Phase 5 direction: use hybrid controlled OpenAI Agents SDK only as an
+optional model-backed runtime layer for Router and Synthesizer. FastAPI,
+SQLite, local worker orchestration, deterministic progress, and explicit V3
+tool contracts remain the source of truth. The SDK must not become a free-form
+ReAct loop or decide the search/pricing tool order in MVP.
+
 Allowed intents:
 
 - `search_deals`
@@ -397,19 +403,21 @@ Current V3 status:
   Boundary đã được approve.
 - Phase 4C.2 Frontier Price Estimator Extraction — Frontier Adapter +
   Boundary đã được approve.
+- Phase 4C.3 Specialist Price Estimator Extraction — Specialist Adapter +
+  Boundary đã được approve.
 - Backend hiện có FastAPI health/chat-job endpoints, SQLite schema
   initialization, repositories, safe error shape, và local async worker.
 - Worker hiện dùng daemon thread cho local MVP, có mock completion,
   stale-running recovery, structured logs, và `agent_runs` audit rows.
 - Search/pricing hiện có mock-safe default path, opt-in real Amazon/BestBuy
-  search, opt-in Neural pricing boundary, và opt-in Frontier pricing boundary
-  qua configurable ChromaDB path + OpenAI SDK.
+  search, opt-in Neural pricing boundary, opt-in Frontier pricing boundary qua
+  configurable ChromaDB path + OpenAI SDK, và opt-in Specialist pricing
+  boundary qua Modal service/class config. Real estimator dùng full 3-model
+  ensemble khi cả Frontier, Specialist, và Neural đều available.
 - `shopping_assistant_v2/` vẫn chỉ là reference.
 - `segment4/` vẫn chỉ là prototype/reference.
 
 Next allowed implementation milestone:
 
-1. Phase 4C.3: Specialist Price Estimator Extraction, chỉ sau explicit
+1. Phase 5: Router And Synthesizer, chỉ sau separate brainstorming và explicit
    approval.
-2. Phase 5: Router And Synthesizer, chỉ sau Phase 4C.3 hoặc sau explicit
-   decision defer Specialist.
