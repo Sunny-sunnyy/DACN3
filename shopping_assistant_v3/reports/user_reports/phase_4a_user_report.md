@@ -96,7 +96,21 @@ Quan hệ:
 - `tests/test_tools.py` kiểm tra tool contracts và fixture behavior.
 - `tests/test_worker.py` kiểm tra cả pipeline worker.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 4A cần chứng minh shopping pipeline đã có shape thật:
+
+```text
+search products -> estimate prices -> save products/estimates -> build result
+```
+
+Nhưng toàn bộ dữ liệu vẫn đến từ fixtures local. Sau khi chạy xong, bạn nên
+thấy product candidates, estimated values, discounts, deal scores, warnings, và
+audit rows mà không cần mạng.
+
+### 7.2 Command An Toàn
 
 Chạy từ `shopping_assistant_v3/`:
 
@@ -114,6 +128,42 @@ Bạn có thể hiểu đúng trạng thái này như sau:
 - Pricing có estimate, nhưng từ fixture hoặc rule.
 - Không có Amazon/BestBuy live request.
 - Không có model call.
+
+### 7.3 Cách Đọc Kết Quả
+
+- `tests/test_tools.py` pass: tool schemas, fixture search, fixture pricing và
+  fallback pricing hoạt động.
+- `tests/test_worker.py` pass: worker đã gọi search tool và price estimator
+  theo thứ tự đúng, rồi lưu products/estimates.
+- `Results truncated...` nếu xuất hiện là warning hợp lệ khi số kết quả vượt
+  `max_results_per_source`.
+- `No products found...` là warning hợp lệ khi query không match fixture.
+
+### 7.4 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_4a_mock_tools.ipynb
+```
+
+Notebook này gọi trực tiếp `deal_search()` và `estimate_price()` bằng mock
+fixtures để bạn thấy output Pydantic thực tế trước khi đọc worker pipeline.
+
+### 7.5 Lỗi Thường Gặp
+
+- Query không ra sản phẩm: thử `gaming laptop`, `phone`, hoặc để query rỗng để
+  xem fixture pool.
+- Nhầm real mode: giữ `ENABLE_REAL_SEARCH=false` và
+  `ENABLE_REAL_MODEL_CALLS=false` khi chạy default.
+- Kỳ vọng answer tiếng Việt hoàn chỉnh ở Phase 4A: chưa có; Synthesizer thuộc
+  Phase 5A.
+
+### 7.6 Safety Notes
+
+Default commands của Phase 4A không scrape web và không gọi model. Nếu bạn bật
+real flags trong shell hiện tại, hãy tắt hoặc mở terminal sạch trước khi chạy
+mock verification.
 
 ## 8. Giới Hạn Hiện Tại
 

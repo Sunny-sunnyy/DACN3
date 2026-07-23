@@ -102,7 +102,24 @@ Quan hệ:
 - `test_worker.py` kiểm tra worker logic trực tiếp.
 - `test_api.py` kiểm tra API tạo job và job eventually completed.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 3 cần chứng minh job không còn đứng yên ở `pending`. Sau khi chạy xong,
+bạn nên thấy lifecycle:
+
+```text
+pending -> running -> completed
+```
+
+hoặc failure path an toàn:
+
+```text
+pending -> running -> failed
+```
+
+### 7.2 Command An Toàn
 
 Chạy từ `shopping_assistant_v3/`:
 
@@ -113,7 +130,7 @@ uv run pytest tests/ -v
 
 Khi Phase 3 được approve, toàn bộ suite có 36 tests pass.
 
-Bạn cũng có thể thử flow manual:
+Bạn cũng có thể thử flow manual bằng backend local:
 
 ```bash
 uv run uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
@@ -132,6 +149,42 @@ Sau đó dùng `job_id` để poll:
 ```bash
 curl http://127.0.0.1:8000/api/chat-jobs/<job_id>
 ```
+
+Kết quả mong đợi trên current code Phase 5A là job chuyển tới `completed` và có
+`result`. Nếu bạn đang đọc đúng lịch sử Phase 3, result vẫn là mock result đơn
+giản chứ chưa có real search/pricing.
+
+### 7.3 Cách Đọc Kết Quả
+
+- `tests/test_worker.py` pass: worker xử lý status, idempotency, stale-running
+  recovery và safe failure đúng.
+- Full suite pass: API và worker phối hợp được.
+- Trong manual flow, `POST` trả `job_id` ngay. `GET` sau đó mới trả kết quả.
+- Nếu status vẫn `pending` ngay lần poll đầu, đợi ngắn rồi gọi `GET` lại; đó là
+  polling pattern bình thường.
+
+### 7.4 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_3_async_jobs.ipynb
+```
+
+Notebook này chạy worker tests, map lifecycle states, và ghi manual API flow
+riêng. Nó không tự mở server trong notebook để tránh cell treo.
+
+### 7.5 Lỗi Thường Gặp
+
+- Poll quá nhanh và thấy `pending`: gọi lại `GET` sau một khoảng ngắn.
+- Server vẫn chạy từ lần trước: dừng terminal cũ hoặc đổi port.
+- SQLite file local bị cũ khi demo manual: có thể dùng test suite vì tests tự
+  tạo temp database sạch.
+
+### 7.6 Safety Notes
+
+Phase 3 vẫn mock-only. Không có live scraping, không có OpenAI/Modal calls, và
+không cần secrets.
 
 ## 8. Giới Hạn Hiện Tại
 

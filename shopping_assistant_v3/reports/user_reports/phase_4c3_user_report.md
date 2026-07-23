@@ -76,7 +76,18 @@ tests/test_real_pricing_specialist.py
 tests/test_real_pricing_specialist_smoke.py
 ```
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 4C.3 cần chứng minh Specialist boundary và ensemble behavior:
+
+- Specialist adapter không làm default tests phụ thuộc Modal;
+- thiếu Modal config/dependency tạo warning an toàn;
+- real estimator biết combine Frontier/Specialist/Neural khi đủ tín hiệu;
+- nếu thiếu model, fallback priority vẫn deterministic.
+
+### 7.2 Command An Toàn
 
 Default verification:
 
@@ -93,8 +104,15 @@ Expected result đã được Codex review:
 171 passed, 18 skipped for full default suite
 ```
 
-Opt-in Specialist smoke tests chỉ chạy khi bạn tự bật real model mode và đã cấu
-hình Modal local:
+### 7.3 Opt-In Specialist Smoke Test
+
+Chỉ chạy khi bạn tự bật real model mode và đã cấu hình Modal local:
+
+```bash
+uv sync --extra dev --extra specialist
+```
+
+Sau đó:
 
 ```bash
 ENABLE_REAL_MODEL_CALLS=true \
@@ -104,6 +122,42 @@ uv run pytest tests/test_real_pricing_specialist_smoke.py -q --tb=short
 ```
 
 Không paste Modal token hoặc secrets vào chat, docs, logs, hoặc reports.
+
+### 7.4 Cách Đọc Kết Quả
+
+- Focused tests pass: Specialist adapter xử lý missing config, missing
+  dependency, sanitized errors, và config defaults đúng.
+- Full suite pass/skipped: default behavior vẫn mock-safe.
+- Smoke skipped: thiếu `ENABLE_REAL_MODEL_CALLS`, service/class config, Modal
+  dependency, hoặc Modal auth; đây là expected nếu bạn chưa setup real service.
+- Khi full ensemble chạy đủ ba model, `model_breakdown` có đủ `frontier`,
+  `specialist`, `neural` và estimate dùng formula `0.8/0.1/0.1`.
+- Khi thiếu model, warning sẽ nói rõ component nào unavailable.
+
+### 7.5 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_4c3_specialist_pricing.ipynb
+```
+
+Notebook này demo Specialist boundary/fallback an toàn trước. Cell Modal thật
+chỉ chạy nếu env và dependency đã đủ.
+
+### 7.6 Lỗi Thường Gặp
+
+- Thiếu `PRICER_SPECIALIST_SERVICE` hoặc `PRICER_SPECIALIST_CLASS`.
+- Chưa login/config Modal trên máy local.
+- Modal service/class đổi tên hoặc không available.
+- Lẫn kỳ vọng deploy/train: Phase 4C.3 chỉ tạo adapter, không deploy hoặc
+  train service.
+
+### 7.7 Safety Notes
+
+Specialist là remote model path. Chỉ chạy smoke test khi bạn chấp nhận network
+và service cost/rate-limit nếu có. Không paste Modal tokens, account details,
+private service logs, hoặc raw exception chứa thông tin nhạy cảm.
 
 ## 8. Giới Hạn Hiện Tại
 

@@ -40,6 +40,59 @@ sau.
 | `phase_4c3_user_report.md` | Specialist pricing dùng Modal được đưa vào V3 như opt-in boundary ra sao và ensemble 3 model hoạt động thế nào. |
 | `phase_5a_user_report.md` | Router tiếng Việt, Synthesizer tiếng Việt, progress steps, summary cards, và audit rows deterministic hoạt động ra sao. |
 
+## Cách Chạy Code Khi Đọc Reports
+
+Các report này bây giờ có thêm runbook theo từng phase. Mỗi runbook trả lời:
+
+- chạy command nào;
+- command đó chứng minh điều gì;
+- kết quả mong đợi sau khi chạy;
+- cách đọc output;
+- lỗi thường gặp;
+- safety notes để tránh gọi nhầm live scraping hoặc paid model APIs.
+
+Luôn chạy từ thư mục V3:
+
+```bash
+cd shopping_assistant_v3
+```
+
+Lần đầu chuẩn bị môi trường dev:
+
+```bash
+uv sync --extra dev
+```
+
+Command trên có thể cần network để tải dependencies. Sau khi sync xong, các
+default tests trong reports phải chạy bằng mock/fixtures và không cần secrets.
+
+## Notebook Companion
+
+Notebook companion nằm ở:
+
+```text
+shopping_assistant_v3/reports/notebooks/
+```
+
+Mỗi notebook chạy trên code hiện tại đã approve tới Phase 5A, nhưng chỉ focus
+vào nội dung của phase tương ứng. Đây không phải historical checkout theo từng
+commit.
+
+| Notebook | Dùng để chạy thử |
+|---|---|
+| `phase_1_project_setup.ipynb` | Kiểm tra skeleton folder và setup script. |
+| `phase_2_backend_api_and_database.ipynb` | Health/API schema, SQLite tables, repository basics. |
+| `phase_3_async_jobs.ipynb` | Worker lifecycle, job status, safe completion/failure concepts. |
+| `phase_4a_mock_tools.ipynb` | Mock search/pricing tools và product/estimate output. |
+| `phase_4b_real_search.ipynb` | Parser tests, mock-safe default search, opt-in live search guards. |
+| `phase_4c1_neural_pricing.ipynb` | Formatter, neural boundary, fallback khi thiếu weights/deps. |
+| `phase_4c2_frontier_pricing.ipynb` | Frontier config, fallback, opt-in ChromaDB/OpenAI guards. |
+| `phase_4c3_specialist_pricing.ipynb` | Specialist Modal boundary, ensemble/fallback behavior. |
+| `phase_5a_router_synthesizer.ipynb` | Router tiếng Việt, Synthesizer, progress steps, summary cards. |
+
+Notebook outputs được để trống trong repo. Expected output được ghi bằng
+Markdown trong notebook để tránh lưu log/path local hoặc dữ liệu nhạy cảm.
+
 ## Bức Tranh Lớn Của Hệ Thống Hiện Tại
 
 Luồng hiện tại của backend:

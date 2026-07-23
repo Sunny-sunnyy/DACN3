@@ -97,7 +97,19 @@ Quan hệ:
 - `test_real_pricing.py` kiểm tra default mock-safe behavior.
 - `test_real_pricing_frontier.py` là opt-in smoke test, skipped mặc định.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 4C.2 cần chứng minh Frontier boundary được tích hợp nhưng không phá mock
+default:
+
+- default tests không cần ChromaDB/OpenAI/API key;
+- config thiếu được xử lý bằng safe fallback;
+- khi bật đúng env, Frontier adapter có thể dùng vectorstore + OpenAI để trả
+  fair value estimate.
+
+### 7.2 Command An Toàn
 
 Default verification không cần ChromaDB, OpenAI, secrets, hoặc network:
 
@@ -111,8 +123,16 @@ Kết quả approved:
 148 passed, 16 skipped
 ```
 
-Opt-in Frontier smoke test chỉ chạy khi đã chuẩn bị vectorstore, model id, API
-key trong local env, và frontier extras:
+### 7.3 Opt-In Frontier Smoke Test
+
+Chỉ chạy khi đã chuẩn bị vectorstore, model id, API key trong local env, và
+frontier extras:
+
+```bash
+uv sync --extra dev --extra frontier
+```
+
+Sau đó:
 
 ```bash
 ENABLE_REAL_MODEL_CALLS=true \
@@ -121,6 +141,46 @@ PRICER_FRONTIER_MODEL_ID=gpt-5.1 \
 OPENAI_API_KEY=<set locally> \
 uv run pytest tests/test_real_pricing_frontier.py -v
 ```
+
+Không paste API key vào chat, notebook output, docs, hoặc report.
+
+### 7.4 Cách Đọc Kết Quả
+
+- `148 passed, 16 skipped`: default suite ổn; real smoke tests chưa chạy là
+  đúng.
+- Frontier smoke pass: adapter truy cập được ChromaDB collection `products`,
+  tạo embedding và nhận model response.
+- Smoke skipped: thiếu flag/env/deps, đúng với safety design.
+- Smoke fail vì OpenAI/network/vectorstore: ghi lại bounded error summary,
+  không paste secrets hoặc raw payload.
+- Warning `ensemble_partial:frontier_only` nghĩa là Frontier đang dùng một mình,
+  chưa phải full ensemble.
+
+### 7.5 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_4c2_frontier_pricing.ipynb
+```
+
+Notebook này demo config/fallback an toàn và có cell opt-in cho Frontier smoke
+test khi env đã đủ.
+
+### 7.6 Lỗi Thường Gặp
+
+- `PRICER_CHROMADB_PATH` trỏ nhầm folder hoặc collection `products` không tồn
+  tại.
+- `PRICER_FRONTIER_MODEL_ID` rỗng.
+- `OPENAI_API_KEY` chưa set trong local env.
+- Chưa cài `frontier` extra.
+- Website/search không liên quan phase này; Frontier pricing chỉ định giá từ
+  product evidence đã có.
+
+### 7.7 Safety Notes
+
+Frontier là paid/model-backed path. Chỉ bật khi bạn chấp nhận OpenAI call.
+Không log/paste API key, raw request headers, hoặc raw model payload nếu có lỗi.
 
 ## 8. Giới Hạn Hiện Tại
 

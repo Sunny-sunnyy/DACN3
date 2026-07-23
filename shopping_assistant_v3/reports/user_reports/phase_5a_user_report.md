@@ -121,7 +121,19 @@ tests/test_worker.py
 tests/test_api.py
 ```
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 5A cần chứng minh backend đã có assistant behavior deterministic:
+
+- Router hiểu query tiếng Việt phổ biến và tạo `query_en`;
+- unsupported intent không gọi search/pricing;
+- worker chạy fixed pipeline và cập nhật `progress_steps`;
+- Synthesizer trả `answer_vi` và `summary_cards` từ evidence;
+- audit rows có worker/router/tools/synthesizer.
+
+### 7.2 Command An Toàn
 
 Default verification:
 
@@ -149,6 +161,85 @@ Implementer report ghi nhận full local verification:
 ```text
 230 passed, 18 skipped
 ```
+
+### 7.3 Manual Backend Flow
+
+Chạy server local:
+
+```bash
+uv run uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
+```
+
+Mở terminal khác và gửi một shopping request:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat-jobs \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Tìm laptop gaming dưới 800 đô","source":"All","max_results_per_source":5}'
+```
+
+Poll bằng `job_id`:
+
+```bash
+curl http://127.0.0.1:8000/api/chat-jobs/<job_id>
+```
+
+Kết quả mong đợi:
+
+- `status` chuyển sang `completed`;
+- `result.answer_vi` là tiếng Việt;
+- `result.products` có product evidence;
+- `result.summary_cards` có cards đã sort theo discount;
+- top-level `progress_steps` có 4 step ids:
+  `route_request`, `search_deals`, `estimate_prices`, `synthesize_answer`.
+
+Unsupported request ví dụ:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat-jobs \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Kể chuyện cười đi"}'
+```
+
+Kết quả mong đợi: câu fallback tiếng Việt, `search_deals` và
+`estimate_prices` có status `skipped`.
+
+### 7.4 Cách Đọc Kết Quả
+
+- Router tests pass: intent/source/price pattern/query extraction ổn.
+- Synthesizer tests pass: answer/cards/warnings không bịa data ngoài evidence.
+- Worker tests pass: pipeline và audit rows ổn.
+- Full local suite pass: Phase 5A không phá các phase trước.
+- `tests/test_api.py` có thể timeout trong Codex sandbox do `TestClient`/AnyIO,
+  nhưng đã pass ngoài sandbox theo implementer report. Nếu máy bạn cũng timeout,
+  ưu tiên đọc focused worker/router/synth tests và thử manual backend flow.
+
+### 7.5 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_5a_router_synthesizer.ipynb
+```
+
+Notebook này gọi `deterministic_route()`, `deterministic_synthesize()`, và
+progress builder trực tiếp để bạn thấy contract trước khi chạy worker tests.
+
+### 7.6 Lỗi Thường Gặp
+
+- Query tiếng Việt quá lạ: deterministic Router có thể trả unsupported hoặc
+  query chưa đẹp; Phase 5B SDK provider sẽ cải thiện chuyện này.
+- Mong đợi LLM style answer: Phase 5A là template deterministic, ưu tiên
+  correctness hơn văn phong.
+- `summary_cards` rỗng: kiểm tra search fixture có match query không.
+- Test API timeout trong sandbox: không tự đổi dependency/test harness nếu chưa
+  có Phase 5B approval.
+
+### 7.7 Safety Notes
+
+Phase 5A không import OpenAI Agents SDK và không gọi model. Giữ
+`ENABLE_REAL_MODEL_CALLS=false` và `ENABLE_AGENTS_SDK=false` cho default
+verification.
 
 ## 8. Giới Hạn Hiện Tại
 

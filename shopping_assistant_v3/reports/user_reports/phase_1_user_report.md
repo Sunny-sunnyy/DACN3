@@ -83,7 +83,15 @@ Quan hệ giữa các file:
 - `.env.example` cho biết biến môi trường nào sẽ cần trong tương lai.
 - `verify_setup.sh` kiểm tra các folder/file skeleton đó tồn tại.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 1 chỉ chứng minh project skeleton của V3 tồn tại đúng vị trí. Sau khi
+chạy xong, bạn biết chắc các folder runtime chính đã được tạo và không phải
+nhầm sang `shopping_assistant_v2/` hoặc `segment4/`.
+
+### 7.2 Command An Toàn
 
 Chạy từ repo root:
 
@@ -97,6 +105,9 @@ Kết quả mong đợi:
 verify_setup: OK
 ```
 
+Nếu thấy `MISSING DIR` hoặc `MISSING FILE`, nghĩa là skeleton đang thiếu phần
+mà các phase sau giả định sẽ tồn tại.
+
 Bạn cũng có thể kiểm tra rằng Phase 1 không chạm vào code cũ:
 
 ```bash
@@ -104,6 +115,30 @@ git diff --name-only -- segment4/ shopping_assistant_v2/
 ```
 
 Kết quả đúng là không có output.
+
+### 7.3 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_1_project_setup.ipynb
+```
+
+Notebook này chạy lại `verify_setup.sh`, liệt kê các folder/file quan trọng và
+giải thích vì sao Phase 1 chỉ là setup, chưa phải app chạy thật.
+
+### 7.4 Lỗi Thường Gặp
+
+- Chạy sai thư mục: dùng command từ repo root `tech2ai/`.
+- Script không executable: dùng `bash .../verify_setup.sh` thay vì chạy trực
+  tiếp `./verify_setup.sh`.
+- Có output từ `git diff -- segment4/ shopping_assistant_v2/`: không xóa hoặc
+  reset ngay; kiểm tra đó có phải thay đổi ngoài scope đang có sẵn hay không.
+
+### 7.5 Safety Notes
+
+Phase 1 không cần network, không cần secrets, không cài dependencies, không gọi
+model, và không scrape website.
 
 ## 8. Giới Hạn Hiện Tại
 

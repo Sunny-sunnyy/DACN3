@@ -107,7 +107,17 @@ Quan hệ:
 - `tests/fixtures/*.html` cho parser tests không cần network.
 - `test_real_search.py` là opt-in, dùng cho live search khi được phép.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 4B cần chứng minh hai lớp:
+
+- default path vẫn mock-safe như Phase 4A;
+- real search extraction modules có parser/orchestrator test bằng fixtures và
+  chỉ gọi live Amazon/BestBuy khi bạn bật opt-in rõ ràng.
+
+### 7.2 Command An Toàn
 
 Default, không scrape live:
 
@@ -124,6 +134,55 @@ Khi Phase 4B được approve, default suite có:
 ```
 
 `8 skipped` là real search tests, chỉ chạy khi bạn bật real search rõ ràng.
+
+### 7.3 Opt-In Live Search
+
+Chỉ chạy khi bạn chấp nhận network request tới Amazon/BestBuy:
+
+```bash
+ENABLE_REAL_SEARCH=true uv run pytest tests/test_real_search.py -v
+```
+
+Kết quả mong đợi khi site/network ổn định là live tests pass hoặc trả warnings
+đã sanitize. Nếu Amazon/BestBuy đổi HTML, block request, hoặc timeout, test có
+thể fail dù code vẫn đúng với mock contract. Ghi lại source nào fail và warning
+code, không paste raw HTML/header nếu có.
+
+### 7.4 Cách Đọc Kết Quả
+
+- Parser tests pass: HTML fixtures local vẫn parse đúng.
+- `skipped`: real tests không chạy vì `ENABLE_REAL_SEARCH` chưa bật; đây là
+  behavior đúng cho default mode.
+- Warnings dạng source fail là expected với live web instability, nhưng không
+  được chứa raw exception/HTML/secrets.
+- Source filter `Amazon` hoặc `BestBuy` không nên tạo warning kiểu source kia
+  bị skipped; đó là filter bình thường.
+
+### 7.5 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_4b_real_search.ipynb
+```
+
+Notebook này chạy parser/mock-safe checks trước. Phần live search có guard:
+chỉ chạy khi environment có `ENABLE_REAL_SEARCH=true`.
+
+### 7.6 Lỗi Thường Gặp
+
+- Không có network hoặc bị website block: live search fail, nhưng mock tests
+  vẫn phải pass.
+- `curl_cffi` import lỗi: chạy lại `uv sync`; dependency này nằm trong base
+  dependencies của V3 hiện tại.
+- Kết quả live thay đổi theo thời gian: không dùng live output làm default
+  grading evidence.
+
+### 7.7 Safety Notes
+
+Không bật `ENABLE_REAL_SEARCH=true` trong default verification. Live search
+không cần API key nhưng có network/flaky risk, nên chỉ chạy khi bạn chủ động
+muốn kiểm tra extraction thật.
 
 ## 8. Giới Hạn Hiện Tại
 

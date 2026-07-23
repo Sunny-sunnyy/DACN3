@@ -131,7 +131,18 @@ Quan hệ:
 - `test_real_pricing.py` kiểm tra default behavior không cần neural deps.
 - `test_real_pricing_neural.py` là opt-in smoke test, skipped mặc định.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
+
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 4C.1 cần chứng minh V3 có real pricing boundary đầu tiên:
+
+- formatter biến product evidence thành input định giá ổn định;
+- neural adapter lazy-load dependency/weights;
+- nếu thiếu weights/deps, hệ thống fallback an toàn thay vì crash;
+- default verification không gọi model thật.
+
+### 7.2 Command An Toàn
 
 Default, không cần weights và không gọi model thật:
 
@@ -146,7 +157,15 @@ Khi Phase 4C.1 được approve, kết quả cuối:
 127 passed, 12 skipped
 ```
 
-Opt-in neural smoke test chỉ chạy khi bạn chủ động chuẩn bị:
+### 7.3 Opt-In Neural Smoke Test
+
+Chỉ chạy khi bạn chủ động chuẩn bị neural dependencies và weights local:
+
+```bash
+uv sync --extra dev --extra neural
+```
+
+Sau đó:
 
 ```bash
 ENABLE_REAL_MODEL_CALLS=true \
@@ -155,6 +174,43 @@ uv run pytest tests/test_real_pricing_neural.py -v
 ```
 
 Nếu chưa cài neural extras hoặc chưa có weights path, test sẽ skip.
+
+### 7.4 Cách Đọc Kết Quả
+
+- Default tests pass: formatter, fallback, warnings, lazy import và safety
+  boundary đúng.
+- Opt-in neural test pass: adapter load được weights và trả estimate thật từ
+  local neural model.
+- Opt-in test skipped: thiếu `ENABLE_REAL_MODEL_CALLS=true`, thiếu weights
+  path, hoặc thiếu dependency; đây là behavior đúng nếu bạn chưa chuẩn bị.
+- Warning `real_pricing_fallback_used:sale_price_markup` nghĩa là hệ thống
+  không crash khi real neural unavailable.
+
+### 7.5 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_4c1_neural_pricing.ipynb
+```
+
+Notebook này chạy formatter/fallback demo an toàn trước. Cell neural thật có
+guard và chỉ chạy nếu env đã bật real model mode kèm weights path.
+
+### 7.6 Lỗi Thường Gặp
+
+- `PRICER_NEURAL_WEIGHTS_PATH` trỏ sai file: opt-in test skip hoặc fail với
+  warning an toàn.
+- Chưa cài `neural` extra: default tests vẫn pass; chỉ real neural smoke cần
+  extra.
+- Mong đợi full ensemble ở 4C.1: chưa có; Frontier và Specialist thuộc các
+  milestone sau.
+
+### 7.7 Safety Notes
+
+Không commit model weights `.pth`. Không paste absolute secret paths nếu path
+có thông tin nhạy cảm. Neural local không gọi paid API, nhưng dependency/weights
+có thể nặng.
 
 ## 8. Giới Hạn Hiện Tại
 

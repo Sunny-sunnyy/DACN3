@@ -101,9 +101,31 @@ Quan hệ:
 - `shared/config.py` đọc config từ env, không log secret.
 - `tests/test_api.py` kiểm tra API, validation, database side effects.
 
-## 7. Cách Tự Kiểm Tra
+## 7. Cách Tự Kiểm Tra Và Chạy Code
 
-Chạy từ `shopping_assistant_v3/`:
+### 7.1 Mục Tiêu Khi Chạy
+
+Phase 2 cần chứng minh backend có thể:
+
+- khởi tạo FastAPI app;
+- validate request/response schemas;
+- tạo SQLite tables;
+- tạo/read chat job qua repository và API;
+- trả safe error shape khi input sai.
+
+### 7.2 Chuẩn Bị
+
+Chạy từ repo root:
+
+```bash
+cd shopping_assistant_v3
+uv sync --extra dev
+```
+
+`uv sync --extra dev` có thể cần network lần đầu. Sau đó default tests không
+cần API key hoặc live services.
+
+### 7.3 Command An Toàn
 
 ```bash
 uv run pytest tests/test_api.py -v
@@ -117,7 +139,7 @@ Bạn cũng có thể chạy server local:
 uv run uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Sau đó kiểm tra:
+Terminal này sẽ giữ server chạy. Mở terminal khác, chạy:
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -128,6 +150,49 @@ Kết quả đúng:
 ```json
 {"status":"ok","service":"shopping-assistant-v3"}
 ```
+
+Để tạo job ở Phase 2:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat-jobs \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Tìm laptop gaming dưới 800 đô"}'
+```
+
+Kết quả mong đợi là HTTP `201` với `job_id` và `status: pending`. Ở đúng
+Phase 2 lịch sử, job chưa tự hoàn thành vì worker chưa có. Khi chạy trên code
+hiện tại Phase 5A, worker có thể xử lý job tiếp ở background.
+
+### 7.4 Cách Đọc Kết Quả
+
+- `20 passed`: API contract Phase 2 ổn.
+- `422` trong test validation là behavior đúng khi request sai schema.
+- `404` là behavior đúng khi `conversation_id` không tồn tại.
+- Nếu gọi `/health` trả JSON ở trên, FastAPI app đã boot đúng.
+
+### 7.5 Notebook Companion
+
+Notebook tương ứng:
+
+```text
+shopping_assistant_v3/reports/notebooks/phase_2_backend_api_and_database.ipynb
+```
+
+Notebook này có cell chạy focused API tests, kiểm tra health response bằng
+Python, và demo schema/repository ở mức an toàn.
+
+### 7.6 Lỗi Thường Gặp
+
+- `ModuleNotFoundError`: bạn chưa chạy trong `shopping_assistant_v3/` hoặc chưa
+  `uv sync --extra dev`.
+- Port `8000` đang bận: đổi port, ví dụ `--port 8001`.
+- `TestClient` timeout trong một số sandbox: xem Phase 5A note; nếu local máy
+  bạn chạy được thì đây không phải lỗi app.
+
+### 7.7 Safety Notes
+
+Phase 2 không cần real search, không cần model calls, không cần secrets. Không
+paste nội dung `.env` hoặc API keys vào terminal output/notebook.
 
 ## 8. Giới Hạn Hiện Tại
 

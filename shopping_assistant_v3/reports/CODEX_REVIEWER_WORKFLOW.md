@@ -232,6 +232,36 @@ Quy tắc:
   `README.md` hoặc phase report liên quan nếu user-facing understanding bị
   stale.
 
+## User-Facing Notebooks
+
+Khi user-facing runnable docs thay đổi, Codex cũng phải kiểm tra notebook
+companion trong:
+
+```text
+shopping_assistant_v3/reports/notebooks/
+```
+
+Mục đích của notebooks là giúp project owner chạy và hiểu từng approved phase
+trên current codebase, không phải tạo historical checkout theo từng phase
+commit.
+
+Quy tắc review notebook:
+
+- Notebook phải là companion cho approved user report hoặc approved phase.
+- Notebook outputs phải để trống trong repo; expected output ghi trong Markdown
+  cell.
+- Default executable cells không được gọi live Amazon/BestBuy scraping, OpenAI,
+  Modal, AWS, Terraform, deploy, hoặc secrets.
+- Opt-in real-mode cells phải có guard rõ bằng env flags/config và không chạy
+  khi user chỉ chạy default notebook.
+- Không lưu API keys, tokens, private paths nhạy cảm, raw headers, raw HTML lớn,
+  raw model payloads, hoặc stack traces chứa sensitive data.
+- Commands trong notebook phải dùng `uv run` cho Python project commands.
+- Notebook phải chạy trên current approved codebase và ghi rõ nếu output có thể
+  khác historical phase snapshot.
+- Reviewer nên validate notebook JSON parse được, `execution_count` là `null`,
+  `outputs` rỗng, và safety guards còn tồn tại trước approval.
+
 ## Các Mức Review Decision
 
 Dùng đúng một decision:
