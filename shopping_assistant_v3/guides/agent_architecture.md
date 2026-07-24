@@ -36,6 +36,30 @@ trả lời tiếng Việt cuối cùng chỉ từ evidence.
 Worker/orchestration tạo `progress_steps` deterministic để frontend hiển thị
 kế hoạch mua sắm đang chạy. Progress không do LLM tự do sinh ra.
 
+## ITLR-Inspired Agent Patterns
+
+`shopping_assistant_v2/ITLR_Fullstack_Recommender_RAG_TECHNICAL_DOSSIER.md`
+co một số bài học agent/retrieval hữu ích, nhưng V3 chỉ nhận những pattern có
+boundary rõ và phù hợp với shopping assistant:
+
+- query understanding có thể thêm typo correction, abbreviation expansion, và
+  short follow-up resolution qua `conversation_context` sau này;
+- Router và Synthesizer phải giữ deterministic/default path trước khi bất kỳ
+  model-backed provider nào được xem là authoritative;
+- retrieval/ranking improvements phải đo được bằng fixture-based metrics trước
+  khi ảnh hưởng user-facing ranking;
+- off-topic và unsupported-request gates nên có labeled examples, không dựa vào
+  ad hoc prompts;
+- chất lượng văn phong đứng sau evidence correctness: product title, price,
+  URL, source, discount, và warnings vẫn phải đến từ tool output.
+
+Không chấp nhận cho MVP:
+
+- biến V3 thành general learning recommender hoặc social platform;
+- expose search/pricing tools cho free-form agent loop;
+- thêm full RAG/recommender stacks trước khi Amazon/BestBuy deal path ổn định;
+- runtime LLM-as-a-Judge trong default execution.
+
 ## Router Contract
 
 Input:
@@ -259,6 +283,19 @@ Progress steps must be backed by orchestration/tool evidence. A step must not
 be marked `completed` before the matching Router, tool, pricing, or Synthesizer
 evidence exists.
 
+Future query-understanding fields chỉ được thêm sau khi Phase 5/6 contracts ổn
+định:
+
+```text
+corrected_message_vi
+normalized_query_en
+follow_up_of_message_id
+router_notes
+```
+
+Các fields này phải được persist hoặc audit bằng bounded summaries và không
+được chứa secrets, raw scraped payloads, hoặc large model traces.
+
 ## Model Provider Policy
 
 Default MVP behavior vẫn là mock/fixture và không gọi external services.
@@ -346,6 +383,14 @@ Nếu thiếu data, dùng `unknown`, `not_available`, hoặc warning thay vì đ
 Phase 7 should add a rule-based test-only evidence evaluator. It should verify
 that final answers, product cards, warnings, and progress steps are backed by
 tool/result evidence. Runtime LLM-as-a-Judge remains future opt-in work.
+
+ITLR-style evaluation ideas chỉ được đưa vào deterministic tests trước:
+
+- small labeled unsupported/off-topic examples cho Router behavior;
+- fixture queries với expected source/product evidence shape;
+- ranking checks như top product theo `discount_usd`, source coverage, và
+  warning preservation;
+- latency snapshots cho Router/tools/Synthesizer trong mock mode.
 
 ## Segment4 Reference
 

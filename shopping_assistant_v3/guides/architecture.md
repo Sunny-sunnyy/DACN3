@@ -24,6 +24,32 @@ target vẫn là controlled local MVP: FastAPI worker, explicit Router/tools, v�
 deterministic progress. Không dùng generic autonomous Sidekick framework hoặc
 free-form browser agent trong MVP.
 
+## Ranh Giới External Reference
+
+`shopping_assistant_v2/ITLR_Fullstack_Recommender_RAG_TECHNICAL_DOSSIER.md`
+la external technical reference được đặt trong folder cũ cho tiện quản lý. Nó
+không phải Shopping Assistant V2 source of truth và không được migrate nguyên
+subsystem vào V3.
+
+Các bài học ITLR được chấp nhận cho V3 chỉ là pattern:
+
+- giữ boundary rõ giữa product, API, AI/tool runtime, persistence, và analytics;
+- thêm lightweight query understanding trước model-backed behavior khi thật sự
+  cần;
+- ưu tiên artifacts, fixtures, và evaluation tái lập được thay vì demo cảm
+  tính;
+- tracking interaction/audit data an toàn trước khi nghĩ tới feedback loop;
+- đưa rate limit, metrics, production guards, và analytics vào roadmap thay vì
+  local MVP.
+
+Deferred hoặc rejected cho MVP:
+
+- social network, direct messages, uploads, và admin media workflows;
+- full DataLake, Spark, Delta, dbt, MLflow, CDC, hoặc lakehouse infrastructure;
+- broad recommender platform features không liên quan tới Amazon/BestBuy deal
+  search;
+- Docker/CD production rollout trước khi local MVP demo-ready.
+
 ## Local MVP Architecture
 
 ```mermaid
@@ -67,6 +93,8 @@ Các folders tùy chọn về sau:
 ```text
 backend/comparer/
 backend/advisor/
+backend/evaluation/
+backend/metrics/
 ```
 
 Trách nhiệm:
@@ -80,6 +108,13 @@ Trách nhiệm:
 | `tools/deal_search/` | Amazon/BestBuy search và normalized candidates. |
 | `tools/price_estimator/` | USD fair value estimation và deal score calculation. |
 | `synthesizer/` | Vietnamese final answer từ structured evidence. |
+
+Future optional modules, chỉ sau explicit approval:
+
+| Module | Trách nhiệm |
+|---|---|
+| `evaluation/` | Test-only evidence và ranking evaluators lấy cảm hứng từ ITLR, không dùng runtime LLM judging mặc định. |
+| `metrics/` | Local-safe counters/latency summaries cho demo và future production observability. |
 
 Quy tắc:
 
@@ -439,6 +474,8 @@ Không log:
 | Console logs | CloudWatch, traces, LangFuse |
 | `demo_user` | Clerk user id |
 | localhost CORS | configured production origins |
+| SQLite audit rows | Postgres analytics tables hoặc event stream |
+| manual demo checks | repeatable evaluation reports và latency benchmarks |
 
 AWS, Terraform, Clerk, và production observability được hoãn cho tới khi local
 MVP hoạt động đáng tin cậy.

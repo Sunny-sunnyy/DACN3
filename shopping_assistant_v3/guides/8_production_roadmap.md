@@ -55,6 +55,10 @@ Optional references:
 
 - `segment4/mo_ta_du_an/ALEX_PRODUCTION_ARCHITECTURE_TRANSFER.md` for
   production patterns.
+- `shopping_assistant_v2/ITLR_Fullstack_Recommender_RAG_TECHNICAL_DOSSIER.md`
+  chỉ dùng cho bounded evaluation, feedback-loop, và security-hardening
+  patterns. Không migrate social network, DataLake, hoặc full recommender
+  platform của dossier này vào V3 MVP scope.
 
 ## Contracts
 
@@ -68,6 +72,8 @@ Future production mapping:
 | `demo_user` | Clerk user id |
 | localhost CORS | explicit production origins |
 | mock defaults | opt-in real service configs |
+| SQLite job/product/audit rows | analytics events, click/save feedback, hoặc warehouse feed |
+| Phase 7 fixture checks | ranking/evidence dashboards và latency reports |
 
 Production readiness concerns:
 
@@ -86,6 +92,10 @@ Production readiness concerns:
 - scraper source safety.
 - dashboard and alarms.
 - cost tracking.
+- lightweight metrics endpoint hoặc local report cho request counts, failures,
+  và latency trước paid observability.
+- interaction feedback loop cho clicked products, saved products, và accepted
+  recommendations, chỉ sau khi privacy và user identity đã được design.
 
 Sidekick pattern roadmap:
 
@@ -100,6 +110,19 @@ Sidekick pattern roadmap:
   validator or LLM-as-a-Judge only as opt-in future work.
 - Add HITL approval only for costly/sensitive actions such as real model calls,
   real scraping retries, notifications, or production-side effects.
+
+ITLR-inspired roadmap patterns:
+
+- Feedback-loop design phải product-specific: user query, product impressions,
+  clicks, saves, dismissed cards, và final recommendation usefulness. Không
+  thêm general social graph hoặc learning-platform community model.
+- Bắt đầu bằng SQLite/Postgres interaction tables trước warehouse/lakehouse.
+- Chỉ thêm ranking metrics như NDCG/MRR khi có labeled shopping eval set; trước
+  đó dùng fixture-backed evidence và discount-order checks.
+- Thêm rate limits và safe metrics trước public deployment.
+- DataLake, CDC, dbt, MLflow, và BI dashboards chỉ là optional portfolio
+  extensions sau khi shopping MVP chứng minh có usage, không phải production
+  blockers.
 
 ## Workflow Gate
 
@@ -164,3 +187,7 @@ Bao gồm:
 - Real scraping at scale có thể cần proxy/session/rate-limit strategy.
 - Production observability không nên expose user data hoặc secrets.
 - Compare/Advisor agents nên chờ tới khi search + price + summary ổn định.
+- ITLR-inspired analytics phải privacy-first: tránh lưu secrets, raw headers,
+  raw scraped payloads, hoặc unnecessary user PII.
+- Full DataLake/CDC/MLflow work nằm ngoài scope cho tới khi project có stable
+  product events đáng để phân tích.

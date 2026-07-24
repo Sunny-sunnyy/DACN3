@@ -63,6 +63,8 @@ Backend tests bắt buộc:
 - repository create/update/read;
 - job status transition;
 - Router fixture classification;
+- Router unsupported/off-topic fixture examples lấy cảm hứng từ ITLR gate
+  testing;
 - tool input/output schema validation;
 - Synthesizer fixture validation.
 
@@ -86,10 +88,24 @@ Evidence evaluator:
 - Phase 7 dùng rule-based test-only validator, không runtime LLM judge.
 - Validator kiểm tra `answer_vi`, product cards, warnings, và `progress_steps`
   đều được backed by tool/result evidence.
+- Validator nên có fixture cases cho hallucinated URL, hallucinated price,
+  missing warning, unsupported request, và progress step marked completed khi
+  thiếu matching evidence.
+- Ranking/evidence checks có thể mượn tư duy evaluation của ITLR nhưng phải giữ
+  nhỏ: verify sorted deal cards, source coverage, warning propagation, và
+  bounded result counts thay vì xây full recommender benchmark.
 - Default evaluator tests không được gọi OpenAI, Modal, live scraping, AWS, hoặc
   secrets.
 - Optional LLM-as-a-Judge kiểu Sidekick chỉ được đưa vào Phase 8 roadmap hoặc
   future opt-in work.
+
+Latency và repeatability checks:
+
+- thêm mock-mode latency smoke check cho backend job completion nếu làm được mà
+  không tạo flaky timing assertions;
+- ghi expected command outputs và known slow paths trong demo checklist;
+- giữ real search/model latency measurements ở opt-in path, tách khỏi default
+  tests.
 
 Manual demo checklist:
 
@@ -123,11 +139,12 @@ Trước khi code:
 6. Thêm frontend smoke tests.
 7. Thêm progress_steps consistency tests.
 8. Thêm test-only evidence evaluator.
-9. Thêm manual demo script/checklist.
-10. Document opt-in real search/model tests riêng.
-11. Document known limitations.
-12. Chạy full local verification.
-13. Viết Phase 7 report.
+9. Thêm small fixture-based ranking/warning checks nếu chưa có.
+10. Thêm manual demo script/checklist.
+11. Document opt-in real search/model tests riêng.
+12. Document known limitations.
+13. Chạy full local verification.
+14. Viết Phase 7 report.
 
 ## Verification
 
@@ -149,6 +166,10 @@ Manual verification phải cho thấy:
 - progress panel phản ánh đúng backend `progress_steps`;
 - evidence evaluator phát hiện hallucinated price/URL/title/warnings trong test
   fixtures;
+- fixture ranking checks chứng minh best cards được backed by discount
+  evidence;
+- latency/demo notes không biến opt-in real scraping/model calls thành default
+  verification;
 - logs trace được bằng `job_id`.
 
 ## Report Requirements
@@ -175,3 +196,5 @@ Bao gồm:
 - Live scraper reliability không nên block mock demo readiness.
 - Real model costs phải giữ opt-in và documented.
 - Demo script nên đủ ngắn cho repeatable DATN presentation.
+- Không mở rộng Phase 7 thành full ITLR-style evaluation platform; chỉ giữ các
+  checks phục vụ Shopping Assistant MVP.
