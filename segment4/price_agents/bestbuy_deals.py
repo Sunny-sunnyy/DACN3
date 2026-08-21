@@ -74,6 +74,9 @@ def search_bestbuy(session: curl_requests.Session, keyword: str) -> list[dict]:
     all_skus = set(re.findall(r'"skuId":"(\d{5,8})"', text))
 
     for sku_id in all_skus:
+        # Note: Apollo SSR cache structure changed — skuId is now the last field
+        # of the Product object, so pdpUrl follows a single closing brace
+        # ("skuId":"123"},"pdpUrl":"..."), not two.
         pattern = rf'"skuId":"{sku_id}"\}},"pdpUrl":"(https://www\.bestbuy\.com/product/[^"]+)"'
         for m in re.finditer(pattern, text):
             pdp_url = m.group(1)

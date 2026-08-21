@@ -12,6 +12,7 @@ Pipeline:
 
 import re
 import logging
+import time
 from typing import Optional
 
 from bs4 import BeautifulSoup
@@ -60,12 +61,36 @@ class ScrapedAmazonDeal:
 # Session init
 # ---------------------------------------------------------------------------
 
+def _get_with_interstitial_retry(
+    session: curl_requests.Session, url: str, timeout: int = 20
+) -> curl_requests.Response:
+    """GET with browser-like handling of Amazon's Akamai interstitial (bm-verify).
+
+    Amazon sometimes serves a small (~2KB) interstitial page that auto-refreshes
+    to the real URL with a bm-verify token after ~5 seconds. A real browser
+    follows that refresh; we mirror it here.
+    """
+    resp = session.get(url, timeout=timeout)
+    m = re.search(r"refresh\s+content=\"\d+;\s*URL='([^']+bm-verify=[^']+)'", resp.text)
+    if m:
+        logger.info("[Amazon] Akamai interstitial detected, retrying with bm-verify token...")
+        target = m.group(1)
+        if target.startswith("/"):
+            target = "https://www.amazon.com" + target
+        time.sleep(5)
+        resp = session.get(target, timeout=timeout)
+    return resp
+
+
 def init_amazon_session() -> curl_requests.Session:
-    """Create curl_cffi session and set US delivery location."""
+    """Create curl_cffi session and set US delivery location + en_US locale."""
     session = curl_requests.Session(impersonate="chrome")
 
-    # GET homepage to init cookies
-    session.get("https://www.amazon.com", timeout=10)
+    # GET homepage to init cookies. Force en_US/USD locale: without this Amazon
+    # may serve VND-priced pages (user region), which breaks USD price parsing.
+    session.get("https://www.amazon.com/?language=en_US&currency=USD", timeout=10)
+    session.cookies.set("lc-main", "en_US", domain=".amazon.com")
+    session.cookies.set("i18n-prefs", "USD", domain=".amazon.com")
 
     # Set ZIP code 96150 (South Lake Tahoe, CA)
     resp = session.post(
@@ -154,10 +179,10 @@ def parse_search_results(html: str) -> list[dict]:
                         if offscreen:
                             current_price = _parse_price(offscreen.get_text())
 
-        if current_price <= 0:
-            continue
-
-        on_sale = list_price > current_price
+        # Note: the new Amazon search layout renders prices client-side, so
+        # current_price may be 0 here even for real products. search_filter_scrape_amazon
+        # fetches the product page in that case; we keep the card regardless.
+        on_sale = current_price > 0 and list_price > current_price
 
         # --- Specs ---
         specs_parts = []
@@ -197,7 +222,7 @@ def search_amazon(session: curl_requests.Session, keyword: str) -> list[dict]:
     url = f"https://www.amazon.com/s?k={keyword.replace(' ', '+')}"
     logger.info(f"[Amazon Search] {url}")
 
-    resp = session.get(url, timeout=20)
+    resp = _get_with_interstitial_retry(session, url, timeout=20)
     logger.info(f"[Amazon Search] Status: {resp.status_code} | Size: {len(resp.text):,} bytes")
 
     if "/errors/validateCaptcha" in resp.text:
@@ -215,14 +240,26 @@ def search_amazon(session: curl_requests.Session, keyword: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def scrape_product_page(session: curl_requests.Session, url: str) -> dict:
-    """GET product page, extract features and brand."""
-    result = {"features": "", "brand": None}
+    """GET product page, extract price, features and brand."""
+    result = {"features": "", "brand": None, "current_price": 0.0, "list_price": 0.0}
     try:
-        resp = session.get(url, timeout=15)
+        resp = _get_with_interstitial_retry(session, url, timeout=15)
         if resp.status_code != 200:
             return result
 
         soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Current price: #corePrice_feature_div -> span.a-price span.a-offscreen
+        core = soup.select_one("#corePrice_feature_div")
+        if core:
+            offscreen = core.select_one("span.a-price span.a-offscreen")
+            if offscreen:
+                result["current_price"] = _parse_price(offscreen.get_text())
+
+        # List price: "Typical price" -> span.a-price[data-a-strike="true"]
+        strike = soup.select_one('span.a-price[data-a-strike="true"] span.a-offscreen')
+        if strike:
+            result["list_price"] = _parse_price(strike.get_text())
 
         # Features: #feature-bullets
         bullets = soup.select_one("#feature-bullets")
@@ -266,11 +303,13 @@ def search_filter_scrape_amazon(
     """Search Amazon, filter on-sale, scrape details.
 
     Pipeline:
-    1. Init session + ZIP 96150
-    2. GET search page, parse product cards
-    3. Filter on_sale only
-    4. Approach A: title + specs from search page
-    5. If features too short -> Approach B: GET product page for #feature-bullets
+    1. Init session + ZIP 96150 + en_US locale
+    2. GET search page, parse product cards (title/asin)
+    3. For each product: GET product page -> price + features (the current
+       Amazon search layout renders prices client-side, so the product page is
+       the reliable source for current/list price)
+    4. Keep on_sale only (list_price > current_price)
+    5. Truncate to max_results
     """
     if session is None:
         session = init_amazon_session()
@@ -279,38 +318,46 @@ def search_filter_scrape_amazon(
     if not products:
         return []
 
-    sale_products = [p for p in products if p["on_sale"]]
-    logger.info(f"[Amazon Filter] {len(sale_products)} on sale (from {len(products)} total)")
-
-    if not sale_products:
-        return []
-
-    sale_products = sale_products[:max_results]
+    # Bound how many product pages we fetch (each is a separate request).
+    # Buffer beyond max_results so we can still find on-sale items.
+    products = products[: max(max_results * 3, 12)]
 
     deals = []
-    approach_b_count = 0
+    for p in products:
+        if len(deals) >= max_results:
+            break
 
-    for p in sale_products:
+        current_price = p["current_price"]
+        list_price = p["list_price"]
         features = p["specs"]
         brand = p["brand"]
 
-        if len(features) < MIN_FEATURES_LEN:
-            logger.info(f"[Amazon Approach B] specs too short ({len(features)} chars), scraping: {p['asin']}")
+        # New layout: no price on the search page -> fetch product page
+        if current_price <= 0:
+            logger.info(f"[Amazon] No price on search card, scraping product page: {p['asin']}")
             page_data = scrape_product_page(session, p["url"])
+            if page_data["current_price"] > 0:
+                current_price = page_data["current_price"]
+            if page_data["list_price"] > 0:
+                list_price = page_data["list_price"]
             if page_data["features"]:
                 features = page_data["features"]
-                approach_b_count += 1
             if page_data["brand"] and not brand:
                 brand = page_data["brand"]
+
+        if current_price <= 0:
+            continue
+        if not (list_price > current_price):
+            continue
 
         deal = ScrapedAmazonDeal(
             title=p["title"],
             brand=brand,
-            price=p["current_price"],
+            price=current_price,
             features=features,
             url=p["url"],
         )
         deals.append(deal)
 
-    logger.info(f"[Amazon] {len(deals)} deals (Approach A: {len(deals) - approach_b_count}, B: {approach_b_count})")
+    logger.info(f"[Amazon] {len(deals)} sale deals")
     return deals
