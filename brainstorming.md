@@ -27,7 +27,7 @@ Bạn hãy dùng `brainstorming` làm quy trình chính để cùng tôi thảo 
   - `verification-before-completion` - Final verification before completion
 
 Load các skills ở:
-- WSL/Linux: `/home/hieu0606sunny/.codex/skills/`
+- WSL/Linux: `/home/minhhieu/.codex/skills/`
 
 Dừng lại trao đổi với tôi, tôi xác nhận mới tạo file
 

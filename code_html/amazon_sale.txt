@@ -1,0 +1,409 @@
+<span id="productTitle" class="a-size-large product-title-word-break">        HP OmniBook 3 16 inch Laptop PC, 2K Touchscreen, AMD Ryzen 3 30, 8 GB RAM, 256 GB SSD, AMD Radeon 610M GPU, Windows 11 Home, Mica Silver, 16-by0199nr       </span>
+
+
+<div data-csa-c-type="widget" data-csa-c-slot-id="apex_dp_center_column" data-csa-c-content-id="apex_with_rio_cx" data-csa-c-id="kpb48x-5slybu-hrroe2-akhdq5">
+                                         <div id="oas_price_display" class="celwidget" data-feature-name="oas_price_display" data-csa-c-type="widget" data-csa-c-content-id="oas_price_display" data-csa-c-slot-id="oas_price_display" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="3hgqje-ymlpma-ipe3ie-f695ee" data-cel-widget="oas_price_display">
+                                                       </div>
+                                   <div id="lowestPriceDevices_feature_div" class="celwidget" data-feature-name="lowestPriceDevices" data-csa-c-type="widget" data-csa-c-content-id="lowestPriceDevices" data-csa-c-slot-id="lowestPriceDevices_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="85xiih-agh101-fsl16l-wnkvmu" data-cel-widget="lowestPriceDevices_feature_div">
+                                                      </div>
+                                   <div id="dealBadge_feature_div" class="celwidget" data-feature-name="dealBadge" data-csa-c-type="widget" data-csa-c-content-id="dealBadge" data-csa-c-slot-id="dealBadge_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="ryph3o-38x1ia-1ea78c-20tyud" data-cel-widget="dealBadge_feature_div">
+                                            <span class="dealBadge aok-relative" data-csa-c-type="item" data-csa-c-owner="DealsX" data-csa-c-posx="1" data-csa-c-item-id="amzn1.asin.B0GQB1C381:amzn1.deal.d75cd905" data-csa-c-painter="dp-deal" data-csa-c-id="gwvhbl-gp04ju-lw3cob-vgp1fa">
+            <span id="deals_countdown_timer_from_hours_screen_reader_label" class="aok-hidden">Limited time deal NO_OF_HOURS hours NO_OF_MINUTES minutes</span> <span id="deals_countdown_timer_from_minutes_without_seconds_screen_reader_label" class="aok-hidden">Limited time deal NO_OF_MINUTES minutes</span> <span id="deals_countdown_timer_from_minutes_with_seconds_screen_reader_label" class="aok-hidden">Limited time deal NO_OF_MINUTES minutes NO_OF_SECONDS seconds</span> <span id="deals_countdown_timer_from_seconds_screen_reader_label" class="aok-hidden">Limited time deal NO_OF_SECONDS seconds</span> <span id="dealBadgeSupportingText" class="a-size-small dealBadgeTextColor a-text-bold"> <span>Limited time deal</span> </span> </span>
+      <style type="text/css">
+        .dealBadgeSupportingText {
+            color:#CC0C39;
+        }
+    </style>
+                               </div>
+                                   <div id="delightPricingBadge_feature_div" class="celwidget" data-feature-name="delightPricingBadge" data-csa-c-type="widget" data-csa-c-content-id="delightPricingBadge" data-csa-c-slot-id="delightPricingBadge_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="wbo03n-m2y1ix-jpslp5-vjaxdv" data-cel-widget="delightPricingBadge_feature_div">
+                            <style>
+.delight-pricing-badge {
+	background-color: #B12704 !important;
+	margin: auto;
+	font-family: "Amazon Ember", Arial, sans-serif;
+	padding-left: 10px;
+	padding-right: 10px;
+	font-size: 12px !important;
+	line-height: 24px !important;
+	max-width: 140px;
+}
+
+.delight-pricing-badge-label {
+	position: relative;
+	z-index: 1;
+	float: left;
+}
+
+.delight-pricing-badge-label-text {
+	color: #ffffff !important;
+}
+
+.delight-pricing-container span {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.delight-pricing-container {
+	padding-bottom: 5px;
+}
+
+.delight-pricing-badge-description-text {
+	padding-left: 10px;
+	margin: auto;
+	font-family: "Amazon Ember", Arial, sans-serif;
+	color: #111;
+}
+
+.reinventDelightPricing {
+    color:#CC0C39 !important;
+}
+
+.delightPricingBadge {
+    background-color: #CC0C39!important;
+    padding:4px 8px 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 4px;
+}
+
+</style>
+
+<!-- considering updating DetailPageDelightPricingTests package whenever you change the template view -->
+                              </div>
+                                   <div id="inemi_feature_div" class="celwidget" data-feature-name="inemi" data-csa-c-type="widget" data-csa-c-content-id="inemi" data-csa-c-slot-id="inemi_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="fmxd7k-1jzsjt-gv9jqm-piw7n8" data-cel-widget="inemi_feature_div">
+                                                             </div>
+                                   <div id="corePriceDisplay_desktop_feature_div" class="celwidget" data-feature-name="corePriceDisplay_desktop" data-csa-c-type="widget" data-csa-c-content-id="corePriceDisplay_desktop" data-csa-c-slot-id="corePriceDisplay_desktop_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="lymaxz-ifr3mp-9pkwv-msmoms" data-cel-widget="corePriceDisplay_desktop_feature_div">
+                                                    <style>
+    .ppu-align-bottom,
+    .stp-ppu-adaptive-container {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: flex-end;
+        margin-top: 0.8rem;
+    }
+    .stp-ppu-adaptive-container .pricePerUnit {
+        margin-left: 6px;
+    }
+    /* Override the font of a size small with parent container, currently set to a size-mini.
+       This is necessary as basisPrice is hardcoded to use a size small */
+    .stp-ppu-adaptive-container .a-size-small.basisPrice {
+        font-size: inherit !important;
+        line-height: inherit !important;
+    }
+    .stp-ppu-adaptive-container .a-size-micro.basisPriceLegalMessage {
+        margin-left: 2px;
+    }
+</style>
+
+                                                                                               <style type="text/css">
+    .savingPriceOverride {
+        color:#CC0C39!important;
+        font-weight: 300!important;
+    }
+    .savingPriceOverrideEdlp {
+        color:#565959!important;
+        font-weight: 300!important;
+    }
+    .savingPriceOverrideEdlpExperiment {
+        color:#CC0C39!important;
+        font-weight: 700!important;
+    }
+    .savingPriceOverrideEdlpExperimentV2T2 {
+        color:#565959!important;
+        font-weight: 300!important;
+    }
+    .savingPriceOverrideEdlpExperimentV2T4 {
+        color:#000000!important;
+        font-weight: 700!important;
+    }
+</style>
+
+                                                                 <div class="a-section apex-core-price-identifier">                                                        <div class="a-section a-spacing-none aok-align-center aok-relative">     <span id="apex-pricetopay-accessibility-label" data-pricetopay-label="{priceToPay}" data-pricetopay-savings-label="{priceToPay} with {savings} percent savings" class="aok-offscreen"> $449.99 with 33 percent savings </span>        <span class="apex-savings-container ">
+                                    <span aria-hidden="true" class="a-size-large a-color-price savingPriceOverride aok-align-center reinventPriceSavingsPercentageMargin savingsPercentage apex-savings-percentage">-33%</span> </span>
+                                           <span class="a-price aok-align-center reinventPricePriceToPayMargin priceToPay apex-pricetopay-value" data-a-size="xl" data-a-color="base"><span class="a-offscreen"> </span><span aria-hidden="true"><span class="a-price-symbol">$</span><span class="a-price-whole">449<span class="a-price-decimal">.</span></span><span class="a-price-fraction">99</span></span></span>              <span id="taxInclusiveMessage" class="a-size-mini a-color-base aok-align-center aok-nowrap">  </span>                       <div class="a-section a-spacing-none aok-relative aok-inline-block">          </div>     </div>                         <div class="a-section a-spacing-small aok-align-center">    <span>     <span class="apex-basisprice-feature"> <span class="aok-relative"><span data-basisprice-label="{label} {price}" class="a-size-small aok-offscreen apex-basisprice-offscreen-label">List Price: $669.99</span><span aria-hidden="true" class="a-size-small a-color-secondary aok-align-center basisPrice"><span class="apex-basisprice-label">List Price:</span>         <span class="a-price a-text-price apex-basisprice-value" data-a-size="s" data-a-strike="true" data-a-color="secondary"><span class="a-offscreen">$669.99</span><span aria-hidden="true">$669.99</span></span>     </span></span>   <span class="a-size-small aok-align-center basisPriceLegalMessage apex-basisprice-legal-message-icon">                               <span class="a-declarative" data-action="a-popover" data-a-popover="{&quot;name&quot;:&quot;basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2&quot;,&quot;position&quot;:&quot;triggerBottom&quot;,&quot;closeButton&quot;:&quot;true&quot;}"> <a class="a-align-center a-link-normal aok-inline-block" href="#">   <img role="img" aria-label="Learn more about Amazon pricing and savings" height="15" width="12" src="https://m.media-amazon.com/images/S/sash//GN8m8-lU2_Dj38v.svg">    </a> </span> <div class="a-popover-preload" id="a-popover-basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2"> <div data-popover-name="basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2" aria-label="Details" aria-modal="true" class="a-section a-spacing-none apex-basisprice-legal-message-popover-content" role="dialog">  <span class="a-size-base apex-basisprice-legal-message-popover-content-text">The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller. Except for books, Amazon will display a List Price if the product was purchased by customers on Amazon or offered by other retailers at or above the List Price in at least the past 90 days. List prices may not necessarily reflect the product's prevailing market price.<br><a target="_blank" class="a-link-normal" href="/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD&amp;ref_=dp_hp&amp;language=en_US">Learn more</a></span> </div> </div>   <script type="text/javascript">
+            P.when('A', 'a-popover').execute('a-popover-count', function (A) {
+                A.declarative('a-popover', 'mouseenter', function() {
+                    ue.count("tooltip.popover.opened", 1);
+                });
+            });
+        </script>
+        </span>   </span>             </span>      </div>  </div>                                      </div>
+                                   <div id="oneTimePaymentPrice_feature_div" class="celwidget" data-feature-name="oneTimePaymentPrice" data-csa-c-type="widget" data-csa-c-content-id="oneTimePaymentPrice" data-csa-c-slot-id="oneTimePaymentPrice_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="q3az2t-xytcve-s4cn5y-8mr2mf" data-cel-widget="oneTimePaymentPrice_feature_div">
+                                                              </div>
+                                   <div id="paymentOptions_PriceblockMessaging_feature_div" class="celwidget" data-feature-name="paymentOptions_Priceblock" data-csa-c-type="widget" data-csa-c-content-id="paymentOptions_Priceblock" data-csa-c-slot-id="paymentOptions_PriceblockMessaging_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="b9p8z6-lbty00-gxudiu-hoos6i" data-cel-widget="paymentOptions_PriceblockMessaging_feature_div">
+                         <!--
+TurboCheckout maintains an exclusion list of elements containing checkboxes (https://tiny.amazon.com/10fqaob7u/codeamazpackTurbblobfcfasrc).
+When any of these checkbox is marked as selected, turbo checkout is suppressed and customer goes through regular SPC flow.
+Element below will be added to exclusion list mentioned above, and payment-options-checkbox will be marked as selected
+when UFO offer is selected to ensure turbo checkout experience is suppressed anf customer goes through regular SPC flow
+on clicking buy now.
+-->
+<div id="payment-options-feature" class="a-section aok-hidden"><input type="checkbox" class="payment-options-checkbox aok-hidden">
+</div><div id="price-block-container-0" data-buying-option-index="0" data-buying-option-type="" class="a-section price-block-container"><div id="price-block-error-icon" class="a-box a-alert-inline a-alert-inline-error price-block-icon aok-hidden" role="alert"><div class="a-box-inner a-alert-container"><i class="a-icon a-icon-alert" aria-hidden="true"></i><div class="a-alert-content"></div></div></div><div id="price-block-text" class="a-section price-block-text"><span id="price-block-error-message" class="price-block-error-message aok-hidden"><span id="price-block-error-string" data-payment-option-unavailable="Payment plan unavailable with this option." data-plan-unavailable-over-max-quantity="Plan unavailable if buying ${maxQuantity} or more of same item." class="price-block-error-string"></span></span></div></div>                             </div>
+                                   <div id="maplePriceblockAmabot_feature_div" class="celwidget" data-feature-name="maplePriceblockAmabot" data-csa-c-type="widget" data-csa-c-content-id="maplePriceblockAmabot" data-csa-c-slot-id="maplePriceblockAmabot_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="xixmqk-82suj7-ldlfj9-rh5zdo" data-cel-widget="maplePriceblockAmabot_feature_div">
+                                                                                                                                                                                            <div>
+                    <div class="maple-banner ">
+  <style type="text/css">
+    
+
+    
+
+    .maple-banner--background {
+    background: #fff;
+    
+}
+
+    
+
+    .maple-banner > a {
+  width: fit-content;
+}
+
+.maple-banner__container {
+  display: table;
+}
+
+.maple-banner__row {
+  display: table-row;
+}
+
+.maple-banner__col {
+  display: table-cell;
+  vertical-align: middle;
+  padding: 10px 0;
+}
+
+  </style>
+
+  <a class="a-link-normal aok-block aok-align-center-horizontally" rel="noopener noreferrer" href="/gp/product/B007URFTYI/ref=unrec_a_cbcc_pb_50gc_t1_m?pr=con321&amp;inc=50gcUnrec&amp;ts=6h87tqz73kk1zxm23o84xxkpechxe0c&amp;dasin=B0GQB1C381&amp;plattr=CB50PB&amp;place=priceblock&amp;imp=c334330d-9402-4abf-abd3-3f6fcd93a610&amp;mru=/dp/product/B0GQB1C381">
+    <div class="a-section maple-banner__container maple-banner--background maple-banner--border">
+      <div class="a-section maple-banner__row">
+        <div class="a-section maple-banner__col">
+          <div class="a-section maple-banner__text">
+            Get <span data-maple-math="promo-amount">$50</span> off instantly: Pay <span data-maple-math="cost-after-savings">$399.99</span> <span style="text-decoration: line-through"><span data-maple-math="cost">$449.99</span></span> upon approval for Amazon Visa. No annual fee.
+          </div>
+        </div>
+      </div>
+    </div>
+  </a>
+</div>
+ </div>
+               <script type="text/javascript">
+
+    P.when('A', 'ready').execute(function (A) {
+        var $ = A.$;
+
+        function createNexusEvent(impressionSchema) {
+            let attributesMap = {
+                buyingOption : impressionSchema.buyingOptionName,
+                buyingOptionIndex : String(impressionSchema.buyingOptionIndex),
+                robot : "false",
+                issuancePlacementShortNm : impressionSchema.issuancePlacementShortNm
+            }
+            // Event payload for Nexus should contain all the attributes present in schema 'odysseus.Impression'
+            let event = {
+                sessionId : impressionSchema.sessionId,
+                impressionId : impressionSchema.impressionId,
+                requestId : impressionSchema.requestId,
+                marketplaceId : impressionSchema.marketplaceId,
+                attributes : attributesMap,
+                lob: window.ue_lob
+            };
+
+            return event;
+        }
+
+        function publishNexusEvent(asin, index, issuanceOcfSelectorId, requestId){
+            let impressionSchema = A.state("impressionSchema_" + requestId + "-" + asin + ":" + index);
+            if(impressionSchema) {
+                let event = createNexusEvent(impressionSchema);
+                ue.event(event, impressionSchema.nexusProducerId, impressionSchema.nexusSchemaId);
+                $(issuanceOcfSelectorId).attr('visited', "true");
+            }
+        }
+
+        // Publish impression metrics to Nexus upon toggling non-landing buying options
+        A.on('a:accordion:buybox-accordion:select', function (data){
+            let buyingOptionIndex = A.$(data.selectedRow.$row).index();
+            let issuanceOcfSelector = '.issuance_ocf_selector#issuanceOcfAccordianRowName_' + buyingOptionIndex;
+            if(issuanceOcfSelector) {
+                let isVisited = $(issuanceOcfSelector).attr("visited");
+                if (isVisited === 'false' && window.ue) {
+                    let asin = $(issuanceOcfSelector).attr("asin");
+                    let requestId = $(issuanceOcfSelector).attr("requestId");
+                    publishNexusEvent(asin, buyingOptionIndex, issuanceOcfSelector, requestId)
+                }
+            }
+        });
+
+        // Publish impression metrics to Nexus upon switching tab
+        A.on('a:tabs:offerDisplayGroup_tabs:select', function (data){
+            let visitedAccordionRow = $("#issuancePriceblockAmabot_feature_div > .offersConsistencyEnabled").children().filter(function () {
+                return $(this).css('display') === 'block';
+            });
+            let issuanceOcfSelector = $(visitedAccordionRow).find(".issuance_ocf_selector");
+            if(issuanceOcfSelector) {
+                let isVisited = $(issuanceOcfSelector).attr("visited");
+                if (isVisited === 'false' && window.ue) {
+                    let asin = $(issuanceOcfSelector).attr("asin");
+                    let requestId = $(issuanceOcfSelector).attr("requestId");
+                    let buyingOptionIndex = $(issuanceOcfSelector).attr('id').split('_')[1];
+                    publishNexusEvent(asin, buyingOptionIndex, issuanceOcfSelector, requestId)
+                }
+            }
+        });
+    });
+</script>                                </div>
+                                   <div id="inemi_feature_div" class="celwidget" data-feature-name="inemi" data-csa-c-type="widget" data-csa-c-content-id="inemi" data-csa-c-slot-id="inemi_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="91oxkn-kr00en-p3z34r-q6k2q4" data-cel-widget="inemi_feature_div">
+                                                            </div>
+                                   <div id="taxInclusiveMessage_feature_div" class="celwidget" data-feature-name="taxInclusiveMessage" data-csa-c-type="widget" data-csa-c-content-id="taxInclusiveMessage" data-csa-c-slot-id="taxInclusiveMessage_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="colyf5-lvx08r-8kpdvy-bfbbv1" data-cel-widget="taxInclusiveMessage_feature_div">
+                                                      </div>
+                                   <div id="delightPricingBadge_feature_div" class="celwidget" data-feature-name="delightPricingBadge" data-csa-c-type="widget" data-csa-c-content-id="delightPricingBadge" data-csa-c-slot-id="delightPricingBadge_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="r1czz5-8lyot-wjj10y-75ywnb" data-cel-widget="delightPricingBadge_feature_div">
+                         <!-- leaving comment so that file does not delete and we are not blocked until themis feature deletion. Will remove this once themis feature is cleaned. -->                             </div>
+                                   <div id="omnibusPrice_feature_div" class="celwidget" data-feature-name="omnibusPrice" data-csa-c-type="widget" data-csa-c-content-id="omnibusPrice" data-csa-c-slot-id="omnibusPrice_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="5h99mu-r9h0gv-vtqbjc-i2sfxs" data-cel-widget="omnibusPrice_feature_div">
+                                                           </div>
+                                   <div id="jewelryPriceBreakup_feature_div" class="celwidget" data-feature-name="jewelryPriceBreakup" data-csa-c-type="widget" data-csa-c-content-id="jewelryPriceBreakup" data-csa-c-slot-id="jewelryPriceBreakup_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="aezqbj-vj6u46-t2tnf1-yaqxk6" data-cel-widget="jewelryPriceBreakup_feature_div">
+                                                                   </div>
+                                   <div id="agsIfdInsidePrice_feature_div" class="celwidget" data-feature-name="agsIfdInsidePrice" data-csa-c-type="widget" data-csa-c-content-id="agsIfdInsidePrice" data-csa-c-slot-id="agsIfdInsidePrice_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="cuxq8v-zc9e0r-hj6nyh-qurhcm" data-cel-widget="agsIfdInsidePrice_feature_div">
+                                    <!-- For LightningDeal use case, agsShippingAndIfdInsideBuyBox is only configured on regular offer, so set defaultPageContext as buyingPrice -->
+                               </div>
+                                   <div id="regulatoryDeposit_feature_div" class="celwidget" data-feature-name="regulatoryDeposit" data-csa-c-type="widget" data-csa-c-content-id="regulatoryDeposit" data-csa-c-slot-id="regulatoryDeposit_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="nom8i-ou6l2g-eoaaef-90yz9a" data-cel-widget="regulatoryDeposit_feature_div">
+                                                            </div>
+                                   <div id="deliveryPriceBadging_feature_div" class="celwidget" data-feature-name="deliveryPriceBadging" data-csa-c-type="widget" data-csa-c-content-id="deliveryPriceBadging" data-csa-c-slot-id="deliveryPriceBadging_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="9m3ch1-yztl2b-v0wnsv-z7kdrf" data-cel-widget="deliveryPriceBadging_feature_div">
+                                                                     </div>
+                                   <div id="freeShippingPriceBadging_feature_div" class="celwidget" data-feature-name="freeShippingPriceBadging" data-csa-c-type="widget" data-csa-c-content-id="freeShippingPriceBadging" data-csa-c-slot-id="freeShippingPriceBadging_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="dkknmw-7c5km5-9h3yty-v5jc7l" data-cel-widget="freeShippingPriceBadging_feature_div">
+                               <span class="a-size-base"></span>                               </div>
+                                   <div id="freeReturns_feature_div" class="celwidget" data-feature-name="freeReturns" data-csa-c-type="widget" data-csa-c-content-id="freeReturns" data-csa-c-slot-id="freeReturns_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="hm9dlh-2ltcc8-ko2ika-jy8acz" data-cel-widget="freeReturns_feature_div">
+                            <span id="creturns-return-policy-linebreak" class="a-hidden"></span>  <span id="creturns-return-policy-content" class="a-block">           <span id="creturns-return-policy-message" class="a-inline-block">  <span class="a-declarative" data-action="a-popover" data-a-popover="{&quot;max-width&quot;:&quot;280&quot;,&quot;name&quot;:&quot;cReturnsPolicyPopover&quot;,&quot;activate&quot;:&quot;onclick&quot;,&quot;position&quot;:&quot;triggerBottom&quot;,&quot;popoverLabel&quot;:&quot;Return this item for free&quot;}"> <span id="free-returns-policy-celWidget" cel_widget_id="free-returns-policy-anchorText-pc" class="celwidget" aria-labelledby="creturns-policy-anchor-text" data-csa-c-id="lwcykl-do82i1-8l9554-pu0bxy" data-cel-widget="free-returns-policy-anchorText-pc">
+                        <a id="creturns-policy-anchor-text" href="javascript:void(0)" role="button" class="a-popover-trigger a-declarative a-inline-block"> FREE Returns <i class="a-icon a-icon-popover"></i></a> </span>
+                </span> <div class="a-popover-preload" id="a-popover-cReturnsPolicyPopover">    <div id="free-returns-policy-popover-celWidget" cel_widget_id="free-returns-policy-popover-pc" class="celwidget" role="dialog" data-csa-c-id="bhh5ru-hrpfc8-atsutp-4vribb" data-cel-widget="free-returns-policy-popover-pc">
+     <h5 id="creturns-policy-header">Return this item for free</h5>   <p id="creturns-policy-main-content" class="a-spacing-none a-spacing-top-small">We offer easy, convenient returns with at least one free return option: no shipping charges. All returns must comply with our returns policy.</p>    <a id="creturns-policy-url-text-pc" class="a-link-normal" href="/freereturns"> Learn more about free returns. </a>     <div aria-labelledby="creturns-policy-expandable-content-header" data-a-expander-name="creturnsHowToReturnExpander" class="a-row a-expander-container a-expander-inline-container"> <a id="creturns-policy-expandable-content-header" aria-expanded="false" role="button" href="javascript:void(0)" data-action="a-expander-toggle" class="a-expander-header a-declarative a-expander-inline-header a-link-expander" data-a-expander-toggle="{&quot;allowLinkDefault&quot;:true, &quot;expand_prompt&quot;:&quot;&quot;, &quot;collapse_prompt&quot;:&quot;&quot;}"><i class="a-icon a-icon-expand"></i><span class="a-expander-prompt">How to return the item?</span></a> <div id="creturnsHowToReturnExpanderContent" data-expanded="false" class="a-expander-content a-expander-inline-content a-expander-inner" style="display:none">  <ol class="a-ordered-list a-vertical" role="list">  <li role="listitem"><span class="a-list-item">Go to your orders and start the return</span></li>  <li role="listitem"><span class="a-list-item">Select your preferred free shipping option</span></li>  <li role="listitem"><span class="a-list-item">Drop off and leave!</span></li>  </ol>  </div> </div>  </div> </div>  </span> </span>                               </div>
+                                   <div id="almTaxExclusivePrice_feature_div" class="celwidget" data-feature-name="almTaxExclusivePrice" data-csa-c-type="widget" data-csa-c-content-id="almTaxExclusivePrice" data-csa-c-slot-id="almTaxExclusivePrice_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="d5in91-xtwudd-gms661-8a49y5" data-cel-widget="almTaxExclusivePrice_feature_div">
+                                                         </div>
+                                   <div id="installmentPaymentPrice_feature_div" class="celwidget" data-feature-name="installmentPaymentPrice" data-csa-c-type="widget" data-csa-c-content-id="installmentPaymentPrice" data-csa-c-slot-id="installmentPaymentPrice_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="ez38np-6a4sg9-2lt0ms-wuw8o7" data-cel-widget="installmentPaymentPrice_feature_div">
+                                                         </div>
+                                   <div id="amazonDevicesCustomPriceMessaging_feature_div" class="celwidget" data-feature-name="amazonDevicesCustomPriceMessaging" data-csa-c-type="widget" data-csa-c-content-id="amazonDevicesCustomPriceMessaging" data-csa-c-slot-id="amazonDevicesCustomPriceMessaging_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="mms39e-io73oi-bswj38-h3xbw0" data-cel-widget="amazonDevicesCustomPriceMessaging_feature_div">
+                                                         </div>
+                                   <div id="bundleLTBSSavings_feature_div" class="celwidget" data-feature-name="bundleLTBSSavings" data-csa-c-type="widget" data-csa-c-content-id="bundleLTBSSavings" data-csa-c-slot-id="bundleLTBSSavings_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="h18mh4-fh160y-671qza-5ugekb" data-cel-widget="bundleLTBSSavings_feature_div">
+                                                         </div>
+                                   <div id="volumeAwarePricingTableLoader_feature_div" class="celwidget" data-feature-name="volumeAwarePricingTableLoader" data-csa-c-type="widget" data-csa-c-content-id="volumeAwarePricingTableLoader" data-csa-c-slot-id="volumeAwarePricingTableLoader_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="13tx75-kjkto-96w7sq-hdks9r" data-cel-widget="volumeAwarePricingTableLoader_feature_div">
+                                                                </div>
+                                   <div id="promoMessagingDiscountValue_feature_div" class="celwidget" data-feature-name="promoMessagingDiscountValue" data-csa-c-type="widget" data-csa-c-content-id="promoMessagingDiscountValue" data-csa-c-slot-id="promoMessagingDiscountValue_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="5pynbz-7yg0fy-rj08o8-2vv1mp" data-cel-widget="promoMessagingDiscountValue_feature_div">
+                                                                   </div>
+                                   <div id="vatMessage_feature_div" class="celwidget" data-feature-name="vatMessage" data-csa-c-type="widget" data-csa-c-content-id="vatMessage" data-csa-c-slot-id="vatMessage_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="1ykx55-unuom2-1umq8m-3bg52s" data-cel-widget="vatMessage_feature_div">
+                                                                    </div>
+                                   <div id="inemi_feature_div" class="celwidget" data-feature-name="inemi" data-csa-c-type="widget" data-csa-c-content-id="inemi" data-csa-c-slot-id="inemi_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="sbtedq-ksr3xq-736ud7-3c3tue" data-cel-widget="inemi_feature_div">
+                                                                </div>
+                                   <div id="points_feature_div" class="celwidget" data-feature-name="points" data-csa-c-type="widget" data-csa-c-content-id="points" data-csa-c-slot-id="points_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="kxwkbc-uhd9zc-44olvi-ip881g" data-cel-widget="points_feature_div">
+                                                                       </div>
+                                   <div id="pep_feature_div" class="celwidget" data-feature-name="pep" data-csa-c-type="widget" data-csa-c-content-id="pep" data-csa-c-slot-id="pep_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="bdowp6-l40hpq-7avp2q-32w3zc" data-cel-widget="pep_feature_div">
+                                                              </div>
+                                   <div id="vos_feature_div" class="celwidget" data-feature-name="vos" data-csa-c-type="widget" data-csa-c-content-id="vos" data-csa-c-slot-id="vos_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="uk02xq-vbxyof-dg42b6-fqecja" data-cel-widget="vos_feature_div">
+                                                            </div>
+                                   <div id="almPrimeSavings_feature_div" class="celwidget" data-feature-name="almPrimeSavings" data-csa-c-type="widget" data-csa-c-content-id="almPrimeSavings" data-csa-c-slot-id="almPrimeSavings_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="qmaa1g-57weym-snutd9-ksb9mj" data-cel-widget="almPrimeSavings_feature_div">
+                                                         </div>
+                                   <div id="reinvent_price_tabular_desktop" class="celwidget" data-feature-name="reinvent_price_tabular_desktop" data-csa-c-type="widget" data-csa-c-content-id="reinvent_price_tabular_desktop" data-csa-c-slot-id="reinvent_price_tabular_desktop" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="aukltv-3zp3z5-am09yz-g9esj2" data-cel-widget="reinvent_price_tabular_desktop">
+                             <table class="a-normal a-spacing-none reInventPriceTable">    </table> <style>
+    .reInventPriceTable{
+        width: auto;
+    }
+</style>                        </div>
+                                   <div id="rebates_feature_div" class="celwidget" data-feature-name="rebates" data-csa-c-type="widget" data-csa-c-content-id="rebates" data-csa-c-slot-id="rebates_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="c5myco-kfi41x-3wetsh-o2fvo4" data-cel-widget="rebates_feature_div">
+                                                           </div>
+                                   <div id="volumeAwarePricingPriceBlockMessaging_feature_div" class="celwidget" data-feature-name="volumeAwarePricingPriceBlockMessaging" data-csa-c-type="widget" data-csa-c-content-id="volumeAwarePricingPriceBlockMessaging" data-csa-c-slot-id="volumeAwarePricingPriceBlockMessaging_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="dococe-4fxq8l-qolc7q-xy8t6f" data-cel-widget="volumeAwarePricingPriceBlockMessaging_feature_div">
+                                                           </div>
+                                   <div id="agsBadgeInsidePrice_feature_div" class="celwidget" data-feature-name="agsBadgeInsidePrice" data-csa-c-type="widget" data-csa-c-content-id="agsBadgeInsidePrice" data-csa-c-slot-id="agsBadgeInsidePrice_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="ppw9o1-mcwk1i-oxhjyn-4dqh7n" data-cel-widget="agsBadgeInsidePrice_feature_div">
+                                                        </div>
+                                   <div id="superSaverBadge_feature_div" class="celwidget" data-feature-name="superSaverBadge" data-csa-c-type="widget" data-csa-c-content-id="superSaverBadge" data-csa-c-slot-id="superSaverBadge_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="dtpyd5-dkueu6-rh97xq-7siilp" data-cel-widget="superSaverBadge_feature_div">
+                                                                                                                         </div>
+                                   <div id="tradeInPriceBlock_feature_div" class="celwidget" data-feature-name="tradeInPriceBlock" data-csa-c-type="widget" data-csa-c-content-id="tradeInPriceBlock" data-csa-c-slot-id="tradeInPriceBlock_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="rycr4i-ofjxa3-tfpj8u-s6qr8o" data-cel-widget="tradeInPriceBlock_feature_div">
+                                                           </div>
+                                   <div id="quantityPricingTableSummaryInPriceBlock_feature_div" class="celwidget" data-feature-name="quantityPricingTableSummaryInPriceBlock" data-csa-c-type="widget" data-csa-c-content-id="quantityPricingTableSummaryInPriceBlock" data-csa-c-slot-id="quantityPricingTableSummaryInPriceBlock_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="7owv6h-55lf0l-j8b0j3-5p3vwr" data-cel-widget="quantityPricingTableSummaryInPriceBlock_feature_div">
+                                                         </div>
+                                   <div id="exportsTaxMessage_feature_div" class="celwidget" data-feature-name="exportsTaxMessage" data-csa-c-type="widget" data-csa-c-content-id="exportsTaxMessage" data-csa-c-slot-id="exportsTaxMessage_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="2puc3t-mc4pb3-z0o5ex-y094el" data-cel-widget="exportsTaxMessage_feature_div">
+                                                           </div>
+                                   <div id="amazonGlobal_feature_div" class="celwidget" data-feature-name="amazonGlobal" data-csa-c-type="widget" data-csa-c-content-id="amazonGlobal" data-csa-c-slot-id="amazonGlobal_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="deuj04-12oioo-n575h-lw29qc" data-cel-widget="amazonGlobal_feature_div">
+                                                                       </div>
+                                   <div id="targetedPromoDevices_feature_div" class="celwidget" data-feature-name="targetedPromoDevices" data-csa-c-type="widget" data-csa-c-content-id="targetedPromoDevices" data-csa-c-slot-id="targetedPromoDevices_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="wt3x4d-jek7ht-xx4bfk-juih0n" data-cel-widget="targetedPromoDevices_feature_div">
+                                                      </div>
+                                   <div id="promoPriceBlockMessage_feature_div" class="celwidget" data-feature-name="promoPriceBlockMessage" data-csa-c-type="widget" data-csa-c-content-id="promoPriceBlockMessage" data-csa-c-slot-id="promoPriceBlockMessage_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="9j0ah7-oruoi-9cc3jm-5qekeo" data-cel-widget="promoPriceBlockMessage_feature_div">
+                               <div>
+                                                                                                                                                                              </div>                             </div>
+                                   <div id="qbpTierTable_feature_div" class="celwidget" data-feature-name="qbpTierTable" data-csa-c-type="widget" data-csa-c-content-id="qbpTierTable" data-csa-c-slot-id="qbpTierTable_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="wl6cge-3zxj64-tte38k-zdyl63" data-cel-widget="qbpTierTable_feature_div">
+                                                                </div>
+           </div>
+
+
+<div class="a-section apex-core-price-identifier">                                                        <div class="a-section a-spacing-none aok-align-center aok-relative">     <span id="apex-pricetopay-accessibility-label" data-pricetopay-label="{priceToPay}" data-pricetopay-savings-label="{priceToPay} with {savings} percent savings" class="aok-offscreen"> $449.99 with 33 percent savings </span>        <span class="apex-savings-container ">
+                                    <span aria-hidden="true" class="a-size-large a-color-price savingPriceOverride aok-align-center reinventPriceSavingsPercentageMargin savingsPercentage apex-savings-percentage">-33%</span> </span>
+                                           <span class="a-price aok-align-center reinventPricePriceToPayMargin priceToPay apex-pricetopay-value" data-a-size="xl" data-a-color="base"><span class="a-offscreen"> </span><span aria-hidden="true"><span class="a-price-symbol">$</span><span class="a-price-whole">449<span class="a-price-decimal">.</span></span><span class="a-price-fraction">99</span></span></span>              <span id="taxInclusiveMessage" class="a-size-mini a-color-base aok-align-center aok-nowrap">  </span>                       <div class="a-section a-spacing-none aok-relative aok-inline-block">          </div>     </div>                         <div class="a-section a-spacing-small aok-align-center">    <span>     <span class="apex-basisprice-feature"> <span class="aok-relative"><span data-basisprice-label="{label} {price}" class="a-size-small aok-offscreen apex-basisprice-offscreen-label">List Price: $669.99</span><span aria-hidden="true" class="a-size-small a-color-secondary aok-align-center basisPrice"><span class="apex-basisprice-label">List Price:</span>         <span class="a-price a-text-price apex-basisprice-value" data-a-size="s" data-a-strike="true" data-a-color="secondary"><span class="a-offscreen">$669.99</span><span aria-hidden="true">$669.99</span></span>     </span></span>   <span class="a-size-small aok-align-center basisPriceLegalMessage apex-basisprice-legal-message-icon">                               <span class="a-declarative" data-action="a-popover" data-a-popover="{&quot;name&quot;:&quot;basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2&quot;,&quot;position&quot;:&quot;triggerBottom&quot;,&quot;closeButton&quot;:&quot;true&quot;}"> <a class="a-align-center a-link-normal aok-inline-block" href="#">   <img role="img" aria-label="Learn more about Amazon pricing and savings" height="15" width="12" src="https://m.media-amazon.com/images/S/sash//GN8m8-lU2_Dj38v.svg">    </a> </span> <div class="a-popover-preload" id="a-popover-basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2"> <div data-popover-name="basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2" aria-label="Details" aria-modal="true" class="a-section a-spacing-none apex-basisprice-legal-message-popover-content" role="dialog">  <span class="a-size-base apex-basisprice-legal-message-popover-content-text">The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller. Except for books, Amazon will display a List Price if the product was purchased by customers on Amazon or offered by other retailers at or above the List Price in at least the past 90 days. List prices may not necessarily reflect the product's prevailing market price.<br><a target="_blank" class="a-link-normal" href="/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD&amp;ref_=dp_hp&amp;language=en_US">Learn more</a></span> </div> </div>   <script type="text/javascript">
+            P.when('A', 'a-popover').execute('a-popover-count', function (A) {
+                A.declarative('a-popover', 'mouseenter', function() {
+                    ue.count("tooltip.popover.opened", 1);
+                });
+            });
+        </script>
+        </span>   </span>             </span>      </div>  </div>
+
+
+
+        <div class="a-section a-spacing-small aok-align-center">    <span>     <span class="apex-basisprice-feature"> <span class="aok-relative"><span data-basisprice-label="{label} {price}" class="a-size-small aok-offscreen apex-basisprice-offscreen-label">List Price: $669.99</span><span aria-hidden="true" class="a-size-small a-color-secondary aok-align-center basisPrice"><span class="apex-basisprice-label">List Price:</span>         <span class="a-price a-text-price apex-basisprice-value" data-a-size="s" data-a-strike="true" data-a-color="secondary"><span class="a-offscreen">$669.99</span><span aria-hidden="true">$669.99</span></span>     </span></span>   <span class="a-size-small aok-align-center basisPriceLegalMessage apex-basisprice-legal-message-icon">                               <span class="a-declarative" data-action="a-popover" data-a-popover="{&quot;name&quot;:&quot;basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2&quot;,&quot;position&quot;:&quot;triggerBottom&quot;,&quot;closeButton&quot;:&quot;true&quot;}"> <a class="a-align-center a-link-normal aok-inline-block" href="#">   <img role="img" aria-label="Learn more about Amazon pricing and savings" height="15" width="12" src="https://m.media-amazon.com/images/S/sash//GN8m8-lU2_Dj38v.svg">    </a> </span> <div class="a-popover-preload" id="a-popover-basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2"> <div data-popover-name="basisPriceLegalMessageDisplayPreload-50a64cb7-6441-46c6-b775-e7889f9533d2" aria-label="Details" aria-modal="true" class="a-section a-spacing-none apex-basisprice-legal-message-popover-content" role="dialog">  <span class="a-size-base apex-basisprice-legal-message-popover-content-text">The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller. Except for books, Amazon will display a List Price if the product was purchased by customers on Amazon or offered by other retailers at or above the List Price in at least the past 90 days. List prices may not necessarily reflect the product's prevailing market price.<br><a target="_blank" class="a-link-normal" href="/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD&amp;ref_=dp_hp&amp;language=en_US">Learn more</a></span> </div> </div>   <script type="text/javascript">
+            P.when('A', 'a-popover').execute('a-popover-count', function (A) {
+                A.declarative('a-popover', 'mouseenter', function() {
+                    ue.count("tooltip.popover.opened", 1);
+                });
+            });
+        </script>
+        </span>   </span>             </span>      </div>
+
+
+
+<div data-expanded="false" class="a-expander-content a-expander-partial-collapse-content" style="padding-bottom: 24px;">        <style>
+    .po-break-word {
+        word-break: break-word;
+    }
+    .po-truncate-attribute .a-truncate-cut{
+        word-break: break-word;
+    }
+    #po-tta-action {
+        padding: 0;
+    }
+</style>
+
+                  <script type="text/javascript">
+    function logTechTermAssistMetric(nexusSchemaId, metricParameters) {
+        if (typeof window.csa !== 'undefined') {
+            var ttaEvents = csa("Events", {producerId: "cetech-tta"});
+
+            metricParameters.schemaId = nexusSchemaId;
+
+            metricParameters.asin = 'B0GQB1C381';
+            metricParameters.deviceType = 'web';
+            metricParameters.productType = 'NOTEBOOK_COMPUTER';
+            metricParameters.obfuscatedMarketplaceId = 'ATVPDKIKX0DER';
+
+            ttaEvents("log", metricParameters, { ent: 'all' });
+        }
+    }
+
+    function logTechTermAssistEvent(nexusSchemaId) {
+        logTechTermAssistMetric(nexusSchemaId, {});
+    }
+</script>
+
+    <div class="a-section a-spacing-small a-spacing-top-small">  <table class="a-normal a-spacing-micro" role="list">  <tbody><tr class="a-spacing-small po-brand" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Brand</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">HP</span>   </td> </tr>  <tr class="a-spacing-small po-model_name" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Model Name</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">HP OmniBook 3 Laptop 16-by0199nr</span>   </td> </tr>  <tr class="a-spacing-small po-display.size" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Screen Size</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">16 inches</span>   </td> </tr>  <tr class="a-spacing-small po-color" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Color</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">Mica silver cover and keyboard frame, iron gray ba</span>   </td> </tr>  <tr class="a-spacing-small po-hard_disk.size" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Hard Disk Size</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">256 GB</span>   </td> </tr>  <tr class="a-spacing-small po-cpu_model.family" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">CPU Model</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">Ryzen 3</span>   </td> </tr>  <tr class="a-spacing-small po-ram_memory.installed_size" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Ram Memory Installed Size</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">8 GB</span>   </td> </tr>  <tr class="a-spacing-small po-operating_system" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Operating System</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">Windows 11 Home</span>   </td> </tr>  <tr class="a-spacing-small po-special_feature" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Special Feature</span>   </td> <td class="a-span9" role="presentation">         <script type="text/javascript">(function(f) {var _np=(window.P._namespace("DetailPageProductOverviewTemplatesJava"));if(_np.guardFatal){_np.guardFatal(f)(_np);}else{f(_np);}}(function(P) {
+    P.when('A').execute(function(A){
+    A.on('a:truncate:po-attribute-truncate-8:updated', function(data) {
+    var isTruncated = !data.truncateInstance.getIfTextFits();
+    var seeMoreElement = document.getElementById('po-attribute-see-more-id-8');
+    if(seeMoreElement) {
+    seeMoreElement.style.display = isTruncated ?  ''  :  'none';
+    }
+    })
+    });
+}));</script> <span class="a-size-base"> <span class="a-truncate po-truncate-attribute" data-a-word-break="normal" data-a-truncate-name="po-attribute-truncate-8" data-a-max-rows="3" data-a-overflow-marker="&amp;hellip;" style="line-height: 1.3em !important; max-height: 3.9em;" data-a-recalculate="false" data-a-updated="true"><span class="a-truncate-full a-offscreen">16" diagonal, 2K (1920 x 1200), touch, IPS, micro-edge, anti-glare, 300 nits, 62.5% sRGB, 2 USB Type-A 5Gbps signaling rate; 1 HDMI-out 2.1; 1 headphone/microphone combo; 2 USB Type-C 10Gbps signaling rate (USB Power Delivery 3.1, DisplayPort 1.4, HP Sleep and Charge), 8 GB LPDDR5-5500 MT/s (onboard), AMD Ryzen 3 7320U (up to 4.1 GHz max boost clock, 4 MB L3 cache, 4 cores, 8 threads), Matte paint cover and keyboard frame finish, textured base</span><span class="a-truncate-cut" aria-hidden="true" style="height: 3.9em;">16" diagonal, 2K (1920 x 1200), touch, IPS, micro-edge, anti-glare, 300 nits, 62.5% sRGB, 2 USB Type-A 5Gbps signaling rate; 1 HDMI-out 2.1; 1 headphone/microphone combo; 2 USB Type-C 10Gbps signaling rate (USB P…</span></span> </span>  <span class="a-declarative" data-action="a-modal" data-a-modal="{&quot;width&quot;:&quot;800&quot;,&quot;max-height&quot;:&quot;400&quot;,&quot;header&quot;:&quot;Special Feature&quot;,&quot;inlineContent&quot;:&quot;16&amp;#34; diagonal, 2K (1920 x 1200), touch, IPS, micro-edge, anti-glare, 300 nits, 62.5% sRGB, 2 USB Type-A 5Gbps signaling rate; 1 HDMI-out 2.1; 1 headphone/microphone combo; 2 USB Type-C 10Gbps signaling rate (USB Power Delivery 3.1, DisplayPort 1.4, HP Sleep and Charge), 8 GB LPDDR5-5500 MT/s (onboard), AMD Ryzen 3 7320U (up to 4.1 GHz max boost clock, 4 MB L3 cache, 4 cores, 8 threads), Matte paint cover and keyboard frame finish, textured base&quot;}" id="po-attribute-see-more-id-8"> <a href="javascript:void(0)" role="button" class="a-popover-trigger a-declarative">See more<i class="a-icon a-icon-popover"></i></a> </span>    </td> </tr>  <tr class="a-spacing-small po-graphics_description" role="listitem"> <td class="a-span3" role="presentation">     <span class="a-size-base a-text-bold">Graphics Card Description</span>   </td> <td class="a-span9" role="presentation">    <span class="a-size-base po-break-word">Dedicated</span>   </td> </tr>    </tbody></table>  </div> </div>
+
+
+<div id="featurebullets_feature_div" class="celwidget" data-feature-name="featurebullets_nonPets" data-csa-c-type="widget" data-csa-c-content-id="featurebullets_nonPets" data-csa-c-slot-id="featurebullets_feature_div" data-csa-c-asin="B0GQB1C381" data-csa-c-is-in-initial-active-row="false" data-csa-c-id="wyd2ln-6547p8-bqxnw1-h6y6z3" data-cel-widget="featurebullets_feature_div">
+                                 <div id="feature-bullets" class="a-section a-spacing-medium a-spacing-top-small">               <hr aria-hidden="true" class="a-divider-normal">     <h1 class="a-size-base-plus a-text-bold"> About this item </h1>                 <ul class="a-unordered-list a-vertical a-spacing-mini">  <li class="a-spacing-mini"><span class="a-list-item"> 2K IPS TOUCHSCREEN DISPLAY - 1920 x 1200 resolution delivers incredible detail, wide-viewing angles, and lifelike color reproduction  </span></li>  <li class="a-spacing-mini"><span class="a-list-item"> AMD RYZEN 3 30 PROCESSOR - Everyday performance you can count on; multitask, stream, game casually, and edit photos smoothly with responsive power and vibrant HDR visuals with an AMD Ryzen 3 processor"  </span></li>  <li class="a-spacing-mini"><span class="a-list-item"> ENJOY UP TO 14 HOURS AND 15 MINUTES OF BATTERY LIFE - HP Fast Charge restores battery from 0 to 50% in approximately 45 minutes  </span></li>  <li class="a-spacing-mini"><span class="a-list-item"> AMD RADEON 610M GRAPHICS - Experience smooth entertainment. Built for streaming and multitasking, enjoy realistic visuals and efficient performance for work and play  </span></li>  <li class="a-spacing-mini"><span class="a-list-item"> STORAGE AND MEMORY - 256 GB PCIe NVMe M.2 SSD offers fast speed and efficient storage; and 8 GB LPDDR5 RAM memory boosts performance with higher bandwidth  </span></li>  <li class="a-spacing-mini"><span class="a-list-item"> ADVANCED AI NOISE REDUCTION - Enjoy clearer team conversations; Using the Advanced Personal Mode, it tracks only your voice during conference calls while automatically filtering out noises and other speakers for distinctively focused communications  </span></li>  <li class="a-spacing-mini"><span class="a-list-item"> FHD CAMERA WITH HDR AUTO-SWITCH - Deliver smooth and detailed FHD video calls with an HDR auto-switch that balances contrast and color, even in challenging backlight conditions  </span></li>  </ul>            <div class="a-row a-expander-container a-expander-inline-container"> <div data-expanded="false" class="a-expander-content a-expander-extend-content" style="display:none">    <ul class="a-unordered-list a-vertical a-spacing-none">  <li class="a-spacing-mini"><span class="a-list-item">EFFORTLESSLY CONNECTED - Enjoy faster speeds, improved performance and greater capacity with Wi-Fi 6 and Bluetooth 5.4 wireless card</span></li>  <li class="a-spacing-mini"><span class="a-list-item">WINDOWS 11 HOME AND COPILOT KEY - Windows 11 helps you think, express, and create in a natural way; the Copilot Key lets you access this AI-powered intelligent assistant with a single press of a button</span></li>  <li class="a-spacing-mini"><span class="a-list-item">MADE WITH THE PLANET IN MIND - The HP OmniBook 3 Laptop PC is EPEAT Silver Climate+ registered and ENERGY STAR Certified</span></li>  </ul>   </div> <a aria-expanded="false" role="button" href="javascript:void(0)" data-action="a-expander-toggle" class="a-expander-header a-declarative a-expander-extend-header" data-a-expander-toggle="{&quot;allowLinkDefault&quot;:true, &quot;expand_prompt&quot;:&quot;Show more&quot;, &quot;collapse_prompt&quot;:&quot;Show less&quot;}"><i class="a-icon a-icon-extender-expand"></i><span class="a-expander-prompt">Show more</span></a>  </div>         <div data-csa-c-content-id="voyager-product-details-jumplink" data-csa-c-slot-id="voyager-product-details-jumplink" data-csa-c-type="link" class="a-section" data-csa-c-id="cc5zq1-jjfpvh-x67xx5-nhvqzj"> <span class="caretnext">›</span> <a id="seeMoreDetailsLink" class="a-link-normal" href="#productDetails"> See more product details </a> </div>          </div>                               </div>

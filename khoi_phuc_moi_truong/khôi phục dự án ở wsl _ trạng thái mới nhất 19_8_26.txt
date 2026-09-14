@@ -1,0 +1,3342 @@
+# HANDOFF — WSL2 UBUNTU RECOVERY HOÀN TẤT / COMMON ENVIRONMENT + CONFIG RESTORE HOÀN TẤT / PROJECT RUNTIME LÀ GIAI ĐOẠN TIẾP THEO
+
+## BASELINE MỚI NHẤT — 19/08/2026 ~21:35 +07:00
+
+---
+
+# 1. MỤC ĐÍCH CỦA HANDOFF NÀY
+
+Đây là handoff tổng hợp mới nhất để tiếp tục công việc trong session ChatGPT mới mà không phải bắt đầu lại từ đầu.
+
+Handoff này thay thế các trạng thái trung gian cũ khi:
+
+- Codex CLI còn chưa cài;
+- Claude Code CLI còn chưa cài;
+- Docker WSL integration còn chưa re-verify;
+- `secure`, `shell-config`, `ai-config` còn đang ở trạng thái pending;
+- project data đã restore nhưng common environment chưa hoàn tất.
+
+Baseline hiện tại mới nhất là:
+
+```text
+OLD SSD / OLD WSL RECOVERY              DONE
+PROJECT DATA RECOVERY                   DONE
+WSL SYSTEM CLEANUP                      DONE
+VHDX SPACE RECLAIM / COMPACTION         DONE
+POST-COMPACTION VERIFY                  PASS
+WINDOWS ↔ WSL RESOURCE AUDIT            PASS
+
+COMMON UBUNTU TOOLCHAIN                 PASS
+UV                                      PASS
+NVM / NODE / NPM                        PASS
+AWS CLI V2                              PASS
+CODEX CLI                               PASS
+CLAUDE CODE CLI                         PASS
+DOCKER DESKTOP                          PASS
+DOCKER WSL INTEGRATION                  PASS
+DOCKER HELLO-WORLD                      PASS
+
+AI-CONFIG RECOVERY                      SELECTIVELY COMPLETED
+SECURE / SSH RECOVERY                   REVIEWED / SKIPPED BY DECISION
+SHELL-CONFIG RECOVERY                   REVIEWED / KEEP NEW STATE
+GEMINI CLI                              NOT USED / REMOVED FROM PLAN
+
+PROJECT ENVIRONMENT REBUILD             NEXT
+PROJECT RUNTIME / TEST                  NEXT
+RUNTIME PASS                            NONE YET
+```
+
+Điểm handoff chính xác tiếp theo:
+
+```text
+PROJECT-BY-PROJECT AUDIT
+        ↓
+inspect old .venv / node_modules / .env / manifests
+        ↓
+determine intended Python / Node versions
+        ↓
+create clean environment
+        ↓
+install dependencies reproducibly
+        ↓
+review secrets / external services / Docker
+        ↓
+run application
+        ↓
+run tests / smoke test
+        ↓
+mark RUNTIME PASS only after actual success
+```
+
+---
+
+# 2. PHÂN BIỆT BẮT BUỘC
+
+## DATA RESTORED != ENVIRONMENT RESTORED != RUNTIME READY
+
+Các project hiện đã được recover vào:
+
+```text
+/home/minhhieu/...
+```
+
+Dữ liệu được copy nguyên từ môi trường WSL cũ:
+
+```text
+user cũ:
+hieu0606sunny
+
+home cũ:
+/home/hieu0606sunny
+```
+
+sang môi trường WSL mới:
+
+```text
+user mới:
+minhhieu
+
+home mới:
+/home/minhhieu
+```
+
+Project recovery có thể chứa nguyên:
+
+```text
+source code
+.git
+local WIP
+.env
+.venv
+venv
+node_modules
+model/data
+datasets
+vector stores
+Docker/Compose files
+Qdrant data
+cached binaries
+compiled native packages
+old lockfiles
+old absolute paths
+old user paths
+old runtime artifacts
+```
+
+Điểm cực kỳ quan trọng:
+
+```text
+các .venv và node_modules hiện đang tồn tại
+KHÔNG có nghĩa chúng đã được xác nhận usable.
+```
+
+Ví dụ thực tế vẫn còn:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/.venv
+/home/minhhieu/price2026wsl/tech2ai/node_modules
+```
+
+Các thư mục này được copy nguyên từ WSL cũ `hieu0606sunny`.
+
+Hiện tại người dùng:
+
+```text
+CHƯA CHẠY BẤT CỨ PROJECT RECOVERY NÀO.
+```
+
+Chưa có project nào được xác nhận:
+
+```text
+application start PASS
+test PASS
+runtime PASS
+Docker Compose PASS
+Qdrant PASS
+frontend PASS
+backend PASS
+```
+
+Do đó:
+
+```text
+DATA RECOVERY = SUCCESS
+```
+
+không được dùng đồng nghĩa với:
+
+```text
+RUNTIME READY
+```
+
+---
+
+# 3. BASELINE SỰ CỐ SSD CŨ
+
+Máy trước đây có:
+
+```text
+Disk 0 / C:
+NVMe KINGSTON OM8PDP3256B-AA1
+~256 GB
+```
+
+và:
+
+```text
+Disk 1 / G:
+Netac SSD 256GB SATA
+
+Serial:
+AA000021122560000399
+
+Firmware:
+U1013A0
+```
+
+WSL Ubuntu cũ nằm trên:
+
+```text
+G:\WSL\ext4.vhdx
+```
+
+Kích thước file recovery cũ:
+
+```text
+103,551,074,304 bytes
+```
+
+Root-cause baseline:
+
+```text
+Netac SSD cũ bị hardware/storage failure.
+```
+
+Bằng chứng lịch sử:
+
+```text
+Disk Event ID 7
+bad blocks
+
+Disk Event 52
+predictive failure
+
+SMART:
+PredictFailure=True
+Status=Pred Fail
+
+ReadErrorsTotal=30
+ReadErrorsUncorrected=15
+
+Reallocated sectors ~15
+Pending sectors ~15
+Runtime invalid blocks ~15
+UDMA CRC=0
+```
+
+Chuỗi lỗi:
+
+```text
+bad blocks
+→ uncorrected reads
+→ I/O stalls
+→ controller reset
+→ NTFS corruption
+→ ext4 corruption
+```
+
+Kết luận baseline:
+
+```text
+premature internal SSD failure
+```
+
+Khả năng cao:
+
+```text
+NAND/media failure
+```
+
+cũng có thể liên quan:
+
+```text
+FTL/controller/firmware/internal SSD issue
+```
+
+Không có đủ bằng chứng để quy root cause cho:
+
+```text
+Phase 6
+coding agent
+RAM
+WSL
+wsl --shutdown
+Intel RST/VMD
+SATA cable
+```
+
+SSD Netac cũ đã được tháo khỏi máy.
+
+Không quay lại giả định Netac vẫn đang được sử dụng.
+
+---
+
+# 4. RECOVERY VHDX CŨ
+
+Không restore nguyên distro Ubuntu cũ.
+
+Mục tiêu recovery là lấy lại:
+
+```text
+source code
+.git
+local WIP
+model/data
+datasets
+project environments cũ để tham chiếu
+AI/dev configuration
+shell configuration
+SSH/security configuration
+```
+
+Từ VHDX cũ đã tạo:
+
+```text
+C:\WSL-Recovery\ext4-original.vhdx
+C:\WSL-Recovery\ext4-working.vhdx
+```
+
+Vai trò:
+
+```text
+ext4-original.vhdx
+→ pristine/original copy
+→ không sửa
+
+ext4-working.vhdx
+→ working recovery copy
+```
+
+Working copy từng được attach:
+
+```powershell
+wsl --mount "C:\WSL-Recovery\ext4-working.vhdx" --vhd --bare
+```
+
+và mount Linux:
+
+```bash
+sudo mount -o ro,noload /dev/sdd /mnt/recovery
+```
+
+Nguyên tắc recovery:
+
+```text
+READ ONLY
+NO JOURNAL REPLAY
+```
+
+Dữ liệu recovery được lấy từ:
+
+```text
+/mnt/recovery/home/hieu0606sunny
+```
+
+---
+
+# 5. USER / HOME MIGRATION
+
+WSL cũ:
+
+```text
+user:
+hieu0606sunny
+
+home:
+/home/hieu0606sunny
+```
+
+Ubuntu mới:
+
+```text
+user:
+minhhieu
+
+home:
+/home/minhhieu
+```
+
+Đây là khác biệt rất quan trọng.
+
+Recovery artifact có thể vẫn chứa:
+
+```text
+/home/hieu0606sunny/...
+```
+
+trong:
+
+```text
+.git/config
+core.worktree
+.venv
+pyvenv.cfg
+activation scripts
+shebang
+package metadata
+.bashrc
+.zshrc
+.npmrc
+.env
+Docker/Compose config
+NVM config
+AI CLI config
+scripts
+symlinks
+IDE metadata
+cache
+node_modules
+```
+
+Quyết định bắt buộc:
+
+```text
+KHÔNG global replace
+/home/hieu0606sunny
+→
+/home/minhhieu
+```
+
+một cách mù quáng.
+
+Mỗi occurrence phải được đánh giá theo ngữ cảnh.
+
+Ví dụ `hue_rag` từng có:
+
+```ini
+core.worktree=/home/hieu0606sunny/hue_rag
+```
+
+Đã fix an toàn bằng:
+
+```bash
+git config --file "$DST/.git/config" --unset core.worktree
+```
+
+Không hard-code path mới nếu Git có thể tự suy ra worktree.
+
+---
+
+# 6. PHẦN CỨNG HIỆN TẠI
+
+Máy hiện có 2 SSD NVMe.
+
+## Disk 0 / C:
+
+```text
+FriendlyName:
+NVMe KINGSTON OM8PDP3256B-AA1
+
+Serial:
+0026_B768_4DAD_8495.
+
+Bus:
+NVMe
+
+Size:
+~238.47 GB
+
+Role:
+Windows / system
+```
+
+Baseline:
+
+```text
+HealthStatus       = Healthy
+OperationalStatus  = Online / OK
+Win32 Status       = OK
+PredictFailure     = False
+```
+
+## Disk 1 / D:
+
+```text
+FriendlyName:
+NVMe FIKWOT FN970 1TB
+
+Serial:
+A843_9700_0009_0114.
+
+Bus:
+NVMe
+
+Size:
+~931.51 GB
+
+Role:
+WSL2 Ubuntu
+Docker Desktop
+Recovery data
+```
+
+Baseline:
+
+```text
+HealthStatus       = Healthy
+OperationalStatus  = Online / OK
+Win32 Status       = OK
+PredictFailure     = False
+```
+
+Disk mapping:
+
+```text
+Disk 0 → C: → Kingston NVMe
+Disk 1 → D: → FIKWOT FN970 1TB
+```
+
+Không có bằng chứng hiện tại cho thấy FIKWOT mới có pathology giống Netac cũ.
+
+---
+
+# 7. WINDOWS HIỆN TẠI
+
+Windows đã:
+
+```text
+clean reinstall / reset
+```
+
+Không cần làm lại:
+
+```text
+reinstall Windows
+điều tra Netac từ đầu
+repair filesystem Netac cũ
+restore Windows state cũ
+```
+
+nếu không xuất hiện bằng chứng mới.
+
+---
+
+# 8. WSL2 HIỆN TẠI
+
+Distro:
+
+```text
+Ubuntu-24.04
+```
+
+Ubuntu:
+
+```text
+Ubuntu 24.04.4 LTS
+Noble Numbat
+```
+
+WSL:
+
+```text
+WSL version:
+2.7.11.0
+
+Kernel:
+6.18.33.2-microsoft-standard-WSL2
+
+User:
+minhhieu
+
+Home:
+/home/minhhieu
+
+Default distro:
+Ubuntu-24.04
+
+Version:
+WSL2
+```
+
+Canonical backing VHDX:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+Ubuntu filesystem không còn nằm tại default WSL location trên C:.
+
+---
+
+# 9. VỊ TRÍ PROJECT LINUX
+
+Các project Linux làm việc chính phải nằm tại:
+
+```text
+/home/minhhieu/...
+```
+
+Không chạy workload Linux/AI chính từ:
+
+```text
+/mnt/c/...
+/mnt/d/...
+```
+
+nếu không có lý do cụ thể.
+
+Lý do:
+
+```text
+native ext4
+Linux filesystem semantics
+permissions
+symlinks
+executable bits
+Git
+Python
+virtualenv
+Node
+Docker/Linux tooling
+performance với nhiều file nhỏ
+```
+
+Mặc dù path Linux là:
+
+```text
+/home/minhhieu
+```
+
+dữ liệu vật lý nằm trên SSD D: vì Ubuntu VHDX nằm tại:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+---
+
+# 10. DOCKER DESKTOP — CURRENT VERIFIED STATE
+
+Docker Desktop đã được re-verify sau khi common CLI setup hoàn tất.
+
+Windows:
+
+```text
+Docker Desktop processes:
+running
+
+docker-desktop:
+Running
+WSL2
+```
+
+WSL distro state:
+
+```text
+Ubuntu-24.04      Running    2
+docker-desktop    Running    2
+```
+
+Docker:
+
+```text
+Docker version:
+29.7.2
+
+Docker Compose:
+v5.4.0
+```
+
+Trong Ubuntu:
+
+```text
+docker info
+```
+
+PASS.
+
+Server:
+
+```text
+Server Version: 29.7.2
+Operating System: Docker Desktop
+OSType: linux
+Architecture: x86_64
+CPUs: 12
+Total Memory: 7.645 GiB
+Name: docker-desktop
+Storage Driver: overlayfs
+Cgroup Version: 2
+```
+
+Docker hello-world:
+
+```bash
+docker run --rm hello-world
+```
+
+PASS:
+
+```text
+Hello from Docker!
+```
+
+Docker context trong WSL:
+
+```text
+default *
+unix:///var/run/docker.sock
+```
+
+Docker context phía Windows:
+
+```text
+desktop-linux *
+npipe:////./pipe/dockerDesktopLinuxEngine
+```
+
+Lưu ý:
+
+```text
+command -v docker
+```
+
+trong Ubuntu hiện resolve tới Docker Desktop Windows CLI qua Windows PATH:
+
+```text
+/mnt/c/Users/ACER/AppData/Local/Programs/DockerDesktop/resources/bin/docker
+```
+
+Nhưng integration đang hoạt động đầy đủ:
+
+```text
+docker info PASS
+compose PASS
+hello-world PASS
+WSL socket PASS
+```
+
+Do đó:
+
+```text
+KHÔNG cài docker.io / Docker CE riêng trong Ubuntu
+chỉ để đổi command -v docker.
+```
+
+Không tạo Docker stack thứ hai chồng lên Docker Desktop.
+
+Docker storage baseline:
+
+```text
+D:\MinhHieuWSL\Docker\DockerDesktopWSL
+```
+
+Không cần reinstall Docker, move storage hoặc enable integration lại nếu không có lỗi mới.
+
+Quan trọng:
+
+```text
+Docker Desktop PASS
+!=
+project Docker Compose PASS
+```
+
+Project Compose vẫn phải test theo từng project.
+
+---
+
+# 11. WINDOWS ↔ WSL RESOURCE AUDIT
+
+Máy:
+
+```text
+Manufacturer:
+Acer
+
+Model:
+Nitro AN515-57
+
+CPU:
+11th Gen Intel Core i5-11400H @ 2.70GHz
+
+Physical cores:
+6
+
+Logical processors:
+12
+
+HypervisorPresent:
+True
+```
+
+WSL:
+
+```text
+CPU(s): 12
+On-line CPU(s): 0-11
+Core(s) per socket: 6
+Thread(s) per core: 2
+Hypervisor vendor: Microsoft
+```
+
+Worker checks:
+
+```text
+nproc = 12
+nproc --all = 12
+getconf _NPROCESSORS_ONLN = 12
+taskset affinity = 0-11
+Node os.cpus().length = 12
+Node os.availableParallelism() = 12
+```
+
+Kết luận:
+
+```text
+FULL 12 / 12 CPU visibility
+No evidence of WSL CPU cap
+```
+
+Windows power plan:
+
+```text
+Balanced
+Minimum processor state AC/DC = 5%
+Maximum processor state AC/DC = 100%
+```
+
+## RAM
+
+Windows:
+
+```text
+Kingston 8GB DDR4-3200
+Lexar    8GB DDR4-3200
+
+Configured clock:
+2933 MHz
+
+Total visible:
+15.78 GB
+```
+
+WSL:
+
+```text
+MemTotal ~8,016,516 kB
+~7.6 GiB total
+```
+
+Swap:
+
+```text
+2 GiB
+```
+
+`.wslconfig`:
+
+```text
+NOT FOUND
+```
+
+Decision:
+
+```text
+KEEP WSL DEFAULT RAM MANAGEMENT
+NO .wslconfig
+```
+
+Không tune RAM lúc này.
+
+## GPU
+
+Windows/WSL:
+
+```text
+NVIDIA GeForce GTX 1650
+VRAM 4096 MiB
+KMD 610.88
+CUDA UMD 13.3
+```
+
+WSL có:
+
+```text
+/dev/dxg
+/usr/lib/wsl/lib/libcuda.so
+/usr/lib/wsl/lib/libnvidia-ml.so.1
+```
+
+GPU passthrough:
+
+```text
+PASS
+```
+
+`nvcc` chưa cài.
+
+Không cài CUDA toolkit chỉ vì `nvcc` missing; project requirements quyết định sau.
+
+## Network
+
+Windows Wi-Fi:
+
+```text
+192.168.1.107/24
+Gateway 192.168.1.1
+```
+
+Windows WSL virtual adapter:
+
+```text
+172.26.96.1/20
+```
+
+WSL:
+
+```text
+eth0 172.26.106.168/20
+default via 172.26.96.1
+DNS 10.255.255.254
+```
+
+Không thấy RX/TX error/drop bất thường.
+
+Kết luận toàn bộ resource audit:
+
+```text
+NO EVIDENCE OF ABNORMAL WSL2 PERFORMANCE THROTTLING
+```
+
+---
+
+# 12. WSL VHDX CLEANUP / COMPACTION — DONE
+
+Trước compact:
+
+```text
+VHDX:
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+
+Physical size:
+92.615 GiB
+```
+
+Filesystem:
+
+```text
+1007G total
+67G used
+890G available
+7%
+```
+
+Đã chạy:
+
+```bash
+sync
+sudo fstrim -v /
+sync
+```
+
+Result:
+
+```text
+/: 940 GiB trimmed
+```
+
+Sau WSL clean shutdown, dùng DiskPart:
+
+```text
+select vdisk file="D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx"
+compact vdisk
+```
+
+PASS:
+
+```text
+100 percent completed
+DiskPart successfully compacted the virtual disk file.
+```
+
+Sau compact:
+
+```text
+67.040 GiB
+```
+
+Reclaimed:
+
+```text
+~25.575 GiB
+~25.6 GiB
+```
+
+Post-compact:
+
+```text
+Ubuntu boot PASS
+ext4 mount PASS
+project roots PASS
+Git presence PASS
+large files PASS
+kernel/filesystem check PASS
+no restore staging
+```
+
+Không compact thường xuyên.
+
+Chỉ cân nhắc sau khi xóa lượng dữ liệu lớn.
+
+---
+
+# 13. COMMON UBUNTU DEVELOPMENT TOOLCHAIN — PASS
+
+Đã cài:
+
+```text
+build-essential
+gcc
+g++
+make
+cmake
+pkg-config
+libssl-dev
+libffi-dev
+python3-dev
+python3-pip
+python3-venv
+pipx
+zip
+jq
+tree
+htop
+less
+groff
+git
+gh
+rsync
+unzip
+zipinfo
+```
+
+Verify baseline:
+
+```text
+gcc 13.3.0
+g++ 13.3.0
+GNU Make 4.3
+cmake 3.28.3
+pkg-config 1.8.1
+Python system 3.12.3
+pip 24.0
+pipx 1.4.3
+Zip 3.0
+jq 1.7
+```
+
+Lưu ý:
+
+```text
+system Python tồn tại
+!=
+project Python environment đã được dựng.
+```
+
+---
+
+# 14. UV — PASS
+
+Cài sạch trong Ubuntu mới.
+
+Current:
+
+```text
+uv 0.12.5
+uvx 0.12.5
+```
+
+Path:
+
+```text
+/home/minhhieu/.local/bin
+```
+
+Không restore old `uv` runtime/cache.
+
+Current `.config/uv` được giữ.
+
+---
+
+# 15. NVM / NODE / NPM — PASS
+
+Current:
+
+```text
+NVM_DIR=/home/minhhieu/.nvm
+
+NVM:
+0.40.6
+
+Node:
+v24.19.0
+
+npm:
+11.17.0
+```
+
+Paths:
+
+```text
+/home/minhhieu/.nvm/versions/node/v24.19.0/bin/node
+/home/minhhieu/.nvm/versions/node/v24.19.0/bin/npm
+```
+
+npm prefix:
+
+```text
+/home/minhhieu/.nvm/versions/node/v24.19.0
+```
+
+npm root:
+
+```text
+/home/minhhieu/.nvm/versions/node/v24.19.0/lib/node_modules
+```
+
+Current global npm packages:
+
+```text
+corepack
+npm
+```
+
+Không có Codex/Claude global npm package vì hai CLI hiện dùng standalone/native installation.
+
+Không restore `.nvm` cũ.
+
+---
+
+# 16. AWS CLI V2 — PASS
+
+Current:
+
+```text
+/usr/local/bin/aws
+aws-cli/2.36.25
+```
+
+AWS config đã chuyển từ symlink Windows:
+
+```text
+/home/minhhieu/.aws
+->
+/mnt/c/Users/ACER/.aws
+```
+
+sang native ext4:
+
+```text
+/home/minhhieu/.aws
+```
+
+Permissions:
+
+```text
+700 ~/.aws
+600 ~/.aws/config
+600 ~/.aws/credentials
+```
+
+Config:
+
+```text
+region:
+ap-southeast-1
+
+output:
+json
+```
+
+Identity verify:
+
+```text
+IAM user:
+aiengineer
+```
+
+ECR read API đã hoạt động.
+
+Security note:
+
+Trong quá trình setup trước đó, một AWS Access Key ID + Secret Access Key cũ từng bị paste trực tiếp vào chat.
+
+Policy:
+
+```text
+credential đó phải được coi là compromised
+```
+
+Không ghi secret vào handoff.
+
+Nếu chưa được xử lý ngoài transcript:
+
+```text
+deactivate/delete exposed old AWS access key
+```
+
+vẫn là security follow-up.
+
+---
+
+# 17. GIT / GITHUB CURRENT STATE
+
+Đã cài:
+
+```text
+git
+gh
+```
+
+GitHub CLI authenticated.
+
+Account:
+
+```text
+Sunny-sunnyy
+```
+
+Protocol:
+
+```text
+HTTPS
+```
+
+Current Git identity:
+
+```text
+user.name  = Sunny
+user.email = hieu0606sunny@gmail.com
+```
+
+Current:
+
+```text
+/home/minhhieu/.gitconfig
+```
+
+có GitHub CLI credential helper.
+
+Không restore old `.gitconfig`.
+
+Không login lại nếu auth vẫn hoạt động.
+
+---
+
+# 18. CODEX CLI — PASS
+
+Codex CLI đã cài thành công và verify.
+
+Current:
+
+```text
+command -v codex:
+/home/minhhieu/.local/bin/codex
+
+version:
+codex-cli 0.148.0
+```
+
+Resolved binary:
+
+```text
+/home/minhhieu/.codex/packages/standalone/releases/0.148.0-x86_64-unknown-linux-musl/bin/codex
+```
+
+Kết luận:
+
+```text
+Linux-native standalone installation
+PASS
+```
+
+Không dùng Windows Codex executable dù Windows PATH vẫn được expose phía sau.
+
+---
+
+# 19. CODEX RECOVERY SKILLS — DONE + FUNCTIONAL TEST PASS
+
+Recovery source:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026\ai-config\ai-config\.codex\skills
+```
+
+WSL source:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026/ai-config/ai-config/.codex/skills
+```
+
+Destination:
+
+```text
+/home/minhhieu/.codex/skills
+```
+
+Đã copy bằng:
+
+```bash
+rsync -a --info=progress2 "$SRC/" "$DST/"
+```
+
+Source metrics:
+
+```text
+Size:
+66M
+
+Immediate subfolders:
+1474
+
+Immediate files:
+5
+
+Total folders:
+2057
+
+Total files:
+4577
+```
+
+Destination metrics:
+
+```text
+Size:
+76M
+
+Immediate subfolders:
+1474
+
+Immediate files:
+5
+
+Total folders:
+2057
+
+Total files:
+4577
+```
+
+Chênh lệch `du` source/destination được coi là filesystem allocation difference giữa DrvFS/Windows và ext4.
+
+Final verify:
+
+```bash
+rsync -ani "$SRC/" "$DST/"
+```
+
+không output.
+
+Functional test thực tế:
+
+```text
+Codex đã đọc được skills tại:
+/home/minhhieu/.codex/skills
+```
+
+Kết luận:
+
+```text
+CODEX SKILLS RESTORE
+=
+DONE / PASS
+```
+
+Không xóa recovery source trên Windows lúc này.
+
+---
+
+# 20. CLAUDE CODE CLI — PASS
+
+Current:
+
+```text
+command -v claude:
+/home/minhhieu/.local/bin/claude
+
+version:
+2.1.235 (Claude Code)
+```
+
+Resolved:
+
+```text
+/home/minhhieu/.local/share/claude/versions/2.1.235
+```
+
+Kết luận:
+
+```text
+Linux-native installation
+PASS
+```
+
+---
+
+# 21. `.claude_ds` — DONE
+
+Người dùng xác nhận `.claude_ds` là một trong hai AI config quan trọng nhất cùng `.codex`.
+
+Current source state:
+
+```text
+/home/minhhieu/.claude
+```
+
+đã được dùng để tạo/copy:
+
+```text
+/home/minhhieu/.claude_ds
+```
+
+Mục tiêu:
+
+```text
+giữ một Claude/DeepSeek-oriented config tree riêng
+```
+
+User xác nhận phần này đã hoàn tất.
+
+Không blind-copy toàn bộ old recovery `.claude` lên current `.claude` mới.
+
+Current `.claude` do Claude Code mới tạo phải được bảo vệ.
+
+---
+
+# 22. GEMINI CLI — REMOVED FROM PLAN
+
+User xác nhận:
+
+```text
+không còn dùng Gemini CLI
+```
+
+Do đó:
+
+```text
+Gemini CLI:
+DO NOT INSTALL
+
+old .gemini:
+DO NOT RESTORE
+```
+
+Không còn là TODO.
+
+---
+
+# 23. AI-CONFIG RECOVERY — CURRENT FINAL DECISION
+
+Recovery source:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026\ai-config\ai-config
+```
+
+Lịch sử gồm:
+
+```text
+.claude
+.claude_ds
+.codex
+.gemini
+.cursor
+.config
+```
+
+Current decisions:
+
+```text
+.codex
+→ important
+→ selectively restored
+→ skills copied
+→ Codex read skills successfully
+→ DONE
+
+.claude_ds
+→ important
+→ DONE
+
+.claude
+→ current new Claude state protected
+→ do not overwrite wholesale with old recovery
+
+.gemini
+→ not used
+→ skip
+
+.config
+→ audited and selectively handled
+→ see next section
+
+.cursor
+→ not part of required current recovery workflow
+→ no blind restore
+```
+
+Không copy toàn bộ `ai-config/*` vào home.
+
+AI config phase hiện có thể coi:
+
+```text
+SELECTIVE RESTORE COMPLETE
+```
+
+cho các phần người dùng thực sự cần.
+
+---
+
+# 24. `.config` AUDIT — DONE
+
+Old recovery:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026/ai-config/ai-config/.config
+```
+
+Size:
+
+```text
+409M
+```
+
+Old top-level:
+
+```text
+clerk
+create-next-app-nodejs
+fish
+git
+google-chrome
+google-chrome-for-testing
+matplotlib
+nextjs-nodejs
+opencode
+pulse
+pygwalker
+uv
+vscode-sqltools
+mimeapps.list
+```
+
+New initial:
+
+```text
+/home/minhhieu/.config
+
+fish
+gh
+uv
+```
+
+Top-level overlap:
+
+```text
+fish
+uv
+```
+
+Old config scan tìm thấy nhiều old-home references chủ yếu trong:
+
+```text
+google-chrome
+```
+
+và:
+
+```text
+uv/uv-receipt.json
+```
+
+Không thấy symlink trong old `.config`.
+
+Decision:
+
+```text
+DO NOT bulk-restore whole old .config
+```
+
+## Nhóm không restore
+
+```text
+google-chrome
+google-chrome-for-testing
+pulse
+mimeapps.list
+opencode
+```
+
+`opencode`:
+
+```text
+user không còn dùng
+```
+
+Nếu cần sau này sẽ cài sạch.
+
+## Candidate từng audit
+
+```text
+clerk/config.json
+create-next-app-nodejs/config.json
+git/ignore
+nextjs-nodejs/config.json
+pygwalker/config.json
+pygwalker/user_config.json
+vscode-sqltools/runningInfo.json
+matplotlib
+```
+
+Không có `/home/hieu0606sunny` reference trong nhóm candidate.
+
+Nội dung đáng chú ý:
+
+```text
+.config/git/ignore:
+**/.claude/settings.local.json
+```
+
+Đây là global Git ignore rule hữu ích.
+
+Các file còn lại chủ yếu:
+
+```text
+telemetry notice
+anonymous telemetry id
+create-next-app preferences
+pygwalker user id
+runtime info
+```
+
+không phải runtime-critical configuration.
+
+Decision cuối:
+
+```text
+KEEP CURRENT:
+fish
+gh
+uv
+
+KEEP USEFUL:
+git/ignore
+
+NOT NEEDED:
+clerk
+create-next-app-nodejs
+nextjs-nodejs
+pygwalker
+matplotlib
+vscode-sqltools
+opencode
+google-chrome
+google-chrome-for-testing
+pulse
+mimeapps.list
+```
+
+Desired clean active `.config` state:
+
+```text
+/home/minhhieu/.config/
+├── fish
+├── gh
+├── git
+└── uv
+```
+
+Lưu ý chính xác:
+
+```text
+quyết định xóa các candidate không cần đã được đưa ra;
+nếu session mới cần filesystem-perfect confirmation,
+chỉ cần chạy final `find ~/.config -maxdepth 1`.
+```
+
+Không cần restore `.config` thêm.
+
+---
+
+# 25. SECURE / SSH RECOVERY — REVIEWED / SKIP
+
+Recovery source:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026\secure\secure\.ssh
+```
+
+Thực tế chỉ có:
+
+```text
+known_hosts
+```
+
+Không có:
+
+```text
+private key
+public key
+SSH config
+authorized_keys
+credential quan trọng khác
+```
+
+`known_hosts` chứa một hashed SSH host entry.
+
+Nó:
+
+```text
+không phải credential
+không phải private key
+```
+
+Hiện GitHub đang dùng HTTPS và hoạt động.
+
+Decision:
+
+```text
+DO NOT RESTORE old known_hosts
+```
+
+Khi dùng SSH sau này, `known_hosts` có thể được tạo lại.
+
+Secure phase:
+
+```text
+REVIEWED
+NO IMPORTANT CREDENTIAL FOUND
+SKIP RESTORE
+DONE
+```
+
+---
+
+# 26. SHELL-CONFIG RECOVERY — FULL AUDIT COMPLETE
+
+Recovery source:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026\shell-config\shell-config
+```
+
+Size:
+
+```text
+~501M
+```
+
+Top-level:
+
+```text
+.nvm
+.bashrc
+.gitconfig
+.npmrc
+.zshrc
+```
+
+File sizes:
+
+```text
+.bashrc      4278 bytes
+.gitconfig   61 bytes
+.npmrc       37 bytes
+.zshrc       116 bytes
+```
+
+`.nvm`:
+
+```text
+501M
+```
+
+Old Node versions:
+
+```text
+v22.19.0
+v24.17.0
+```
+
+Current new environment:
+
+```text
+NVM 0.40.6
+Node v24.19.0
+npm 11.17.0
+```
+
+Decision:
+
+```text
+DO NOT RESTORE OLD .nvm
+```
+
+---
+
+# 27. OLD `.bashrc` AUDIT
+
+Current `.bashrc`:
+
+```text
+/home/minhhieu/.bashrc
+```
+
+Old extra lines so với current:
+
+```bash
+nvm use --silent default >/dev/null 2>&1
+
+# opencode
+export PATH=/home/hieu0606sunny/.opencode/bin:$PATH
+
+# Added by Antigravity CLI installer
+export PATH="/home/hieu0606sunny/.local/bin:$PATH"
+
+export OPENAI_API_KEY=$(sed -n "s/^OPENAI_API_KEY=//p" /home/hieu0606sunny/hue_rag/.env)
+```
+
+Decision:
+
+```text
+opencode line
+→ skip; user no longer uses opencode
+
+old Antigravity path
+→ skip; stale /home/hieu0606sunny path
+
+OPENAI_API_KEY from hue_rag .env
+→ do not restore globally
+→ secret should remain project-scoped unless explicitly needed
+
+nvm use --silent default
+→ optional only
+→ not required if current shell already resolves correct Node
+```
+
+Current `.bashrc` is kept.
+
+Do not overwrite with old file.
+
+---
+
+# 28. OLD `.gitconfig` AUDIT
+
+Current:
+
+```text
+user.name = Sunny
+user.email = hieu0606sunny@gmail.com
+```
+
+và có GitHub CLI credential helper cho:
+
+```text
+github.com
+gist.github.com
+```
+
+Old:
+
+```text
+user.name = Sunny-sunnyy
+user.email = hieu0606sunny@gmail.com
+```
+
+Old file không có current GitHub CLI credential helper.
+
+Decision:
+
+```text
+KEEP CURRENT .gitconfig
+DO NOT COPY OLD .gitconfig
+```
+
+Nếu sau này muốn đổi `user.name`, đổi riêng field thay vì replace file.
+
+---
+
+# 29. OLD `.npmrc` AUDIT
+
+Old `.npmrc`:
+
+```text
+cache=/home/hieu0606sunny/.npm-cache
+```
+
+Current:
+
+```text
+~/.npmrc not required
+```
+
+Decision:
+
+```text
+DO NOT RESTORE old .npmrc
+```
+
+Path cũ không hợp lệ cho user mới.
+
+---
+
+# 30. OLD `.zshrc` AUDIT
+
+Old extra:
+
+```bash
+# Added by Antigravity CLI installer
+export PATH="/home/hieu0606sunny/.local/bin:$PATH"
+```
+
+Current `.zshrc`:
+
+```text
+/home/minhhieu/.zshrc
+```
+
+có current new-state line:
+
+```bash
+. "$HOME/.local/bin/env"
+```
+
+Decision:
+
+```text
+KEEP CURRENT .zshrc
+DO NOT RESTORE OLD .zshrc
+```
+
+---
+
+# 31. SHELL-CONFIG FINAL DECISION
+
+```text
+.nvm        → SKIP
+.bashrc     → KEEP CURRENT
+.gitconfig  → KEEP CURRENT
+.npmrc      → SKIP
+.zshrc      → KEEP CURRENT
+```
+
+Shell-config recovery phase:
+
+```text
+AUDITED
+NO BULK RESTORE
+KEEP CLEAN NEW ENVIRONMENT
+DONE
+```
+
+---
+
+# 32. CURRENT PATH STATE
+
+PATH đầu Ubuntu hiện có:
+
+```text
+/home/minhhieu/.local/bin
+/home/minhhieu/.nvm/versions/node/v24.19.0/bin
+/home/minhhieu/.local/bin
+...
+```
+
+Có duplicate:
+
+```text
+/home/minhhieu/.local/bin
+```
+
+hai lần.
+
+Đây không phải lỗi runtime.
+
+Linux native Codex/Claude được resolve trước Windows PATH.
+
+Windows interop PATH vẫn có các entry như:
+
+```text
+/mnt/c/Windows/...
+/mnt/d/Git/Git/cmd
+/mnt/c/Program Files/GitHub CLI/
+/mnt/c/Users/ACER/AppData/Local/Programs/OpenAI/Codex/bin
+/mnt/c/Users/ACER/AppData/Local/Programs/DockerDesktop/resources/bin
+```
+
+Không cần sửa PATH thêm trước project runtime nếu không có lỗi cụ thể.
+
+---
+
+# 33. RECOVERY PROJECT SET
+
+Recovery gốc có 11 project:
+
+```text
+AiAgent_t7_2026_wsl
+AiCoderWSL
+AiProduction_t6_2026_wsl
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+ptx_rag
+```
+
+Required và đã restore:
+
+```text
+AiAgent_t7_2026_wsl
+AiProduction_t6_2026_wsl
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+```
+
+Metric:
+
+```text
+6 / 6 REQUIRED PROJECTS
+=
+DATA RESTORED
+```
+
+Không còn cần restore:
+
+```text
+AiCoderWSL
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ptx_rag
+```
+
+Metric:
+
+```text
+5 / 5 NON-REQUIRED PROJECTS
+=
+SKIPPED BY DECISION
+```
+
+Đây không còn là TODO.
+
+---
+
+# 34. PROJECT RESTORE WORKFLOW ĐÃ DÙNG
+
+Workflow:
+
+```text
+Windows ZIP trên /mnt/d
+        ↓
+verify SHA256
+        ↓
+unzip -t
+        ↓
+zipinfo / archive-root inspection
+        ↓
+unzip bằng Linux vào native ext4 staging
+        ↓
+inspect structure / ownership / permissions / .git
+        ↓
+inspect stale old-home paths
+        ↓
+rsync -a staging → final destination
+        ↓
+verify size / entry count
+        ↓
+verify Git / HEAD / branch / remote
+        ↓
+preserve local WIP
+        ↓
+rsync dry-run
+        ↓
+chỉ sau PASS mới cleanup staging
+```
+
+Extraction chạy bằng:
+
+```text
+user=minhhieu
+```
+
+Không dùng `sudo unzip` khi không cần.
+
+---
+
+# 35. RESTORE STAGING — CLEANUP DONE
+
+Staging từng là:
+
+```text
+/home/minhhieu/.restore-staging
+```
+
+Sau khi 6 required projects PASS:
+
+```text
+staging từng project đã xóa
+staging root đã xóa nếu rỗng
+```
+
+Post-compaction verify:
+
+```text
+OK: no restore staging
+```
+
+Không recreate staging trừ khi thực hiện recovery operation mới.
+
+---
+
+# 36. PROJECT — AiAgent_t7_2026_wsl
+
+Destination:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl
+```
+
+Repo:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+```
+
+SHA256 recovery:
+
+```text
+d14b6713fb6963d14bbe3ccda50aae0241cf68035baf73e55f4eaf5df8a86a83
+```
+
+ZIP integrity:
+
+```text
+PASS
+```
+
+Size:
+
+```text
+~1.6G
+```
+
+Branch:
+
+```text
+main
+```
+
+Remote:
+
+```text
+https://github.com/Sunny-sunnyy/agents_t7_2026.git
+```
+
+HEAD:
+
+```text
+0b8209b9c7f53c2b63b8d32d47817c41579147d9
+```
+
+Tại thời điểm verify:
+
+```text
+LOCAL HEAD == REMOTE HEAD
+```
+
+Current:
+
+```text
+[✓] DATA restored
+[✓] Git preserved
+[✓] remote verified
+[✓] staging removed
+
+[ ] project runtime manifests re-audited
+[ ] old env artifacts evaluated
+[ ] clean project environment rebuilt
+[ ] dependencies installed
+[ ] project executed
+[ ] tests executed
+[ ] RUNTIME PASS
+```
+
+---
+
+# 37. PROJECT — AiProduction_t6_2026_wsl
+
+Destination:
+
+```text
+/home/minhhieu/AiProduction_t6_2026_wsl
+```
+
+Size:
+
+```text
+~12G
+```
+
+Historical entry count:
+
+```text
+330818
+```
+
+Git repos:
+
+```text
+/home/minhhieu/AiProduction_t6_2026_wsl/production
+/home/minhhieu/AiProduction_t6_2026_wsl/projects/alex
+/home/minhhieu/AiProduction_t6_2026_wsl/projects/saas
+/home/minhhieu/AiProduction_t6_2026_wsl/projects/twin
+/home/minhhieu/AiProduction_t6_2026_wsl/projects/codex_plugin/superpowers
+```
+
+Remotes:
+
+```text
+production:
+https://github.com/ed-donner/production.git
+
+alex:
+https://github.com/Sunny-sunnyy/alex.git
+
+saas:
+https://github.com/Sunny-sunnyy/SaaS.git
+
+twin:
+https://github.com/Sunny-sunnyy/twin2026.git
+```
+
+Local WIP preserved.
+
+Current:
+
+```text
+[✓] DATA restored
+[✓] multiple Git repos preserved
+[✓] local WIP preserved
+[✓] staging removed
+
+[ ] runtime requirements inspected per subproject
+[ ] old env/node_modules audited
+[ ] Python environments rebuilt
+[ ] Node environments rebuilt where applicable
+[ ] dependencies installed
+[ ] projects executed
+[ ] tests/runtime verified
+```
+
+---
+
+# 38. PROJECT — ed_rag_2026
+
+Destination:
+
+```text
+/home/minhhieu/ed_rag_2026
+```
+
+Structure:
+
+```text
+/home/minhhieu/ed_rag_2026/
+└── Agentic_Rag_MCP/
+```
+
+Size:
+
+```text
+~1.4G
+```
+
+Historical entry count:
+
+```text
+65522
+```
+
+Old `.venv` được giữ như recovery evidence.
+
+Không mặc định `.venv` cũ usable.
+
+Current:
+
+```text
+[✓] DATA restored
+[✓] old .venv preserved
+[✓] rsync verified
+[✓] staging removed
+
+[ ] inspect manifests
+[ ] determine Python version
+[ ] audit old .venv
+[ ] rebuild clean environment
+[ ] install dependencies
+[ ] run project
+[ ] runtime/test verify
+```
+
+---
+
+# 39. PROJECT — hue_rag
+
+Destination / repo:
+
+```text
+/home/minhhieu/hue_rag
+```
+
+Size:
+
+```text
+~12G
+```
+
+Historical entry count:
+
+```text
+104552
+```
+
+SHA256:
+
+```text
+5392124c7ec50b0bbf500243d0a42cd93188bab5cb8cd1877c878838b5c6e76c
+```
+
+Old Python 3.13 `.venv` preserved.
+
+Stale:
+
+```ini
+core.worktree=/home/hieu0606sunny/hue_rag
+```
+
+đã remove an toàn.
+
+Current repo:
+
+```text
+/home/minhhieu/hue_rag
+```
+
+Branch:
+
+```text
+main
+```
+
+Origin:
+
+```text
+https://github.com/Sunny-sunnyy/chatbot-hue.git
+```
+
+HEAD:
+
+```text
+7caa853c2170daa7f956185c6acb0cd230fded5c
+```
+
+Từng verify:
+
+```text
+LOCAL HEAD == REMOTE HEAD
+```
+
+Local modified/deleted/untracked WIP preserved.
+
+Current:
+
+```text
+[✓] DATA restored
+[✓] Git repaired safely
+[✓] local WIP preserved
+[✓] staging removed
+
+[ ] old .venv evaluated
+[ ] clean Python environment rebuilt
+[ ] dependencies installed
+[ ] .env reviewed
+[ ] API keys reviewed
+[ ] Qdrant state evaluated
+[ ] Docker Compose tested
+[ ] application executed
+[ ] tests/runtime verified
+```
+
+---
+
+# 40. PROJECT — llm_rag
+
+Destination / repo:
+
+```text
+/home/minhhieu/llm_rag
+```
+
+Size:
+
+```text
+~12G
+```
+
+Historical entry count:
+
+```text
+100302
+```
+
+SHA256:
+
+```text
+6eaaa9769c92bc92730134920b09dbbbfa0755b92d83b6541ee4b785623b70c5
+```
+
+Branch:
+
+```text
+UpdateV2
+```
+
+HEAD:
+
+```text
+46222ed55a37c0c5cc568a86ff0c6448220f09c3
+```
+
+Origin:
+
+```text
+https://github.com/Sunny-sunnyy/chatbot-company-info.git
+```
+
+Project có:
+
+```text
+.venv
+.env
+backend
+frontend
+qdrant_storage
+docker-compose.yml
+pyproject.toml
+uv.lock
+```
+
+Old `.venv` và `.env` được giữ như recovery data.
+
+Current:
+
+```text
+[✓] DATA restored
+[✓] Git preserved
+[✓] branch/HEAD/remote preserved
+[✓] local WIP preserved
+[✓] staging removed
+
+[ ] old .venv evaluated
+[ ] Python version determined
+[ ] clean Python env rebuilt
+[ ] frontend Node environment rebuilt
+[ ] Docker Compose tested
+[ ] Qdrant storage evaluated
+[ ] .env reviewed
+[ ] application executed
+[ ] tests/runtime verified
+```
+
+---
+
+# 41. PROJECT — price2026wsl
+
+Destination:
+
+```text
+/home/minhhieu/price2026wsl
+```
+
+Repo:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai
+```
+
+Size:
+
+```text
+~27G
+```
+
+Historical entry count:
+
+```text
+153604
+```
+
+SHA256:
+
+```text
+f8a9eb8219efb528305ae941c768aae0b8b37cfef28b47ca78ab3754056acf7a
+```
+
+Branch:
+
+```text
+TTTN
+```
+
+HEAD:
+
+```text
+2b6f7d935feb943f5534873ad65f68e235f3dbeb
+```
+
+Remote:
+
+```text
+https://github.com/Sunny-sunnyy/DACN3.git
+```
+
+Project chứa nguyên recovery artifact:
+
+```text
+.venv
+node_modules
+environment.yml
+pyproject.toml
+requirements.txt
+package.json
+package-lock.json
+scraping_data_tv
+fine_tune_qwen
+fine_tune_qwen_v2
+shopping_assistant_v2
+shopping_assistant_v3
+segment4
+```
+
+Đặc biệt:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/.venv
+/home/minhhieu/price2026wsl/tech2ai/node_modules
+```
+
+được copy nguyên từ môi trường WSL cũ `hieu0606sunny`.
+
+Chúng:
+
+```text
+CHƯA được activate/test
+CHƯA được xác nhận tương thích user/path/runtime mới
+CHƯA được coi là dependency state hợp lệ
+```
+
+Recovered permission của repo từng là:
+
+```text
+777
+```
+
+Không chmod mù.
+
+Current:
+
+```text
+[✓] DATA restored
+[✓] 27G preserved
+[✓] Git preserved
+[✓] branch/HEAD/origin preserved
+[✓] local WIP preserved
+[✓] staging removed
+
+[ ] permission model reviewed
+[ ] old .venv audited
+[ ] old node_modules audited
+[ ] Python strategy determined
+[ ] Node strategy determined
+[ ] clean environments rebuilt as needed
+[ ] dependencies installed/reconciled
+[ ] model/data path sanity checked
+[ ] application executed
+[ ] tests/runtime verified
+```
+
+---
+
+# 42. GIT SAFETY RULES — BẮT BUỘC
+
+Không chạy tùy tiện:
+
+```bash
+git reset --hard
+git reset
+git clean
+git clean -fd
+git checkout .
+git restore .
+git pull
+```
+
+chỉ để repo trông clean.
+
+Trước bất kỳ Git destructive action:
+
+```bash
+git status
+```
+
+phải được inspect.
+
+Recovery đã chứng minh nhiều repo có local WIP thực.
+
+```text
+working tree dirty
+!=
+recovery failure
+```
+
+```text
+local WIP
+=
+recovery data cần bảo tồn
+```
+
+Không pull chỉ vì thấy repo cũ.
+
+---
+
+# 43. OLD `.venv` POLICY — NEXT PHASE
+
+Một số project chứa `.venv` recovery cũ.
+
+Các `.venv` này có thể chứa:
+
+```text
+old Python path
+old user path
+old interpreter
+old shebang
+old package binary
+old native extension
+old absolute paths
+compiled wheels
+old virtualenv metadata
+```
+
+Không activate chúng như default environment trước audit.
+
+Không xóa chúng ngay.
+
+Workflow:
+
+```text
+inspect old .venv
+        ↓
+read pyvenv.cfg / interpreter metadata
+        ↓
+scan stale /home/hieu0606sunny paths
+        ↓
+use installed packages only as evidence
+        ↓
+determine intended Python version
+        ↓
+read pyproject.toml / uv.lock / requirements.txt / environment.yml
+        ↓
+create clean environment
+        ↓
+install reproducibly
+        ↓
+run test
+        ↓
+only then decide whether old .venv can be deleted
+```
+
+Không đổi toàn bộ path cũ trong `.venv`.
+
+---
+
+# 44. OLD `node_modules` POLICY — NEXT PHASE
+
+Một số project, đặc biệt `price2026wsl`, có old:
+
+```text
+node_modules
+```
+
+được copy nguyên từ WSL cũ.
+
+Không mặc định usable.
+
+Rủi ro:
+
+```text
+native modules
+postinstall binaries
+old Node ABI
+old Node version
+absolute paths
+symlinks
+package manager metadata
+stale cache
+```
+
+Current common Node:
+
+```text
+v24.19.0
+```
+
+Old project node_modules có thể được dựng bằng Node version khác.
+
+Workflow:
+
+```text
+inspect package.json
+inspect package-lock.json / pnpm-lock.yaml / yarn.lock
+determine intended Node version
+inspect engines / .nvmrc if present
+        ↓
+keep old node_modules as evidence initially
+        ↓
+build clean dependency state
+        ↓
+npm ci / appropriate package manager
+        ↓
+test frontend/build
+        ↓
+only then decide whether old node_modules can be removed
+```
+
+Không dùng old `node_modules` làm bằng chứng rằng frontend đã ready.
+
+---
+
+# 45. `.env` / SECRET POLICY — NEXT PHASE
+
+Một số project recovery chứa old `.env`.
+
+Không paste secret vào chat.
+
+Khi audit:
+
+```text
+review key names
+review stale paths
+review localhost ports
+review external services
+review AWS/OpenAI/Anthropic/etc references
+```
+
+Không in secret values.
+
+Không global-export project secret qua `.bashrc` nếu không có lý do.
+
+Mỗi project phải quyết định secret/runtime riêng.
+
+---
+
+# 46. DOCKER / QDRANT / DATA POLICY — NEXT PHASE
+
+Project có thể chứa:
+
+```text
+docker-compose.yml
+qdrant_storage
+chroma.sqlite3
+vector store
+model checkpoint
+large .pth files
+datasets
+```
+
+Các file này là recovery data.
+
+Không xóa để "clean environment" nếu chưa xác định vai trò.
+
+Docker Desktop global PASS không có nghĩa:
+
+```text
+project compose
+project volume
+Qdrant compatibility
+container environment
+```
+
+đã PASS.
+
+Phải test từng project.
+
+---
+
+# 47. LARGE FILES CẦN BẢO VỆ
+
+Đã từng xác nhận các large files quan trọng trong `price2026wsl`:
+
+```text
+~2.1 GiB
+/home/minhhieu/price2026wsl/tech2ai/segment4/products_vectorstore/chroma.sqlite3
+
+~1.3 GiB
+/home/minhhieu/price2026wsl/tech2ai/segment4/products_vectorstore/1ba66e1b-f9a4-4d8b-b237-2255a36224e4/data_level0.bin
+
+~1.1 GiB
+/home/minhhieu/price2026wsl/tech2ai/segment4/deep_neural_network.pth
+```
+
+Không xóa chúng chỉ để giảm VHDX.
+
+---
+
+# 48. RECOVERY DIRECTORY TRÊN WINDOWS
+
+Canonical recovery root:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026
+```
+
+WSL view:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026
+```
+
+Recovery source vẫn là backup/reference.
+
+Không xóa recovery source chỉ vì active data đã copy sang `/home/minhhieu`.
+
+---
+
+# 49. BACKUP HISTORY
+
+Recovery gốc từng được đóng:
+
+```text
+11 project ZIP
++
+projects-zip.sha256
+```
+
+Google Drive verify từng cho:
+
+```text
+0 differences found
+12 matching files
+```
+
+AI config ZIP:
+
+```text
+ai-config.zip
+ai-config.sha256
+```
+
+đã verify.
+
+Shell config và secure cũng từng được đóng ZIP/checksum trong recovery workflow.
+
+Các backup artifact được coi là source/reference lịch sử.
+
+---
+
+# 50. CURRENT AI / DEV CONFIG FINAL STATUS
+
+```text
+.codex
+[✓] current Codex CLI installed
+[✓] old skills selectively restored
+[✓] rsync verification clean
+[✓] functional Codex skill read PASS
+
+.claude
+[✓] current Claude Code new-state exists
+[✓] protected from blind overwrite
+
+.claude_ds
+[✓] DONE
+[✓] important user config
+
+.gemini
+[-] NOT USED
+[-] NOT RESTORED
+
+.config
+[✓] audited
+[✓] bulk restore rejected
+[✓] useful git ignore identified
+[✓] new fish/gh/uv protected
+
+.cursor
+[-] not required for current handoff
+[-] no blind restore
+```
+
+AI-config recovery:
+
+```text
+COMPLETE FOR CURRENT REQUIRED USE
+```
+
+---
+
+# 51. CURRENT SECURE / SHELL FINAL STATUS
+
+Secure:
+
+```text
+only old .ssh/known_hosts
+no private keys
+no important credential
+SKIP RESTORE
+DONE
+```
+
+Shell:
+
+```text
+old .nvm        SKIP
+old .bashrc     SKIP / keep current
+old .gitconfig  SKIP / keep current
+old .npmrc      SKIP
+old .zshrc      SKIP / keep current
+```
+
+Common new environment is source of truth.
+
+---
+
+# 52. NHỮNG VIỆC ĐÃ HOÀN TẤT — KHÔNG LÀM LẠI
+
+Không cần làm lại:
+
+```text
+SSD Netac root-cause investigation
+ext4-old filesystem repair
+old Ubuntu distro restore
+Windows reinstall
+SSD replacement
+WSL reinstall
+Ubuntu move to D:
+Ubuntu import-in-place
+VHDX ACL fix
+Docker Desktop install
+Docker storage move to D:
+project ZIP restore
+project SHA256 verification
+restore staging
+VHDX cleanup/compaction
+base Ubuntu toolchain install
+uv install
+NVM/Node install
+AWS CLI install
+Codex CLI install
+Claude Code CLI install
+Docker WSL integration verification
+Codex skills restore
+Claude_DS setup
+Gemini setup
+bulk secure restore
+bulk shell-config restore
+bulk .config restore
+```
+
+trừ khi có evidence lỗi mới.
+
+---
+
+# 53. NHỮNG QUYẾT ĐỊNH BẮT BUỘC PHẢI GIỮ
+
+1. Không global replace `/home/hieu0606sunny` → `/home/minhhieu`.
+2. Không activate old `.venv` mù.
+3. Không xóa old `.venv` trước khi clean env mới PASS.
+4. Không dùng old `node_modules` như environment mặc định.
+5. Không xóa old `node_modules` trước khi dependency rebuild/test.
+6. Không Git reset/clean local WIP.
+7. Không overwrite `.bashrc`, `.gitconfig`, `.zshrc`, `.npmrc`.
+8. Không restore old `.nvm`.
+9. Không restore old Chrome profile.
+10. Không restore Gemini config.
+11. Không restore old `known_hosts` chỉ vì nó tồn tại.
+12. Không đưa project secrets vào global shell.
+13. Không paste API secret/private key vào chat.
+14. Không cài Docker daemon thứ hai trong Ubuntu khi Docker Desktop integration đang PASS.
+15. Không compact VHDX thường xuyên.
+16. Không xóa model/data/vector store chỉ để giảm disk.
+17. Không đánh dấu project `RUNTIME PASS` nếu chưa thực sự chạy.
+18. Linux/AI working tree chính phải nằm trên `/home/minhhieu` ext4.
+19. Recovery source trên Windows nên giữ làm reference.
+20. Nếu evidence mới mâu thuẫn baseline, ghi rõ old baseline → new evidence → impact → new conclusion.
+
+---
+
+# 54. BƯỚC TIẾP THEO — PROJECT-BY-PROJECT RUNTIME REBUILD
+
+Đúng, bước tiếp theo là:
+
+```text
+vào từng project
+        ↓
+audit
+        ↓
+dựng runtime sạch
+        ↓
+chạy
+        ↓
+test
+```
+
+Không bắt đầu bằng xóa `.venv`/`node_modules`.
+
+Mỗi project nên đi theo template:
+
+```text
+1. cd đúng repo/project root
+
+2. git status
+   git branch
+   git remote -v
+   git rev-parse --show-toplevel
+
+3. inventory:
+   pyproject.toml
+   uv.lock
+   requirements*.txt
+   environment.yml
+   package.json
+   package-lock.json
+   pnpm-lock.yaml
+   yarn.lock
+   .nvmrc
+   docker-compose.yml
+   Dockerfile
+   .env
+   .venv
+   node_modules
+
+4. inspect old-home references:
+   /home/hieu0606sunny
+
+5. inspect old .venv:
+   pyvenv.cfg
+   python path
+   version
+   package metadata
+
+6. inspect Node requirements:
+   package.json engines
+   lockfile
+   old node_modules only as evidence
+
+7. determine target Python version
+
+8. determine target Node version
+
+9. create clean Python environment
+   preferably using uv where project fits
+
+10. install Python dependencies reproducibly
+
+11. build clean Node dependency state where required
+
+12. review .env key names and external services
+
+13. review Docker/Qdrant/vector store/model/data paths
+
+14. run smallest smoke test first
+
+15. run application
+
+16. run tests/build/lint/typecheck where project provides them
+
+17. compare output/errors
+
+18. only after real success:
+    mark RUNTIME PASS
+
+19. only after new environment proven:
+    consider deleting old .venv/node_modules
+```
+
+---
+
+# 55. PROJECT ORDER — ĐỀ XUẤT
+
+Project order chưa bắt buộc khóa cứng.
+
+Khuyến nghị bắt đầu từ project có cấu trúc rõ và độ phức tạp vừa phải trước, không nhất thiết `price2026wsl` vì nó lớn nhất và có nhiều Python/Node/model/data component.
+
+Có thể chọn:
+
+```text
+AiAgent_t7_2026_wsl
+hoặc
+ed_rag_2026
+```
+
+để chuẩn hóa workflow đầu tiên.
+
+Sau khi workflow project đầu tiên ổn:
+
+```text
+hue_rag
+llm_rag
+AiProduction_t6_2026_wsl
+price2026wsl
+```
+
+có thể xử lý tiếp.
+
+Tuy nhiên project order có thể thay đổi theo ưu tiên thực tế của user.
+
+---
+
+# 56. DEFINITION OF `RUNTIME PASS`
+
+Không dùng cảm tính.
+
+Project chỉ được đánh dấu:
+
+```text
+RUNTIME PASS
+```
+
+khi ít nhất:
+
+```text
+environment clean/known
+dependencies install successful
+required command starts
+critical import/module resolution works
+required external service connection works hoặc được mock/skip có lý do
+app/service starts
+smoke test works
+no immediate fatal path/runtime error
+```
+
+Nếu project có test suite:
+
+```text
+tests should run
+```
+
+Nếu có frontend:
+
+```text
+install/build/dev-start should be verified
+```
+
+Nếu có Docker Compose:
+
+```text
+compose config/up should be verified where required
+```
+
+Nếu có Qdrant/vector store:
+
+```text
+storage compatibility must be checked
+```
+
+---
+
+# 57. MASTER STATUS — CURRENT
+
+```text
+SSD OLD INCIDENT INVESTIGATION          [✓ DONE]
+OLD WSL RECOVERY                        [✓ DONE]
+PROJECT ZIP BACKUP                      [✓ DONE]
+PROJECT DATA RESTORE                    [✓ DONE]
+LOCAL WIP PRESERVATION                  [✓ DONE]
+RESTORE STAGING CLEANUP                 [✓ DONE]
+
+WINDOWS REINSTALL                       [✓ DONE]
+OLD SSD REPLACEMENT                     [✓ DONE]
+
+WSL2 UBUNTU 24.04                       [✓ PASS]
+UBUNTU STORAGE ON D:                    [✓ PASS]
+VHDX COMPACTION                         [✓ PASS]
+POST-COMPACT VERIFY                     [✓ PASS]
+
+WINDOWS↔WSL RESOURCE AUDIT              [✓ PASS]
+RAM POLICY DEFAULT                      [✓]
+NO .wslconfig                           [✓]
+
+BASE DEV TOOLCHAIN                      [✓ PASS]
+UV 0.12.5                               [✓ PASS]
+NVM 0.40.6                              [✓ PASS]
+NODE 24.19.0                            [✓ PASS]
+NPM 11.17.0                             [✓ PASS]
+AWS CLI 2.36.25                         [✓ PASS]
+
+CODEX CLI 0.148.0                       [✓ PASS]
+CODEX SKILLS                            [✓ RESTORED / TEST PASS]
+
+CLAUDE CODE 2.1.235                     [✓ PASS]
+CLAUDE_DS                               [✓ DONE]
+
+GEMINI CLI                              [- NOT USED]
+
+DOCKER DESKTOP 29.7.2                   [✓ PASS]
+DOCKER COMPOSE 5.4.0                    [✓ PASS]
+DOCKER WSL INTEGRATION                  [✓ PASS]
+DOCKER HELLO-WORLD                      [✓ PASS]
+
+AI-CONFIG                               [✓ SELECTIVELY DONE]
+.config                                 [✓ AUDITED / SELECTIVE]
+SECURE                                  [✓ REVIEWED / SKIP]
+SHELL-CONFIG                            [✓ REVIEWED / KEEP NEW]
+
+PROJECT ENVIRONMENT REBUILD             [→ NEXT]
+PROJECT RUNTIME                         [→ NEXT]
+
+RUNTIME PASS PROJECT COUNT              [0]
+```
+
+---
+
+# 58. EXACT HANDOFF POINT — 19/08/2026 ~21:35 +07:00
+
+Không tiếp tục:
+
+```text
+data recovery
+VHDX recovery
+WSL cleanup
+VHDX compaction
+base environment install
+Codex install
+Claude install
+Docker integration setup
+AI config broad restore
+secure restore
+shell-config restore
+```
+
+Điểm bắt đầu session mới:
+
+```text
+CHỌN PROJECT ĐẦU TIÊN
+        ↓
+READ-ONLY INVENTORY
+        ↓
+OLD .VENV / NODE_MODULES AUDIT
+        ↓
+MANIFEST / VERSION AUDIT
+        ↓
+CLEAN ENVIRONMENT REBUILD
+        ↓
+DEPENDENCY INSTALL
+        ↓
+RUNTIME / TEST
+```
+
+Đặc biệt phải nhớ:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/.venv
+/home/minhhieu/price2026wsl/tech2ai/node_modules
+```
+
+và các artifact tương tự trong project khác là:
+
+```text
+RECOVERED OLD ENVIRONMENT DATA
+FROM /home/hieu0606sunny
+```
+
+chứ chưa phải:
+
+```text
+ACTIVE VERIFIED ENVIRONMENT
+```
+
+Hiện tại:
+
+```text
+NO RECOVERED PROJECT HAS BEEN RUN YET.
+```
+
+Đây là trạng thái chính xác để handoff sang giai đoạn tiếp theo.
+
+---
+
+# 59. INSTRUCTION CHO CHATGPT Ở SESSION TIẾP THEO
+
+1. Đọc handoff này trước khi trả lời.
+2. Không yêu cầu user kể lại recovery history.
+3. Không quay lại SSD/VHDX recovery nếu không có evidence mới.
+4. Không coi `.venv` / `node_modules` cũ là usable.
+5. Không tự động xóa old environment.
+6. Không Git reset/clean local WIP.
+7. Không global replace old home path.
+8. Không paste/show secrets.
+9. Bắt đầu bằng read-only project audit.
+10. Đưa lệnh theo từng bước, user chạy rồi gửi output.
+11. Mỗi quyết định phải dựa trên manifest/output thật của project.
+12. Chỉ đánh dấu runtime PASS sau khi project thực tế chạy/test thành công.
+13. Nếu gặp old path `/home/hieu0606sunny`, sửa theo ngữ cảnh, không bulk replace.
+14. Ưu tiên environment reproducible từ lockfile/manifest.
+15. Giữ old `.venv`/`node_modules` làm evidence cho đến khi clean replacement PASS.
+
+---
+
+# 60. FINAL STATUS
+
+```text
+RECOVERY / MIGRATION PHASE
+=
+COMPLETE
+```
+
+```text
+COMMON WSL DEVELOPMENT ENVIRONMENT
+=
+COMPLETE / PASS
+```
+
+```text
+AI / SHELL / SECURE CONFIG REVIEW
+=
+COMPLETE FOR CURRENT NEEDS
+```
+
+```text
+PROJECT DATA
+=
+RECOVERED / PRESERVED
+```
+
+```text
+PROJECT RUNTIME
+=
+NOT STARTED
+```
+
+```text
+NEXT PHASE
+=
+PROJECT-BY-PROJECT ENVIRONMENT REBUILD + EXECUTION + TEST
+```
+
+# END OF HANDOFF

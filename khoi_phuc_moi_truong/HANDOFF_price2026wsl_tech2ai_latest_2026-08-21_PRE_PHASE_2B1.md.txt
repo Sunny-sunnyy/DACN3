@@ -1,0 +1,2521 @@
+````markdown
+# HANDOFF — `price2026wsl / tech2ai`
+## Latest Recovery State — 2026-08-21 — PRE-PHASE 2B.1
+
+> **Tên file đề xuất:**  
+> `HANDOFF_price2026wsl_tech2ai_latest_2026-08-21_PRE_PHASE_2B1.md`
+>
+> **Mục đích:** Đây là handoff mới nhất, tổng hợp và cập nhật toàn bộ trạng thái recovery của project `price2026wsl/tech2ai` sau Phase 2A, Phase 2B và các runtime test thủ công mới nhất.
+>
+> **QUAN TRỌNG:** Phase 2B.1 đã được thảo luận/soạn nháp nhưng **CHƯA ĐƯỢC GỬI CHO CODEX VÀ CHƯA ĐƯỢC THỰC HIỆN**.
+>
+> Khi có mâu thuẫn giữa file handoff này và các handoff cũ, **file này là trạng thái mới nhất và được ưu tiên**.
+
+---
+
+# 0. CÁC FILE CẦN ĐỌC KHI BẮT ĐẦU SESSION MỚI
+
+Ở session ChatGPT/Codex tiếp theo, cần đọc đầy đủ 5 file:
+
+1. `handoff_wsl_18_8_26_v1(2).txt`
+2. `khôi phục dự án ở wsl _ trạng thái mới nhất 18_8_26(2).txt`
+3. `khôi phục dự án ở wsl _ trạng thái mới nhất 19_8_26(2).txt`
+4. `# HANDOFF — RECOVERY ext4.vhdx và fix trên máy thuê(5)(2).txt`
+5. `HANDOFF_price2026wsl_tech2ai_latest_2026-08-21_PRE_PHASE_2B1.md`
+
+File số 5 là handoff mới nhất và bổ sung/ghi đè các trạng thái trung gian cũ khi có mâu thuẫn.
+
+Ngoài 5 file này, nếu có report Codex/audit hoặc runtime log mới được cung cấp trong session mới thì filesystem + evidence mới luôn là source of truth.
+
+---
+
+# 1. MỤC TIÊU TỔNG THỂ
+
+Project recovery:
+
+```text
+/home/minhhieu/price2026wsl
+````
+
+Git/project root:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai
+```
+
+Mục tiêu cuối cùng vẫn là:
+
+> Khôi phục toàn bộ `tech2ai` và môi trường của nó trên WSL2 Ubuntu mới để các project/subproject có thể hoạt động bình thường như trước khi mất môi trường cũ.
+
+Tuy nhiên recovery đang được thực hiện theo từng component để giảm rủi ro.
+
+Component đang tập trung hiện tại:
+
+```text
+segment4
+```
+
+Hai runtime quan trọng:
+
+```text
+segment4/search_key.py
+segment4/price_is_right.py
+```
+
+Trạng thái mới nhất:
+
+```text
+price_is_right.py     = RUNTIME PASS
+search_key.py         = APP START PASS, SEARCH CALLBACK PASS,
+                        nhưng source acquisition Amazon/BestBuy hiện trả 0 sale products
+```
+
+---
+
+# 2. MÁY / WSL BASELINE
+
+Windows đã clean reset/reinstall trước recovery.
+
+Ổ SSD cũ Netac từng lỗi đã bị loại khỏi hệ thống. Không mở lại điều tra SSD cũ nếu không có evidence mới.
+
+Ổ hiện tại:
+
+* C: Kingston NVMe
+* D: FIKWOT FN970 1TB
+
+WSL:
+
+```text
+Ubuntu 24.04.4 LTS
+WSL 2.7.11.0
+Kernel: 6.18.33.2-microsoft-standard-WSL2
+```
+
+Linux user:
+
+```text
+minhhieu
+```
+
+Home:
+
+```text
+/home/minhhieu
+```
+
+WSL VHDX:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+Project Linux phải tiếp tục nằm trên ext4:
+
+```text
+/home/minhhieu/...
+```
+
+Không chuyển heavy project workload sang:
+
+```text
+/mnt/c
+/mnt/d
+```
+
+trừ khi có mục đích cụ thể.
+
+---
+
+# 3. COMMON TOOLCHAIN ĐÃ RECOVER
+
+Toolchain chung đã được phục hồi từ trước:
+
+```text
+System Python     3.12.3
+pip               24.0
+gcc/g++           13.3.0
+make              4.3
+cmake             3.28.3
+uv                0.12.5
+uvx               0.12.5
+NVM               0.40.6
+Node              v24.19.0
+npm               11.17.0
+AWS CLI           v2.36.25
+Codex CLI         0.148.0
+Claude Code       2.1.235
+Docker            29.7.2
+Docker Compose    v5.4.0
+```
+
+`uv`:
+
+```text
+/home/minhhieu/.local/bin
+```
+
+Codex Linux-native standalone:
+
+```text
+/home/minhhieu/.local/bin/codex
+```
+
+Docker Desktop integration hoạt động nhưng:
+
+> **Project `tech2ai/segment4` hiện không dùng Docker.**
+
+Không cài thêm Docker daemon/docker.io/CE chỉ để thay đường dẫn CLI.
+
+Docker không thuộc recovery path hiện tại.
+
+---
+
+# 4. PROJECT / GIT IDENTITY
+
+Project:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai
+```
+
+Git root:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai
+```
+
+Branch:
+
+```text
+TTTN
+```
+
+HEAD:
+
+```text
+2b6f7d935feb943f5534873ad65f68e235f3dbeb
+```
+
+Remote:
+
+```text
+https://github.com/Sunny-sunnyy/DACN3.git
+```
+
+Original recovered project size trước clean environment mới khoảng:
+
+```text
+~27 GB
+```
+
+Recovery ZIP SHA256:
+
+```text
+f8a9eb8219efb528305ae941c768aae0b8b37cfef28b47ca78ab3754056acf7a
+```
+
+Historical entry count:
+
+```text
+153604
+```
+
+Các project/artifacts lớn được recovery gồm:
+
+```text
+.venv
+node_modules
+environment.yml
+pyproject.toml
+requirements.txt
+package.json
+package-lock.json
+scraping_data_tv
+fine_tune_qwen
+fine_tune_qwen_v2
+shopping_assistant_v2
+shopping_assistant_v3
+segment4
+```
+
+---
+
+# 5. GIT / RECOVERY SAFETY POLICY — VẪN BẮT BUỘC
+
+Không dùng destructive Git commands để "làm sạch":
+
+```text
+git reset --hard
+git clean
+git checkout .
+git restore .
+git pull
+git rebase
+```
+
+trừ khi sau này có explicit decision rất cụ thể cho một file đã được chứng minh không chứa WIP.
+
+Local WIP là recovery data.
+
+Không xoá/overwrite unrelated WIP.
+
+Baseline `git status --short` trước source modification Phase 2B:
+
+```text
+ M brainstorming.md
+?? khoi_phuc_moi_truong/
+?? shopping_assistant_v2/Autonomous_AI_Trading Floor_Project_Codex.md
+?? shopping_assistant_v2/ITLR_Fullstack_Recommender_RAG_TECHNICAL_DOSSIER.md
+?? shopping_assistant_v2/README_Project_Sidekick.md
+?? shopping_assistant_v2/README_codegraph.md
+```
+
+Các file này không được xoá/reset.
+
+---
+
+# 6. QUYẾT ĐỊNH MỚI QUAN TRỌNG NHẤT VỀ SOURCE CODE
+
+## USER REQUIREMENT MỚI
+
+Từ thời điểm handoff này:
+
+> **Các source code gốc của project phải được giữ nguyên như trước recovery.**
+>
+> Không được tự ý thay đổi source chỉ để bypass một feature hoặc làm test dễ hơn.
+>
+> Nếu cần sửa code trong tương lai, phải:
+>
+> 1. inspect/read-only;
+> 2. giải thích root cause;
+> 3. đưa exact patch/diff;
+> 4. chờ user phê duyệt;
+> 5. sau đó mới apply.
+
+### Đặc biệt:
+
+File:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/segment4/price_agents/multi_source_planning_agent.py
+```
+
+**hiện đã bị Codex Phase 2B MODIFY**.
+
+Đây là modification do Phase 2B tạo ra, không phải source recovery gốc.
+
+Modification đã thêm Pushover feature gate:
+
+```python
+import os
+```
+
+và:
+
+```python
+ENABLE_PUSHOVER = os.getenv("ENABLE_PUSHOVER", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+```
+
+sau đó đổi condition từ:
+
+```python
+if opportunities and opportunities[0].discount > self.DEAL_THRESHOLD:
+```
+
+thành:
+
+```python
+if ENABLE_PUSHOVER and opportunities and opportunities[0].discount > self.DEAL_THRESHOLD:
+```
+
+## YÊU CẦU SESSION MỚI
+
+Một trong các việc đầu tiên phải làm là:
+
+> **Phục hồi `multi_source_planning_agent.py` về đúng trạng thái source trước Phase 2B.**
+
+Nhưng phải làm an toàn.
+
+### Quy trình đề xuất:
+
+1. READ-ONLY:
+
+```bash
+git diff -- segment4/price_agents/multi_source_planning_agent.py
+```
+
+2. Xác nhận diff đúng chỉ chứa patch Pushover đã nêu ở trên.
+
+3. Manually reverse đúng patch đó:
+
+* bỏ `import os` nếu nó chỉ được Phase 2B thêm;
+* bỏ toàn bộ `ENABLE_PUSHOVER = ...`;
+* đổi condition về:
+
+```python
+if opportunities and opportunities[0].discount > self.DEAL_THRESHOLD:
+```
+
+4. Không thay bất cứ logic nào khác.
+
+5. Sau đó:
+
+```bash
+git diff -- segment4/price_agents/multi_source_planning_agent.py
+```
+
+phải cho thấy file trở về trạng thái trước Phase 2B / không còn diff do recovery tạo.
+
+### KHÔNG được làm:
+
+```text
+git restore toàn repo
+git checkout .
+git reset
+```
+
+Chỉ reverse đúng known Phase-2B patch sau khi đã inspect diff.
+
+---
+
+# 7. PUSHOVER — QUYẾT ĐỊNH MỚI NHẤT
+
+Pushover **phải được giữ nguyên trong source code như project cũ**.
+
+Các biến:
+
+```text
+PUSHOVER_USER
+PUSHOVER_TOKEN
+```
+
+hiện user cho biết không còn giá trị sử dụng thực tế vì tài khoản/quyền Pushover miễn phí đã hết hạn.
+
+Tuy nhiên:
+
+> Không được xoá Pushover.
+> Không cần biến Pushover thành optional bằng sửa source.
+> Không cần tạo feature gate.
+> Không cần thay đổi MessagingAgent.
+> Không cần thay đổi threshold.
+> Không cần thay đổi planner logic.
+
+Nếu original code cố gửi Pushover và request thất bại/không deliver thì điều đó không phải lý do để sửa project nếu toàn runtime vẫn chạy bình thường.
+
+Latest real runtime `price_is_right.py` cho thấy original Pushover path ít nhất **không làm crash app**:
+
+```text
+Messaging Agent is using GPT to craft the message
+Messaging Agent is sending a push notification
+Messaging Agent has completed
+Autonomous Planning Agent completed with: OK
+```
+
+Không có bằng chứng từ log rằng push notification thực sự tới điện thoại, nhưng quan trọng cho recovery là:
+
+```text
+Pushover path did not crash the runtime.
+```
+
+Vì vậy hãy giữ nguyên behavior cũ.
+
+---
+
+# 8. ROOT `.venv` — PHASE 2A ĐÃ CLEAN REBUILD
+
+Recovered `.venv` cũ là artifact của:
+
+```text
+/home/hieu0606sunny
+```
+
+Nó khoảng:
+
+```text
+19 GiB
+```
+
+và được audit là broken:
+
+* interpreter path cũ;
+* missing interpreter entries;
+* nhiều launcher stale;
+* không đáng tin làm runtime environment.
+
+Phase 2A đã thực hiện:
+
+```text
+.venv
+->
+.venv_recovered_hieu0606sunny
+```
+
+Sau đó tạo clean:
+
+```text
+.venv
+```
+
+với:
+
+```text
+CPython 3.12.3
+uv
+pyproject.toml
+uv.lock
+```
+
+Command:
+
+```bash
+uv sync --locked
+```
+
+Result:
+
+```text
+PASS
+284 packages
+uv.lock unchanged
+```
+
+Clean `.venv`:
+
+```text
+~9.2 GiB
+```
+
+Recovered old `.venv`:
+
+```text
+~19 GiB
+```
+
+Disk free sau Phase 2A:
+
+```text
+~878 GiB
+```
+
+### Current decision
+
+Không cần xoá:
+
+```text
+.venv_recovered_hieu0606sunny
+```
+
+ngay lúc này.
+
+Mặc dù user từng cho phép xoá nếu không còn cần, hiện disk không thiếu.
+
+Giữ lại cho tới khi recovery các runtime quan trọng ổn định và cleanup phase được quyết định riêng.
+
+---
+
+# 9. ROOT PYTHON SOURCE OF TRUTH
+
+Project root dùng:
+
+```text
+pyproject.toml
+uv.lock
+```
+
+và Python:
+
+```text
+3.12
+```
+
+Không dùng:
+
+```text
+environment.yml
+requirements.txt
+old .venv package inventory
+```
+
+làm source chính cho root environment.
+
+Không tự:
+
+```text
+uv lock --upgrade
+pip upgrade torch
+pip upgrade random packages
+```
+
+để "fix warning".
+
+---
+
+# 10. CURRENT IMPORTANT PACKAGE VERSIONS
+
+Phase 2A clean environment:
+
+```text
+Gradio                 5.49.1
+ChromaDB               1.3.4
+sentence-transformers  5.4.1
+PyTorch                2.9.0
+OpenAI                 2.7.1
+Modal                  1.2.1
+LiteLLM                1.79.1
+curl-cffi              0.15.0
+BeautifulSoup          4.14.2
+feedparser              6.0.12
+```
+
+Core imports PASS.
+
+---
+
+# 11. TORCHAO WARNING — KHÔNG PHẢI BLOCKER
+
+Khi chạy project hiện thấy:
+
+```text
+Skipping import of cpp extensions due to incompatible torch version.
+Please upgrade to torch >= 2.11.0 (found 2.9.0+cu128).
+```
+
+Có thể kèm:
+
+```text
+torchao/quantization/quant_api.py SyntaxWarning
+```
+
+Phase 2A đã xác định dependency này đi qua:
+
+```text
+unsloth / fine-tuning stack
+```
+
+Fine-tuning hiện ngoài scope của main runtime.
+
+### Decision
+
+Không upgrade Torch chỉ vì warning này.
+
+PyTorch 2.9 hiện đến từ lockfile và runtime thực tế đang hoạt động.
+
+Không sửa:
+
+```text
+uv.lock
+pyproject.toml
+```
+
+chỉ để loại warning.
+
+---
+
+# 12. `.env`
+
+Root `.env` tồn tại và chứa application credentials/config.
+
+Phase 2A đã đổi permission từ:
+
+```text
+777
+```
+
+thành:
+
+```text
+600
+```
+
+Owner vẫn:
+
+```text
+minhhieu:minhhieu
+```
+
+Đây là desired environment-security change, không phải source behavior change.
+
+Không output secret values.
+
+Known relevant key names:
+
+```text
+OPENAI_API_KEY
+GROQ_API_KEY
+PRICER_PREPROCESSOR_MODEL
+PUSHOVER_USER
+PUSHOVER_TOKEN
+HF_TOKEN
+GOOGLE_API_KEY
+OPENROUTER_API_KEY
+BRAVE_API_KEY
+SENDGRID_API_KEY
+SERPER_API_KEY
+LANGSMITH_*
+POLYGON_*
+FIRECRAWL_API_KEY
+WANDB_API_KEY
+```
+
+Không phải tất cả đều được active runtime sử dụng.
+
+---
+
+# 13. PREPROCESSOR — CURRENT ACTIVE CONFIG
+
+Actual current config:
+
+```text
+PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b
+```
+
+LiteLLM resolves provider:
+
+```text
+groq
+```
+
+Relevant credentials:
+
+```text
+GROQ_API_KEY    PRESENT
+OPENAI_API_KEY  PRESENT
+```
+
+Phase 2A controlled preprocessor request:
+
+```text
+PASS
+```
+
+Latest `price_is_right.py` runtime cũng xác nhận Groq preprocessing hoạt động nhiều lần:
+
+```text
+LiteLLM completion() model=openai/gpt-oss-20b; provider=groq
+Pre-processed text using groq/openai/gpt-oss-20b
+```
+
+### Decision
+
+Không cài Ollama.
+
+User xác nhận project cũ không dùng Ollama local.
+
+---
+
+# 14. MODAL — AUTHENTICATION ĐÃ PHỤC HỒI THÀNH CÔNG
+
+User vẫn có quyền access Modal:
+
+Workspace:
+
+```text
+hieu0606sunny
+```
+
+Environment:
+
+```text
+main
+```
+
+Deployment:
+
+```text
+pricer-service
+```
+
+Class:
+
+```text
+Pricer
+```
+
+Secrets vẫn tồn tại:
+
+```text
+huggingface-secret
+hf-secret
+```
+
+Phase 2A đã:
+
+* authenticate bằng browser flow;
+* Modal lưu credential user-level;
+* không đưa Modal token vào project source;
+* active profile:
+
+```text
+hieu0606sunny
+```
+
+* default environment:
+
+```text
+main
+```
+
+Direct RPC:
+
+```text
+Pricer.price.remote("iPhone 16 Pro Max")
+```
+
+returned:
+
+```text
+700.0
+```
+
+PASS.
+
+Actual project:
+
+```text
+SpecialistAgent.price(...)
+```
+
+cũng PASS:
+
+```text
+700.0
+```
+
+---
+
+# 15. MODAL SERVICE ARCHITECTURE
+
+Historical/source `pricer_service2.py` xác nhận:
+
+```python
+app = modal.App("pricer-service")
+```
+
+Secret:
+
+```python
+modal.Secret.from_name("huggingface-secret")
+```
+
+GPU remote:
+
+```text
+T4
+```
+
+Base model:
+
+```text
+meta-llama/Llama-3.2-3B
+```
+
+Fine-tuned model:
+
+```text
+SeanSunny/price-2026-final
+```
+
+Modal Volume:
+
+```text
+hf-hub-cache
+```
+
+Cache:
+
+```text
+/cache
+```
+
+Class:
+
+```text
+Pricer
+```
+
+Remote method:
+
+```text
+price()
+```
+
+`MIN_CONTAINERS=0`, do đó cold start bình thường.
+
+### NON-NEGOTIABLE MODAL POLICY
+
+Reuse deployment hiện tại.
+
+Không:
+
+```text
+modal deploy
+modal app stop
+rollback
+rollover
+secret modification
+volume modification
+autoscaler modification
+```
+
+nếu không có explicit future decision.
+
+---
+
+# 16. CHROMA / VECTOR STORE
+
+Important data:
+
+```text
+segment4/products_vectorstore
+```
+
+Size khoảng:
+
+```text
+3.4 GiB
+```
+
+SQLite:
+
+```text
+segment4/products_vectorstore/chroma.sqlite3
+```
+
+Phase 2B validation xác nhận:
+
+```text
+Chroma 1.3.4
+Collection: products
+count > 0
+~800,000 embedding rows
+one collection
+```
+
+## Phase 2B hash event
+
+Khi Codex mở Chroma bằng PersistentClient cho validation, file:
+
+```text
+chroma.sqlite3
+```
+
+đổi:
+
+```text
+SHA-256
+mtime
+```
+
+trong khi:
+
+```text
+size unchanged
+inode unchanged
+```
+
+Codex thấy:
+
+```text
+88 rows trong acquire_write
+```
+
+và vì Phase 2B lúc đó có strict policy "Chroma data must not change byte-for-byte", Codex đã dừng.
+
+### IMPORTANT UPDATED INTERPRETATION
+
+Đây **không còn được xem là bằng chứng Chroma bị corrupt**.
+
+Evidence mới nhất mạnh hơn:
+
+`price_is_right.py` sau đó đã:
+
+* initialize FrontierAgent;
+* load MiniLM;
+* mở Chroma;
+* thực hiện RAG search nhiều lần;
+* mỗi lần tìm được 5 similar products;
+* gọi GPT-5.1 với context;
+* trả numeric prices;
+* Ensemble hoàn thành thành công.
+
+Do đó:
+
+```text
+CHROMA RUNTIME = FUNCTIONAL
+RAG QUERY       = PASS
+```
+
+trên database hiện tại.
+
+### Do NOT
+
+Không restore một Chroma "pre-image" chỉ vì SHA thay đổi.
+
+Không migrate/rebuild/re-embed vector store nếu không có lỗi semantic/corruption thật.
+
+Không xoá vector store.
+
+Không regenerate 800k embeddings.
+
+---
+
+# 17. PHASE 2B.1 — QUAN TRỌNG: CHƯA THỰC HIỆN
+
+Một Phase 2B.1 từng được thảo luận với ý tưởng:
+
+```text
+rename products_vectorstore
+create master backup
+copy working version
+test working version only
+```
+
+Nhưng:
+
+> **PHASE 2B.1 CHƯA ĐƯỢC GỬI CHO CODEX.**
+>
+> **CHƯA CÓ products_vectorstore_recovered_backup được tạo theo plan này.**
+>
+> **KHÔNG được giả định Phase 2B.1 đã chạy.**
+
+Vì runtime `price_is_right.py` sau đó chứng minh Chroma RAG hoạt động thực tế, Phase 2B.1 cũ cần được **re-evaluate** trước khi chạy verbatim.
+
+Có thể vẫn tạo backup/snapshot Chroma trong tương lai như safety measure, nhưng không còn cần làm chỉ để chứng minh Chroma có thể query.
+
+---
+
+# 18. IMPORTANT LARGE ARTIFACTS
+
+Không xoá:
+
+```text
+segment4/products_vectorstore/chroma.sqlite3
+~2.1 GiB historical / current filesystem size observed ~2.23 GB
+
+segment4/products_vectorstore/.../data_level0.bin
+~1.3 GiB
+
+segment4/deep_neural_network.pth
+1,156,540,321 bytes (~1.1 GiB)
+```
+
+`deep_neural_network.pth` hash đã được kiểm tra qua Phase 2A/2B và không đổi.
+
+---
+
+# 19. MINILM
+
+Embedding model:
+
+```text
+sentence-transformers/all-MiniLM-L6-v2
+```
+
+Phase 2A:
+
+```text
+download/cache PASS
+CPU load PASS
+encode PASS
+vector shape (1, 384)
+```
+
+Runtime warning:
+
+```text
+embeddings.position_ids | UNEXPECTED
+```
+
+đã xuất hiện nhưng không chặn runtime.
+
+Latest `price_is_right.py`:
+
+```text
+Loading SentenceTransformer model from sentence-transformers/all-MiniLM-L6-v2
+Frontier Agent is ready
+```
+
+và RAG query PASS nhiều lần.
+
+---
+
+# 20. GPU / CUDA — TRẠNG THÁI MỚI NHẤT, CỰC KỲ QUAN TRỌNG
+
+Ở các phase trước từng có nghi ngờ GPU/CUDA WSL có vấn đề.
+
+Phase 2A vì an toàn đã test DNN trên CPU và PASS.
+
+Tuy nhiên **latest full runtime đã cung cấp evidence mới**:
+
+Khi chạy:
+
+```bash
+cd /home/minhhieu/price2026wsl/tech2ai/segment4
+uv run price_is_right.py
+```
+
+logs ghi rõ:
+
+```text
+No device provided, using cuda:0
+```
+
+cho SentenceTransformer/Frontier path.
+
+Sau đó:
+
+```text
+Neural Network is using cuda
+```
+
+và:
+
+```text
+Neural Network Agent is ready and weights are loaded
+```
+
+Sau đó DNN inference chạy nhiều lần và trả numeric predictions.
+
+### UPDATED CONCLUSION
+
+```text
+WSL2 local CUDA is currently functional for the actual project runtime.
+```
+
+Do đó không được coi:
+
+```text
+GPU passthrough
+CUDA
+PyTorch CUDA
+```
+
+là blocker hiện tại.
+
+Nếu `nvidia-smi` từng gặp lỗi trước đây thì đó cần được coi là một diagnostics issue riêng hoặc trạng thái cũ/transient cho tới khi có evidence mới.
+
+Không:
+
+```text
+apt install nvidia-driver
+install CUDA toolkit
+pip upgrade torch
+reinstall transformers
+```
+
+để "fix GPU" lúc này.
+
+Actual project đã chứng minh PyTorch runtime dùng CUDA thành công.
+
+---
+
+# 21. RAM — LATEST INTERPRETATION
+
+Windows Task Manager từng thấy:
+
+```text
+24 GB physical RAM
+~21.3 / 23.8 GB used (~89%)
+~2.5 GB available
+VmmemWSL ~10.8 GB
+Chrome ~3 GB
+```
+
+Điều này không tự động nghĩa project đang lỗi hoặc Python đang dùng toàn bộ 10.8 GB.
+
+Phase 2B Linux-side controlled tests:
+
+```text
+Before: ~1.7 GiB used, ~9.9 GiB available
+Chroma/MiniLM attempt peak: ~2.41 GiB RSS
+DNN wrapper peak: ~2.80 GiB RSS
+Gradio startup: ~1.06 GiB RSS
+Swap: ~60 KiB
+OOM: NO
+```
+
+Không có memory-pressure failure.
+
+### Current decision
+
+Không chỉnh `.wslconfig` lúc này.
+
+Không giới hạn WSL xuống 8/10 GB.
+
+Không tối ưu RAM trước khi có evidence OOM/thrashing.
+
+WSL/Windows có thể giữ filesystem cache và memory reclaim khác với per-process RSS.
+
+---
+
+# 22. `price_is_right.py` — LATEST STATUS: FULL RUNTIME PASS
+
+Đây là update quan trọng nhất sau Phase 2B report.
+
+User đã trực tiếp chạy:
+
+```bash
+cd /home/minhhieu/price2026wsl/tech2ai/segment4
+uv run price_is_right.py
+```
+
+## Startup
+
+Gradio:
+
+```text
+http://127.0.0.1:7860
+```
+
+PASS.
+
+Warning:
+
+```text
+gio: http://127.0.0.1:7860/: Operation not supported
+```
+
+không phải app failure.
+
+Đây chỉ là WSL/Linux không tự mở Windows browser bằng `gio`.
+
+Server vẫn hoạt động.
+
+## Agent initialization PASS
+
+Logs xác nhận:
+
+```text
+Agent Framework
+Autonomous Planning Agent
+Scanner Agent
+Ensemble Agent
+Specialist Agent
+Frontier Agent
+Neural Network Agent
+Messaging Agent
+```
+
+đều initialize và ready.
+
+## Node / MCP PASS
+
+`price_is_right.py` đã khởi động:
+
+```text
+Secure MCP Filesystem Server running on stdio
+```
+
+Allowed directory:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/segment4/sandbox
+```
+
+Do đó assumption cũ rằng `price_is_right.py` bị block bởi Node/MCP **không còn đúng**.
+
+Actual runtime:
+
+```text
+NPM/NPX MCP = FUNCTIONAL
+```
+
+ít nhất với path này.
+
+## DealNews Scanner PASS
+
+Scanner:
+
+```text
+fetched deals from RSS
+received 25 deals not already scraped
+called OpenAI Structured Outputs
+received 5 selected deals with price > 0
+```
+
+Do đó:
+
+```text
+DealNews acquisition = PASS
+ScannerAgent          = PASS
+OpenAI structured output = PASS
+```
+
+## Preprocessor PASS
+
+Groq:
+
+```text
+groq/openai/gpt-oss-20b
+```
+
+đã chạy nhiều lần.
+
+## Modal Specialist PASS
+
+Examples:
+
+```text
+$680.00
+$40.00
+$299.00
+$220.00
+$950.00
+```
+
+Remote Modal service hoạt động ổn.
+
+## Chroma / Frontier RAG PASS
+
+Mỗi pricing cycle:
+
+```text
+Frontier Agent is performing a RAG search of the Chroma datastore
+Frontier Agent has found similar products
+context including 5 similar products
+```
+
+GPT-5.1 outputs bao gồm:
+
+```text
+$749.99
+$54.99
+$240.00
+$379.99
+$1199.00
+```
+
+Do đó Chroma recovered datastore thực tế đang query thành công.
+
+## Neural Network PASS
+
+Actual runtime dùng:
+
+```text
+cuda
+```
+
+Predictions ví dụ:
+
+```text
+$546.22
+$80.41
+$217.71
+$234.02
+$871.18
+```
+
+## Ensemble PASS
+
+Examples:
+
+```text
+Specialist 680
+Frontier   749.99
+NN         546.22
+Combined   722.61
+```
+
+```text
+Specialist 40
+Frontier   54.99
+NN         80.41
+Combined   56.03
+```
+
+```text
+Specialist 299
+Frontier   240
+NN         217.71
+Combined   243.67
+```
+
+```text
+Specialist 220
+Frontier   379.99
+NN         234.02
+Combined   349.39
+```
+
+```text
+Specialist 950
+Frontier   1199
+NN         871.18
+Combined   1141.32
+```
+
+## Autonomous Planner PASS
+
+Planner completed:
+
+```text
+Autonomous Planning Agent completed with: OK
+```
+
+Returned Opportunity:
+
+```text
+Product:
+A 12V 280Ah LiFePO4 deep-cycle battery...
+
+Deal price:
+262.0
+
+Estimated value:
+722.6144487304688
+
+Discount:
+460.6144487304688
+
+DealNews URL:
+https://www.dealnews.com/Eco-Worthy-12-V-280-Ah-Li-Fe-PO4-Battery-for-262-free-shipping/22046202.html?iref=rss-c142
+```
+
+## Messaging path
+
+Original MessagingAgent path ran:
+
+```text
+gpt-5-nano
+Pushover send attempt
+Messaging Agent has completed
+```
+
+No fatal error.
+
+## Final classification
+
+```text
+PRICE_IS_RIGHT.APP_START             PASS
+PRICE_IS_RIGHT.NODE_MCP              PASS
+PRICE_IS_RIGHT.DEALNEWS              PASS
+PRICE_IS_RIGHT.SCANNER               PASS
+PRICE_IS_RIGHT.PREPROCESSOR          PASS
+PRICE_IS_RIGHT.MODAL_SPECIALIST      PASS
+PRICE_IS_RIGHT.CHROMA_RAG            PASS
+PRICE_IS_RIGHT.OPENAI_FRONTIER       PASS
+PRICE_IS_RIGHT.DNN                   PASS
+PRICE_IS_RIGHT.ENSEMBLE              PASS
+PRICE_IS_RIGHT.PLANNER               PASS
+PRICE_IS_RIGHT.MESSAGING_PATH        PASS (runtime did not crash)
+PRICE_IS_RIGHT.RUNTIME_PASS          YES
+```
+
+This supersedes the earlier Phase 2B report line:
+
+```text
+price_is_right.py BLOCKED
+```
+
+That statement is now stale.
+
+---
+
+# 23. `search_key.py` — CURRENT STATUS
+
+User manually launched:
+
+```bash
+cd /home/minhhieu/price2026wsl/tech2ai/segment4
+uv run search_key.py
+```
+
+Startup:
+
+```text
+Multi-Source Deal Finder - Starting...
+Sources: BestBuy, Amazon (selectable)
+
+Running on local URL:
+http://127.0.0.1:7860
+```
+
+PASS.
+
+Warnings:
+
+```text
+torchao / torch version warning
+gio Operation not supported
+MiniLM embeddings.position_ids UNEXPECTED
+```
+
+không crash runtime.
+
+User searched:
+
+```text
+iphone
+```
+
+Pipeline:
+
+```text
+BestBuy + Amazon parallel
+```
+
+started correctly.
+
+---
+
+# 24. SEARCH_KEY — AMAZON CURRENT EVIDENCE
+
+For keyword:
+
+```text
+iphone
+```
+
+Amazon:
+
+```text
+ZIP code setting failed: 200
+
+GET:
+https://www.amazon.com/s?k=iphone
+
+HTTP:
+200
+
+Response size:
+2,212 bytes
+
+Found:
+0 products
+0 on sale
+```
+
+This is suspicious because:
+
+```text
+HTTP 200
+```
+
+but body:
+
+```text
+~2.2 KB
+```
+
+is extremely small for a normal Amazon search result page.
+
+Potential causes to investigate, NOT yet confirmed:
+
+* Amazon anti-bot/challenge page;
+* consent/interstitial page;
+* location response;
+* redirect response;
+* changed markup;
+* parser selectors outdated;
+* request/browser fingerprint issue;
+* current Amazon scraping implementation no longer matching response.
+
+User suspects source code in:
+
+```text
+segment4/price_agents/amazon_deals.py
+```
+
+and potentially related scraping helpers.
+
+This is currently a strong hypothesis but must be verified read-only.
+
+---
+
+# 25. SEARCH_KEY — BESTBUY CURRENT EVIDENCE
+
+BestBuy:
+
+```text
+Search URL:
+https://www.bestbuy.com/site/searchpage.jsp?st=iphone
+
+Status:
+200
+
+Response size:
+2,318,097 bytes
+
+Unique SKUs found:
+78
+```
+
+Then:
+
+```text
+PriceBlocks fetching 78 SKUs
+Got 7/78 SKUs
+Found 0 sale products
+```
+
+Search parser clearly finds product SKUs, but price resolution drops:
+
+```text
+78
+->
+7
+```
+
+Possible causes to inspect:
+
+* PriceBlocks endpoint request/batch size;
+* endpoint response limits;
+* changed BestBuy response shape;
+* filtering logic;
+* failed/missing SKU handling;
+* sale detection logic;
+* parser selectors;
+* anti-bot/rate limiting;
+* request headers/cookies/session behavior.
+
+User suspects:
+
+```text
+segment4/price_agents/bestbuy_deals.py
+```
+
+and related scraper code.
+
+Again this is hypothesis pending code + response inspection.
+
+---
+
+# 26. SEARCH_KEY CURRENT CLASSIFICATION
+
+Current evidence:
+
+```text
+SEARCH_KEY.APP_START              PASS
+SEARCH_KEY.GRADIO                 PASS
+SEARCH_KEY.SEARCH_CALLBACK        PASS
+SEARCH_KEY.PARALLEL_PIPELINE      PASS
+SEARCH_KEY.AMAZON_REQUEST         HTTP 200 but parser returns 0
+SEARCH_KEY.BESTBUY_SEARCH         PARTIAL — 78 SKUs
+SEARCH_KEY.BESTBUY_PRICEBLOCKS    PARTIAL — 7/78
+SEARCH_KEY.SALE_PRODUCTS          0
+SEARCH_KEY.PRICING_FROM_WEB_DEAL  NOT REACHED
+```
+
+The callback terminates gracefully:
+
+```text
+No products found from either source.
+Try a different keyword.
+Pipeline completed!
+```
+
+No traceback.
+
+### IMPORTANT INTERPRETATION
+
+This does **not** currently look like:
+
+* Python environment failure;
+* Modal failure;
+* Chroma failure;
+* OpenAI failure;
+* Groq failure;
+* DNN failure;
+* GPU failure.
+
+`price_is_right.py` has already independently proven that all of those pricing components work.
+
+The remaining `search_key.py` issue is most likely in:
+
+```text
+source acquisition / scraping / sale filtering
+```
+
+for Amazon/BestBuy.
+
+---
+
+# 27. FILES TO INSPECT NEXT FOR SEARCH_KEY
+
+At next session, prioritize read-only inspection of:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/segment4/price_agents/amazon_deals.py
+/home/minhhieu/price2026wsl/tech2ai/segment4/price_agents/bestbuy_deals.py
+/home/minhhieu/price2026wsl/tech2ai/segment4/price_agents/multi_source_planning_agent.py
+```
+
+plus every directly imported/helper module involved in:
+
+```text
+Amazon search
+Amazon detail scraping
+Amazon sale parsing
+BestBuy search
+BestBuy PriceBlocks
+BestBuy sale detection
+parallel source orchestration
+```
+
+Do not assume only those two `.py` files matter.
+
+Codex should trace actual imports/call graph from:
+
+```text
+search_key.py
+```
+
+to all source-acquisition modules.
+
+---
+
+# 28. NEXT SESSION SOURCE POLICY FOR AMAZON/BESTBUY
+
+Before editing scraper code:
+
+1. inspect source;
+2. identify exact request path;
+3. identify selectors/parser;
+4. capture safe high-level response evidence;
+5. determine root cause;
+6. report exact proposed patch;
+7. wait for explicit user approval.
+
+No automatic fix.
+
+No "modernize all scraper code".
+
+No broad refactor.
+
+No dependency upgrade unless proven necessary and approved.
+
+Prefer minimal compatibility fix after diagnosis.
+
+---
+
+# 29. PHASE 2A SUMMARY
+
+Phase 2A results:
+
+## Environment
+
+```text
+Clean Python 3.12.3 environment PASS
+uv sync --locked PASS
+284 packages
+```
+
+## `.env`
+
+```text
+permission 600
+```
+
+## Modal
+
+```text
+Authenticated YES
+Profile hieu0606sunny
+Workspace hieu0606sunny
+Environment main
+pricer-service deployed
+Pricer resolved
+huggingface-secret present
+hf-secret present
+```
+
+## Modal RPC
+
+```text
+Input: iPhone 16 Pro Max
+Output: 700.0
+PASS
+```
+
+## SpecialistAgent
+
+```text
+700.0
+PASS
+```
+
+## Preprocessor
+
+```text
+groq/openai/gpt-oss-20b
+PASS
+```
+
+## MiniLM
+
+```text
+all-MiniLM-L6-v2
+384 dimensions
+PASS
+```
+
+## DNN
+
+Phase 2A CPU test:
+
+```text
+93.723488
+PASS
+```
+
+## Chroma
+
+Version compatibility:
+
+```text
+1.3.4
+```
+
+No Phase 2A full query then.
+
+---
+
+# 30. PHASE 2B SUMMARY
+
+Phase 2B did the following:
+
+1. Applied Pushover feature gate to:
+
+```text
+multi_source_planning_agent.py
+```
+
+**THIS MUST NOW BE REVERTED IN NEXT SESSION** because latest user requirement is source fidelity.
+
+2. Chroma validation:
+
+```text
+PersistentClient opened
+products collection exists
+~800k embeddings
+```
+
+but SQLite hash changed due internal writes/housekeeping.
+
+Phase 2B stopped semantic query because its safety rule at that time required byte-level invariance.
+
+3. Preprocessor PASS.
+
+4. DNN wrapper CPU PASS:
+
+```text
+87.0613784790039
+```
+
+5. Gradio `search_key.py` startup PASS for >90 sec.
+
+6. Pushover network request during Codex Phase 2B controlled tests:
+
+```text
+0
+```
+
+7. No DNN/memory/uv.lock/unrelated WIP mutation.
+
+### Important superseding evidence
+
+After Phase 2B, user manually ran real runtime and proved:
+
+```text
+price_is_right full RAG / Chroma / Ensemble = PASS
+```
+
+Therefore Phase 2B Chroma "BLOCKED" status is no longer a runtime blocker.
+
+---
+
+# 31. `.venv_recovered_hieu0606sunny`
+
+Still exists.
+
+Do not delete yet.
+
+Eventually cleanup can remove it once the user decides recovery is sufficiently complete.
+
+No disk pressure currently.
+
+---
+
+# 32. `node_modules`
+
+Recovered old:
+
+```text
+node_modules
+```
+
+came from previous machine/home.
+
+Do not assume it is a clean dependency environment for every Node project.
+
+However latest runtime gives an important positive result:
+
+```text
+price_is_right.py
+->
+npx MCP filesystem server
+->
+RUNNING
+```
+
+So Node/npm/npx required by that particular runtime is currently functional.
+
+Other Node-based subprojects still need separate validation later.
+
+---
+
+# 33. DOCKER
+
+Project `segment4` does not use Docker.
+
+Do not bring Docker into current debugging.
+
+Docker Desktop integration itself is already working globally.
+
+---
+
+# 34. FINE-TUNING
+
+Fine-tuning is not part of current `search_key.py` recovery.
+
+Known folders:
+
+```text
+fine_tune_qwen
+fine_tune_qwen_v2
+```
+
+and related unsloth/torchao stack may have separate constraints.
+
+Do not solve them by modifying root runtime until that project receives its own recovery phase.
+
+The `torchao` warning is not evidence main runtime is broken.
+
+---
+
+# 35. SHOPPING ASSISTANT / OTHER SUBPROJECTS
+
+Overall objective remains recovery of all `tech2ai`.
+
+Still outstanding for separate future phases:
+
+```text
+shopping_assistant_v2
+shopping_assistant_v3
+scraping_data_tv
+fine_tune_qwen
+fine_tune_qwen_v2
+other experiment folders
+Node/Playwright-specific tooling
+legacy datasets/services if used
+```
+
+Audit noted `shopping_assistant_v3` had:
+
+```text
+.env.example
+```
+
+but no confirmed real `.env`.
+
+Do not invent missing credentials.
+
+Each subproject should later be recovered independently after `segment4` is stable.
+
+---
+
+# 36. PRICE_IS_RIGHT VS SEARCH_KEY
+
+These are now clearly different data acquisition paths.
+
+## `price_is_right.py`
+
+Uses:
+
+```text
+DealNews RSS
+```
+
+Current:
+
+```text
+PASS
+```
+
+## `search_key.py`
+
+Uses:
+
+```text
+Amazon
+BestBuy
+```
+
+Current:
+
+```text
+source acquisition issue
+```
+
+Therefore the fact that:
+
+```text
+price_is_right.py works
+```
+
+while:
+
+```text
+search_key.py returns 0 sale products
+```
+
+strongly points toward Amazon/BestBuy-specific scraping logic rather than the common pricing stack.
+
+---
+
+# 37. COMMON PRICING STACK — PROVEN WORKING
+
+The shared pricing brain is now real-runtime verified:
+
+```text
+Input product description
+    ↓
+Groq preprocessor
+    ↓
+SpecialistAgent
+    ↓
+Modal pricer-service/Pricer
+    ↓
+Fine-tuned Llama 3.2 3B
+```
+
+plus:
+
+```text
+SentenceTransformer all-MiniLM-L6-v2
+    ↓
+Chroma products vector store
+    ↓
+top 5 similar products
+    ↓
+GPT-5.1 FrontierAgent
+```
+
+plus:
+
+```text
+deep_neural_network.pth
+    ↓
+NeuralNetworkAgent
+```
+
+then:
+
+```text
+EnsembleAgent
+```
+
+Latest full runtime proves this stack works.
+
+---
+
+# 38. LATEST GPU ARCHITECTURE
+
+Contrary to an earlier working assumption that local runtime could be treated CPU-only:
+
+Actual runtime auto-selects GPU when available.
+
+Observed:
+
+```text
+SentenceTransformer -> cuda:0
+Neural Network -> cuda
+```
+
+This means future prompts should NOT hard-code CPU-only behavior.
+
+Correct policy:
+
+> Let current source/device-selection logic run as designed.
+>
+> Do not force CPU.
+>
+> Do not force CUDA either.
+>
+> Preserve original device auto-selection unless actual failure is observed.
+
+CPU fallback was already proven in Phase 2A, so both paths appear viable.
+
+---
+
+# 39. MODEL/DATA PATHS
+
+Important:
+
+```text
+/home/minhhieu/price2026wsl/tech2ai/segment4/deep_neural_network.pth
+/home/minhhieu/price2026wsl/tech2ai/segment4/products_vectorstore
+```
+
+Do not move these paths unless source requires it and user explicitly approves.
+
+No global replacement:
+
+```text
+/home/hieu0606sunny
+->
+/home/minhhieu
+```
+
+Each stale path must always be evaluated contextually.
+
+---
+
+# 40. SECURITY / SECRETS
+
+Never print values for:
+
+```text
+OPENAI_API_KEY
+GROQ_API_KEY
+HF_TOKEN
+MODAL_TOKEN_SECRET
+PUSHOVER_TOKEN
+PUSHOVER_USER
+WANDB_API_KEY
+etc.
+```
+
+Reports may only state:
+
+```text
+PRESENT / MISSING
+```
+
+unless user explicitly provides a non-secret model identifier/config.
+
+Modal credential should remain user-level.
+
+Do not place Modal token into tracked source.
+
+---
+
+# 41. WHAT MUST NOT BE DONE NEXT SESSION
+
+Do NOT immediately:
+
+```text
+run the old Phase 2B.1 prompt verbatim
+restore Chroma from backup
+rebuild vector store
+re-embed 800k products
+upgrade Torch
+install CUDA
+install NVIDIA Linux driver
+install Ollama
+redeploy Modal
+rewrite scraper source
+delete old .venv
+clean Git
+remove Pushover
+disable Pushover with source patch
+```
+
+The next session must first absorb this updated evidence.
+
+---
+
+# 42. FIRST ACTIONS RECOMMENDED IN NEXT SESSION
+
+## Step 1 — Read all 5 handoffs
+
+No remediation before understanding latest state.
+
+## Step 2 — READ-ONLY preflight
+
+Check:
+
+```bash
+pwd
+git rev-parse --show-toplevel
+git branch --show-current
+git rev-parse HEAD
+git status --short
+git diff -- segment4/price_agents/multi_source_planning_agent.py
+```
+
+## Step 3 — Restore only the Codex-introduced Pushover gate
+
+After confirming exact diff.
+
+Goal:
+
+```text
+multi_source_planning_agent.py == original pre-Phase-2B source
+```
+
+No other source change.
+
+## Step 4 — Verify Git state
+
+Expected unrelated baseline WIP must remain.
+
+## Step 5 — Do NOT rerun price_is_right unnecessarily
+
+It has already provided strong runtime PASS evidence.
+
+Only rerun if there is a concrete regression question.
+
+## Step 6 — Focus current investigation on `search_key.py` source acquisition
+
+Read:
+
+```text
+search_key.py
+amazon_deals.py
+bestbuy_deals.py
+multi_source_planning_agent.py
+all related scraper/helper modules
+```
+
+Map call graph.
+
+## Step 7 — Diagnose Amazon response
+
+Explain why:
+
+```text
+HTTP 200
+body ~2,212 bytes
+0 products
+```
+
+without changing source.
+
+## Step 8 — Diagnose BestBuy 78 -> 7
+
+Explain why:
+
+```text
+78 discovered SKUs
+7 PriceBlock records
+0 sale products
+```
+
+without changing source.
+
+## Step 9 — Only after diagnosis
+
+Prepare minimal patch proposal.
+
+Do not apply until user approval.
+
+---
+
+# 43. LIKELY NEXT PHASE NAME
+
+Because Phase 2B.1 old plan has not been run and new runtime evidence changes the situation, consider renaming/redefining the next actual phase rather than blindly using the old 2B.1 prompt.
+
+Possible new phase:
+
+```text
+PHASE 2B.1 — SOURCE ACQUISITION DIAGNOSTICS + SOURCE FIDELITY RESTORE
+```
+
+Suggested goals:
+
+1. restore `multi_source_planning_agent.py` original;
+2. read-only Amazon/BestBuy diagnostics;
+3. identify source acquisition root cause;
+4. propose patch only;
+5. no Chroma rebuild;
+6. no environment changes;
+7. no unrelated source changes.
+
+Do not create/run this phase until user and ChatGPT have discussed the new handoff in the next session.
+
+---
+
+# 44. SOURCE-OF-TRUTH PRIORITY
+
+When deciding anything in future:
+
+1. **Current filesystem/runtime evidence**
+2. **This handoff**
+3. Phase 2A/2B reports
+4. 19/08 handoff
+5. older handoffs
+
+If newer runtime contradicts older audit:
+
+record:
+
+```text
+old belief
+→
+new evidence
+→
+impact
+→
+new conclusion
+```
+
+Example:
+
+```text
+OLD:
+price_is_right.py blocked by Node/MCP / Chroma uncertainty.
+
+NEW:
+price_is_right.py successfully launched MCP, queried Chroma repeatedly,
+ran Modal, Groq, GPT-5.1, DNN, Ensemble and Planner.
+
+CONCLUSION:
+price_is_right.py is runtime PASS.
+```
+
+Another example:
+
+```text
+OLD:
+local GPU might not be available in WSL.
+
+NEW:
+actual project logs say:
+"No device provided, using cuda:0"
+"Neural Network is using cuda"
+and inference completed successfully.
+
+CONCLUSION:
+local CUDA works for current project runtime.
+```
+
+---
+
+# 45. CURRENT FINAL STATUS MATRIX
+
+| Component                                        | Latest status                                 |
+| ------------------------------------------------ | --------------------------------------------- |
+| Windows/WSL base                                 | PASS                                          |
+| Common toolchain                                 | PASS                                          |
+| Root Python clean env                            | PASS                                          |
+| `uv sync --locked`                               | PASS                                          |
+| `.env` permissions                               | PASS                                          |
+| Modal auth                                       | PASS                                          |
+| Modal `pricer-service/Pricer`                    | PASS                                          |
+| Modal Llama inference                            | PASS                                          |
+| Groq preprocessor                                | PASS                                          |
+| OpenAI credentials/API                           | PASS                                          |
+| MiniLM                                           | PASS                                          |
+| Local CUDA                                       | PASS in actual runtime                        |
+| DNN checkpoint                                   | PASS                                          |
+| NeuralNetworkAgent                               | PASS                                          |
+| Chroma open/query                                | PASS in real runtime                          |
+| FrontierAgent RAG                                | PASS                                          |
+| EnsembleAgent                                    | PASS                                          |
+| Node/NPX MCP for `price_is_right.py`             | PASS                                          |
+| DealNews Scanner                                 | PASS                                          |
+| Autonomous Planning Agent                        | PASS                                          |
+| MessagingAgent execution path                    | PASS without runtime crash                    |
+| `price_is_right.py`                              | **RUNTIME PASS**                              |
+| `search_key.py` startup                          | PASS                                          |
+| `search_key.py` callback                         | PASS                                          |
+| Amazon acquisition                               | FAIL/PARTIAL — 0 products                     |
+| BestBuy acquisition                              | PARTIAL — 78 SKUs, only 7 PriceBlocks, 0 sale |
+| `search_key.py` end-to-end priced deal           | NOT YET                                       |
+| `multi_source_planning_agent.py` source fidelity | **NEEDS RESTORE**                             |
+| Phase 2B.1                                       | **NOT RUN**                                   |
+| Docker for segment4                              | NOT USED                                      |
+| Fine-tuning recovery                             | NOT YET                                       |
+| Shopping assistant recovery                      | NOT YET                                       |
+| Old `.venv` cleanup                              | DEFERRED                                      |
+
+---
+
+# 46. CURRENT MOST IMPORTANT BLOCKER
+
+The main remaining blocker inside `segment4/search_key.py` is currently:
+
+```text
+Amazon / BestBuy source acquisition
+```
+
+not:
+
+```text
+Modal
+Chroma
+OpenAI
+Groq
+DNN
+GPU
+Python
+Gradio
+```
+
+The strongest evidence is that the same pricing stack works end-to-end under:
+
+```text
+price_is_right.py
+```
+
+using DealNews.
+
+---
+
+# 47. CURRENT USER DECISIONS — MUST BE PRESERVED
+
+1. Restore all of `tech2ai`, not only one component.
+2. Use `uv` + root `pyproject.toml` + `uv.lock`.
+3. Clean `.venv` is correct environment.
+4. Old recovered `.venv` can eventually be deleted, but not urgent.
+5. Reuse existing Modal deployment.
+6. Do NOT redeploy `pricer-service`.
+7. Modal workspace = `hieu0606sunny`.
+8. Modal environment = `main`.
+9. Modal app/class = `pricer-service/Pricer`.
+10. Do not use Ollama.
+11. Docker is not used for this project runtime.
+12. Pushover remains in original code.
+13. Do not disable/remove Pushover by modifying source.
+14. Source code should remain original unless user explicitly approves a necessary patch.
+15. The Phase-2B Pushover feature gate must be reverted.
+16. `price_is_right.py` is considered working again.
+17. Phase 2B.1 has not been run.
+18. Investigate Amazon/BestBuy scraping code next.
+19. Do not assume GPU is broken; latest runtime proves CUDA works.
+20. Do not destroy recovered data/models/WIP.
+
+---
+
+# 48. HANDOFF SUMMARY FOR NEXT CHATGPT/CODEX
+
+The machine/environment recovery itself is now largely successful.
+
+The root Python environment was rebuilt cleanly with Python 3.12 + `uv.lock`.
+
+Modal was re-authenticated and the existing `hieu0606sunny/main/pricer-service/Pricer` deployment was successfully reused.
+
+The entire shared pricing engine has now been demonstrated in a real `price_is_right.py` run:
+
+```text
+DealNews
+→ Scanner/OpenAI
+→ Groq Preprocessor
+→ Modal Specialist Llama
+→ MiniLM + Chroma RAG
+→ GPT-5.1 Frontier
+→ local DNN on CUDA
+→ Ensemble
+→ Autonomous Planner
+→ Messaging
+```
+
+and the planner returned a valid Opportunity.
+
+Therefore `price_is_right.py` is currently **RUNTIME PASS**.
+
+`search_key.py` also launches and its callback runs, but its Amazon/BestBuy acquisition currently returns no sale products:
+
+```text
+Amazon:
+HTTP 200, ~2.2 KB, 0 products
+
+BestBuy:
+78 SKUs discovered
+7/78 price records
+0 sale products
+```
+
+The most likely area requiring diagnosis is the current scraping/request/parser code in:
+
+```text
+amazon_deals.py
+bestbuy_deals.py
+```
+
+plus related helper modules.
+
+No scraper fix has yet been approved.
+
+Before that work, the single source modification introduced by Codex Phase 2B must be reversed:
+
+```text
+segment4/price_agents/multi_source_planning_agent.py
+```
+
+must be restored to original source, removing the added `ENABLE_PUSHOVER` gate.
+
+Pushover itself should remain exactly as the original project implemented it.
+
+Finally:
+
+> **PHASE 2B.1 HAS NOT BEEN RUN.**
+>
+> Do not assume any Chroma master/working-copy operation from that proposed phase has occurred.
+
+---
+
+# END HANDOFF
+
+LATEST STATE:
+
+```text
+PROJECT:
+price2026wsl / tech2ai
+
+ROOT:
+ /home/minhhieu/price2026wsl/tech2ai
+
+BRANCH:
+TTTN
+
+HEAD:
+2b6f7d935feb943f5534873ad65f68e235f3dbeb
+
+PRICE_IS_RIGHT.RUNTIME_PASS:
+YES
+
+SEARCH_KEY.APP_START:
+YES
+
+SEARCH_KEY.SEARCH_CALLBACK:
+YES
+
+SEARCH_KEY.END_TO_END_DEAL_RESULT:
+NO — Amazon/BestBuy currently return zero sale candidates
+
+COMMON PRICING ENGINE:
+PASS
+
+MODAL:
+PASS
+
+CHROMA RAG:
+PASS
+
+LOCAL CUDA:
+PASS IN ACTUAL RUNTIME
+
+PHASE 2B.1:
+NOT RUN
+
+SOURCE FILE CURRENTLY NEEDING RESTORE:
+segment4/price_agents/multi_source_planning_agent.py
+
+NEXT PRIMARY INVESTIGATION:
+Amazon / BestBuy acquisition and parsing
+
+NEXT SOURCE EDIT POLICY:
+READ-ONLY DIAGNOSIS FIRST; NO PATCH WITHOUT USER APPROVAL
+```
+
+```
+
+Một điểm mình muốn nhấn mạnh để session mới không đi sai hướng: **log `price_is_right.py` mới nhất đã thay đổi khá nhiều kết luận cũ**. Chroma thực sự query được, Ensemble chạy được, `npx` MCP chạy được và local CUDA cũng đang chạy được. Vì vậy session mới không nên tiếp tục xử lý các vấn đề này như blocker; trọng tâm hợp lý nhất là **phục hồi `multi_source_planning_agent.py` về source gốc trước, rồi điều tra riêng `amazon_deals.py` / `bestbuy_deals.py` và các helper liên quan**.
+```

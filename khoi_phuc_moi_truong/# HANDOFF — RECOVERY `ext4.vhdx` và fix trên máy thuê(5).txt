@@ -1,0 +1,604 @@
+Đã cập nhật lại toàn bộ trạng thái mới nhất. Tôi đã hợp nhất:
+
+1. Handoff recovery ban đầu (VHDX, mount, extraction, ZIP project, rclone setup) 
+2. Các kết quả thực tế bạn vừa chạy:
+
+   * `projects-zip` upload + `rclone check`
+   * tạo lại `ai-config-zip`, `shell-config-zip`, `secure-zip`
+   * SHA256 local OK
+   * `ai-config-zip` upload + verify OK
+
+Dưới đây là trạng thái chuẩn hiện tại.
+
+---
+
+# HANDOFF — WSL RECOVERY FINAL BACKUP STATUS
+
+## 1. Mục tiêu recovery
+
+Không restore lại Ubuntu distro cũ.
+
+Mục tiêu:
+
+* source code
+* `.git`
+* model/data AI
+* datasets
+* project environments
+* AI/dev configuration
+* shell configuration
+* SSH/security config
+
+Nguồn recovery:
+
+```text
+/mnt/recovery/home/hieu0606sunny/
+```
+
+Backup staging:
+
+```text
+/home/ezycloudx-admin/recovered-projects/
+```
+
+
+
+---
+
+# 2. VHDX recovery
+
+Windows:
+
+```text
+C:\WSL-Recovery
+```
+
+Có:
+
+```text
+ext4-original.vhdx
+    └── bản gốc, không thao tác
+
+ext4-working.vhdx
+    └── bản recovery
+```
+
+Kích thước:
+
+```text
+103,551,074,304 bytes
+```
+
+
+
+---
+
+# 3. WSL recovery environment
+
+Distro:
+
+```text
+Ubuntu
+```
+
+User:
+
+```text
+ezycloudx-admin
+```
+
+Filesystem recovery:
+
+```text
+/dev/sde
+
+Size: 1007G
+Avail: 955G
+```
+
+
+
+---
+
+# 4. Mount recovery
+
+Đã hoàn thành:
+
+```powershell
+wsl --mount "C:\WSL-Recovery\ext4-working.vhdx" --vhd --bare
+```
+
+Mount:
+
+```bash
+sudo mount -o ro,noload /dev/sdd /mnt/recovery
+```
+
+Trạng thái:
+
+```text
+READ ONLY
+NO JOURNAL REPLAY
+```
+
+
+
+---
+
+# 5. Local recovered-projects hiện tại
+
+```text
+~/recovered-projects/
+```
+
+Hiện có:
+
+```text
+├── projects
+├── projects-zip
+├── ai-config
+├── ai-config-zip
+├── shell-config
+├── shell-config-zip
+├── secure
+└── secure-zip
+```
+
+---
+
+# 6. Projects recovery
+
+Folder:
+
+```text
+~/recovered-projects/projects
+```
+
+Bao gồm:
+
+```text
+AiAgent_t7_2026_wsl
+AiCoderWSL
+AiProduction_t6_2026_wsl
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+ptx_rag
+```
+
+
+
+---
+
+# 7. Dung lượng dữ liệu gốc trước ZIP
+
+```text
+ai-config        5.6G
+projects         50G
+shell-config     519M
+secure           12K
+```
+
+Tổng:
+
+```text
+~56G
+```
+
+
+
+---
+
+# 8. Project ZIP backup
+
+Folder:
+
+```text
+~/recovered-projects/projects-zip
+```
+
+Có:
+
+```text
+11 project ZIP
++
+projects-zip.sha256
+```
+
+Bao gồm:
+
+```text
+AiAgent_t7_2026_wsl.zip
+AiCoderWSL.zip
+AiProduction_t6_2026_wsl.zip
+ITLR-Fullstack-Recommender-RAG.zip
+agents2026.zip
+aws_cli.zip
+ed_rag_2026.zip
+hue_rag.zip
+llm_rag.zip
+price2026wsl.zip
+ptx_rag.zip
+projects-zip.sha256
+```
+
+
+
+---
+
+# 9. Google Drive — projects-zip
+
+Đã hoàn thành:
+
+## Upload
+
+```text
+Transferred:
+56.284 GiB / 56.284 GiB
+
+12 / 12 files
+```
+
+## Verify
+
+Lệnh:
+
+```powershell
+rclone check `
+"\\wsl$\Ubuntu\home\ezycloudx-admin\recovered-projects\projects-zip" `
+"gdrive:WSL-Recovery-2026/projects-zip"
+```
+
+Kết quả:
+
+```text
+0 differences found
+12 matching files
+```
+
+Trạng thái:
+
+```text
+[✓] projects-zip uploaded
+[✓] projects-zip verified
+```
+
+---
+
+# 10. AI config recovery
+
+Nguồn:
+
+```text
+~/recovered-projects/ai-config
+```
+
+Bao gồm:
+
+```text
+.claude
+.claude_ds
+.codex
+.gemini
+.cursor
+.config
+```
+
+
+
+---
+
+## AI config ZIP mới
+
+Do phát hiện upload trực tiếp folder gây vấn đề:
+
+* 10800 files
+* nhiều symlink
+* tốc độ cực thấp
+* lỗi symlink
+
+Đã chuyển sang:
+
+```text
+~/recovered-projects/ai-config-zip
+```
+
+Cấu trúc:
+
+```text
+ai-config-zip/
+
+├── ai-config.zip
+└── ai-config.sha256
+```
+
+Dung lượng:
+
+```text
+ai-config       5.6G
+ai-config-zip   2.2G
+```
+
+SHA256 local:
+
+```text
+ai-config.zip: OK
+```
+
+---
+
+## Google Drive — ai-config-zip
+
+Upload:
+
+```text
+Transferred:
+4.289 GiB / 4.289 GiB
+
+2 / 2 files
+```
+
+Verify:
+
+```text
+Google drive root
+'WSL-Recovery-2026/ai-config-zip'
+
+0 differences found
+2 matching files
+```
+
+Trạng thái:
+
+```text
+[✓] ai-config.zip created
+[✓] SHA256 OK
+[✓] Uploaded
+[✓] Verified
+```
+
+---
+
+# 11. Shell config
+
+Nguồn:
+
+```text
+~/recovered-projects/shell-config
+```
+
+Bao gồm:
+
+```text
+.nvm
+.bashrc
+.zshrc
+.gitconfig
+.npmrc
+```
+
+
+
+Đã tạo:
+
+```text
+~/recovered-projects/shell-config-zip
+```
+
+Cấu trúc:
+
+```text
+shell-config-zip/
+
+├── shell-config.zip
+└── shell-config.sha256
+```
+
+Dung lượng:
+
+```text
+shell-config       519M
+shell-config-zip   201M
+```
+
+SHA256:
+
+```text
+shell-config.zip: OK
+```
+
+Trạng thái:
+
+```text
+[✓] ZIP created
+[✓] SHA256 OK
+[ ] Upload Google Drive
+[ ] Verify Google Drive
+```
+
+---
+
+# 12. Secure / SSH
+
+Nguồn:
+
+```text
+~/recovered-projects/secure
+```
+
+Có:
+
+```text
+.ssh
+```
+
+
+
+Đã tạo:
+
+```text
+~/recovered-projects/secure-zip
+```
+
+Cấu trúc:
+
+```text
+secure-zip/
+
+├── secure.zip
+└── secure.sha256
+```
+
+Dung lượng:
+
+```text
+secure       12K
+secure-zip   12K
+```
+
+SHA256:
+
+```text
+secure.zip: OK
+```
+
+Trạng thái:
+
+```text
+[✓] ZIP created
+[✓] SHA256 OK
+[ ] Upload Google Drive
+[ ] Verify Google Drive
+```
+
+---
+
+# 13. Rclone status
+
+Version:
+
+```text
+rclone v1.75.0
+```
+
+Remote:
+
+```text
+gdrive:
+```
+
+OAuth đã fix:
+
+Trước:
+
+```text
+drive.readonly
+```
+
+Sau:
+
+```text
+drive
+```
+
+
+
+---
+
+# 14. Google Drive final structure mục tiêu
+
+Hiện tại sẽ là:
+
+```text
+WSL-Recovery-2026/
+
+├── projects-zip
+│   ├── *.zip
+│   └── projects-zip.sha256
+│
+├── ai-config-zip
+│   ├── ai-config.zip
+│   └── ai-config.sha256
+│
+├── shell-config-zip
+│   ├── shell-config.zip
+│   └── shell-config.sha256
+│
+└── secure-zip
+    ├── secure.zip
+    └── secure.sha256
+```
+
+---
+
+# 15. Trạng thái tổng hợp chính xác hiện tại
+
+```text
+[✓] Download ext4-original.vhdx
+[✓] Create ext4-working.vhdx
+[✓] Attach VHDX
+[✓] Mount read-only
+[✓] Access recovered home
+[✓] Extract projects
+[✓] Extract AI configs
+[✓] Extract shell configs
+[✓] Extract SSH
+
+[✓] Create projects ZIP
+[✓] Create projects SHA256
+[✓] Upload projects-zip
+[✓] Verify projects-zip
+
+[✓] Create ai-config ZIP
+[✓] Create ai-config SHA256
+[✓] Upload ai-config-zip
+[✓] Verify ai-config-zip
+
+[✓] Create shell-config ZIP
+[✓] Create shell-config SHA256
+
+[✓] Create secure ZIP
+[✓] Create secure SHA256
+
+[ ] Upload shell-config-zip
+[ ] Verify shell-config-zip
+
+[ ] Upload secure-zip
+[ ] Verify secure-zip
+
+[ ] Final Google Drive audit
+```
+
+---
+
+## Đánh giá hiện tại
+
+Recovery đã qua phần rủi ro nhất.
+
+Hiện còn đúng 2 việc:
+
+1. Upload:
+
+```text
+shell-config-zip (~201MB)
+secure-zip (~12KB)
+```
+
+2. Verify:
+
+```text
+0 differences found
+```
+
+Sau khi xong 2 phần này, backup recovery sẽ hoàn chỉnh và có thể an toàn chuyển sang bước:
+
+* kiểm tra ZIP quan trọng (`price2026wsl.zip`)
+* chuẩn bị thay SSD
+* reset Windows
+* dựng lại WSL mới
+
+Tôi sẽ dùng trạng thái này làm baseline cho các bước tiếp theo.

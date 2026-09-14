@@ -1,0 +1,2055 @@
+# HANDOFF — RESTORE PROJECTS TỪ WINDOWS RECOVERY VÀO WSL2 UBUNTU
+
+## 1. Mục đích của handoff này
+
+Đây là handoff tiếp nối trực tiếp từ hai handoff trước:
+
+1. recovery dữ liệu từ `ext4.vhdx` của WSL cũ trên SSD Netac bị lỗi;
+2. trạng thái máy mới sau khi:
+
+   * thay SSD;
+   * reset/reinstall Windows;
+   * cài lại WSL2 Ubuntu 24.04;
+   * chuyển Ubuntu sang SSD D:;
+   * cài Docker Desktop;
+   * chuyển Docker storage sang D:.
+
+Handoff này cập nhật thêm toàn bộ công việc trong session hiện tại:
+
+* bắt đầu restore các project Linux cũ từ ZIP recovery trên Windows vào filesystem ext4 của WSL mới;
+* đã restore hoàn chỉnh project đầu tiên:
+  `AiAgent_t7_2026_wsl`;
+* đã kiểm tra `.git`;
+* đã cài Git;
+* đã đăng nhập GitHub bằng GitHub CLI;
+* đã xác nhận repository local kết nối đúng repository GitHub;
+* đã cấu hình Git identity;
+* đã xóa staging của project sau khi restore thành công.
+
+**Quan trọng: mới chỉ hoàn thành restore dữ liệu cho `AiAgent_t7_2026_wsl`.**
+
+Các project ZIP khác vẫn chưa restore.
+
+Ngoài ra:
+
+* chưa cài Python development stack cho Ubuntu mới;
+* chưa cài `uv`;
+* chưa dựng lại Python virtual environments;
+* chưa cài Node/NVM cho project;
+* chưa restore toàn bộ AI/dev configuration;
+* chưa restore SSH;
+* chưa chạy project;
+* chưa kiểm tra runtime project;
+* chưa chạy test/application của `AiAgent_t7_2026_wsl`.
+
+Session tiếp theo phải tiếp tục từ trạng thái này, không bắt đầu lại từ đầu.
+
+---
+
+# 2. Baseline phần cứng — giữ nguyên từ handoff trước
+
+SSD Netac 256GB cũ đã được xác định có hardware/storage failure.
+
+Các triệu chứng/bằng chứng lịch sử gồm:
+
+```text
+Disk Event ID 7
+bad blocks
+
+Disk Event 52
+Predictive failure
+
+SMART:
+PredictFailure=True
+Status=Pred Fail
+
+ReadErrorsTotal       = 30
+ReadErrorsUncorrected = 15
+
+Reallocated sectors    ≈ 15
+Pending sectors        ≈ 15
+Runtime invalid blocks ≈ 15
+UDMA CRC               = 0
+```
+
+Root cause baseline:
+
+> SSD Netac cũ bị premature internal storage failure, có khả năng cao ở NAND/media hoặc thành phần nội bộ SSD.
+
+Không được tự động quy nguyên nhân sang:
+
+* Phase 6;
+* coding agent;
+* WSL;
+* RAM;
+* `wsl --shutdown`;
+* Intel RST/VMD;
+* SATA cable;
+
+nếu không có bằng chứng mới thực sự mâu thuẫn với hồ sơ cũ.
+
+SSD Netac đã được thay khỏi máy.
+
+---
+
+# 3. Phần cứng hiện tại
+
+Máy hiện có hai SSD NVMe.
+
+## Disk 0 / C:
+
+```text
+NVMe KINGSTON OM8PDP3256B-AA1
+~238 GB
+
+Vai trò:
+Windows / hệ thống
+```
+
+Trạng thái baseline:
+
+```text
+HealthStatus       = Healthy
+OperationalStatus  = Online / OK
+PredictFailure     = False
+```
+
+## Disk 1 / D:
+
+```text
+NVMe FIKWOT FN970 1TB
+~931 GB
+
+Vai trò:
+WSL2 Ubuntu
+Docker Desktop
+Recovery ZIP/data
+```
+
+Trạng thái baseline:
+
+```text
+HealthStatus       = Healthy
+OperationalStatus  = Online / OK
+PredictFailure     = False
+```
+
+Disk mapping đã xác nhận:
+
+```text
+Disk 0 → C: → Kingston NVMe
+Disk 1 → D: → FIKWOT FN970 1TB
+```
+
+Không có bằng chứng hiện tại cho thấy FIKWOT mới có pathology giống Netac cũ.
+
+---
+
+# 4. Windows / WSL2 hiện tại
+
+Windows đã reset/reinstall sạch.
+
+WSL:
+
+```text
+Distro:
+Ubuntu-24.04
+
+Ubuntu:
+24.04 LTS
+
+WSL version:
+2.7.11.0
+
+Kernel:
+6.18.33.2-2
+
+User:
+minhhieu
+
+Default distro:
+Ubuntu-24.04
+
+Version:
+WSL2
+```
+
+Ubuntu backing VHDX hiện nằm tại:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+Không còn sử dụng Ubuntu filesystem mặc định trên C:.
+
+Các project Linux được đặt dưới:
+
+```text
+/home/minhhieu/...
+```
+
+Điều này là chủ ý.
+
+Không chạy workload Linux/AI nặng trực tiếp từ:
+
+```text
+/mnt/d/...
+```
+
+vì `/home/minhhieu` nằm trên ext4 của Ubuntu VHDX và phù hợp hơn về:
+
+* filesystem semantics;
+* permissions;
+* symlink;
+* executable bit;
+* performance;
+* Git;
+* Python environments;
+* Node;
+* Docker/Linux tooling.
+
+Mặc dù đường dẫn Linux là `/home/minhhieu`, dữ liệu vật lý vẫn nằm trên SSD D: vì Ubuntu VHDX nằm trên D:.
+
+---
+
+# 5. Docker Desktop hiện tại
+
+Docker Desktop đã cài và hoạt động.
+
+Baseline:
+
+```text
+Docker Desktop:
+4.87.0
+
+Engine:
+29.7.2
+
+Backend:
+WSL2
+```
+
+WSL integration:
+
+```text
+Ubuntu-24.04 = enabled
+```
+
+Docker test:
+
+```bash
+docker run --rm hello-world
+```
+
+đã PASS.
+
+Docker storage hiện tại:
+
+```text
+D:\MinhHieuWSL\Docker\DockerDesktopWSL
+```
+
+Các VHDX Docker hiện nằm trên D:.
+
+Không cần:
+
+* cài lại Docker;
+* move Docker storage;
+* bật lại WSL Integration;
+
+nếu không phát sinh lỗi mới.
+
+---
+
+# 6. Recovery WSL cũ đã thực hiện trước đó
+
+Nguồn WSL cũ:
+
+```text
+G:\WSL\ext4.vhdx
+```
+
+từng nằm trên SSD Netac lỗi.
+
+Đã có hai bản:
+
+```text
+ext4-original.vhdx
+→ bản gốc, không sửa
+
+ext4-working.vhdx
+→ dùng cho recovery
+```
+
+Working copy đã từng mount:
+
+```bash
+sudo mount -o ro,noload /dev/sdd /mnt/recovery
+```
+
+Nguyên tắc:
+
+```text
+READ ONLY
+NO JOURNAL REPLAY
+```
+
+Dữ liệu được trích xuất từ home WSL cũ:
+
+```text
+/mnt/recovery/home/hieu0606sunny/
+```
+
+Các project recovery ban đầu gồm 11 project:
+
+```text
+AiAgent_t7_2026_wsl
+AiCoderWSL
+AiProduction_t6_2026_wsl
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+ptx_rag
+```
+
+Mỗi project đã từng được đóng ZIP riêng và có manifest:
+
+```text
+projects-zip.sha256
+```
+
+Google Drive backup của bộ project ZIP đã từng được xác minh:
+
+```text
+0 differences found
+12 matching files
+```
+
+Do đó ZIP recovery được coi là nguồn restore chính cho project cũ.
+
+---
+
+# 7. Nguồn project ZIP hiện tại trên Windows
+
+Trong session hiện tại, recovery ZIP được truy cập từ WSL qua:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026/
+```
+
+Tương ứng Windows:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026\
+```
+
+Các ZIP nhìn thấy trong thư mục Windows ở thời điểm cuối session gồm ít nhất:
+
+```text
+AiAgent_t7_2026_wsl.zip
+AiProduction_t6_2026_wsl.zip
+ed_rag_2026.zip
+hue_rag.zip
+llm_rag.zip
+price2026wsl.zip
+projects-zip.sha256
+```
+
+Lưu ý:
+
+Handoff recovery cũ ghi nhận tổng cộng 11 project ZIP.
+
+Vì vậy session tiếp theo không được suy luận rằng danh sách nhìn thấy trong screenshot là toàn bộ 11 project. Có thể các ZIP còn lại nằm ở nơi khác, chưa được copy về thư mục Windows hiện tại, hoặc đơn giản không xuất hiện trong vùng ảnh.
+
+Nếu cần restore các project còn lại, kiểm tra filesystem thực tế trước.
+
+---
+
+# 8. Kiểm tra mount D: từ WSL đã xác nhận
+
+Output thực tế:
+
+```text
+Filesystem:
+D:\
+
+Type:
+9p
+
+Mount:
+/mnt/d
+```
+
+Mount options cho thấy Windows D: được expose qua DrvFS/9p.
+
+Nguồn ZIP đầu tiên:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026/AiAgent_t7_2026_wsl.zip
+```
+
+Kích thước:
+
+```text
+557,287,827 bytes
+~532 MiB
+```
+
+---
+
+# 9. Nguyên tắc restore project đã thống nhất
+
+Không giải nén ZIP bằng Windows Explorer rồi copy thư mục đã giải nén sang WSL.
+
+Quy trình chuẩn đã quyết định là:
+
+```text
+Windows ZIP trên /mnt/d
+        ↓
+verify SHA256
+        ↓
+unzip -t kiểm tra CRC/archive
+        ↓
+unzip trực tiếp bằng Linux vào staging trên ext4
+        ↓
+kiểm tra cấu trúc
+        ↓
+rsync -a từ staging ext4 → destination ext4
+        ↓
+verify project / .git / permissions
+        ↓
+chỉ sau khi verify mới xóa staging
+```
+
+Lý do:
+
+* tránh vấn đề metadata Linux khi giải nén bằng Windows;
+* tránh permission/symlink/executable bit bất thường;
+* tránh copy trực tiếp workload Linux từ DrvFS;
+* kiểm tra được archive có thêm một tầng directory hay không;
+* tránh tạo sai đường dẫn kiểu:
+
+```text
+/home/minhhieu/project/project/
+```
+
+---
+
+# 10. Tool restore hiện có trong Ubuntu
+
+Đã xác nhận:
+
+```text
+rsync:
+installed
+
+unzip:
+installed
+
+zipinfo:
+available thông qua package unzip
+```
+
+`unzip` được cài:
+
+```bash
+sudo apt update
+sudo apt install -y unzip
+```
+
+Ubuntu báo tại thời điểm đó:
+
+```text
+157 packages can be upgraded
+```
+
+**Chưa thực hiện full system upgrade trong session này.**
+
+Không được tự động coi Ubuntu đã `apt upgrade`.
+
+---
+
+# 11. Project đã hoàn thành: AiAgent_t7_2026_wsl
+
+Nguồn Windows:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026\AiAgent_t7_2026_wsl.zip
+```
+
+Nguồn từ WSL:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026/AiAgent_t7_2026_wsl.zip
+```
+
+Destination cuối:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl
+```
+
+---
+
+# 12. SHA256 của AiAgent_t7_2026_wsl.zip
+
+Hash tính lại từ ZIP:
+
+```text
+d14b6713fb6963d14bbe3ccda50aae0241cf68035baf73e55f4eaf5df8a86a83
+```
+
+Manifest:
+
+```text
+projects-zip.sha256
+```
+
+chứa:
+
+```text
+d14b6713fb6963d14bbe3ccda50aae0241cf68035baf73e55f4eaf5df8a86a83  AiAgent_t7_2026_wsl.zip
+```
+
+Kết luận:
+
+```text
+CURRENT ZIP SHA256 == RECOVERY MANIFEST SHA256
+```
+
+ZIP hiện tại khớp đúng bản recovery đã lưu.
+
+---
+
+# 13. Kiểm tra integrity ZIP AiAgent
+
+Đã chạy:
+
+```bash
+unzip -t "$SRC"
+```
+
+Kết quả:
+
+```text
+No errors detected in compressed data
+```
+
+Không phát hiện:
+
+* CRC error;
+* truncated archive;
+* bad ZIP;
+* corrupted compressed entry.
+
+Archive được coi là đọc được bình thường.
+
+---
+
+# 14. Cấu trúc ZIP AiAgent
+
+`zipinfo` cho thấy archive bắt đầu bằng:
+
+```text
+AiAgent_t7_2026_wsl/
+AiAgent_t7_2026_wsl/agents/
+...
+```
+
+Tức ZIP đã chứa sẵn thư mục gốc:
+
+```text
+AiAgent_t7_2026_wsl/
+```
+
+Điều này được dùng để quyết định đường dẫn rsync sau unzip.
+
+---
+
+# 15. Staging đã dùng cho AiAgent
+
+Đã tạo:
+
+```text
+/home/minhhieu/.restore-staging/AiAgent_t7_2026_wsl
+```
+
+Archive được giải nén bằng user:
+
+```text
+minhhieu
+```
+
+không sử dụng `sudo unzip`.
+
+Sau unzip cấu trúc là:
+
+```text
+/home/minhhieu/.restore-staging/AiAgent_t7_2026_wsl/
+└── AiAgent_t7_2026_wsl/
+    └── agents/
+```
+
+Dung lượng staging:
+
+```text
+1.6G
+```
+
+Ownership staging:
+
+```text
+minhhieu:minhhieu
+```
+
+Permission root:
+
+```text
+755
+```
+
+---
+
+# 16. Git repository trong AiAgent
+
+Sau unzip tìm thấy:
+
+```text
+/home/minhhieu/.restore-staging/AiAgent_t7_2026_wsl/AiAgent_t7_2026_wsl/agents/.git
+```
+
+Điểm quan trọng:
+
+**Git repository thực tế nằm trong thư mục `agents`, không nằm ở root `AiAgent_t7_2026_wsl`.**
+
+Repo root cuối cùng là:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+```
+
+---
+
+# 17. Rsync AiAgent từ staging sang destination
+
+Source được dùng:
+
+```text
+/home/minhhieu/.restore-staging/AiAgent_t7_2026_wsl/AiAgent_t7_2026_wsl/
+```
+
+Destination:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/
+```
+
+Đã dùng phương án:
+
+```bash
+rsync -a --info=progress2 \
+  "$SRC_DIR" \
+  "$DST_DIR"
+```
+
+Sau restore:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/
+└── agents/
+```
+
+Dung lượng destination:
+
+```text
+1.6G
+```
+
+Ownership:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl
+→ minhhieu:minhhieu
+→ 755
+
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+→ minhhieu:minhhieu
+→ 755
+```
+
+`.git`:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents/.git
+```
+
+được giữ lại.
+
+---
+
+# 18. Git đã được cài trên Ubuntu mới
+
+Ubuntu ban đầu chưa có Git environment hoàn chỉnh để tiếp tục development.
+
+Git sau đó đã được cài và repository recovery đọc được.
+
+Repo:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+```
+
+Branch:
+
+```text
+main
+```
+
+Output:
+
+```text
+* main 0b8209b9 [origin/main] Update README
+```
+
+Repository root:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+```
+
+---
+
+# 19. Git remote của AiAgent
+
+Remote recovery còn nguyên:
+
+```text
+origin  https://github.com/Sunny-sunnyy/agents_t7_2026.git (fetch)
+origin  https://github.com/Sunny-sunnyy/agents_t7_2026.git (push)
+```
+
+Commit history gần nhất:
+
+```text
+0b8209b9 Update README
+8b6e7d76 Done agents thang 7
+a36313b1 first commit
+```
+
+Branch local:
+
+```text
+main
+```
+
+tracking:
+
+```text
+origin/main
+```
+
+---
+
+# 20. GitHub CLI authentication
+
+GitHub CLI `gh` đã được sử dụng để đăng nhập.
+
+Lệnh:
+
+```bash
+gh auth login
+```
+
+Lựa chọn:
+
+```text
+GitHub.com
+HTTPS
+Authenticate Git with GitHub credentials = Yes
+Login with a web browser
+```
+
+WSL không tự mở browser vì thiếu:
+
+```text
+xdg-open
+x-www-browser
+www-browser
+wslview
+```
+
+Thông báo:
+
+```text
+Failed opening a web browser
+```
+
+không phải authentication failure.
+
+Người dùng đã mở URL thủ công trên Windows và xác thực thành công.
+
+Kết quả:
+
+```text
+Authentication complete
+Configured git protocol
+Logged in as Sunny-sunnyy
+```
+
+---
+
+# 21. GitHub account hiện authenticated
+
+`gh auth status` trả:
+
+```text
+github.com
+
+Logged in to github.com account Sunny-sunnyy
+
+Active account:
+true
+
+Git operations protocol:
+https
+
+Token scopes:
+gist
+read:org
+repo
+workflow
+```
+
+Token được che trong command output.
+
+GitHub CLI thông báo:
+
+```text
+Authentication credentials saved in plain text
+```
+
+Credential hiện nằm trong:
+
+```text
+/home/minhhieu/.config/gh/hosts.yml
+```
+
+Đây không phải lỗi authentication.
+
+Có thể xem xét credential storage tốt hơn sau, nhưng không phải blocker cho restore.
+
+---
+
+# 22. Xác nhận kết nối GitHub remote
+
+Đã chạy:
+
+```bash
+git ls-remote origin HEAD
+```
+
+Kết quả:
+
+```text
+0b8209b9c7f53c2b63b8d32d47817c41579147d9        HEAD
+```
+
+Local HEAD:
+
+```text
+0b8209b9
+```
+
+Remote HEAD:
+
+```text
+0b8209b9c7f53c2b63b8d32d47817c41579147d9
+```
+
+Do đó tại thời điểm kiểm tra:
+
+```text
+LOCAL HEAD == REMOTE HEAD
+```
+
+Không có dấu hiệu repo local bị lệch commit HEAD so với GitHub remote tại thời điểm này.
+
+---
+
+# 23. Git identity đã cấu hình
+
+GitHub API:
+
+```text
+login:
+Sunny-sunnyy
+
+name:
+Sunny
+
+email:
+null
+```
+
+GitHub API không expose email công khai.
+
+Người dùng xác nhận email thật của mình là:
+
+```text
+hieu0606sunny@gmail.com
+```
+
+Ban đầu từng tạm đặt:
+
+```text
+Sunny-sunnyy@users.noreply.github.com
+```
+
+nhưng sau đó đã **ghi đè** bằng email thật.
+
+Cấu hình cuối cùng:
+
+```bash
+git config --global user.name "Sunny"
+git config --global user.email "hieu0606sunny@gmail.com"
+```
+
+Đã verify:
+
+```text
+Sunny
+hieu0606sunny@gmail.com
+```
+
+Nguồn config:
+
+```text
+file:/home/minhhieu/.gitconfig  user.name=Sunny
+file:/home/minhhieu/.gitconfig  user.email=hieu0606sunny@gmail.com
+```
+
+Đây là cấu hình Git identity hiện tại cần coi là baseline mới.
+
+---
+
+# 24. Không được nhầm Git authentication và Git identity
+
+Hai phần hiện đều đã xử lý:
+
+## Authentication
+
+```text
+GitHub CLI:
+Sunny-sunnyy
+
+Protocol:
+HTTPS
+```
+
+## Commit identity
+
+```text
+user.name:
+Sunny
+
+user.email:
+hieu0606sunny@gmail.com
+```
+
+Đây là hai khái niệm khác nhau.
+
+Không cần bắt người dùng đăng nhập GitHub lại trừ khi authentication thực sự lỗi.
+
+---
+
+# 25. Staging AiAgent đã được xóa
+
+Sau khi destination được xác nhận đúng, đã chạy:
+
+```bash
+rm -rf /home/minhhieu/.restore-staging/AiAgent_t7_2026_wsl
+```
+
+Sau đó:
+
+```bash
+rmdir /home/minhhieu/.restore-staging 2>/dev/null || true
+```
+
+Kiểm tra cuối:
+
+```text
+.restore-staging removed
+```
+
+Do đó hiện tại:
+
+```text
+/home/minhhieu/.restore-staging
+```
+
+không còn tồn tại.
+
+Không cần cleanup project AiAgent staging lần nữa.
+
+---
+
+# 26. HOME hiện tại sau cleanup
+
+Output cuối session:
+
+```text
+/home/minhhieu
+```
+
+có:
+
+```text
+.antigravity-ide-server
+.aws
+.azure
+.bash_history
+.bash_logout
+.bashrc
+.cache
+.config
+.docker
+.gemini
+.gitconfig
+.lesshst
+.motd_shown
+.profile
+.sudo_as_admin_successful
+AiAgent_t7_2026_wsl
+```
+
+Project:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl
+```
+
+có:
+
+```text
+agents/
+```
+
+Dung lượng:
+
+```text
+1.6G
+```
+
+---
+
+# 27. Các symlink hiện có trong HOME
+
+Hiện thấy:
+
+```text
+.aws -> /mnt/c/Users/ACER/.aws
+.azure -> /mnt/c/Users/ACER/.azure
+```
+
+Đây là trạng thái hiện tại của WSL mới.
+
+Không được tự động xóa hoặc thay đổi chúng khi restore config cũ nếu chưa kiểm tra nhu cầu thực tế.
+
+---
+
+# 28. IDE hiện tại
+
+Người dùng đang truy cập Ubuntu WSL qua:
+
+```text
+Antigravity IDE
+```
+
+Terminal trong IDE chạy:
+
+```text
+minhhieu@MINHHIEU
+```
+
+Working filesystem là Ubuntu WSL.
+
+Antigravity IDE đã tạo:
+
+```text
+/home/minhhieu/.antigravity-ide-server
+```
+
+Không được nhầm đây là folder recovery cũ.
+
+---
+
+# 29. Những project CHƯA restore trong session này
+
+Chỉ:
+
+```text
+AiAgent_t7_2026_wsl
+```
+
+đã hoàn thành.
+
+Các project còn lại trong recovery inventory gồm:
+
+```text
+AiCoderWSL
+AiProduction_t6_2026_wsl
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+ptx_rag
+```
+
+Trong screenshot Windows cuối session nhìn thấy ít nhất các ZIP chưa xử lý:
+
+```text
+AiProduction_t6_2026_wsl.zip
+ed_rag_2026.zip
+hue_rag.zip
+llm_rag.zip
+price2026wsl.zip
+```
+
+**Không được coi các project này đã restore.**
+
+Chúng mới chỉ đang tồn tại dưới dạng ZIP recovery trên Windows.
+
+---
+
+# 30. Quy trình nên lặp lại cho từng project còn lại
+
+Đối với từng ZIP:
+
+```text
+PROJECT.zip
+```
+
+không copy/giải nén tùy tiện.
+
+Quy trình chuẩn:
+
+### A. Xác định ZIP
+
+Ví dụ:
+
+```bash
+SRC="/mnt/d/MinhHieuWSL/WSL_Recovery_2026/AiProduction_t6_2026_wsl.zip"
+```
+
+### B. Verify SHA256 từ manifest
+
+Ví dụ:
+
+```bash
+grep -i 'AiProduction_t6_2026_wsl.zip' \
+  /mnt/d/MinhHieuWSL/WSL_Recovery_2026/projects-zip.sha256
+```
+
+Sau đó:
+
+```bash
+sha256sum "$SRC"
+```
+
+Hai hash phải khớp.
+
+### C. Test archive
+
+```bash
+unzip -t "$SRC" | tail -n 20
+```
+
+Yêu cầu:
+
+```text
+No errors detected in compressed data
+```
+
+### D. Xem root structure
+
+```bash
+zipinfo -1 "$SRC" | head -n 50
+```
+
+Không giả định trước archive có một tầng hay nhiều tầng directory.
+
+### E. Tạo staging riêng
+
+Ví dụ:
+
+```bash
+mkdir -p /home/minhhieu/.restore-staging/AiProduction_t6_2026_wsl
+```
+
+### F. Unzip trong WSL ext4
+
+```bash
+unzip "$SRC" \
+  -d /home/minhhieu/.restore-staging/AiProduction_t6_2026_wsl
+```
+
+Không dùng:
+
+```bash
+sudo unzip
+```
+
+### G. Kiểm tra structure
+
+```bash
+du -sh ...
+ls -la ...
+find ... -maxdepth ...
+find ... -name .git
+```
+
+### H. Chọn source rsync chính xác
+
+Chỉ sau khi biết structure.
+
+### I. Rsync
+
+Ưu tiên:
+
+```bash
+rsync -a --info=progress2 SOURCE/ DEST/
+```
+
+### J. Verify destination
+
+Kiểm tra:
+
+```text
+size
+owner
+permissions
+.git
+project structure
+```
+
+### K. Kiểm tra Git nếu có `.git`
+
+Sau đó mới:
+
+```bash
+git status
+git branch -vv
+git remote -v
+git log --oneline --decorate -10
+git rev-parse --show-toplevel
+git ls-remote origin HEAD
+```
+
+### L. Chỉ xóa staging sau khi verify
+
+```bash
+rm -rf /home/minhhieu/.restore-staging/PROJECT
+```
+
+---
+
+# 31. Không nên restore tất cả ZIP cùng lúc ngay lập tức
+
+Tiếp tục làm từng project.
+
+Lý do:
+
+* kích thước một số ZIP rất lớn;
+* cấu trúc archive có thể khác nhau;
+* `.git` có thể nằm ở vị trí khác;
+* có project chứa Python env;
+* có project chứa Node modules;
+* có project chứa model/data;
+* có project có symlink;
+* có project có file lớn;
+* có project có nhiều repo con.
+
+Cần kiểm tra từng archive trước khi quyết định `rsync`.
+
+Đặc biệt:
+
+```text
+price2026wsl
+```
+
+là project lớn/quan trọng từng được nhắc trong handoff recovery, nên không restore mù.
+
+---
+
+# 32. Các config recovery cũ CHƯA restore
+
+Backup cũ từng có:
+
+```text
+ai-config
+shell-config
+secure
+```
+
+## AI config
+
+Bao gồm:
+
+```text
+.claude
+.claude_ds
+.codex
+.gemini
+.cursor
+.config
+```
+
+## Shell config
+
+Bao gồm:
+
+```text
+.nvm
+.bashrc
+.zshrc
+.gitconfig
+.npmrc
+```
+
+## Secure
+
+Bao gồm:
+
+```text
+.ssh
+```
+
+Không được copy đè toàn bộ những folder này vào `/home/minhhieu`.
+
+Nguyên tắc vẫn là:
+
+```text
+inspect → compare → restore selectively
+```
+
+vì config cũ có thể chứa:
+
+* username cũ `hieu0606sunny`;
+* absolute path cũ;
+* distro path cũ;
+* API key/token;
+* expired credentials;
+* symlink;
+* Python path;
+* Node path;
+* NVM path;
+* tool versions cũ;
+* WSL-specific config không còn phù hợp.
+
+---
+
+# 33. Git config cũ không nên restore đè
+
+Hiện Git identity mới đã được cấu hình đúng:
+
+```text
+/home/minhhieu/.gitconfig
+```
+
+với:
+
+```text
+user.name=Sunny
+user.email=hieu0606sunny@gmail.com
+```
+
+Do đó khi restore `shell-config`, không được blind-copy `.gitconfig` cũ lên file hiện tại.
+
+Phải inspect và merge nếu cần.
+
+---
+
+# 34. GitHub authentication hiện đã hoạt động — không restore credential mù
+
+GitHub CLI hiện authenticated thành công.
+
+Do đó:
+
+* không cần restore credential GitHub cũ chỉ để login;
+* không copy đè `~/.config/gh` cũ nếu chưa kiểm tra;
+* không cần thay remote AiAgent;
+* không chuyển HTTPS sang SSH trừ khi người dùng chủ động muốn.
+
+AiAgent remote hiện dùng HTTPS và hoạt động.
+
+---
+
+# 35. SSH cũ vẫn chưa restore
+
+Backup `.ssh` tồn tại trong recovery cũ.
+
+Nhưng session này chưa:
+
+* inspect `.ssh`;
+* restore private key;
+* restore known_hosts;
+* restore config;
+* test SSH GitHub;
+* kiểm tra permissions key.
+
+Không được coi SSH đã hoàn thành.
+
+Vì GitHub hiện dùng HTTPS nên SSH không phải blocker để tiếp tục restore project.
+
+---
+
+# 36. Python hiện CHƯA được dựng cho development
+
+Điểm quan trọng cho session mới:
+
+**Chưa cài/dựng Python environment cho các project recovery.**
+
+Không được suy luận rằng Python đã sẵn sàng chỉ vì Ubuntu có thể có Python hệ thống.
+
+Chưa thực hiện có kiểm soát:
+
+```text
+Python version selection
+python3-dev
+pip strategy
+venv strategy
+uv
+project virtualenv
+dependency restore
+requirements install
+pyproject install
+Jupyter kernel
+CUDA/PyTorch
+AI packages
+```
+
+Người dùng đặc biệt nhắc:
+
+> chưa cài Python, uv, môi trường cho WSL2 Ubuntu.
+
+Đây là việc còn lại.
+
+---
+
+# 37. `uv` chưa cài
+
+Không được coi `uv` đã tồn tại.
+
+Session tiếp theo nên kiểm tra:
+
+```bash
+command -v uv
+uv --version
+```
+
+trước khi cài.
+
+Nếu chưa có thì mới quyết định phương án cài.
+
+Không tự động restore `.venv` cũ trước khi kiểm tra project.
+
+---
+
+# 38. Virtual environment cũ chưa được đánh giá
+
+Một số ZIP recovery có thể chứa:
+
+```text
+.venv
+venv
+Python environments
+cached packages
+compiled wheels
+native binaries
+```
+
+Không được mặc định rằng virtualenv cũ sẽ chạy trên Ubuntu mới.
+
+Đặc biệt environment từ WSL cũ có thể chứa absolute paths tới:
+
+```text
+/home/hieu0606sunny/...
+```
+
+trong khi user mới là:
+
+```text
+/home/minhhieu/...
+```
+
+Do đó virtualenv cũ phải inspect trước.
+
+Khả năng cao môi trường nên được rebuild từ:
+
+```text
+pyproject.toml
+uv.lock
+requirements.txt
+poetry.lock
+Pipfile
+environment.yml
+```
+
+tùy project.
+
+---
+
+# 39. Node / NVM chưa restore
+
+Handoff cũ có `.nvm`, nhưng session này chưa restore Node environment.
+
+Không được giả định:
+
+```text
+node
+npm
+pnpm
+yarn
+nvm
+```
+
+đã được dựng cho project.
+
+Nếu project cần Node, kiểm tra rồi mới quyết định restore/reinstall.
+
+---
+
+# 40. Project AiAgent chưa được chạy
+
+Mặc dù source và `.git` đã restore thành công:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+```
+
+chưa thực hiện:
+
+* dependency installation;
+* Python environment;
+* Node environment;
+* `.env` verification;
+* API keys;
+* Docker Compose;
+* notebook setup;
+* application start;
+* tests;
+* lint;
+* type-check;
+* runtime smoke test.
+
+Do đó:
+
+> `AiAgent_t7_2026_wsl` đã restore DATA/GIT thành công, nhưng chưa được xác nhận chạy được trên Ubuntu mới.
+
+Hai trạng thái này không được đánh đồng.
+
+---
+
+# 41. Không được chạy `git pull` tùy tiện
+
+Repo recovery chứa trạng thái local từ WSL cũ.
+
+Trước bất kỳ:
+
+```bash
+git pull
+git reset
+git checkout .
+git clean
+```
+
+phải đọc:
+
+```bash
+git status
+```
+
+và đánh giá local modifications/untracked files.
+
+Không được dùng command destructive nếu chưa xác nhận.
+
+Remote HEAD hiện trùng local HEAD, nên không có nhu cầu pull chỉ để "cập nhật".
+
+---
+
+# 42. GitHub hiện tại của AiAgent
+
+Repository:
+
+```text
+https://github.com/Sunny-sunnyy/agents_t7_2026.git
+```
+
+Account:
+
+```text
+Sunny-sunnyy
+```
+
+Branch:
+
+```text
+main
+```
+
+Current recovered commit:
+
+```text
+0b8209b9
+```
+
+Subject:
+
+```text
+Update README
+```
+
+Remote tracking:
+
+```text
+origin/main
+```
+
+---
+
+# 43. Trạng thái project AiAgent cuối session
+
+```text
+[✓] ZIP source exists
+[✓] SHA256 matches recovery manifest
+[✓] ZIP CRC/integrity test PASS
+[✓] ZIP structure inspected
+[✓] Unzip performed inside WSL ext4
+[✓] Staging ownership correct
+[✓] .git discovered
+[✓] Rsync to final /home location complete
+[✓] Destination size = 1.6G
+[✓] Destination ownership = minhhieu:minhhieu
+[✓] Git repository readable
+[✓] Branch main recovered
+[✓] origin remote recovered
+[✓] GitHub authenticated
+[✓] Remote HEAD reachable
+[✓] Local HEAD matches remote HEAD
+[✓] Git user.name configured
+[✓] Git user.email configured
+[✓] Staging deleted
+
+[ ] Python environment installed
+[ ] uv installed
+[ ] Project dependencies installed
+[ ] Environment variables restored
+[ ] Python runtime tested
+[ ] Node runtime tested if needed
+[ ] Docker project runtime tested
+[ ] Project actually executed
+[ ] Tests executed
+```
+
+---
+
+# 44. Trạng thái restore project tổng thể
+
+Inventory recovery cũ:
+
+```text
+AiAgent_t7_2026_wsl              [✓ DATA restored]
+AiCoderWSL                       [ ] not restored
+AiProduction_t6_2026_wsl         [ ] not restored
+ITLR-Fullstack-Recommender-RAG   [ ] not restored
+agents2026                       [ ] not restored
+aws_cli                          [ ] not restored
+ed_rag_2026                      [ ] not restored
+hue_rag                          [ ] not restored
+llm_rag                          [ ] not restored
+price2026wsl                     [ ] not restored
+ptx_rag                          [ ] not restored
+```
+
+`[✓ DATA restored]` đối với AiAgent chỉ có nghĩa:
+
+* source files;
+* `.git`;
+* project data trong ZIP;
+
+đã được chuyển vào WSL.
+
+Nó **không** có nghĩa environment/runtime đã được dựng.
+
+---
+
+# 45. Trạng thái môi trường development tổng thể
+
+Hiện tại:
+
+```text
+Ubuntu 24.04               [✓]
+WSL2                       [✓]
+Ubuntu storage on D:       [✓]
+
+Docker Desktop             [✓]
+Docker WSL integration     [✓]
+hello-world                [✓]
+
+unzip                      [✓]
+rsync                      [✓]
+
+Git                        [✓]
+GitHub CLI                 [✓]
+GitHub login               [✓]
+Git identity               [✓]
+
+Python dev stack           [ ]
+uv                         [ ]
+Python project envs        [ ]
+Node/NVM                   [ ]
+pnpm/yarn                  [ ]
+SSH restore                [ ]
+AI CLI restore             [ ]
+Claude config              [ ]
+Codex config               [ ]
+Gemini config              [partial/new state exists, old recovery not merged]
+Cursor config              [ ]
+Shell config restore       [ ]
+Project runtime tests      [ ]
+```
+
+---
+
+# 46. Việc cần làm tiếp theo — ưu tiên
+
+Có hai hướng công việc song song, nhưng nên làm có thứ tự.
+
+## Hướng A — restore toàn bộ project DATA trước
+
+Tiếp tục lần lượt:
+
+```text
+AiProduction_t6_2026_wsl
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+```
+
+và xác định nơi chứa các ZIP còn lại:
+
+```text
+AiCoderWSL
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ptx_rag
+```
+
+Mỗi project dùng quy trình:
+
+```text
+checksum
+→ unzip test
+→ staging
+→ inspect
+→ rsync
+→ verify Git
+→ cleanup staging
+```
+
+## Hướng B — dựng development environment
+
+Sau khi restore data đủ hoặc khi muốn bắt đầu test project:
+
+```text
+Ubuntu update/upgrade review
+locale/timezone
+build-essential
+Python
+uv
+Node/NVM
+package managers
+SSH
+project-specific dependencies
+AI/dev CLI
+selective config restore
+```
+
+Không restore environment mù từ WSL cũ.
+
+---
+
+# 47. Khuyến nghị workflow session tiếp theo
+
+Nếu ưu tiên an toàn dữ liệu, session tiếp theo nên làm:
+
+```text
+1. inventory toàn bộ ZIP hiện có trong
+   D:\MinhHieuWSL\WSL_Recovery_2026
+
+2. so sánh với projects-zip.sha256
+
+3. restore lần lượt từng project
+
+4. verify .git từng repo
+
+5. cleanup staging từng project
+
+6. sau khi source code đã nằm an toàn trong /home/minhhieu,
+   mới dựng common development environment
+
+7. sau đó xử lý từng project runtime
+```
+
+Điều này tách:
+
+```text
+DATA RECOVERY
+```
+
+khỏi:
+
+```text
+ENVIRONMENT REBUILD
+```
+
+và giảm rủi ro.
+
+---
+
+# 48. Những việc KHÔNG cần làm lại
+
+Không cần:
+
+* điều tra lại SSD Netac từ đầu;
+* restore nguyên Ubuntu distro cũ;
+* import ext4-working lại;
+* sửa ext4 cũ;
+* reinstall Windows;
+* reinstall WSL;
+* move Ubuntu sang D: lại;
+* unregister/import Ubuntu lại;
+* sửa ACL Ubuntu VHDX lại;
+* reinstall Docker Desktop;
+* move Docker storage lại;
+* bật Docker WSL integration lại;
+* restore lại `AiAgent_t7_2026_wsl`;
+* giải nén lại `AiAgent_t7_2026_wsl.zip`;
+* tạo staging AiAgent lại;
+* đăng nhập GitHub lại;
+* cấu hình lại Git identity;
+
+trừ khi xuất hiện bằng chứng lỗi mới.
+
+---
+
+# 49. Những điều session mới phải phân biệt rõ
+
+## Đã chứng minh bằng command/output
+
+* Ubuntu chạy WSL2;
+* Ubuntu VHDX nằm trên D:;
+* Docker storage nằm trên D:;
+* Docker hello-world PASS;
+* AiAgent ZIP hash khớp manifest;
+* AiAgent ZIP integrity PASS;
+* AiAgent được rsync vào `/home/minhhieu`;
+* AiAgent `.git` tồn tại;
+* Git đọc repo được;
+* branch `main`;
+* remote đúng;
+* GitHub login thành công;
+* remote HEAD reachable;
+* staging đã xóa.
+
+## Suy luận hợp lý nhưng chưa runtime-test
+
+* source recovery AiAgent có vẻ đầy đủ;
+* repository Git có vẻ usable;
+* project có khả năng phục hồi tốt.
+
+## Chưa xác định
+
+* project AiAgent chạy được hay không;
+* dependencies chính xác;
+* Python version cần dùng;
+* uv version;
+* các virtualenv cũ có usable không;
+* Node version;
+* API keys/env;
+* model/data dependencies;
+* Docker Compose project state;
+* các project ZIP khác có cấu trúc gì;
+* `.git` của từng project còn lại ở đâu;
+* các config cũ nào nên merge.
+
+---
+
+# 50. Baseline chính xác tại thời điểm cuối handoff
+
+Ngày:
+
+```text
+18/08/2026
+```
+
+User WSL:
+
+```text
+minhhieu
+```
+
+Home:
+
+```text
+/home/minhhieu
+```
+
+Ubuntu:
+
+```text
+Ubuntu-24.04
+WSL2
+```
+
+Ubuntu VHDX:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+Windows recovery directory:
+
+```text
+D:\MinhHieuWSL\WSL_Recovery_2026
+```
+
+WSL view của recovery directory:
+
+```text
+/mnt/d/MinhHieuWSL/WSL_Recovery_2026
+```
+
+Project đã restore:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl
+```
+
+Repo:
+
+```text
+/home/minhhieu/AiAgent_t7_2026_wsl/agents
+```
+
+GitHub:
+
+```text
+Sunny-sunnyy
+```
+
+Remote:
+
+```text
+https://github.com/Sunny-sunnyy/agents_t7_2026.git
+```
+
+Git identity:
+
+```text
+user.name  = Sunny
+user.email = hieu0606sunny@gmail.com
+```
+
+Staging:
+
+```text
+/home/minhhieu/.restore-staging
+→ removed
+```
+
+---
+
+# 51. Điểm bắt đầu cho chat tiếp theo
+
+Chat tiếp theo sẽ nhận:
+
+1. handoff recovery VHDX cũ;
+2. handoff sau thay SSD/reset Windows/WSL2/Docker;
+3. handoff này.
+
+Hãy coi handoff này là **delta mới nhất** và ưu tiên trạng thái mới hơn nếu có khác biệt với handoff cũ.
+
+Điểm bắt đầu nên là:
+
+> **Tiếp tục restore các project ZIP còn lại từ `D:\MinhHieuWSL\WSL_Recovery_2026` vào `/home/minhhieu/...` bằng quy trình checksum → integrity test → staging ext4 → rsync → Git verification → cleanup. Chỉ `AiAgent_t7_2026_wsl` đã hoàn thành.**
+
+Sau khi source project đã được restore đủ:
+
+> **Dựng lại môi trường development của Ubuntu 24.04 theo hướng sạch: Python + uv + build tooling + Node/NVM nếu cần + SSH/config có chọn lọc, rồi phục hồi dependency và test từng project.**
+
+Không được nhảy trực tiếp đến kết luận rằng project đã hoạt động chỉ vì source đã được restore.
+
+---
+
+# 52. Trạng thái ngắn gọn để kiểm tra continuity
+
+```text
+OLD NETAC SSD:
+replaced
+
+WINDOWS:
+clean reinstall complete
+
+WSL:
+Ubuntu-24.04 / WSL2 / user=minhhieu
+
+WSL STORAGE:
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+
+DOCKER:
+installed + storage on D: + hello-world PASS
+
+RECOVERY ZIP LOCATION:
+D:\MinhHieuWSL\WSL_Recovery_2026
+
+PROJECT RESTORE:
+AiAgent_t7_2026_wsl = DONE
+all other recovery projects = NOT DONE
+
+AIAGENT:
+data restored to /home/minhhieu/AiAgent_t7_2026_wsl
+repo root = /home/minhhieu/AiAgent_t7_2026_wsl/agents
+.git = present
+branch = main
+origin = https://github.com/Sunny-sunnyy/agents_t7_2026.git
+local HEAD = remote HEAD = 0b8209b9...
+GitHub authentication = PASS
+Git identity = Sunny / hieu0606sunny@gmail.com
+staging = deleted
+
+PYTHON:
+not rebuilt
+
+UV:
+not installed/configured
+
+PROJECT ENV:
+not rebuilt
+
+PROJECT EXECUTION:
+not tested
+
+NEXT:
+restore remaining ZIP projects, then rebuild clean dev/runtime environment
+```

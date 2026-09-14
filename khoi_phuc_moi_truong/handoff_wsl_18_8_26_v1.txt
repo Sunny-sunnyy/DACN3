@@ -1,0 +1,1185 @@
+# HANDOFF TOÀN BỘ — SAU THAY SSD, RESET WINDOWS, CÀI LẠI WSL2 UBUNTU VÀ DOCKER DESKTOP
+
+## 1. Mục đích của handoff này
+
+Đây là bản chuyển giao đầy đủ để tiếp tục trong session mới mà không phải lặp lại toàn bộ lịch sử.
+
+Hãy coi handoff này là **baseline mới nhất và nguồn sự thật chính** cho trạng thái hiện tại của máy.
+
+Khi tiếp tục:
+
+* không yêu cầu người dùng lặp lại các thông tin đã có;
+* không quay lại giả định SSD Netac cũ vẫn còn trong máy;
+* không bắt đầu lại cuộc điều tra SSD từ đầu nếu không có bằng chứng mới;
+* duy trì continuity từ sự cố SSD/WSL cũ sang trạng thái máy mới hiện tại;
+* phân biệt rõ:
+
+  * dữ kiện đã được command/log chứng minh;
+  * suy luận có cơ sở;
+  * điều chưa xác định;
+* không quy kết Phase 6, coding agent, RAM, WSL, `wsl --shutdown`, Intel RST/VMD là root cause của sự cố SSD cũ nếu không có bằng chứng mới thực sự mâu thuẫn với hồ sơ trước.
+
+---
+
+# 2. Lịch sử sự cố SSD cũ — baseline phải giữ lại
+
+Máy trước đây có:
+
+```text
+Disk 0 / C:
+NVMe KINGSTON OM8PDP3256B-AA1
+~256 GB
+
+Disk 1 / G:
+Netac SSD 256GB SATA
+Serial: AA000021122560000399
+Firmware: U1013A0
+```
+
+WSL Ubuntu cũ nằm trên:
+
+```text
+G:\WSL\ext4.vhdx
+```
+
+Kích thước file:
+
+```text
+103,551,074,304 bytes
+```
+
+Root cause cũ đã được xác định rất mạnh:
+
+> Netac SSD 256GB bị hardware/storage failure từ trước, gây bad blocks, SMART predictive failure, uncorrected reads, I/O stalls, controller resets, NTFS corruption và ext4 corruption trên `G:\WSL\ext4.vhdx`.
+
+Các bằng chứng quan trọng:
+
+```text
+24/07/2026 08:39:15
+Disk Event ID 7
+Harddisk1 có bad block
+```
+
+```text
+02–03/08/2026
+NTFS G: corruption
+MFT corruption
+```
+
+```text
+13/08/2026 22:00:11
+Disk Event 52
+Predictive failure
+Windows yêu cầu backup và thay ổ
+```
+
+```text
+13/08/2026 ~22:49
+Hyper-V attach G:\WSL\ext4.vhdx
+```
+
+Ngay sau đó:
+
+```text
+Disk Event 7
+bad blocks
+```
+
+Khoảng:
+
+```text
+22:50:42
+READ 4096 bytes
+latency ~64348 ms
+```
+
+Cùng thời điểm:
+
+```text
+iaStorVD Event 129
+Reset to \Device\RaidPort0
+```
+
+SMART Netac:
+
+```text
+PredictFailure=True
+Status=Pred Fail
+```
+
+Reliability:
+
+```text
+ReadErrorsTotal       = 30
+ReadErrorsUncorrected = 15
+ReadLatencyMax        ~65 giây
+WriteLatencyMax       ~60 giây
+```
+
+Raw SMART mapping đã được phân tích:
+
+```text
+Reallocated sectors      = 15
+Runtime invalid blocks   = 15
+Pending sectors          = 15
+UDMA CRC                 = 0
+Remaining Life           ~97
+Average Erase Count      ~191
+Spec Erase Count         ~5050
+```
+
+Kết luận:
+
+* không giống wear-out bình thường;
+* không giống hết endurance;
+* phù hợp hơn với premature internal failure;
+* NAND/media failure rất có khả năng;
+* FTL/controller/firmware/internal SSD issue cũng có khả năng;
+* SATA cable là giả thuyết yếu;
+* Intel RST/VMD không được coi là root cause ban đầu;
+* Phase 6 không làm hỏng một SSD khỏe;
+* WSL không phải root cause của chuỗi failure.
+
+Bằng chứng bổ sung ngày 16/08/2026:
+
+Một file test được tạo trên G:, đọc lại thành công trước shutdown:
+
+```text
+G:\ssd_test.txt
+SSD_TEST_20260816
+```
+
+Sau shutdown/reboot:
+
+```text
+Test-Path G:\ssd_test.txt
+False
+```
+
+Điều này xác nhận drive cũ có vấn đề persistence qua power cycle.
+
+---
+
+# 3. Recovery WSL cũ đã hoàn thành trước khi thay SSD
+
+Không có kế hoạch restore nguyên distro Ubuntu cũ.
+
+Mục tiêu recovery là lấy:
+
+* source code;
+* `.git`;
+* model/data;
+* datasets;
+* project environments;
+* AI/dev configuration;
+* shell configuration;
+* SSH/security config.
+
+Từ VHDX cũ đã tạo:
+
+```text
+C:\WSL-Recovery\ext4-original.vhdx
+C:\WSL-Recovery\ext4-working.vhdx
+```
+
+Nguyên tắc:
+
+```text
+ext4-original.vhdx
+→ bản gốc, không sửa
+
+ext4-working.vhdx
+→ dùng để recovery
+```
+
+Working copy từng được attach và mount read-only:
+
+```powershell
+wsl --mount "C:\WSL-Recovery\ext4-working.vhdx" --vhd --bare
+```
+
+Linux:
+
+```bash
+sudo mount -o ro,noload /dev/sdd /mnt/recovery
+```
+
+Trạng thái:
+
+```text
+READ ONLY
+NO JOURNAL REPLAY
+```
+
+Đã trích xuất dữ liệu từ:
+
+```text
+/mnt/recovery/home/hieu0606sunny/
+```
+
+sang:
+
+```text
+/home/ezycloudx-admin/recovered-projects/
+```
+
+Các project đã recover:
+
+```text
+AiAgent_t7_2026_wsl
+AiCoderWSL
+AiProduction_t6_2026_wsl
+ITLR-Fullstack-Recommender-RAG
+agents2026
+aws_cli
+ed_rag_2026
+hue_rag
+llm_rag
+price2026wsl
+ptx_rag
+```
+
+Các nhóm config:
+
+```text
+ai-config
+shell-config
+secure
+```
+
+Bao gồm:
+
+```text
+.claude
+.claude_ds
+.codex
+.gemini
+.cursor
+.config
+.nvm
+.bashrc
+.zshrc
+.gitconfig
+.npmrc
+.ssh
+```
+
+Project ZIP:
+
+```text
+11 project ZIP
++
+projects-zip.sha256
+```
+
+Upload Google Drive đã từng verify:
+
+```text
+0 differences found
+12 matching files
+```
+
+AI config ZIP cũng đã:
+
+```text
+SHA256 OK
+uploaded
+verified
+```
+
+Backup recovery trước khi reset Windows được coi là đã hoàn thành phần quan trọng.
+
+---
+
+# 4. Trạng thái phần cứng hiện tại sau khi thay SSD
+
+Người dùng đã:
+
+* thay SSD cũ Netac;
+* reset/reinstall Windows;
+* dựng lại WSL2;
+* cài Docker Desktop.
+
+Hiện tại máy có 2 SSD NVMe:
+
+## Disk 0 — C:
+
+```text
+FriendlyName:
+NVMe KINGSTON OM8PDP3256B-AA1
+
+Serial:
+0026_B768_4DAD_8495.
+
+BusType:
+NVMe
+
+Size:
+238.47 GB
+
+Drive:
+C:
+
+C: Size:
+237.53 GB
+
+Free:
+~157.11 GB
+```
+
+Trạng thái:
+
+```text
+HealthStatus      = Healthy
+OperationalStatus = Online / OK
+Win32 Status      = OK
+PredictFailure    = False
+```
+
+---
+
+## Disk 1 — D:
+
+SSD mới:
+
+```text
+FriendlyName:
+NVMe FIKWOT FN970 1TB
+
+Serial:
+A843_9700_0009_0114.
+
+BusType:
+NVMe
+
+Size:
+931.51 GB
+
+Drive:
+D:
+
+D: Size:
+931.51 GB
+
+Free:
+~878.76 GB
+```
+
+Trạng thái:
+
+```text
+HealthStatus      = Healthy
+OperationalStatus = Online / OK
+Win32 Status      = OK
+PredictFailure    = False
+```
+
+Disk mapping đã được xác nhận:
+
+```text
+Disk 0 → C: → Kingston NVMe
+Disk 1 → D: → FIKWOT FN970 1TB
+```
+
+Storage Reliability Counter:
+
+FIKWOT:
+
+```text
+Temperature    = 60
+Wear           = 0
+ReadLatencyMax = 134
+WriteLatencyMax = 304
+```
+
+Kingston:
+
+```text
+Temperature    = 60
+Wear           = 0
+ReadLatencyMax = 666
+WriteLatencyMax = 387
+```
+
+Một số trường như PowerOnHours/read-write error counters không được driver expose.
+
+SMART failure prediction của cả hai:
+
+```text
+KINGSTON:
+PredictFailure=False
+
+FIKWOT:
+PredictFailure=False
+```
+
+Hiện không có bằng chứng cho thấy SSD mới FIKWOT đang có pathology giống Netac cũ.
+
+---
+
+# 5. WSL2 hiện tại
+
+Đã cài:
+
+```text
+Ubuntu-24.04
+Ubuntu 24.04 LTS
+```
+
+Lệnh cài:
+
+```powershell
+wsl --install -d Ubuntu-24.04
+```
+
+User Linux đã tạo:
+
+```text
+minhhieu
+```
+
+WSL version:
+
+```text
+WSL version:      2.7.11.0
+Kernel version:   6.18.33.2-2
+WSLg version:     1.0.73.2
+MSRDC version:    1.2.7214
+Direct3D version: 1.611.1-81528511
+DXCore version:   10.0.26100.1-240331-1435.ge-release
+Windows version:  10.0.26100.9168
+```
+
+WSL status:
+
+```text
+Default Distribution: Ubuntu-24.04
+Default Version: 2
+```
+
+Hiện:
+
+```text
+NAME              STATE      VERSION
+* Ubuntu-24.04    Running    2
+  docker-desktop  Running    2
+```
+
+Ubuntu đang chạy đúng WSL2.
+
+---
+
+# 6. Di chuyển Ubuntu-24.04 từ C: sang D:
+
+Mục tiêu:
+
+```text
+D:\MinhHieuWSL\WSL
+```
+
+Đã tạo:
+
+```text
+D:\MinhHieuWSL\
+├── Docker
+├── WSL
+└── WSL_Recovery_2026
+```
+
+Ban đầu export gặp:
+
+```text
+Wsl/Service/ERROR_SHARING_VIOLATION
+```
+
+Sau khi:
+
+```powershell
+wsl --terminate Ubuntu-24.04
+wsl --shutdown
+```
+
+export thành công:
+
+```powershell
+wsl --export Ubuntu-24.04 "D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx" --format vhd
+```
+
+Kết quả:
+
+```text
+The operation completed successfully.
+```
+
+File export:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+Kích thước lúc export:
+
+```text
+1,641,021,440 bytes
+~1.53 GiB
+```
+
+SHA256 lúc export:
+
+```text
+09789AC86EC75FDF63016A8CDCC85F94B8B5FEF62333493F09108484F379E23D
+```
+
+Sau đó:
+
+```powershell
+wsl --unregister Ubuntu-24.04
+```
+
+thành công.
+
+VHDX trên D: vẫn tồn tại sau unregister.
+
+---
+
+# 7. Lỗi import-in-place và cách đã xử lý
+
+Lệnh:
+
+```powershell
+wsl --import-in-place Ubuntu-24.04 "D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx"
+```
+
+ban đầu lỗi:
+
+```text
+Failed to attach disk ...
+Access is denied.
+
+Wsl/Service/RegisterDistro/MountDisk/HCS/E_ACCESSDENIED
+```
+
+Kiểm tra ACL ban đầu:
+
+Folder:
+
+```text
+D:\MinhHieuWSL\WSL
+Owner: MINHHIEU\ACER
+```
+
+VHDX ban đầu:
+
+```text
+Owner: BUILTIN\Administrators
+SYSTEM: FullControl
+Administrators: FullControl
+Users: RX,W
+```
+
+File:
+
+```text
+IsReadOnly=False
+Attributes=Archive
+```
+
+Đã sửa ownership và ACL:
+
+```powershell
+takeown /F "D:\MinhHieuWSL\WSL" /R /D Y
+
+icacls "D:\MinhHieuWSL\WSL" /inheritance:e /T
+
+$user = whoami
+
+icacls "D:\MinhHieuWSL\WSL" /grant "${user}:(OI)(CI)F" /T
+
+icacls "D:\MinhHieuWSL\WSL" /grant "SYSTEM:(OI)(CI)F" /T
+```
+
+ACL cuối:
+
+```text
+NT AUTHORITY\SYSTEM    FullControl
+MINHHIEU\ACER          FullControl
+BUILTIN\Administrators FullControl
+BUILTIN\Users          RX,W
+```
+
+Sau đó:
+
+```powershell
+wsl --shutdown
+
+wsl --import-in-place Ubuntu-24.04 "D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx"
+```
+
+thành công:
+
+```text
+The operation completed successfully.
+```
+
+Đã đặt lại:
+
+```powershell
+wsl --set-default Ubuntu-24.04
+```
+
+Vào distro:
+
+```powershell
+wsl -d Ubuntu-24.04
+```
+
+đúng user:
+
+```text
+minhhieu@MINHHIEU
+```
+
+Không bị rơi về `root`.
+
+---
+
+# 8. Vị trí Ubuntu hiện tại đã xác nhận
+
+File backing VHDX hiện tại:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+Kích thước sau khi Ubuntu chạy tiếp:
+
+```text
+~1.65 GB
+```
+
+Ví dụ output:
+
+```text
+FullName:
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+
+SizeGB:
+1.65
+```
+
+`Test-Path`:
+
+```text
+True
+```
+
+Không tìm thấy `ext4.vhdx` Ubuntu cũ dưới:
+
+```text
+$env:LOCALAPPDATA\Packages
+```
+
+Do đó hiện không thấy backing disk Ubuntu còn nằm ở vị trí mặc định trên C:.
+
+---
+
+# 9. Docker Desktop hiện tại
+
+Docker Desktop đã được cài theo:
+
+```text
+Per-user installation
+```
+
+Docker Desktop dùng:
+
+```text
+WSL 2 backend
+```
+
+Docker WSL Integration:
+
+```text
+Enable integration with my default WSL distro = ON
+Ubuntu-24.04 = ON
+```
+
+Docker Personal được sử dụng.
+
+Hiện:
+
+```text
+docker-desktop
+VERSION = 2
+```
+
+Docker version:
+
+```text
+Client:
+Version: 29.7.2
+API version: 1.55
+OS/Arch: windows/amd64
+Context: desktop-linux
+
+Server:
+Docker Desktop 4.87.0
+Engine Version: 29.7.2
+OS/Arch: linux/amd64
+
+containerd:
+v2.2.5
+
+runc:
+1.3.6
+```
+
+Docker test:
+
+```powershell
+docker run --rm hello-world
+```
+
+kết quả:
+
+```text
+Hello from Docker!
+
+This message shows that your installation appears to be working correctly.
+```
+
+Điều này xác nhận:
+
+* Docker client hoạt động;
+* daemon hoạt động;
+* WSL2 backend hoạt động;
+* networking hoạt động;
+* pull image hoạt động;
+* container execution hoạt động.
+
+---
+
+# 10. Di chuyển Docker Desktop disk image sang D:
+
+Mục tiêu ban đầu:
+
+```text
+D:\MinhHieuWSL\Docker
+```
+
+Trong Docker Desktop:
+
+```text
+Settings
+→ Resources
+→ Advanced
+→ Disk image location
+```
+
+vị trí hiện tại được GUI xác nhận là:
+
+```text
+D:\MinhHieuWSL\Docker\DockerDesktopWSL
+```
+
+Docker tự tạo thư mục con:
+
+```text
+DockerDesktopWSL
+```
+
+Đây là trạng thái bình thường.
+
+Cấu trúc hiện tại:
+
+```text
+D:\MinhHieuWSL\Docker\DockerDesktopWSL
+├── disk
+└── main
+```
+
+Các VHDX Docker hiện tìm thấy:
+
+```text
+D:\MinhHieuWSL\Docker\DockerDesktopWSL\disk\docker_data.vhdx
+```
+
+kích thước:
+
+```text
+~1.59 GB
+```
+
+và:
+
+```text
+D:\MinhHieuWSL\Docker\DockerDesktopWSL\main\ext4.vhdx
+```
+
+kích thước:
+
+```text
+~0.09 GB
+```
+
+Không tìm thấy `.vhdx` Docker cũ dưới:
+
+```text
+$env:LOCALAPPDATA\Docker
+```
+
+Do đó Docker disk image hiện được coi là đã chuyển sang D:.
+
+---
+
+# 11. Storage layout hiện tại
+
+Trạng thái cuối cùng:
+
+```text
+C:
+NVMe KINGSTON OM8PDP3256B-AA1
+~238 GB
+
+Vai trò:
+Windows / hệ thống
+```
+
+```text
+D:
+NVMe FIKWOT FN970 1TB
+~931 GB
+
+Vai trò:
+WSL2 Ubuntu
+Docker Desktop data
+Recovery data
+```
+
+Layout:
+
+```text
+D:\MinhHieuWSL
+│
+├── WSL
+│   └── Ubuntu-24.04.vhdx
+│
+├── Docker
+│   └── DockerDesktopWSL
+│       ├── disk
+│       │   └── docker_data.vhdx
+│       │
+│       └── main
+│           └── ext4.vhdx
+│
+└── WSL_Recovery_2026
+```
+
+---
+
+# 12. Xác nhận hiện tại về C: vs D:
+
+Các command đã chạy:
+
+```powershell
+Get-ChildItem "$env:LOCALAPPDATA\Packages" -Recurse -Force -Filter ext4.vhdx
+```
+
+không trả về VHDX Ubuntu cũ.
+
+Docker:
+
+```powershell
+Get-ChildItem "$env:LOCALAPPDATA\Docker" -Recurse -Force -Filter *.vhdx
+```
+
+không trả về VHDX Docker cũ.
+
+Trong D: tìm thấy:
+
+```text
+Ubuntu:
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+
+Docker:
+D:\MinhHieuWSL\Docker\DockerDesktopWSL\disk\docker_data.vhdx
+D:\MinhHieuWSL\Docker\DockerDesktopWSL\main\ext4.vhdx
+```
+
+Kết luận:
+
+> Ubuntu-24.04 và Docker Desktop storage hiện đều đang nằm trên SSD D: / NVMe FIKWOT FN970 1TB.
+
+---
+
+# 13. Trạng thái WSL/Docker cuối session
+
+WSL:
+
+```text
+NAME              STATE      VERSION
+* Ubuntu-24.04    Running    2
+  docker-desktop  Running    2
+```
+
+Default distro:
+
+```text
+Ubuntu-24.04
+```
+
+Ubuntu user:
+
+```text
+minhhieu
+```
+
+Docker:
+
+```text
+Docker Desktop engine running
+WSL2 backend
+WSL integration Ubuntu-24.04 enabled
+hello-world thành công
+```
+
+---
+
+# 14. Những việc KHÔNG cần làm lại trong session mới
+
+Không cần:
+
+* cài lại Ubuntu;
+* unregister/import lại Ubuntu;
+* move lại Ubuntu;
+* sửa ACL lại nếu không phát sinh lỗi mới;
+* move lại Docker disk image;
+* cài lại Docker Desktop;
+* bật lại WSL Integration;
+* kiểm tra lại nguyên nhân Netac cũ từ đầu;
+* chạy recovery ext4 cũ lại từ đầu;
+* giả định Ubuntu hiện vẫn nằm trên C:;
+* giả định Docker Desktop hiện vẫn nằm trên C:.
+
+---
+
+# 15. Baseline cần dùng cho bước tiếp theo
+
+Máy hiện được coi là:
+
+```text
+Windows sạch sau reset
++
+SSD mới cho D:
++
+Ubuntu 24.04 LTS sạch
++
+WSL2 hoạt động
++
+Ubuntu storage nằm trên D:
++
+Docker Desktop storage nằm trên D:
++
+Docker WSL Integration hoạt động
++
+Docker hello-world thành công
+```
+
+Bước tiếp theo hợp lý là dựng lại môi trường Linux/dev một cách có kiểm soát.
+
+Ưu tiên:
+
+1. update Ubuntu;
+2. kiểm tra locale/timezone;
+3. Git;
+4. SSH;
+5. Python;
+6. Node/NVM;
+7. npm/pnpm/yarn nếu cần;
+8. build-essential;
+9. Docker tooling trong Ubuntu qua Docker Desktop integration;
+10. AI/dev CLI:
+
+    * Claude Code;
+    * Codex;
+    * Gemini;
+    * các tool liên quan;
+11. restore config cũ có chọn lọc;
+12. restore project;
+13. verify `.git`;
+14. verify Python environments;
+15. verify Node environments;
+16. verify Docker compose;
+17. verify project runtime.
+
+---
+
+# 16. Nguyên tắc restore config cũ
+
+Không copy đè toàn bộ home directory cũ ngay lập tức.
+
+Restore theo nhóm:
+
+```text
+.ssh
+.gitconfig
+.bashrc
+.zshrc
+.npmrc
+.nvm
+.config
+.claude
+.claude_ds
+.codex
+.gemini
+.cursor
+```
+
+Nên kiểm tra từng nhóm trước khi copy vì config cũ có thể chứa:
+
+* absolute path cũ;
+* username cũ;
+* path distro cũ;
+* token/API key;
+* symlink;
+* tool version cũ;
+* Node/Python path cũ;
+* WSL-specific configuration cũ.
+
+Không restore blindly.
+
+---
+
+# 17. Nguyên tắc đặt project mới
+
+Đối với workload Linux/Docker/AI, ưu tiên project nằm trong:
+
+```text
+/home/minhhieu/...
+```
+
+Ví dụ:
+
+```text
+/home/minhhieu/projects
+```
+
+Không ưu tiên chạy project Linux nặng trực tiếp từ:
+
+```text
+/mnt/d/...
+```
+
+Vì project bên trong `/home/minhhieu` thực chất vẫn được lưu trong:
+
+```text
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+```
+
+nên vẫn nằm vật lý trên SSD D:, nhưng có filesystem semantics/performance phù hợp Linux/WSL hơn.
+
+---
+
+# 18. Nếu session mới cần kiểm tra lại storage
+
+Có thể dùng:
+
+```powershell
+wsl -l -v
+```
+
+Ubuntu VHDX:
+
+```powershell
+Get-Item "D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx" |
+    Select-Object FullName,
+                  @{N='SizeGB';E={[math]::Round($_.Length/1GB,2)}},
+                  LastWriteTime
+```
+
+Docker VHDX:
+
+```powershell
+Get-ChildItem "D:\MinhHieuWSL\Docker" -Recurse -Force -Filter *.vhdx |
+    Select-Object FullName,
+                  @{N='SizeGB';E={[math]::Round($_.Length/1GB,2)}},
+                  LastWriteTime |
+    Format-Table -AutoSize
+```
+
+SSD mapping:
+
+```powershell
+Get-Disk |
+    Select-Object Number,FriendlyName,SerialNumber,BusType,
+                  HealthStatus,OperationalStatus,
+                  @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}} |
+    Format-Table -AutoSize
+```
+
+SMART:
+
+```powershell
+Get-CimInstance -Namespace root\wmi -ClassName MSStorageDriver_FailurePredictStatus |
+    Select-Object InstanceName,PredictFailure,Reason |
+    Format-List
+```
+
+---
+
+# 19. Trạng thái cuối cùng để tiếp tục
+
+Tại thời điểm handoff:
+
+```text
+Date:
+18/08/2026
+
+Windows:
+đã reset/reinstall
+
+Old failing Netac SSD:
+đã thay
+
+Current SSD C:
+NVMe KINGSTON OM8PDP3256B-AA1
+Healthy
+PredictFailure=False
+
+Current SSD D:
+NVMe FIKWOT FN970 1TB
+Healthy
+PredictFailure=False
+
+Ubuntu:
+Ubuntu-24.04
+WSL2
+user=minhhieu
+default distro
+running successfully
+
+Ubuntu backing VHDX:
+D:\MinhHieuWSL\WSL\Ubuntu-24.04.vhdx
+
+Docker Desktop:
+4.87.0
+WSL2 backend
+running successfully
+
+Docker storage:
+D:\MinhHieuWSL\Docker\DockerDesktopWSL
+
+Docker WSL integration:
+Ubuntu-24.04 enabled
+
+Docker hello-world:
+PASS
+```
+
+## Kết luận handoff
+
+> Giai đoạn thay SSD, reset Windows, cài lại WSL2 Ubuntu 24.04, di chuyển Ubuntu sang SSD D:, cài Docker Desktop, di chuyển Docker storage sang SSD D: và xác nhận Docker container hoạt động đã hoàn tất thành công.
+
+Session mới nên bắt đầu từ:
+
+> **Dựng lại môi trường development/AI trong Ubuntu-24.04 sạch và restore project/config cũ một cách có kiểm soát.**
