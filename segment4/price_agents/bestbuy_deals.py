@@ -21,6 +21,8 @@ from curl_cffi import requests as curl_requests
 
 logger = logging.getLogger(__name__)
 
+PRICE_BLOCKS_BATCH_SIZE = 25  # priceBlocks API silently truncates to 25 SKUs per request
+
 
 class ScrapedBestBuyDeal:
     """Raw scraped product data from BestBuy APIs."""
@@ -71,7 +73,8 @@ def search_bestbuy(session: curl_requests.Session, keyword: str) -> list[dict]:
     text = resp.text
     products = {}
 
-    all_skus = set(re.findall(r'"skuId":"(\d{5,8})"', text))
+    # dict.fromkeys: dedupe but keep page order (most relevant first)
+    all_skus = list(dict.fromkeys(re.findall(r'"skuId":"(\d{5,8})"', text)))
 
     for sku_id in all_skus:
         pattern = rf'"skuId":"{sku_id}"\}},"pdpUrl":"(https://www\.bestbuy\.com/product/[^"]+)"'
@@ -87,7 +90,7 @@ def search_bestbuy(session: curl_requests.Session, keyword: str) -> list[dict]:
         if sku_id not in products:
             products[sku_id] = {"skuId": sku_id, "pdpUrl": ""}
 
-    result = list(products.values())
+    result = [products[sku_id] for sku_id in all_skus]
     logger.info(f"[BestBuy Search] Found {len(result)} unique SKUs")
     return result
 
@@ -106,7 +109,10 @@ def get_price_blocks(session: curl_requests.Session, sku_ids: list[str]) -> dict
         if "error" in item:
             continue
 
-        sku_id = sku.get("buttonState", {}).get("skuId", "")
+        # buttonState.skuId is missing on most items -> use sku.skuId to avoid key collisions
+        sku_id = sku.get("skuId") or sku.get("buttonState", {}).get("skuId", "")
+        if not sku_id:
+            continue
         price_data = sku.get("price", {})
         price_domain = price_data.get("priceDomain", {})
 
@@ -163,27 +169,31 @@ def search_filter_scrape_bestbuy(
         logger.info("[BestBuy] No products found")
         return []
 
-    # Step 2: Batch price check
+    # Step 2+3 combined: price check in batches (API returns max 25 SKUs/request)
+    # -> filter on sale -> scrape features immediately, stop once we have enough
     sku_ids = [p["skuId"] for p in apollo_products]
-    price_data = get_price_blocks(session, sku_ids)
-
-    # Step 2+3 combined: filter on sale -> scrape features immediately
     scraped_deals = []
-    for sku, pd in price_data.items():
-        if not pd["onSale"]:
-            continue
+    for i in range(0, len(sku_ids), PRICE_BLOCKS_BATCH_SIZE):
+        price_data = get_price_blocks(session, sku_ids[i:i + PRICE_BLOCKS_BATCH_SIZE])
 
-        details = get_product_details(session, sku)
+        for sku, pd in price_data.items():
+            if not pd["onSale"]:
+                continue
 
-        deal = ScrapedBestBuyDeal(
-            title=pd["name"],
-            brand=pd["brand"],
-            price=pd["currentPrice"],
-            features=details["features"] or pd["name"],
-            url=details["url"] or f"https://www.bestbuy.com/site/{sku}.p",
-        )
-        scraped_deals.append(deal)
-        logger.info(f"[BestBuy] SALE: ${pd['currentPrice']} | {pd['name'][:60]}")
+            details = get_product_details(session, sku)
+
+            deal = ScrapedBestBuyDeal(
+                title=pd["name"],
+                brand=pd["brand"],
+                price=pd["currentPrice"],
+                features=details["features"] or pd["name"],
+                url=details["url"] or f"https://www.bestbuy.com/site/{sku}.p",
+            )
+            scraped_deals.append(deal)
+            logger.info(f"[BestBuy] SALE: ${pd['currentPrice']} | {pd['name'][:60]}")
+
+            if len(scraped_deals) >= max_results:
+                break
 
         if len(scraped_deals) >= max_results:
             break
