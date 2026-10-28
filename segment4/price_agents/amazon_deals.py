@@ -1,27 +1,34 @@
 """
 Amazon Deals Module
 
-Scrapes Amazon products using curl_cffi + HTML parsing (not Playwright).
-Uses Chrome impersonation to bypass bot detection.
+Scrapes Amazon products using a hybrid approach: Playwright + curl_cffi + HTML parsing.
+Amazon protects pages with an AWS WAF JavaScript challenge that curl_cffi cannot solve,
+so a headless Chromium opens the homepage once to get the `aws-waf-token` cookie,
+then curl_cffi reuses those cookies for the fast search / product page requests.
 
 Pipeline:
-1. init_amazon_session() - Create session + set ZIP 96150
+1. init_amazon_session() - Get WAF cookies via Playwright + force USD prices
 2. search_amazon() - GET search page, parse product cards
 3. search_filter_scrape_amazon() - Combined: search + filter sale + scrape details
 """
 
 import re
+import time
 import logging
 from typing import Optional
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests as curl_requests
+from playwright.sync_api import sync_playwright
 
 
 logger = logging.getLogger(__name__)
 
-ZIP_CODE = "96150"
 MIN_FEATURES_LEN = 50  # Approach B threshold: if features < 50 chars, scrape product page
+WAF_TOKEN_COOKIE = "aws-waf-token"
+# Direct /s?k= links without these get 503 from WAF; mimic a search-box submit from the homepage
+SEARCH_REF = "nb_sb_noss"
+SEARCH_HEADERS = {"Referer": "https://www.amazon.com/"}
 
 
 class ScrapedAmazonDeal:
@@ -60,37 +67,49 @@ class ScrapedAmazonDeal:
 # Session init
 # ---------------------------------------------------------------------------
 
+def _get_waf_cookies() -> list[dict]:
+    """Open amazon.com in headless Chromium so the WAF JS challenge runs, return its cookies."""
+    t0 = time.time()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, channel="chromium")
+        try:
+            ctx = browser.new_context(locale="en-US")
+            page = ctx.new_page()
+            page.goto("https://www.amazon.com/", wait_until="domcontentloaded", timeout=45000)
+            # Challenge page (202) runs JS, sets the token, then reloads into the real homepage
+            for _ in range(30):
+                if any(c["name"] == WAF_TOKEN_COOKIE for c in ctx.cookies()):
+                    break
+                time.sleep(0.5)
+            page.wait_for_selector("#twotabsearchtextbox", timeout=20000)
+            cookies = ctx.cookies()
+        finally:
+            browser.close()
+
+    has_token = any(c["name"] == WAF_TOKEN_COOKIE for c in cookies)
+    logger.info(f"[Amazon Init] Browser cookies: {len(cookies)} (WAF token: {has_token}) in {time.time() - t0:.1f}s")
+    return cookies
+
+
 def init_amazon_session() -> curl_requests.Session:
-    """Create curl_cffi session and set US delivery location."""
+    """Create curl_cffi session with WAF cookies from a real browser, prices forced to USD."""
     session = curl_requests.Session(impersonate="chrome")
 
-    # GET homepage to init cookies
-    session.get("https://www.amazon.com", timeout=10)
-
-    # Set ZIP code 96150 (South Lake Tahoe, CA)
-    resp = session.post(
-        "https://www.amazon.com/gp/delivery/ajax/address-change.html",
-        data={
-            "locationType": "LOCATION_INPUT",
-            "zipCode": ZIP_CODE,
-            "storeContext": "generic",
-            "deviceType": "web",
-            "pageType": "Search",
-            "actionSource": "glow",
-        },
-        timeout=10,
-    )
-
     try:
-        result = resp.json()
-        if result.get("isValidAddress"):
-            logger.info(f"[Amazon Init] ZIP {ZIP_CODE} set OK")
-        else:
-            logger.warning(f"[Amazon Init] ZIP response: {result}")
-    except Exception:
-        logger.warning(f"[Amazon Init] ZIP code setting failed: {resp.status_code}")
+        for c in _get_waf_cookies():
+            session.cookies.set(c["name"], c["value"], domain=c["domain"])
+    except Exception as e:
+        logger.error(f"[Amazon Init] Could not get WAF cookies via browser: {e}")
 
+    # Outside the US Amazon shows local currency (e.g. VND); the currency cookie forces USD.
+    # (The old ZIP-code POST no longer works: it now needs a CSRF token.)
+    session.cookies.set("i18n-prefs", "USD", domain=".amazon.com")
     return session
+
+
+def _is_waf_blocked(resp) -> bool:
+    """AWS WAF block / challenge page instead of real content."""
+    return resp.status_code in (202, 503) or "awsWafCookieDomainList" in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -98,8 +117,8 @@ def init_amazon_session() -> curl_requests.Session:
 # ---------------------------------------------------------------------------
 
 def _parse_price(text: str) -> float:
-    """Parse '$1,799.00' -> 1799.0"""
-    if not text:
+    """Parse '$1,799.00' -> 1799.0. Non-USD prices (e.g. 'VND 4,649,862') -> 0.0 (skipped)."""
+    if not text or "$" not in text:
         return 0.0
     cleaned = re.sub(r"[^\d.]", "", text)
     try:
@@ -194,17 +213,23 @@ def parse_search_results(html: str) -> list[dict]:
 
 def search_amazon(session: curl_requests.Session, keyword: str) -> list[dict]:
     """Search Amazon and parse results."""
-    url = f"https://www.amazon.com/s?k={keyword.replace(' ', '+')}"
+    url = f"https://www.amazon.com/s?k={keyword.replace(' ', '+')}&ref={SEARCH_REF}"
     logger.info(f"[Amazon Search] {url}")
 
-    resp = session.get(url, timeout=20)
+    resp = session.get(url, timeout=20, headers=SEARCH_HEADERS)
     logger.info(f"[Amazon Search] Status: {resp.status_code} | Size: {len(resp.text):,} bytes")
 
     if "/errors/validateCaptcha" in resp.text:
         logger.error("[Amazon Search] CAPTCHA detected!")
         return []
+    if _is_waf_blocked(resp):
+        logger.error(f"[Amazon Search] Blocked by AWS WAF (status {resp.status_code})")
+        return []
 
     products = parse_search_results(resp.text)
+    card_count = resp.text.count('data-component-type="s-search-result"')
+    if card_count and not products:
+        logger.warning(f"[Amazon Search] {card_count} cards but 0 USD prices parsed - currency not USD?")
     sale_count = sum(1 for p in products if p["on_sale"])
     logger.info(f"[Amazon Search] Found {len(products)} products ({sale_count} on sale)")
     return products
@@ -276,6 +301,12 @@ def search_filter_scrape_amazon(
         session = init_amazon_session()
 
     products = search_amazon(session, keyword)
+    if not products:
+        # WAF is flaky: an occasional block / slow homepage -> retry once with fresh cookies
+        logger.info("[Amazon] No products, retrying once with a fresh browser session")
+        time.sleep(2)
+        session = init_amazon_session()
+        products = search_amazon(session, keyword)
     if not products:
         return []
 

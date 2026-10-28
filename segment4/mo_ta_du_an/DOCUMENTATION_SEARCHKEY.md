@@ -47,7 +47,7 @@ segment4/
 |   |-- messaging_agent.py               # Push notification (Pushover + GPT-5-nano)
 |   |
 |   |-- bestbuy_deals.py                 # BestBuy: curl_cffi + internal APIs
-|   |-- amazon_deals.py                  # Amazon: curl_cffi + HTML parsing
+|   |-- amazon_deals.py                  # Amazon: Playwright (cookie WAF) + curl_cffi + HTML parsing
 |   |
 |   |-- frontier_agent.py               # GPT-5.1 + RAG (ChromaDB)
 |   |-- specialist_agent.py             # Fine-tuned Llama-3.2-3B (Modal)
@@ -89,7 +89,7 @@ Doc theo thu tu nay de hieu toan bo luong hoat dong:
 3. multi_source_planning_agent.py  -- Pipeline 4 buoc (doc ky file nay)
    |
    |-- 4a. bestbuy_deals.py   -- curl_cffi + BestBuy APIs
-   |-- 4b. amazon_deals.py    -- curl_cffi + Amazon HTML parsing
+   |-- 4b. amazon_deals.py    -- Playwright lay cookie WAF + curl_cffi + Amazon HTML parsing
    |-- 4c. unified_deal.py    -- Chuan hoa ScrapedBestBuyDeal/ScrapedAmazonDeal -> UnifiedScrapedDeal
    |-- 4d. multi_source_scanner_agent.py  -- GPT-5-nano chon top 3
    |-- 4e. ensemble_agent.py  -- Goi 3 models (doc tiep frontier/specialist/neural)
@@ -212,7 +212,7 @@ Scrape BestBuy bang `curl_cffi` + internal APIs. **KHONG dung Playwright**.
 |-----|-----------|
 | `_init_session()` | curl_cffi session (impersonate Chrome) + bypass country selection |
 | `search_bestbuy(session, keyword)` | GET `/site/searchpage.jsp`, parse Apollo SSR cache -> list `{skuId, pdpUrl}` |
-| `get_price_blocks(session, sku_ids)` | GET `/api/3.0/priceBlocks` (batch) -> price, brand, name, onSale |
+| `get_price_blocks(session, sku_ids)` | GET `/api/3.0/priceBlocks` (toi da 25 SKU/request -> goi theo lo 25) -> price, brand, name, onSale |
 | `get_product_details(session, sku_id)` | GET `/api/v2/product/<skuId>` -> features, clean URL |
 | `search_filter_scrape_bestbuy(keyword, max_results)` | **Pipeline gop:** search -> filter onSale -> scrape details -> `List[ScrapedBestBuyDeal]` |
 
@@ -224,13 +224,14 @@ Scrape BestBuy bang `curl_cffi` + internal APIs. **KHONG dung Playwright**.
 
 #### `amazon_deals.py` (~257 dong)
 
-Scrape Amazon bang `curl_cffi` + HTML parsing. **KHONG dung Playwright**.
+Scrape Amazon theo cach **lai**: Playwright (Chromium chay ngam) mo trang chu 1 lan de vuot AWS WAF JS challenge, lay cookie `aws-waf-token`; sau do `curl_cffi` dung cookie do de tim kiem + mo trang san pham (nhanh). Can cai: `uv run playwright install chromium`. (Cap nhat 2026-10-28: Amazon bat AWS WAF, curl_cffi mot minh bi chan.)
 
 | Ham | Chuc nang |
 |-----|-----------|
-| `init_amazon_session()` | curl_cffi session (impersonate Chrome) + POST set ZIP 96150 |
+| `_get_waf_cookies()` | Playwright headless mo amazon.com, cho WAF cap `aws-waf-token`, tra cookies (~3-7s) |
+| `init_amazon_session()` | curl_cffi session + cookies tu browser + cookie `i18n-prefs=USD` (ep gia USD) |
 | `parse_search_results(html)` | Parse search page HTML -> list product dicts (ASIN, title, price, specs) |
-| `search_amazon(session, keyword)` | GET search page, check CAPTCHA, parse results |
+| `search_amazon(session, keyword)` | GET `/s?k=...&ref=nb_sb_noss` + Referer, check CAPTCHA / WAF block, parse results |
 | `scrape_product_page(session, url)` | **Approach B fallback:** GET product page -> #feature-bullets, #bylineInfo |
 | `search_filter_scrape_amazon(keyword, max_results)` | **Pipeline gop:** init -> search -> filter on_sale -> scrape features -> `List[ScrapedAmazonDeal]` |
 
@@ -451,7 +452,7 @@ Total: ~70-100s (tuy keyword va so san pham sale)
 
   |-- Step 1: Search+Filter+Scrape (parallel)  ~6s
   |     |-- BestBuy (curl_cffi + APIs)          ~4-8s
-  |     |-- Amazon (curl_cffi + HTML)           ~2-14s
+  |     |-- Amazon (Playwright cookie + curl)   ~10-25s
   |
   |-- Step 2: Combine                           <1s
   |
@@ -466,7 +467,8 @@ Total: ~70-100s (tuy keyword va so san pham sale)
 
 - `curl_cffi` voi `impersonate="chrome"` la BAT BUOC cho ca BestBuy va Amazon tu WSL2
 - BestBuy product pages bi block tu WSL2 (HTTP/2 + Akamai CDN) -> dung internal APIs thay vi scrape
-- Amazon: set ZIP 96150 qua POST API de co gia USD
+- Amazon: IP Viet Nam -> Amazon hien gia VND; cookie `i18n-prefs=USD` ep ve USD. `_parse_price` bo qua gia khong co `$`
+- Amazon: vao thang `/s?k=` khong co `ref` + `Referer` -> WAF tra 503; neu tim lan dau rong -> thu lai 1 lan voi cookie moi
 - `ThreadPoolExecutor(max_workers=2)` chay BestBuy + Amazon song song
 - Structured Outputs: `response_format=DealSelection` dam bao GPT tra ve JSON hop le
 - Log streaming: `QueueHandler` -> `queue.Queue` -> Gradio yield moi 0.1s

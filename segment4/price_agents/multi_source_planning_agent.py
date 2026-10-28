@@ -24,7 +24,7 @@ from price_agents.bestbuy_deals import (
     search_filter_scrape_bestbuy,
 )
 
-# Amazon: curl_cffi + HTML parsing
+# Amazon: Playwright (WAF cookies) + curl_cffi + HTML parsing
 from price_agents.amazon_deals import (
     ScrapedAmazonDeal,
     search_filter_scrape_amazon,
@@ -60,7 +60,7 @@ class MultiSourcePlanningAgent(Agent):
         return deals
 
     def _amazon_pipeline(self, keyword: str, max_results: int) -> List[ScrapedAmazonDeal]:
-        """Amazon: search + filter sale + scrape in one call (curl_cffi + HTML)."""
+        """Amazon: search + filter sale + scrape in one call (Playwright cookies + curl_cffi + HTML)."""
         self.log(f"[Amazon] Starting search+filter+scrape for '{keyword}'...")
         deals = search_filter_scrape_amazon(keyword, max_results=max_results)
         self.log(f"[Amazon] Got {len(deals)} sale products")

@@ -33,7 +33,7 @@ uv run python -c "print('hello')"
 - **LLMs:** OpenAI GPT-5.1/5-nano, fine-tuned Llama-3.2-3B on Modal
 - **ML:** PyTorch DNN (ResidualBlocks), XGBoost, scikit-learn
 - **Vector DB:** ChromaDB with sentence-transformers/all-MiniLM-L6-v2
-- **Web Scraping:** `curl_cffi` (Chrome impersonation) + BeautifulSoup4 — Playwright removed from search_key pipeline
+- **Web Scraping:** `curl_cffi` (Chrome impersonation) + BeautifulSoup4; Amazon also uses Playwright headless Chromium once per search to pass the AWS WAF JS challenge (needs `uv run playwright install chromium`)
 - **Search:** Direct search on bestbuy.com and amazon.com via `curl_cffi` — Brave MCP removed from search_key pipeline
 - **UI:** Gradio
 - **Notifications:** Pushover API
@@ -59,7 +59,7 @@ Agent Layer:     price_agents/ (single-responsibility agents inheriting from Age
 ### 4-Step Pipeline (search_key.py)
 
 `MultiSourcePlanningAgent.plan()` orchestrates:
-1. `search_and_scrape()` — BestBuy (curl_cffi + internal APIs) + Amazon (curl_cffi + HTML parsing) in parallel via `ThreadPoolExecutor`. Max 6 results/source
+1. `search_and_scrape()` — BestBuy (curl_cffi + internal APIs) + Amazon (Playwright WAF cookies → curl_cffi + HTML parsing) in parallel via `ThreadPoolExecutor`. Max 6 results/source
 2. `combine()` — Convert to `UnifiedScrapedDeal` pool (BestBuy + Amazon)
 3. `select_top_deals()` — GPT-5-nano picks top 3 deals (Structured Outputs via `MultiSourceScannerAgent`)
 4. `estimate_prices()` — EnsembleAgent predicts true value
@@ -94,5 +94,6 @@ Optional: `BRAVE_API_KEY` (only for price_is_right.py), `GOOGLE_API_KEY`, `HF_TO
 - Real-time log streaming via queue-based system in Gradio
 - `memory.json` prevents duplicate notifications in autonomous mode
 - `curl_cffi` with `impersonate="chrome"` is required for both BestBuy and Amazon scraping from WSL2
-- BestBuy uses internal APIs (searchpage + priceBlocks + v2 product); Amazon uses HTML search page parsing
+- BestBuy uses internal APIs (searchpage + priceBlocks + v2 product); priceBlocks returns max 25 SKUs/request → batched
+- Amazon uses HTML search page parsing. Direct `/s?k=` needs `&ref=nb_sb_noss` + `Referer` or WAF returns 503; prices forced to USD via cookie `i18n-prefs=USD` (IP in Vietnam shows VND otherwise; old ZIP POST no longer works)
 - Deprecated files: `amazon_scanner_agent.py` (Brave MCP removed), `bestbuy_scanner_agent.py` (Brave MCP, still exists but unused by search_key pipeline)
