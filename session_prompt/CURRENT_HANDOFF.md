@@ -23,6 +23,9 @@
 - **Báo cáo hệ thống bản 3:** `scraping_data_tv/Data_processing_for_English_data/report_system3.md` → `report_system3.html`
   (giao diện nền sáng, sinh bằng `uv run python gen_report_html.py report_system3.md report_system3.html` trong thư mục đó;
   sửa .md rồi sinh lại, không sửa tay .html). Bản 1–2 (nền tối, `gen_report_system.py`) giữ nguyên.
+  Hình SVG ở `report_system3_hinh/` (3 sơ đồ vẽ tay; biểu đồ thời gian sinh bằng `ve_bieu_do_thoi_gian.py`), được nhúng vào HTML.
+  29/10 15:52: viết lại nội dung cho người đọc đã quên dự án — Phần 0 Đọc nhanh, Phần 1 Kiến thức nền, hộp "Tóm tắt." đầu
+  mỗi phần, ô "Trong code" (`<details markdown="1">`) cuối mỗi mục, bỏ câu tự kiểm. Chưa commit.
 - **Từ khoá nên thử** (dữ liệu huấn luyện: 8 nhóm Amazon 2023, giá ≤ $999; kiểm bằng `scripts/do_luong/probe_keywords.py`):
   `noise cancelling headphones`, `soundbar`, `gaming monitor`, `action camera`, `digital piano`, `cordless drill`.
   Tránh `laptop` / `smart tv` (> $999), đồ bếp (`air fryer`… không có trong dữ liệu), hàng < $50.

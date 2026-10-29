@@ -78,7 +78,7 @@
 
   /* Thân bài */
   .content > * { max-width: var(--measure); }
-  .content > .table-wrap, .content > pre { max-width: 100%; }
+  .content > .table-wrap, .content > pre, .content > figure { max-width: 100%; }
   .content h2 { font: 700 28px/1.25 var(--sans); letter-spacing: -0.015em; margin: 72px 0 18px; padding-top: 8px; }
   .content h2:first-child { margin-top: 0; }
   .content h3 { font: 600 20px/1.35 var(--sans); margin: 40px 0 12px; }
@@ -96,6 +96,13 @@
   .content pre code { background: none; padding: 0; font-size: 13.5px; line-height: 1.6; }
   .hljs { background: transparent; padding: 0; }
 
+  figure.diagram { max-width: 100%; margin: 28px 0 32px; padding: 20px 22px 14px; background: var(--surface);
+                    border: 1px solid var(--rule); border-radius: 10px; }
+  figure.diagram svg { display: block; width: 100%; height: auto; }
+  .diagram-scroll { overflow-x: auto; }
+  /* màn hình hẹp: hình giữ cỡ đọc được, cuộn ngang trong khung hình (chú thích và trang không cuộn) */
+  @media (max-width: 720px) { figure.diagram { padding: 14px 12px 10px; } figure.diagram svg { min-width: 680px; } }
+  figure.diagram figcaption { font: 400 14px/1.55 var(--sans); color: var(--muted); margin-top: 12px; max-width: 72ch; }
   .table-wrap { overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
   table { border-collapse: collapse; width: 100%; font: 400 14.5px/1.5 var(--sans); }
   th { text-align: left; font-weight: 600; background: #F0F3F8; color: var(--ink); padding: 11px 14px; border-bottom: 1px solid var(--rule); }
@@ -105,9 +112,17 @@
 
   blockquote { margin: 0 0 20px; padding: 14px 18px; border-left: 3px solid var(--rule); color: var(--muted); }
   blockquote p:last-child { margin-bottom: 0; }
-  blockquote.quiz { background: var(--blue-soft); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; color: var(--ink);
-                    font-style: italic; margin-top: 28px; }
-  blockquote.quiz strong { font: 700 13px/1 var(--sans); font-style: normal; color: var(--blue); display: block; margin-bottom: 8px; }
+  blockquote.summary { background: var(--blue-soft); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0;
+                       color: var(--ink); font-size: 17.5px; margin: 0 0 28px; padding: 16px 20px; }
+  blockquote.summary strong { font: 700 13px/1 var(--sans); color: var(--blue); display: block; margin-bottom: 8px; }
+
+  details.in-code { margin: 24px 0 8px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface);
+                    font: 400 14.5px/1.6 var(--sans); }
+  details.in-code summary { cursor: pointer; padding: 10px 16px; font-weight: 600; color: var(--muted); }
+  details.in-code summary:hover { color: var(--ink); }
+  details.in-code[open] summary { border-bottom: 1px solid var(--rule); color: var(--ink); }
+  details.in-code > :not(summary) { margin: 12px 16px 14px; }
+  details.in-code ul { padding-left: 1.2em; }
 
   .ev { display: inline-block; font: 600 12px/1.6 var(--sans); padding: 0 7px; border-radius: 4px; white-space: nowrap; vertical-align: 1px; }
   .ev-measured { background: #E3F3E8; color: #17603A; }
@@ -139,7 +154,7 @@
     main { padding: 0; }
     .price-tag { transform: none; box-shadow: none; border: 1px solid #999; }
     .content h2 { break-before: page; margin-top: 0; }
-    .table-wrap, pre, blockquote { break-inside: avoid; }
+    .table-wrap, pre, blockquote, figure { break-inside: avoid; }
     a { color: inherit; text-decoration: none; }
   }
 </style>
@@ -150,14 +165,14 @@
   <nav class="toc" aria-label="Mục lục">
     <p class="toc-title">The Price Is Right</p>
     <p class="toc-sub">Báo cáo hệ thống — DACN3</p>
-    <ol class="toc-l0"><li><a href="#phan-1-bai-toan-va-hanh-trinh" data-id="phan-1-bai-toan-va-hanh-trinh">Phần 1: Bài toán và hành trình</a><ol class="toc-l1"><li><a href="#11-bai-toan" data-id="11-bai-toan">1.1 Bài toán</a></li><li><a href="#12-hanh-trinh-du-lieu-mo-hinh-he-thong" data-id="12-hanh-trinh-du-lieu-mo-hinh-he-thong">1.2 Hành trình: dữ liệu → mô hình → hệ thống</a></li><li><a href="#13-so-sanh-mo-hinh-luc-huan-luyen" data-id="13-so-sanh-mo-hinh-luc-huan-luyen">1.3 So sánh mô hình (lúc huấn luyện)</a></li></ol></li><li><a href="#phan-2-kien-truc-tong-the" data-id="phan-2-kien-truc-tong-the">Phần 2: Kiến trúc tổng thể</a><ol class="toc-l1"><li><a href="#21-ba-tang" data-id="21-ba-tang">2.1 Ba tầng</a></li><li><a href="#22-hai-ung-dung" data-id="22-hai-ung-dung">2.2 Hai ứng dụng</a></li><li><a href="#23-luong-du-lieu-cua-app-1" data-id="23-luong-du-lieu-cua-app-1">2.3 Luồng dữ liệu của app 1</a></li><li><a href="#24-mo-hinh-nao-chay-o-au" data-id="24-mo-hinh-nao-chay-o-au">2.4 Mô hình nào chạy ở đâu</a></li></ol></li><li><a href="#phan-3-tung-khau-theo-lop" data-id="phan-3-tung-khau-theo-lop">Phần 3: Từng khâu theo lớp</a><ol class="toc-l1"><li><a href="#31-cao-du-lieu-bestbuy-va-amazon" data-id="31-cao-du-lieu-bestbuy-va-amazon">3.1 Cào dữ liệu BestBuy và Amazon</a></li><li><a href="#32-chon-deal-bang-llm-buoc-3" data-id="32-chon-deal-bang-llm-buoc-3">3.2 Chọn deal bằng LLM (Bước 3)</a></li><li><a href="#33-ensemble-uoc-gia-buoc-4" data-id="33-ensemble-uoc-gia-buoc-4">3.3 Ensemble ước giá (Bước 4)</a></li><li><a href="#34-thong-bao" data-id="34-thong-bao">3.4 Thông báo</a></li><li><a href="#35-giao-dien-nap-mo-hinh-va-giu-am-modal" data-id="35-giao-dien-nap-mo-hinh-va-giu-am-modal">3.5 Giao diện, nạp mô hình và giữ ấm Modal</a></li></ol></li><li><a href="#phan-4-ot-toi-uu-2829102026" data-id="phan-4-ot-toi-uu-2829102026">Phần 4: Đợt tối ưu 28–29/10/2026</a><ol class="toc-l1"><li><a href="#41-cach-lam" data-id="41-cach-lam">4.1 Cách làm</a></li><li><a href="#42-truoc-va-sau" data-id="42-truoc-va-sau">4.2 Trước và sau</a></li><li><a href="#43-xu-ly-song-song-vi-sao-an-toan" data-id="43-xu-ly-song-song-vi-sao-an-toan">4.3 Xử lý song song — vì sao an toàn</a></li><li><a href="#44-a-thu-va-khong-dung" data-id="44-a-thu-va-khong-dung">4.4 Đã thử và không dùng</a></li><li><a href="#45-bai-hoc" data-id="45-bai-hoc">4.5 Bài học</a></li></ol></li><li><a href="#phan-5-ket-qua-va-anh-gia" data-id="phan-5-ket-qua-va-anh-gia">Phần 5: Kết quả và đánh giá</a><ol class="toc-l1"><li><a href="#51-mot-luot-chay-that-user-chay-app-tu-khoa-laptop-2910" data-id="51-mot-luot-chay-that-user-chay-app-tu-khoa-laptop-2910">5.1 Một lượt chạy thật (User chạy app, từ khoá laptop, 29/10)</a></li><li><a href="#52-so-o-tong-hop" data-id="52-so-o-tong-hop">5.2 Số đo tổng hợp</a></li><li><a href="#53-chua-o-ghi-thang-e-khong-hieu-nham" data-id="53-chua-o-ghi-thang-e-khong-hieu-nham">5.3 Chưa đo (ghi thẳng để không hiểu nhầm)</a></li></ol></li><li><a href="#phan-6-gioi-han-va-huong-phat-trien" data-id="phan-6-gioi-han-va-huong-phat-trien">Phần 6: Giới hạn và hướng phát triển</a></li><li><a href="#phu-luc" data-id="phu-luc">Phụ lục</a><ol class="toc-l1"><li><a href="#a-cai-at-va-chay" data-id="a-cai-at-va-chay">A. Cài đặt và chạy</a></li><li><a href="#b-thuat-ngu" data-id="b-thuat-ngu">B. Thuật ngữ</a></li><li><a href="#c-tai-lieu-lien-quan" data-id="c-tai-lieu-lien-quan">C. Tài liệu liên quan</a></li><li><a href="#d-lich-su-bao-cao" data-id="d-lich-su-bao-cao">D. Lịch sử báo cáo</a></li></ol></li></ol>
+    <ol class="toc-l0"><li><a href="#phan-0-oc-nhanh" data-id="phan-0-oc-nhanh">Phần 0: Đọc nhanh</a></li><li><a href="#phan-1-kien-thuc-can-biet-truoc" data-id="phan-1-kien-thuc-can-biet-truoc">Phần 1: Kiến thức cần biết trước</a><ol class="toc-l1"><li><a href="#11-mo-hinh-hoc-may-uoc-gia" data-id="11-mo-hinh-hoc-may-uoc-gia">1.1 Mô hình học máy ước giá</a></li><li><a href="#12-mae-thuoc-o-o-ung" data-id="12-mae-thuoc-o-o-ung">1.2 MAE — thước đo độ đúng</a></li><li><a href="#13-embedding-bien-cau-chu-thanh-day-so" data-id="13-embedding-bien-cau-chu-thanh-day-so">1.3 Embedding — biến câu chữ thành dãy số</a></li><li><a href="#14-co-so-du-lieu-vector-tim-san-pham-giong-nhat" data-id="14-co-so-du-lieu-vector-tim-san-pham-giong-nhat">1.4 Cơ sở dữ liệu vector — tìm sản phẩm giống nhất</a></li><li><a href="#15-llm-va-muc-suy-luan" data-id="15-llm-va-muc-suy-luan">1.5 LLM và mức suy luận</a></li><li><a href="#16-rag-tra-cuu-roi-moi-tra-loi" data-id="16-rag-tra-cuu-roi-moi-tra-loi">1.6 RAG — tra cứu rồi mới trả lời</a></li><li><a href="#17-fine-tune-va-qlora-day-them-cho-mot-mo-hinh-co-san" data-id="17-fine-tune-va-qlora-day-them-cho-mot-mo-hinh-co-san">1.7 Fine-tune và QLoRA — dạy thêm cho một mô hình có sẵn</a></li><li><a href="#18-ensemble-ket-hop-nhieu-mo-hinh" data-id="18-ensemble-ket-hop-nhieu-mo-hinh">1.8 Ensemble — kết hợp nhiều mô hình</a></li></ol></li><li><a href="#phan-2-bai-toan-va-du-lieu" data-id="phan-2-bai-toan-va-du-lieu">Phần 2: Bài toán và dữ liệu</a><ol class="toc-l1"><li><a href="#21-the-nao-la-mot-deal-tot" data-id="21-the-nao-la-mot-deal-tot">2.1 Thế nào là một deal tốt</a></li><li><a href="#22-du-lieu-lay-tu-au" data-id="22-du-lieu-lay-tu-au">2.2 Dữ liệu lấy từ đâu</a></li><li><a href="#23-he-qua-cua-du-lieu-len-cach-dung" data-id="23-he-qua-cua-du-lieu-len-cach-dung">2.3 Hệ quả của dữ liệu lên cách dùng</a></li></ol></li><li><a href="#phan-3-mo-hinh-uoc-gia" data-id="phan-3-mo-hinh-uoc-gia">Phần 3: Mô hình ước giá</a><ol class="toc-l1"><li><a href="#31-a-thu-nhung-gi" data-id="31-a-thu-nhung-gi">3.1 Đã thử những gì</a></li><li><a href="#32-ba-mo-hinh-uoc-ket-hop" data-id="32-ba-mo-hinh-uoc-ket-hop">3.2 Ba mô hình được kết hợp</a></li></ol></li><li><a href="#phan-4-he-thong-tong-the" data-id="phan-4-he-thong-tong-the">Phần 4: Hệ thống tổng thể</a><ol class="toc-l1"><li><a href="#41-ba-tang" data-id="41-ba-tang">4.1 Ba tầng</a></li><li><a href="#42-mot-lan-tim-dien-ra-the-nao" data-id="42-mot-lan-tim-dien-ra-the-nao">4.2 Một lần tìm diễn ra thế nào</a></li><li><a href="#43-moi-phan-chay-o-au" data-id="43-moi-phan-chay-o-au">4.3 Mỗi phần chạy ở đâu</a></li></ol></li><li><a href="#phan-5-tung-khau" data-id="phan-5-tung-khau">Phần 5: Từng khâu</a><ol class="toc-l1"><li><a href="#51-lay-du-lieu-tu-bestbuy-va-amazon" data-id="51-lay-du-lieu-tu-bestbuy-va-amazon">5.1 Lấy dữ liệu từ BestBuy và Amazon</a></li><li><a href="#52-chon-deal-bang-llm" data-id="52-chon-deal-bang-llm">5.2 Chọn deal bằng LLM</a></li><li><a href="#53-uoc-gia" data-id="53-uoc-gia">5.3 Ước giá</a></li><li><a href="#54-thong-bao" data-id="54-thong-bao">5.4 Thông báo</a></li><li><a href="#55-giao-dien-nap-mo-hinh-va-giu-am-may-chu" data-id="55-giao-dien-nap-mo-hinh-va-giu-am-may-chu">5.5 Giao diện, nạp mô hình và giữ ấm máy chủ</a></li></ol></li><li><a href="#phan-6-ot-toi-uu-2829102026" data-id="phan-6-ot-toi-uu-2829102026">Phần 6: Đợt tối ưu 28–29/10/2026</a><ol class="toc-l1"><li><a href="#61-cach-lam" data-id="61-cach-lam">6.1 Cách làm</a></li><li><a href="#62-truoc-va-sau" data-id="62-truoc-va-sau">6.2 Trước và sau</a></li><li><a href="#63-chay-song-song-vi-sao-an-toan" data-id="63-chay-song-song-vi-sao-an-toan">6.3 Chạy song song — vì sao an toàn</a></li><li><a href="#64-a-thu-nhung-khong-dung" data-id="64-a-thu-nhung-khong-dung">6.4 Đã thử nhưng không dùng</a></li><li><a href="#65-bai-hoc" data-id="65-bai-hoc">6.5 Bài học</a></li></ol></li><li><a href="#phan-7-ket-qua" data-id="phan-7-ket-qua">Phần 7: Kết quả</a><ol class="toc-l1"><li><a href="#71-so-o-tong-hop" data-id="71-so-o-tong-hop">7.1 Số đo tổng hợp</a></li><li><a href="#72-mot-lan-chay-that" data-id="72-mot-lan-chay-that">7.2 Một lần chạy thật</a></li><li><a href="#73-nhung-gi-chua-o" data-id="73-nhung-gi-chua-o">7.3 Những gì chưa đo</a></li></ol></li><li><a href="#phan-8-gioi-han-huong-phat-trien-tu-khoa-nen-thu" data-id="phan-8-gioi-han-huong-phat-trien-tu-khoa-nen-thu">Phần 8: Giới hạn, hướng phát triển, từ khoá nên thử</a><ol class="toc-l1"><li><a href="#81-gioi-han-va-huong-tiep" data-id="81-gioi-han-va-huong-tiep">8.1 Giới hạn và hướng tiếp</a></li><li><a href="#82-nen-thu-tu-khoa-nao" data-id="82-nen-thu-tu-khoa-nao">8.2 Nên thử từ khoá nào</a></li></ol></li><li><a href="#phu-luc" data-id="phu-luc">Phụ lục</a><ol class="toc-l1"><li><a href="#a-cai-at-va-chay" data-id="a-cai-at-va-chay">A. Cài đặt và chạy</a></li><li><a href="#b-tai-lieu-lien-quan" data-id="b-tai-lieu-lien-quan">B. Tài liệu liên quan</a></li><li><a href="#c-lich-su-bao-cao" data-id="c-lich-su-bao-cao">C. Lịch sử báo cáo</a></li></ol></li></ol>
   </nav>
   <main>
     <header class="hero">
       <div>
         <h1>Báo cáo: Hệ thống AI Price Intelligence — &quot;The Price Is Right&quot; (bản 3)</h1>
-        <p class="lede"><strong>Mục đích.</strong> Trình bày hệ thống tìm deal và ước lượng giá trị thật của sản phẩm — bài toán, kiến trúc, cách từng khâu hoạt động, vì sao chọn cách làm đó, kết quả đo được và giới hạn còn lại.</p>
-        <p class="scope"><strong>Phạm vi.</strong> Đồ án DACN3 — từ dữ liệu và mô hình (tóm tắt) đến hai ứng dụng đang chạy, kèm đợt tối ưu ngày 28–29/10/2026.</p>
+        <p class="lede"><strong>Mục đích.</strong> Giải thích hệ thống tìm deal và ước lượng giá trị thật của sản phẩm sao cho người chưa biết gì về dự án, hoặc đã lâu không xem lại, chỉ cần đọc file này là hiểu.</p>
+        <p class="scope"><strong>Phạm vi.</strong> Đồ án DACN3 — từ dữ liệu và mô hình đến hai ứng dụng đang chạy, kèm đợt tối ưu ngày 28–29/10/2026.</p>
         <ul class="chips" aria-label="Thông tin báo cáo"><li>29/10/2026</li><li>segment4/</li><li>search_key.py</li><li>price_is_right.py</li></ul>
       </div>
       <figure class="price-tag" aria-label="Ví dụ một deal: giá bán, giá AI ước lượng và phần chênh lệch">
@@ -169,202 +184,379 @@
         <p class="tag-note">Một deal thật từ lượt đo ngày 29/10/2026, từ khoá &quot;wireless headphones&quot;. Mô hình chỉ đọc mô tả, không nhìn giá bán.</p>
       </figure>
     </header>
-    <details class="toc-mobile"><summary>Mục lục</summary><ol class="toc-l0"><li><a href="#phan-1-bai-toan-va-hanh-trinh" data-id="phan-1-bai-toan-va-hanh-trinh">Phần 1: Bài toán và hành trình</a><ol class="toc-l1"><li><a href="#11-bai-toan" data-id="11-bai-toan">1.1 Bài toán</a></li><li><a href="#12-hanh-trinh-du-lieu-mo-hinh-he-thong" data-id="12-hanh-trinh-du-lieu-mo-hinh-he-thong">1.2 Hành trình: dữ liệu → mô hình → hệ thống</a></li><li><a href="#13-so-sanh-mo-hinh-luc-huan-luyen" data-id="13-so-sanh-mo-hinh-luc-huan-luyen">1.3 So sánh mô hình (lúc huấn luyện)</a></li></ol></li><li><a href="#phan-2-kien-truc-tong-the" data-id="phan-2-kien-truc-tong-the">Phần 2: Kiến trúc tổng thể</a><ol class="toc-l1"><li><a href="#21-ba-tang" data-id="21-ba-tang">2.1 Ba tầng</a></li><li><a href="#22-hai-ung-dung" data-id="22-hai-ung-dung">2.2 Hai ứng dụng</a></li><li><a href="#23-luong-du-lieu-cua-app-1" data-id="23-luong-du-lieu-cua-app-1">2.3 Luồng dữ liệu của app 1</a></li><li><a href="#24-mo-hinh-nao-chay-o-au" data-id="24-mo-hinh-nao-chay-o-au">2.4 Mô hình nào chạy ở đâu</a></li></ol></li><li><a href="#phan-3-tung-khau-theo-lop" data-id="phan-3-tung-khau-theo-lop">Phần 3: Từng khâu theo lớp</a><ol class="toc-l1"><li><a href="#31-cao-du-lieu-bestbuy-va-amazon" data-id="31-cao-du-lieu-bestbuy-va-amazon">3.1 Cào dữ liệu BestBuy và Amazon</a></li><li><a href="#32-chon-deal-bang-llm-buoc-3" data-id="32-chon-deal-bang-llm-buoc-3">3.2 Chọn deal bằng LLM (Bước 3)</a></li><li><a href="#33-ensemble-uoc-gia-buoc-4" data-id="33-ensemble-uoc-gia-buoc-4">3.3 Ensemble ước giá (Bước 4)</a></li><li><a href="#34-thong-bao" data-id="34-thong-bao">3.4 Thông báo</a></li><li><a href="#35-giao-dien-nap-mo-hinh-va-giu-am-modal" data-id="35-giao-dien-nap-mo-hinh-va-giu-am-modal">3.5 Giao diện, nạp mô hình và giữ ấm Modal</a></li></ol></li><li><a href="#phan-4-ot-toi-uu-2829102026" data-id="phan-4-ot-toi-uu-2829102026">Phần 4: Đợt tối ưu 28–29/10/2026</a><ol class="toc-l1"><li><a href="#41-cach-lam" data-id="41-cach-lam">4.1 Cách làm</a></li><li><a href="#42-truoc-va-sau" data-id="42-truoc-va-sau">4.2 Trước và sau</a></li><li><a href="#43-xu-ly-song-song-vi-sao-an-toan" data-id="43-xu-ly-song-song-vi-sao-an-toan">4.3 Xử lý song song — vì sao an toàn</a></li><li><a href="#44-a-thu-va-khong-dung" data-id="44-a-thu-va-khong-dung">4.4 Đã thử và không dùng</a></li><li><a href="#45-bai-hoc" data-id="45-bai-hoc">4.5 Bài học</a></li></ol></li><li><a href="#phan-5-ket-qua-va-anh-gia" data-id="phan-5-ket-qua-va-anh-gia">Phần 5: Kết quả và đánh giá</a><ol class="toc-l1"><li><a href="#51-mot-luot-chay-that-user-chay-app-tu-khoa-laptop-2910" data-id="51-mot-luot-chay-that-user-chay-app-tu-khoa-laptop-2910">5.1 Một lượt chạy thật (User chạy app, từ khoá laptop, 29/10)</a></li><li><a href="#52-so-o-tong-hop" data-id="52-so-o-tong-hop">5.2 Số đo tổng hợp</a></li><li><a href="#53-chua-o-ghi-thang-e-khong-hieu-nham" data-id="53-chua-o-ghi-thang-e-khong-hieu-nham">5.3 Chưa đo (ghi thẳng để không hiểu nhầm)</a></li></ol></li><li><a href="#phan-6-gioi-han-va-huong-phat-trien" data-id="phan-6-gioi-han-va-huong-phat-trien">Phần 6: Giới hạn và hướng phát triển</a></li><li><a href="#phu-luc" data-id="phu-luc">Phụ lục</a><ol class="toc-l1"><li><a href="#a-cai-at-va-chay" data-id="a-cai-at-va-chay">A. Cài đặt và chạy</a></li><li><a href="#b-thuat-ngu" data-id="b-thuat-ngu">B. Thuật ngữ</a></li><li><a href="#c-tai-lieu-lien-quan" data-id="c-tai-lieu-lien-quan">C. Tài liệu liên quan</a></li><li><a href="#d-lich-su-bao-cao" data-id="d-lich-su-bao-cao">D. Lịch sử báo cáo</a></li></ol></li></ol></details>
+    <details class="toc-mobile"><summary>Mục lục</summary><ol class="toc-l0"><li><a href="#phan-0-oc-nhanh" data-id="phan-0-oc-nhanh">Phần 0: Đọc nhanh</a></li><li><a href="#phan-1-kien-thuc-can-biet-truoc" data-id="phan-1-kien-thuc-can-biet-truoc">Phần 1: Kiến thức cần biết trước</a><ol class="toc-l1"><li><a href="#11-mo-hinh-hoc-may-uoc-gia" data-id="11-mo-hinh-hoc-may-uoc-gia">1.1 Mô hình học máy ước giá</a></li><li><a href="#12-mae-thuoc-o-o-ung" data-id="12-mae-thuoc-o-o-ung">1.2 MAE — thước đo độ đúng</a></li><li><a href="#13-embedding-bien-cau-chu-thanh-day-so" data-id="13-embedding-bien-cau-chu-thanh-day-so">1.3 Embedding — biến câu chữ thành dãy số</a></li><li><a href="#14-co-so-du-lieu-vector-tim-san-pham-giong-nhat" data-id="14-co-so-du-lieu-vector-tim-san-pham-giong-nhat">1.4 Cơ sở dữ liệu vector — tìm sản phẩm giống nhất</a></li><li><a href="#15-llm-va-muc-suy-luan" data-id="15-llm-va-muc-suy-luan">1.5 LLM và mức suy luận</a></li><li><a href="#16-rag-tra-cuu-roi-moi-tra-loi" data-id="16-rag-tra-cuu-roi-moi-tra-loi">1.6 RAG — tra cứu rồi mới trả lời</a></li><li><a href="#17-fine-tune-va-qlora-day-them-cho-mot-mo-hinh-co-san" data-id="17-fine-tune-va-qlora-day-them-cho-mot-mo-hinh-co-san">1.7 Fine-tune và QLoRA — dạy thêm cho một mô hình có sẵn</a></li><li><a href="#18-ensemble-ket-hop-nhieu-mo-hinh" data-id="18-ensemble-ket-hop-nhieu-mo-hinh">1.8 Ensemble — kết hợp nhiều mô hình</a></li></ol></li><li><a href="#phan-2-bai-toan-va-du-lieu" data-id="phan-2-bai-toan-va-du-lieu">Phần 2: Bài toán và dữ liệu</a><ol class="toc-l1"><li><a href="#21-the-nao-la-mot-deal-tot" data-id="21-the-nao-la-mot-deal-tot">2.1 Thế nào là một deal tốt</a></li><li><a href="#22-du-lieu-lay-tu-au" data-id="22-du-lieu-lay-tu-au">2.2 Dữ liệu lấy từ đâu</a></li><li><a href="#23-he-qua-cua-du-lieu-len-cach-dung" data-id="23-he-qua-cua-du-lieu-len-cach-dung">2.3 Hệ quả của dữ liệu lên cách dùng</a></li></ol></li><li><a href="#phan-3-mo-hinh-uoc-gia" data-id="phan-3-mo-hinh-uoc-gia">Phần 3: Mô hình ước giá</a><ol class="toc-l1"><li><a href="#31-a-thu-nhung-gi" data-id="31-a-thu-nhung-gi">3.1 Đã thử những gì</a></li><li><a href="#32-ba-mo-hinh-uoc-ket-hop" data-id="32-ba-mo-hinh-uoc-ket-hop">3.2 Ba mô hình được kết hợp</a></li></ol></li><li><a href="#phan-4-he-thong-tong-the" data-id="phan-4-he-thong-tong-the">Phần 4: Hệ thống tổng thể</a><ol class="toc-l1"><li><a href="#41-ba-tang" data-id="41-ba-tang">4.1 Ba tầng</a></li><li><a href="#42-mot-lan-tim-dien-ra-the-nao" data-id="42-mot-lan-tim-dien-ra-the-nao">4.2 Một lần tìm diễn ra thế nào</a></li><li><a href="#43-moi-phan-chay-o-au" data-id="43-moi-phan-chay-o-au">4.3 Mỗi phần chạy ở đâu</a></li></ol></li><li><a href="#phan-5-tung-khau" data-id="phan-5-tung-khau">Phần 5: Từng khâu</a><ol class="toc-l1"><li><a href="#51-lay-du-lieu-tu-bestbuy-va-amazon" data-id="51-lay-du-lieu-tu-bestbuy-va-amazon">5.1 Lấy dữ liệu từ BestBuy và Amazon</a></li><li><a href="#52-chon-deal-bang-llm" data-id="52-chon-deal-bang-llm">5.2 Chọn deal bằng LLM</a></li><li><a href="#53-uoc-gia" data-id="53-uoc-gia">5.3 Ước giá</a></li><li><a href="#54-thong-bao" data-id="54-thong-bao">5.4 Thông báo</a></li><li><a href="#55-giao-dien-nap-mo-hinh-va-giu-am-may-chu" data-id="55-giao-dien-nap-mo-hinh-va-giu-am-may-chu">5.5 Giao diện, nạp mô hình và giữ ấm máy chủ</a></li></ol></li><li><a href="#phan-6-ot-toi-uu-2829102026" data-id="phan-6-ot-toi-uu-2829102026">Phần 6: Đợt tối ưu 28–29/10/2026</a><ol class="toc-l1"><li><a href="#61-cach-lam" data-id="61-cach-lam">6.1 Cách làm</a></li><li><a href="#62-truoc-va-sau" data-id="62-truoc-va-sau">6.2 Trước và sau</a></li><li><a href="#63-chay-song-song-vi-sao-an-toan" data-id="63-chay-song-song-vi-sao-an-toan">6.3 Chạy song song — vì sao an toàn</a></li><li><a href="#64-a-thu-nhung-khong-dung" data-id="64-a-thu-nhung-khong-dung">6.4 Đã thử nhưng không dùng</a></li><li><a href="#65-bai-hoc" data-id="65-bai-hoc">6.5 Bài học</a></li></ol></li><li><a href="#phan-7-ket-qua" data-id="phan-7-ket-qua">Phần 7: Kết quả</a><ol class="toc-l1"><li><a href="#71-so-o-tong-hop" data-id="71-so-o-tong-hop">7.1 Số đo tổng hợp</a></li><li><a href="#72-mot-lan-chay-that" data-id="72-mot-lan-chay-that">7.2 Một lần chạy thật</a></li><li><a href="#73-nhung-gi-chua-o" data-id="73-nhung-gi-chua-o">7.3 Những gì chưa đo</a></li></ol></li><li><a href="#phan-8-gioi-han-huong-phat-trien-tu-khoa-nen-thu" data-id="phan-8-gioi-han-huong-phat-trien-tu-khoa-nen-thu">Phần 8: Giới hạn, hướng phát triển, từ khoá nên thử</a><ol class="toc-l1"><li><a href="#81-gioi-han-va-huong-tiep" data-id="81-gioi-han-va-huong-tiep">8.1 Giới hạn và hướng tiếp</a></li><li><a href="#82-nen-thu-tu-khoa-nao" data-id="82-nen-thu-tu-khoa-nao">8.2 Nên thử từ khoá nào</a></li></ol></li><li><a href="#phu-luc" data-id="phu-luc">Phụ lục</a><ol class="toc-l1"><li><a href="#a-cai-at-va-chay" data-id="a-cai-at-va-chay">A. Cài đặt và chạy</a></li><li><a href="#b-tai-lieu-lien-quan" data-id="b-tai-lieu-lien-quan">B. Tài liệu liên quan</a></li><li><a href="#c-lich-su-bao-cao" data-id="c-lich-su-bao-cao">C. Lịch sử báo cáo</a></li></ol></li></ol></details>
     <article class="content">
-<p><strong>Cách đọc báo cáo này.</strong> Mỗi khâu được giải thích theo cùng một thứ tự: <em>bài toán</em> (khâu này giải quyết việc gì) → <em>cơ chế</em>
-(nó chạy thế nào) → <em>vì sao chọn cách này</em> (và cách nào đã bị bỏ) → <em>khi nào nó hỏng</em>. Cuối mỗi phần có <strong>một câu tự kiểm</strong>:
-trả lời được mà không cần nhìn lại là đã hiểu phần đó. Số liệu luôn ghi kèm <strong>đo ngày nào, trên dữ liệu gì</strong>; chỗ nào chỉ là
-suy luận thì ghi rõ là suy luận.</p>
-<p><strong>Thay đổi so với bản 2 (11/05/2026):</strong> viết lại theo hệ thống hiện tại thay vì theo từng ngày học; mô hình OpenAI chuyển hết
-sang gpt-6-luna; cách vượt lớp chặn Amazon đổi hẳn; thêm xử lý song song, chống sập, giữ ấm Modal; thời gian một lượt tìm từ
-70–107 giây còn 21–34 giây. Bản 2 vẫn giữ nguyên ở <code>report_system.md</code> / <code>report_system2.html</code> để đối chiếu.</p>
-<hr />
-<h2 id="phan-1-bai-toan-va-hanh-trinh">Phần 1: Bài toán và hành trình</h2>
-<h3 id="11-bai-toan">1.1 Bài toán</h3>
-<p>Trên các trang bán hàng, một sản phẩm "đang giảm giá" chưa chắc đã rẻ: giá gạch ngang có thể bị đẩy lên, hoặc giá gốc vốn đã
-thấp hơn mức shop ghi. Hệ thống trả lời câu hỏi: <strong>"Với mô tả này, sản phẩm đáng giá bao nhiêu?"</strong> — rồi so với giá bán để biết
-deal có thật sự tốt không.</p>
+<h2 id="phan-0-oc-nhanh">Phần 0: Đọc nhanh</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Hệ thống tìm sản phẩm đang giảm giá trên BestBuy và Amazon, rồi dùng AI đoán xem sản phẩm đó thật ra đáng giá bao nhiêu. Nếu giá bán thấp hơn nhiều so với giá AI đoán, đó là một deal tốt và hệ thống gửi thông báo lên điện thoại.</p>
+</blockquote>
+<p><strong>Hệ thống làm gì.</strong> Khi thấy một món hàng "đang giảm giá", người mua thường không biết mức giảm đó có thật không. Giá gạch ngang có thể bị đẩy lên cho đẹp. Hệ thống trả lời câu hỏi: <em>"Đọc mô tả này, món hàng đáng giá bao nhiêu?"</em> Sau đó nó so con số đó với giá bán. Phần chênh lệch gọi là <strong>discount</strong> (mức hời). Discount càng lớn thì deal càng tốt.</p>
+<p><strong>Có hai ứng dụng.</strong></p>
 <ul>
-<li><strong>Đầu vào:</strong> một từ khoá (app 1) hoặc tin khuyến mãi từ RSS của DealNews (app 2).</li>
-<li><strong>Đầu ra:</strong> tối đa 3 deal (app 1) / 5 deal (app 2), mỗi deal có giá bán, <strong>giá ước lượng</strong>, <strong>discount = giá ước − giá bán</strong>;
-  discount lớn thì gửi thông báo đẩy lên điện thoại (Pushover).</li>
-<li>Mô hình <strong>không nhìn giá bán</strong> khi ước giá — chỉ nhìn mô tả sản phẩm. Nếu nhìn giá bán, nó sẽ có xu hướng đoán gần giá đó và
-  mất ý nghĩa so sánh.</li>
+<li><strong>Ứng dụng 1 (<code>search_key.py</code>):</strong> người dùng gõ một từ khoá, ví dụ "noise cancelling headphones". Hệ thống tìm hàng đang sale trên BestBuy và Amazon, chọn ra 3 deal, ước giá và hiện bảng kết quả.</li>
+<li><strong>Ứng dụng 2 (<code>price_is_right.py</code>):</strong> tự chạy mỗi 5 phút. Nó đọc tin khuyến mãi của trang DealNews, chọn 5 deal, ước giá và tự báo khi gặp deal tốt.</li>
 </ul>
-<h3 id="12-hanh-trinh-du-lieu-mo-hinh-he-thong">1.2 Hành trình: dữ liệu → mô hình → hệ thống</h3>
+<p><strong>Kết quả chính.</strong></p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Giai đoạn</th>
-<th>Làm gì</th>
-<th>Kết quả chính</th>
-<th>Chi tiết</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Thu thập dữ liệu</td>
-<td>Amazon Reviews 2023 (McAuley-Lab), <strong>8 nhóm hàng</strong>: Automotive, Electronics, Office Products, Tools &amp; Home Improvement, Cell Phones &amp; Accessories, Toys &amp; Games, Appliances, Musical Instruments</td>
-<td>~2,93 triệu sản phẩm → bỏ trùng còn ~2,89 triệu</td>
-<td><code>Report_data_processing_v2.md</code> (Day 1)</td>
-</tr>
-<tr>
-<td>Lọc và lấy mẫu</td>
-<td>giữ giá <strong>$0,5–$999,49</strong>, mô tả đủ dài; lấy mẫu có trọng số <code>giá²</code>, giảm trọng số nhóm Automotive (×0,05) và Tools (×0,5) để không lệch về hàng rẻ</td>
-<td><strong>820.000</strong> sản phẩm (800k train / 10k val / 10k test); giá trung bình ~$59 → ~$140</td>
-<td>như trên</td>
-</tr>
-<tr>
-<td>Tiền xử lý bằng LLM</td>
-<td>viết lại mỗi sản phẩm theo khuôn <code>Title / Category / Brand / Description / Details</code>, bỏ mã linh kiện</td>
-<td>dataset <code>SeanSunny/items_full</code> trên HuggingFace</td>
-<td>Day 2</td>
-</tr>
-<tr>
-<td>Mô hình</td>
-<td>từ đoán ngẫu nhiên tới mạng nơ-ron sâu, LLM, fine-tune</td>
-<td>bảng 1.3</td>
-<td>Day 3–5, <code>report_fine_tune_llm.md</code></td>
-</tr>
-<tr>
-<td>Hệ thống</td>
-<td>đưa mô hình thành 2 ứng dụng có giao diện, cào dữ liệu thật, thông báo</td>
-<td>Phần 2–3</td>
-<td>báo cáo này</td>
-</tr>
-<tr>
-<td>Tối ưu</td>
-<td>đo, sửa lỗi, tăng tốc, chống sập</td>
-<td>Phần 4</td>
-<td>báo cáo này</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="13-so-sanh-mo-hinh-luc-huan-luyen">1.3 So sánh mô hình (lúc huấn luyện)</h3>
-<p>Sai số tuyệt đối trung bình (<strong>MAE</strong> — trung bình |giá đoán − giá thật|, càng thấp càng tốt) trên <strong>200 mẫu test</strong>, số lấy từ
-các báo cáo huấn luyện:</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Mô hình</th>
-<th>MAE</th>
+<th>Điều cần biết</th>
+<th>Con số</th>
 <th>Ghi chú</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Đoán ngẫu nhiên</td>
-<td>$382,08</td>
-<td>mốc dưới</td>
+<td>Sai số trung bình khi ước giá (cả hệ thống, lúc huấn luyện)</td>
+<td>khoảng $30 mỗi sản phẩm</td>
+<td>đo trên 200 sản phẩm chưa từng dùng để huấn luyện</td>
 </tr>
 <tr>
-<td>Luôn đoán giá trung bình</td>
-<td>$106,18</td>
-<td>mốc không dùng mô hình</td>
+<td>Thời gian một lần tìm (ứng dụng 1)</td>
+<td>21–34 giây</td>
+<td>trước đợt tối ưu: 70–107 giây</td>
 </tr>
 <tr>
-<td>XGBoost (đặc trưng từ chữ)</td>
-<td>$68,23</td>
-<td>mô hình truyền thống tốt nhất</td>
-</tr>
-<tr>
-<td>Claude Opus 4.5 (không huấn luyện thêm)</td>
-<td>$47,10</td>
-<td>LLM tiên tiến, hỏi thẳng</td>
-</tr>
-<tr>
-<td>DNN 289 triệu tham số (HashingVectorizer → 8 khối residual)</td>
-<td>$46,02</td>
-<td>chạy trên máy, dùng trong ensemble</td>
-</tr>
-<tr>
-<td>GPT-5.1 + RAG</td>
-<td>$44,06</td>
-<td>Frontier ban đầu</td>
-</tr>
-<tr>
-<td>Llama-3.2-3B fine-tune QLoRA</td>
-<td>$39,85</td>
-<td>adapter ~73 MB, chạy trên Modal</td>
-</tr>
-<tr>
-<td><strong>Ensemble 0,8 × Frontier + 0,1 × Llama + 0,1 × DNN</strong></td>
-<td><strong>$29,9</strong></td>
-<td>dùng trong hệ thống</td>
+<td>Tiền API mỗi lần tìm</td>
+<td>khoảng 0,1 cent</td>
+<td>ước từ số liệu đo, chưa tính GPU Modal</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>Vì sao ensemble tốt hơn từng mô hình:</strong> ba mô hình sai theo những cách khác nhau (LLM có kiến thức chung, Llama học khuôn giá
-của đúng dữ liệu này, DNN bám vào từ khoá); trung bình có trọng số làm các sai lệch ngược chiều triệt tiêu một phần.</p>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Vì sao dữ liệu huấn luyện chỉ giữ hàng dưới $999,49, và điều đó ảnh hưởng thế nào khi người dùng tìm "laptop"?</p>
-</blockquote>
-<hr />
-<h2 id="phan-2-kien-truc-tong-the">Phần 2: Kiến trúc tổng thể</h2>
-<h3 id="21-ba-tang">2.1 Ba tầng</h3>
-<pre><code>Tầng giao diện   search_key.py / price_is_right.py           (Gradio, cổng 7860)
-Tầng framework   multi_source_framework.py / deal_agent_framework.py
-                 (mở ChromaDB, nạp agent một lần, giữ kết quả, memory.json của app 2)
-Tầng agent       price_agents/ + bestbuy_untils/
-                 mỗi agent một việc: cào, chọn deal, ước giá, viết tin nhắn, điều phối
-</code></pre>
-<p>Mỗi agent kế thừa lớp <code>Agent</code> (log có màu theo agent) và làm <strong>một việc</strong>. Phần điều phối (<code>MultiSourcePlanningAgent</code>,
-<code>PlanningAgent</code>) là code Python viết thẳng các bước — không để LLM tự quyết thứ tự, vì các bước luôn cố định.</p>
-<h3 id="22-hai-ung-dung">2.2 Hai ứng dụng</h3>
+<p><strong>Đọc tiếp ở đâu.</strong></p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th></th>
-<th>App 1 — <code>search_key.py</code></th>
-<th>App 2 — <code>price_is_right.py</code></th>
+<th>Bạn muốn biết</th>
+<th>Đọc</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Kích hoạt</td>
-<td>người dùng nhập từ khoá</td>
-<td>tự chạy mỗi 5 phút</td>
+<td>Các khái niệm AI dùng trong dự án</td>
+<td>Phần 1</td>
 </tr>
 <tr>
-<td>Nguồn deal</td>
-<td>cào BestBuy + Amazon</td>
-<td>RSS DealNews (5 chuyên mục)</td>
+<td>Dữ liệu lấy từ đâu, vì sao chỉ có 8 nhóm hàng</td>
+<td>Phần 2</td>
 </tr>
 <tr>
-<td>Chọn deal</td>
-<td>gpt-6-luna chọn 3</td>
-<td>gpt-6-luna chọn 5</td>
+<td>Đã thử những mô hình nào, vì sao chọn cách kết hợp 3 mô hình</td>
+<td>Phần 3</td>
 </tr>
 <tr>
-<td>Ước giá</td>
-<td>ensemble (dùng chung)</td>
-<td>ensemble (dùng chung)</td>
+<td>Hệ thống chạy thế nào từ lúc gõ từ khoá đến lúc ra kết quả</td>
+<td>Phần 4 và 5</td>
 </tr>
 <tr>
-<td>Thông báo</td>
-<td>discount &gt; $100</td>
-<td>discount &gt; $50</td>
+<td>Đã tối ưu những gì, nhanh hơn bao nhiêu</td>
+<td>Phần 6</td>
 </tr>
 <tr>
-<td>Nhớ</td>
-<td>không</td>
-<td><code>memory.json</code> để không báo trùng</td>
+<td>Kết quả, chỗ còn yếu, nên thử từ khoá nào</td>
+<td>Phần 7 và 8</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="23-luong-du-lieu-cua-app-1">2.3 Luồng dữ liệu của app 1</h3>
-<pre><code>Mở app ── luồng nền: đánh thức Modal ‖ nạp mô hình (~9–20 s) ── giữ ấm Modal
-   │
-Từ khoá
-   │
-Bước 1  Cào song song   BestBuy (API nội bộ)  ‖  Amazon (trình duyệt ngầm lấy cookie → curl_cffi)
-   │                    → mỗi nguồn ≤ N sản phẩm đang sale + trạng thái ok / empty / blocked / error
-Bước 2  Gộp             → một danh sách chung; gộp hàng trùng (giữ bản rẻ nhất)
-Bước 3  Chọn deal       → gpt-6-luna trả số thứ tự 3 deal + tóm tắt; code lấy giá / URL thật
-Bước 4  Ước giá         → 3 deal song song; mỗi deal: viết lại mô tả → Llama ‖ Frontier ‖ DNN → trung bình có trọng số
-   │
-Bảng kết quả (sắp theo discount) → discount &gt; $100 và link đúng shop → gửi Pushover
-</code></pre>
-<h3 id="24-mo-hinh-nao-chay-o-au">2.4 Mô hình nào chạy ở đâu</h3>
+<hr />
+<h2 id="phan-1-kien-thuc-can-biet-truoc">Phần 1: Kiến thức cần biết trước</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Tám khái niệm dưới đây xuất hiện khắp báo cáo. Mỗi khái niệm được giải thích bằng lời thường và một ví dụ ngay trong dự án.</p>
+</blockquote>
+<h3 id="11-mo-hinh-hoc-may-uoc-gia">1.1 Mô hình học máy ước giá</h3>
+<p>Một <strong>mô hình học máy</strong> là một chương trình tự rút ra quy luật từ rất nhiều ví dụ. Ở đây, mỗi ví dụ là một cặp: <em>mô tả sản phẩm</em> và <em>giá thật</em> của nó. Mô hình xem 800.000 cặp như vậy. Sau đó, khi được đưa một mô tả mới, nó đoán ra một con số giá.</p>
+<p>Ví dụ: mô hình đã thấy hàng nghìn tai nghe chống ồn của Sony giá $250–$350. Gặp một tai nghe Sony chống ồn mới, nó sẽ đoán trong khoảng đó.</p>
+<h3 id="12-mae-thuoc-o-o-ung">1.2 MAE — thước đo độ đúng</h3>
+<p><strong>MAE</strong> (sai số tuyệt đối trung bình) cho biết mô hình đoán lệch trung bình bao nhiêu đô la. Món hàng giá thật $100, mô hình đoán $90, vậy là lệch $10. Lấy trung bình độ lệch trên nhiều sản phẩm thì ra MAE. <strong>MAE càng thấp càng tốt.</strong></p>
+<p>MAE luôn được đo trên <strong>tập test</strong>. Đó là các sản phẩm mô hình chưa từng thấy lúc học. Đo trên chính các sản phẩm đã dùng để học thì giống như cho học sinh làm lại đúng đề đã chữa, không nói lên điều gì.</p>
+<h3 id="13-embedding-bien-cau-chu-thanh-day-so">1.3 Embedding — biến câu chữ thành dãy số</h3>
+<p>Máy tính không hiểu chữ, nó chỉ làm việc với số. Một <strong>embedding</strong> biến một câu thành một dãy số. Dự án dùng mô hình <code>all-MiniLM-L6-v2</code>, mỗi câu thành 384 số. Dãy số này gọi là <strong>vector</strong>.</p>
+<p>Điểm quan trọng: hai câu có nghĩa giống nhau sẽ cho hai dãy số gần nhau. "Tai nghe chống ồn Sony" và "Sony noise cancelling headphones" sẽ nằm gần nhau. "Nồi chiên không dầu" thì nằm xa.</p>
+<h3 id="14-co-so-du-lieu-vector-tim-san-pham-giong-nhat">1.4 Cơ sở dữ liệu vector — tìm sản phẩm giống nhất</h3>
+<p><strong>ChromaDB</strong> là một cơ sở dữ liệu chuyên lưu vector. Dự án lưu vector của 800.000 sản phẩm kèm giá thật của chúng. Khi cần ước giá một món hàng, hệ thống biến mô tả của nó thành vector rồi hỏi ChromaDB: "5 sản phẩm nào gần nhất?" Câu trả lời có trong chưa tới nửa giây.</p>
+<h3 id="15-llm-va-muc-suy-luan">1.5 LLM và mức suy luận</h3>
+<p><strong>LLM</strong> (mô hình ngôn ngữ lớn) là loại AI đọc và viết văn bản, ví dụ GPT hay Llama. Dự án dùng <strong>gpt-6-luna</strong> của OpenAI. Đây là một mô hình rẻ và nhanh, được gọi qua mạng (API) và trả tiền theo lượng chữ.</p>
+<p>Luna có thiết lập <strong>mức suy luận</strong> (<code>reasoning effort</code>). Mức <code>none</code> thì trả lời ngay. Mức <code>low</code> thì "nghĩ" một chút trước khi trả lời, chậm hơn và tốn hơn một ít. Mức cao hơn không chắc đã cho kết quả tốt hơn, nên dự án chọn mức bằng cách đo.</p>
+<h3 id="16-rag-tra-cuu-roi-moi-tra-loi">1.6 RAG — tra cứu rồi mới trả lời</h3>
+<p><strong>RAG</strong> (tra cứu rồi sinh câu trả lời) là cách giúp LLM trả lời có căn cứ. Thay vì hỏi thẳng "món này giá bao nhiêu?", hệ thống làm hai bước:</p>
+<ol>
+<li>Tra ChromaDB để lấy 5 sản phẩm giống nhất kèm giá thật của chúng.</li>
+<li>Đưa cả 5 sản phẩm đó vào câu hỏi gửi LLM: "Đây là vài món tương tự và giá của chúng. Món này giá bao nhiêu?"</li>
+</ol>
+<p>Giống như một người định giá nhìn vài món đã bán gần đây trước khi ra giá.</p>
+<h3 id="17-fine-tune-va-qlora-day-them-cho-mot-mo-hinh-co-san">1.7 Fine-tune và QLoRA — dạy thêm cho một mô hình có sẵn</h3>
+<p><strong>Fine-tune</strong> là lấy một LLM có sẵn rồi cho nó học thêm trên dữ liệu riêng. Dự án lấy <strong>Llama-3.2-3B</strong> (một LLM nhỏ của Meta) và dạy nó đúng một việc: đọc mô tả, trả lời giá.</p>
+<p>Dạy lại toàn bộ mô hình thì rất tốn GPU, nên dự án dùng <strong>QLoRA</strong>. Mô hình gốc được nén nhỏ (lượng tử hoá 4-bit) và giữ nguyên, chỉ một phần gắn thêm rất nhỏ được học, gọi là <strong>adapter</strong>. Toàn bộ "kiến thức mới" nằm trong một file adapter khoảng 73 MB.</p>
+<h3 id="18-ensemble-ket-hop-nhieu-mo-hinh">1.8 Ensemble — kết hợp nhiều mô hình</h3>
+<p><strong>Ensemble</strong> là cho nhiều mô hình cùng đoán, rồi lấy trung bình có trọng số. Mỗi mô hình sai theo một kiểu khác nhau, nên khi cộng lại, các sai lệch ngược chiều triệt tiêu bớt nhau. Kết quả thường tốt hơn từng mô hình riêng lẻ. Hệ thống này kết hợp 3 mô hình (Phần 3).</p>
+<hr />
+<h2 id="phan-2-bai-toan-va-du-lieu">Phần 2: Bài toán và dữ liệu</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Dữ liệu huấn luyện là 820.000 sản phẩm Amazon thuộc 8 nhóm hàng, giá từ $0,5 đến $999,49. Giới hạn này quyết định hệ thống ước giá tốt cho loại hàng nào và kém cho loại nào.</p>
+</blockquote>
+<h3 id="21-the-nao-la-mot-deal-tot">2.1 Thế nào là một deal tốt</h3>
+<p>Mô hình <strong>chỉ đọc mô tả sản phẩm</strong>, không được nhìn giá bán. Nếu nhìn thấy giá bán, nó sẽ có xu hướng đoán gần con số đó, và phép so sánh mất ý nghĩa. Hệ thống tính <code>discount = giá ước − giá bán</code>. Ứng dụng 1 gửi thông báo khi discount lớn hơn $100, ứng dụng 2 khi lớn hơn $50.</p>
+<h3 id="22-du-lieu-lay-tu-au">2.2 Dữ liệu lấy từ đâu</h3>
+<p>Dữ liệu là bộ <strong>Amazon Reviews 2023</strong> công khai của nhóm McAuley-Lab. Dự án lấy <strong>8 nhóm hàng</strong>: Automotive (ô tô), Electronics (điện tử), Office Products (văn phòng), Tools &amp; Home Improvement (dụng cụ), Cell Phones &amp; Accessories (điện thoại và phụ kiện), Toys &amp; Games (đồ chơi), Appliances (thiết bị gia dụng), Musical Instruments (nhạc cụ).</p>
+<p>Dữ liệu được làm sạch qua bốn bước:</p>
+<ol>
+<li><strong>Bỏ hàng trùng:</strong> khoảng 2,93 triệu sản phẩm, bỏ trùng còn khoảng 2,89 triệu.</li>
+<li><strong>Lọc:</strong> chỉ giữ hàng giá từ $0,5 đến $999,49 và có mô tả dài ít nhất 600 ký tự. Hàng trên $1.000 thường là đồ công nghiệp hoặc xa xỉ, quá ít mẫu để học. Mô tả quá ngắn thì không đủ thông tin để đoán giá.</li>
+<li><strong>Lấy mẫu có chủ đích:</strong> dữ liệu gốc có rất nhiều phụ tùng ô tô giá rẻ. Lấy ngẫu nhiên thì mô hình sẽ quen đoán thấp. Dự án ưu tiên hàng đắt hơn (xác suất được chọn tỉ lệ với bình phương giá) và giảm mạnh tỉ lệ nhóm Automotive. Kết quả là 820.000 sản phẩm, giá trung bình tăng từ khoảng $59 lên khoảng $140.</li>
+<li><strong>Viết lại mô tả bằng LLM:</strong> mô tả gốc rất lộn xộn (mã linh kiện, quảng cáo, thông số rời rạc). Mỗi sản phẩm được viết lại theo một khuôn cố định gồm năm dòng: Title, Category, Brand, Description, Details. Việc này dùng mô hình gpt-oss-20b trên Groq, chạy theo lô (batch), tốn khoảng $30.</li>
+</ol>
+<p>Cuối cùng chia thành 800.000 sản phẩm để học, 10.000 để kiểm tra khi học và 10.000 để test. Bộ dữ liệu đã đưa lên HuggingFace với tên <code>SeanSunny/items_full</code>.</p>
+<h3 id="23-he-qua-cua-du-lieu-len-cach-dung">2.3 Hệ quả của dữ liệu lên cách dùng</h3>
+<p>Vì dữ liệu chỉ có 8 nhóm hàng và giá dưới $999, hệ thống ước tốt nhất cho hàng điện tử, nhạc cụ, dụng cụ tầm giá $50–$500. Nó <strong>kém</strong> ở ba trường hợp:</p>
+<ul>
+<li><strong>Hàng đắt hơn $999</strong> (laptop cao cấp, TV lớn): mô hình gần như chưa từng thấy mức giá đó, nên có xu hướng đoán thấp.</li>
+<li><strong>Nhóm hàng không có trong dữ liệu</strong>, ví dụ đồ bếp như nồi chiên không dầu: khi tra ChromaDB, hệ thống kéo về những sản phẩm sai loại.</li>
+<li><strong>Hàng rất rẻ</strong> (ốp điện thoại, tai nghe $20): giá đúng hay sai cũng hiếm khi tạo ra discount trên $100.</li>
+</ul>
+<p>Danh sách từ khoá nên thử nằm ở Phần 8.</p>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li>Xử lý dữ liệu: <code>scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md</code> (Day 1–2), các file trong <code>Code_Data_processing/pricer/</code>: <code>parser.py</code>, <code>items.py</code>, <code>batch.py</code>.</li>
+<li>Ngưỡng lọc: <code>MIN_PRICE = 0.5</code>, <code>MAX_PRICE = 999.49</code>, <code>MIN_CHARS = 600</code> trong <code>Code_Data_processing/pricer/parser.py</code>.</li>
+<li>Bộ dữ liệu: HuggingFace <code>SeanSunny/items_full</code> (820.000), <code>SeanSunny/items_lite</code> (22.000).</li>
+</ul>
+</details>
+<hr />
+<h2 id="phan-3-mo-hinh-uoc-gia">Phần 3: Mô hình ước giá</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Dự án đã thử từ cách đoán đơn giản nhất đến LLM và mô hình tự huấn luyện. Kết hợp 3 mô hình cho sai số thấp nhất, khoảng $30 mỗi sản phẩm, nên hệ thống dùng cách kết hợp này.</p>
+</blockquote>
+<h3 id="31-a-thu-nhung-gi">3.1 Đã thử những gì</h3>
+<p>Bảng dưới là sai số trên cùng 200 sản phẩm test (lấy từ các báo cáo lúc huấn luyện):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cách ước giá</th>
+<th>MAE</th>
+<th>Nói ngắn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Đoán bừa</td>
+<td>$382</td>
+<td>mốc dưới cùng</td>
+</tr>
+<tr>
+<td>Luôn đoán giá trung bình</td>
+<td>$106</td>
+<td>mốc không dùng mô hình</td>
+</tr>
+<tr>
+<td>XGBoost, một mô hình học máy truyền thống</td>
+<td>$68</td>
+<td>tốt nhất trong nhóm truyền thống</td>
+</tr>
+<tr>
+<td>Claude Opus 4.5, hỏi thẳng không cho học thêm</td>
+<td>$47</td>
+<td>LLM mạnh nhưng không biết dữ liệu này</td>
+</tr>
+<tr>
+<td>Mạng nơ-ron sâu (DNN) tự huấn luyện</td>
+<td>$46</td>
+<td>chạy ngay trên máy, rất nhanh</td>
+</tr>
+<tr>
+<td>GPT-5.1 kèm RAG</td>
+<td>$44</td>
+<td>biết kiến thức chung, có 5 sản phẩm tham khảo</td>
+</tr>
+<tr>
+<td>Llama-3.2-3B fine-tune bằng QLoRA</td>
+<td>$40</td>
+<td>học đúng dữ liệu giá này</td>
+</tr>
+<tr>
+<td><strong>Kết hợp 3 mô hình (ensemble)</strong></td>
+<td><strong>$30</strong></td>
+<td><strong>dùng trong hệ thống</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="32-ba-mo-hinh-uoc-ket-hop">3.2 Ba mô hình được kết hợp</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Mô hình</th>
+<th>Trọng số</th>
+<th>Mạnh ở đâu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Frontier</strong>: LLM kèm RAG</td>
+<td>80 %</td>
+<td>biết kiến thức chung về hàng hoá, lại có 5 sản phẩm tương tự để so</td>
+</tr>
+<tr>
+<td><strong>Specialist</strong>: Llama fine-tune</td>
+<td>10 %</td>
+<td>đã học thói quen giá của chính bộ dữ liệu này</td>
+</tr>
+<tr>
+<td><strong>DNN</strong>: mạng nơ-ron sâu</td>
+<td>10 %</td>
+<td>nắm chắc các từ khoá gắn với giá (hãng, dòng sản phẩm)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Công thức là <code>giá = 0,8 × Frontier + 0,1 × Specialist + 0,1 × DNN</code>. Frontier được trọng số lớn nhất vì nó đúng nhất khi đứng riêng. Hai mô hình còn lại kéo kết quả lại mỗi khi Frontier đoán lệch xa.</p>
+<p>Hai chi tiết đáng nhớ:</p>
+<ul>
+<li><strong>Llama đoán giá như chọn đáp án.</strong> Bộ tách chữ (tokenizer) của Llama coi mỗi số từ 0 đến 999 là đúng một "từ". Vì vậy đoán giá với Llama giống như chọn 1 trong khoảng 1.000 đáp án, dễ học hơn việc ghép từng chữ số.</li>
+<li><strong>DNN đọc theo từ khoá.</strong> Nó biến mô tả thành 5.000 ô đánh dấu "có hoặc không có từ này" (kỹ thuật HashingVectorizer), rồi đưa qua một mạng 8 khối, tổng cộng 289 triệu tham số. Nó mạnh vì dữ liệu đã được viết lại theo khuôn, hãng và nhóm hàng luôn ghi rõ.</li>
+</ul>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li><code>segment4/price_agents/ensemble_agent.py</code> — kết hợp 3 mô hình (<code>WEIGHTS</code>, <code>combine</code>).</li>
+<li><code>segment4/price_agents/frontier_agent.py</code>, <code>specialist_agent.py</code>, <code>neural_network_agent.py</code>, <code>deep_neural_network.py</code>.</li>
+<li>Chi tiết huấn luyện: <code>Report_data_processing_v2.md</code> (DNN), <code>report_fine_tune_llm.md</code> (Llama QLoRA).</li>
+</ul>
+</details>
+<hr />
+<h2 id="phan-4-he-thong-tong-the">Phần 4: Hệ thống tổng thể</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Code chia thành ba tầng: giao diện, khung điều phối, và các "agent". Mỗi agent làm đúng một việc. Một lần tìm đi qua bốn bước: lấy dữ liệu, gộp, chọn deal, ước giá.</p>
+</blockquote>
+<h3 id="41-ba-tang">4.1 Ba tầng</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tầng</th>
+<th>Gồm</th>
+<th>Làm gì</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Giao diện</td>
+<td><code>search_key.py</code>, <code>price_is_right.py</code></td>
+<td>trang web (Gradio) để gõ từ khoá, xem bảng và log</td>
+</tr>
+<tr>
+<td>Khung điều phối</td>
+<td><code>multi_source_framework.py</code>, <code>deal_agent_framework.py</code></td>
+<td>mở ChromaDB, nạp các mô hình một lần, giữ kết quả</td>
+</tr>
+<tr>
+<td>Agent</td>
+<td>thư mục <code>price_agents/</code>, <code>bestbuy_untils/</code></td>
+<td>mỗi agent một việc: lấy dữ liệu, chọn deal, ước giá, viết tin nhắn, điều phối</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Agent</strong> ở đây chỉ là một lớp Python làm một việc rõ ràng và tự ghi log. Thứ tự các bước do code viết sẵn, không để LLM tự quyết. Lý do: các bước luôn cố định, để LLM tự quyết chỉ làm chậm và khó đoán hơn.</p>
+<h3 id="42-mot-lan-tim-dien-ra-the-nao">4.2 Một lần tìm diễn ra thế nào</h3>
+<figure class="diagram"><div class="diagram-scroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 790" role="img" aria-label="Luồng dữ liệu của app search_key: luồng nền khi mở app, rồi 4 bước cào song song, gộp, chọn deal, ước giá song song, cuối cùng bảng kết quả và thông báo" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+  <defs>
+    <marker id="f1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566176"/>
+    </marker>
+  </defs>
+
+  <!-- Luồng nền khi mở app -->
+  <rect x="20" y="16" width="840" height="96" rx="10" fill="none" stroke="#B8C0CC" stroke-dasharray="6 5"/>
+  <text x="38" y="42" font-size="12.5" font-weight="600" fill="#566176">Khi mở app — chạy nền, trước lần tìm đầu</text>
+  <rect x="38" y="56" width="248" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="162" y="81" font-size="12.5" text-anchor="middle">Đánh thức máy Modal (Llama)</text>
+  <rect x="304" y="56" width="262" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="435" y="81" font-size="12.5" text-anchor="middle">Nạp ChromaDB + 3 mô hình (9–20 s)</text>
+  <rect x="584" y="56" width="258" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="713" y="81" font-size="12.5" text-anchor="middle">Giữ ấm: ping 50 s, ngừng sau 15 phút</text>
+
+  <!-- Từ khoá -->
+  <rect x="380" y="132" width="250" height="36" rx="18" fill="#172033"/>
+  <text x="505" y="155" font-size="13" font-weight="600" text-anchor="middle" fill="#FFFFFF">Người dùng nhập từ khoá</text>
+  <line x1="505" y1="168" x2="505" y2="192" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Cột tên bước -->
+  <g font-size="13" font-weight="700">
+    <text x="24" y="232">Bước 1</text>
+    <text x="24" y="382">Bước 2</text>
+    <text x="24" y="462">Bước 3</text>
+    <text x="24" y="560">Bước 4</text>
+  </g>
+  <g font-size="12" fill="#566176">
+    <text x="24" y="250">11–26 s</text>
+    <text x="24" y="400">&lt; 0,1 s</text>
+    <text x="24" y="480">4–5 s</text>
+    <text x="24" y="578">~4 s</text>
+  </g>
+
+  <!-- Bước 1: hai nguồn song song -->
+  <rect x="150" y="196" width="710" height="118" rx="10" fill="#F7F9FC" stroke="#DCE1EA"/>
+  <text x="168" y="219" font-size="13" font-weight="600">Cào hai nguồn cùng lúc</text>
+  <rect x="168" y="232" width="324" height="66" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="184" y="256" font-size="13" font-weight="600">BestBuy — API nội bộ</text>
+  <text x="184" y="278" font-size="12" fill="#566176">giá theo lô 25 SKU, "đang sale" = onSale</text>
+  <rect x="518" y="232" width="324" height="66" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="534" y="256" font-size="13" font-weight="600">Amazon — cookie WAF → curl_cffi</text>
+  <text x="534" y="278" font-size="12" fill="#566176">"đang sale" = có giá gạch ngang lớn hơn</text>
+  <text x="505" y="334" font-size="12" fill="#566176" text-anchor="middle">mỗi nguồn trả trạng thái ok / empty / blocked / error — nguồn lỗi không kéo nguồn kia</text>
+  <line x1="505" y1="342" x2="505" y2="358" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Bước 2 -->
+  <rect x="150" y="362" width="710" height="52" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="168" y="384" font-size="13" font-weight="600">Gộp thành một danh sách, bỏ hàng trùng</text>
+  <text x="168" y="403" font-size="12" fill="#566176">cùng link hoặc cùng tên khi bỏ từ chỉ màu ⇒ giữ bản rẻ nhất (ví dụ 12 → 8 deal)</text>
+  <line x1="505" y1="414" x2="505" y2="438" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Bước 3 -->
+  <rect x="150" y="442" width="710" height="52" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="168" y="464" font-size="13" font-weight="600">gpt-6-luna chọn 3 deal</text>
+  <text x="168" y="483" font-size="12" fill="#566176">mô hình trả số thứ tự + tóm tắt; code lấy giá, link, tên gốc từ danh sách đã cào</text>
+  <line x1="505" y1="494" x2="505" y2="518" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Bước 4: 3 deal song song, mỗi deal 3 mô hình song song -->
+  <rect x="150" y="522" width="710" height="150" rx="10" fill="#F7F9FC" stroke="#DCE1EA"/>
+  <text x="168" y="545" font-size="13" font-weight="600">Ước giá 3 deal cùng lúc</text>
+  <g font-size="12">
+    <rect x="168" y="558" width="216" height="98" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="184" y="580" font-weight="600" font-size="13">Deal 1</text>
+    <rect x="184" y="592" width="56" height="24" rx="5" fill="#E8EEFD"/><text x="212" y="608" text-anchor="middle">Llama</text>
+    <rect x="246" y="592" width="66" height="24" rx="5" fill="#E8EEFD"/><text x="279" y="608" text-anchor="middle">Frontier</text>
+    <rect x="318" y="592" width="50" height="24" rx="5" fill="#E8EEFD"/><text x="343" y="608" text-anchor="middle">DNN</text>
+    <text x="184" y="640" fill="#566176">0,1 L + 0,8 F + 0,1 D</text>
+
+    <rect x="397" y="558" width="216" height="98" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="413" y="580" font-weight="600" font-size="13">Deal 2</text>
+    <rect x="413" y="592" width="56" height="24" rx="5" fill="#E8EEFD"/><text x="441" y="608" text-anchor="middle">Llama</text>
+    <rect x="475" y="592" width="66" height="24" rx="5" fill="#E8EEFD"/><text x="508" y="608" text-anchor="middle">Frontier</text>
+    <rect x="547" y="592" width="50" height="24" rx="5" fill="#E8EEFD"/><text x="572" y="608" text-anchor="middle">DNN</text>
+    <text x="413" y="640" fill="#566176">0,1 L + 0,8 F + 0,1 D</text>
+
+    <rect x="626" y="558" width="216" height="98" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="642" y="580" font-weight="600" font-size="13">Deal 3</text>
+    <rect x="642" y="592" width="56" height="24" rx="5" fill="#E8EEFD"/><text x="670" y="608" text-anchor="middle">Llama</text>
+    <rect x="704" y="592" width="66" height="24" rx="5" fill="#E8EEFD"/><text x="737" y="608" text-anchor="middle">Frontier</text>
+    <rect x="776" y="592" width="50" height="24" rx="5" fill="#E8EEFD"/><text x="801" y="608" text-anchor="middle">DNN</text>
+    <text x="642" y="640" fill="#566176">0,1 L + 0,8 F + 0,1 D</text>
+  </g>
+  <line x1="300" y1="672" x2="300" y2="704" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Kết quả và thông báo -->
+  <rect x="150" y="708" width="300" height="48" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="300" y="737" font-size="13" font-weight="600" text-anchor="middle">Bảng kết quả, sắp theo discount</text>
+  <line x1="450" y1="732" x2="486" y2="732" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+  <rect x="490" y="708" width="226" height="48" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="603" y="729" font-size="12.5" text-anchor="middle">discount &gt; $100 và link</text>
+  <text x="603" y="746" font-size="12.5" text-anchor="middle">bestbuy.com / amazon.com?</text>
+  <line x1="716" y1="732" x2="752" y2="732" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+  <text x="734" y="724" font-size="12" text-anchor="middle" fill="#566176">có</text>
+  <rect x="756" y="708" width="104" height="48" rx="10" fill="#172033"/>
+  <text x="808" y="737" font-size="13" font-weight="600" text-anchor="middle" fill="#FFFFFF">Pushover</text>
+</svg></div><figcaption>Một lần tìm của ứng dụng 1. Viền xanh là các việc chạy cùng lúc: hai nguồn ở Bước 1, ba deal ở Bước 4, và trong mỗi deal ba mô hình. Bước 2 và 3 phải chờ bước trước xong. Phần trên cùng chạy ngầm ngay khi mở ứng dụng, trước lần tìm đầu.</figcaption></figure>
+<p>Kể theo thứ tự:</p>
+<ol>
+<li><strong>Khi vừa mở ứng dụng</strong>, hệ thống chạy ngầm ba việc: đánh thức máy chủ chạy Llama, nạp ChromaDB cùng các mô hình, và bắt đầu "giữ ấm" máy chủ đó (mục 5.5). Nhờ vậy lần tìm đầu tiên không phải chờ thêm.</li>
+<li><strong>Bước 1, lấy dữ liệu:</strong> hệ thống tìm trên BestBuy và Amazon <strong>cùng lúc</strong>, mỗi bên lấy tối đa vài sản phẩm đang sale. Mỗi bên báo lại một trạng thái: có hàng, không có hàng, bị chặn, hoặc lỗi. Một bên hỏng không làm hỏng bên kia.</li>
+<li><strong>Bước 2, gộp:</strong> hai danh sách thành một, bỏ các sản phẩm trùng.</li>
+<li><strong>Bước 3, chọn deal:</strong> gpt-6-luna chọn ra 3 deal và viết tóm tắt cho từng deal.</li>
+<li><strong>Bước 4, ước giá:</strong> 3 deal được ước giá <strong>cùng lúc</strong>. Trong mỗi deal, 3 mô hình cũng chạy cùng lúc.</li>
+<li><strong>Kết quả:</strong> bảng sắp theo discount. Nếu deal tốt nhất có discount trên $100 và link đúng là của BestBuy hoặc Amazon, hệ thống gửi thông báo lên điện thoại.</li>
+</ol>
+<h3 id="43-moi-phan-chay-o-au">4.3 Mỗi phần chạy ở đâu</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -375,283 +567,485 @@ Bảng kết quả (sắp theo discount) → discount &gt; $100 và link đúng 
 </thead>
 <tbody>
 <tr>
-<td>gpt-6-luna (chọn deal, Frontier, tin nhắn)</td>
-<td>OpenAI API</td>
-<td>LLM lớn, trả tiền theo token, rất rẻ</td>
+<td>gpt-6-luna (chọn deal, Frontier, viết tin nhắn)</td>
+<td>máy chủ OpenAI, gọi qua mạng</td>
+<td>LLM lớn, trả tiền theo lượng chữ, rất rẻ</td>
 </tr>
 <tr>
 <td>gpt-oss-20b (viết lại mô tả)</td>
-<td>Groq qua LiteLLM</td>
-<td>nhanh (0,3–1,1 s / lần)</td>
+<td>máy chủ Groq, gọi qua mạng</td>
+<td>rất nhanh, dưới 1 giây mỗi lần</td>
 </tr>
 <tr>
 <td>Llama-3.2-3B fine-tune</td>
-<td>Modal, GPU T4</td>
-<td>theo thiết kế của khoá học: mô hình chạy trên GPU thuê, chỉ tính tiền khi máy bật <span class="ev ev-inferred">suy luận: GPU 4 GB của máy User đã dùng cho DNN + bộ mã hoá câu</span></td>
+<td>GPU thuê trên Modal</td>
+<td>theo thiết kế của khoá học; Modal chỉ tính tiền khi máy đang bật</td>
 </tr>
 <tr>
-<td>DNN, SentenceTransformer, ChromaDB</td>
-<td>máy User (GPU)</td>
-<td>nhỏ, nhanh (DNN 0,1–0,2 s; tìm RAG 0,0–0,3 s)</td>
+<td>DNN, bộ tạo embedding, ChromaDB</td>
+<td>máy tính của người dùng</td>
+<td>nhỏ và nhanh, dưới nửa giây</td>
 </tr>
 </tbody>
 </table></div>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Ở Bước 4, vì sao 3 mô hình có thể chạy cùng lúc, nhưng Bước 3 và Bước 4 thì không thể chạy song song với nhau?</p>
-</blockquote>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li>Điều phối 4 bước: <code>segment4/price_agents/multi_source_planning_agent.py</code> — <code>search_and_scrape</code>, <code>combine</code>, <code>select_top_deals</code>, <code>estimate_prices</code>, <code>plan</code>.</li>
+<li>Lớp cơ sở của mọi agent: <code>segment4/price_agents/agent.py</code>.</li>
+<li>Ứng dụng 2 dùng <code>segment4/price_agents/planning_agent.py</code>.</li>
+</ul>
+</details>
 <hr />
-<h2 id="phan-3-tung-khau-theo-lop">Phần 3: Từng khâu theo lớp</h2>
-<h3 id="31-cao-du-lieu-bestbuy-va-amazon">3.1 Cào dữ liệu BestBuy và Amazon</h3>
-<p><strong>Bài toán.</strong> Lấy danh sách sản phẩm <strong>đang giảm giá</strong> khớp từ khoá, kèm tên, hãng, giá, mô tả tính năng, link — từ hai trang
-có lớp chống bot, chạy trên máy WSL2 đặt tại Việt Nam.</p>
-<p><strong>Cơ chế — BestBuy.</strong> Trang sản phẩm của BestBuy chặn request từ WSL2, nhưng các API JSON nội bộ thì không:</p>
-<ol>
-<li>Mở trang chủ với <code>?intl=nosplash</code> để bỏ qua bước chọn quốc gia.</li>
-<li>Tải trang tìm kiếm, lấy mọi mã sản phẩm (SKU) theo <strong>đúng thứ tự trên trang</strong> (liên quan nhất trước).</li>
-<li>Gọi API giá theo <strong>lô 25 SKU</strong> → tên, hãng, giá hiện tại, giá gốc; <strong>"đang sale" = <code>pricingType == "onSale"</code></strong>.</li>
-<li>Với mỗi SKU đang sale, gọi API chi tiết → danh sách tính năng + link chuẩn. Đủ số deal thì dừng sớm.</li>
-</ol>
-<p><strong>Cơ chế — Amazon.</strong> Amazon bật <strong>AWS WAF</strong>: trang đầu tiên trả một đoạn JavaScript bắt trình duyệt tự chứng minh là người
-thật. Thư viện <code>curl_cffi</code> giả được "dấu vân tay" mạng của Chrome nhưng <strong>không chạy JavaScript</strong>, nên một mình nó không qua.
-Cách làm là <strong>lai</strong>:</p>
-<ol>
-<li>Mở Chromium chạy ngầm (Playwright), vào trang chủ, chờ cookie <code>aws-waf-token</code> (~1,6 s), đóng trình duyệt.</li>
-<li>Chép cookie sang <code>curl_cffi</code>, thêm cookie <code>i18n-prefs=USD</code> để ép giá đô la.</li>
-<li>Tìm kiếm bằng link <code>/s?k=…&amp;ref=nb_sb_noss</code> kèm header <code>Referer</code> — giống như bấm ô tìm kiếm trên trang chủ.</li>
-<li>Đọc từng thẻ sản phẩm: <strong>"đang sale" = có giá gạch ngang lớn hơn giá hiện tại</strong>; mở trang chi tiết lấy tính năng.</li>
-</ol>
-<p><strong>Vì sao chọn cách này.</strong></p>
-<ul>
-<li>Dùng trình duyệt thật cho mọi bước thì chắc chắn qua, nhưng chậm (6,3 s mỗi lần tìm, phải giữ trình duyệt mở). Cách lai chỉ
-  dùng trình duyệt <strong>một lần</strong> để lấy cookie, phần còn lại nhanh như request thường (1,3–1,8 s / lần tìm) <span class="ev ev-measured">đã đo 28/10</span>.</li>
-<li>Với BestBuy, gọi API nhanh và ổn định hơn đọc HTML, lại không bị chặn.</li>
-</ul>
-<p><strong>Khi nào hỏng.</strong></p>
-<ul>
-<li><strong>Amazon đổi lớp chặn</strong> bất kỳ lúc nào. Ngày 28/10 đổi sang WAF (code cũ ra 0 sản phẩm); ngày 29/10 trang chủ hiện trang trung
-  gian "Continue shopping" làm code chờ vô ích 20 giây (đã sửa — Phần 4).</li>
-<li><strong>Chặn mềm:</strong> Amazon trả trang bình thường (mã 200) nhưng không có sản phẩm — gặp 3 lần trong khoảng 8 lượt ngày 29/10. Code
-  thử lại một lần với cookie mới; vẫn rỗng thì báo nguồn đó <code>empty</code>.</li>
-<li><strong>Gửi request dồn dập</strong> → bị chặn IP tạm thời. Thử nghiệm Amazon phải thưa, có nghỉ.</li>
-<li><strong>Giá VND:</strong> IP Việt Nam làm Amazon hiện giá VND; code cũ đọc nhầm thành đô la. Nay chuỗi giá không có <code>$</code> bị bỏ qua.</li>
-<li><strong>Lỗi BestBuy đã gặp (28/10):</strong> API giá <strong>âm thầm chỉ trả 25 SKU</strong> mỗi lần dù gửi nhiều hơn → trước đó chỉ 25 / 200+ sản phẩm
-  được kiểm giá (<code>wireless headphones</code> ra 2 deal thay vì 6).</li>
-</ul>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Vì sao <code>curl_cffi</code> qua được lớp chặn của BestBuy nhưng không qua được AWS WAF của Amazon nếu không có trình duyệt?</p>
+<h2 id="phan-5-tung-khau">Phần 5: Từng khâu</h2>
+<h3 id="51-lay-du-lieu-tu-bestbuy-va-amazon">5.1 Lấy dữ liệu từ BestBuy và Amazon</h3>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Cả hai trang đều chặn chương trình tự động. Với BestBuy, hệ thống gọi thẳng các "cửa sau" dữ liệu (API) mà chính trang web dùng. Với Amazon, hệ thống dùng một trình duyệt thật để "xin vé vào cửa", rồi dùng vé đó cho các lần tải sau.</p>
 </blockquote>
-<h3 id="32-chon-deal-bang-llm-buoc-3">3.2 Chọn deal bằng LLM (Bước 3)</h3>
-<p><strong>Bài toán.</strong> Từ 8–12 sản phẩm của hai nguồn, chọn 3 deal có mô tả rõ ràng và tóm tắt lại thành câu để đưa cho ensemble.</p>
-<p><strong>Cơ chế.</strong></p>
+<p><strong>BestBuy.</strong> Trang sản phẩm của BestBuy chặn yêu cầu đến từ máy của dự án. Nhưng bản thân trang web BestBuy lấy giá và thông tin qua các <strong>API</strong>, tức các địa chỉ trả về dữ liệu dạng bảng thay vì trang web. Các địa chỉ này thì không bị chặn. Hệ thống làm bốn việc:</p>
 <ol>
-<li><strong>Gộp hàng trùng</strong> trước: cùng nguồn và (cùng link, hoặc cùng tên khi bỏ các từ chỉ màu) → giữ bản rẻ nhất. Ví dụ 29/10:
-   BestBuy trả 5 màu tai nghe WH-1000XM5 <strong>cùng một link</strong> nhưng giá $228–$298 → giữ bản $228; danh sách 12 → 8.</li>
-<li>Mỗi sản phẩm được đánh số <code>Deal 1</code>, <code>Deal 2</code>… trong prompt (không kèm link).</li>
-<li>gpt-6-luna trả về theo khuôn cố định (<strong>structured output</strong>): <code>deal_number</code> + câu tóm tắt.</li>
-<li><strong>Code</strong> lấy giá, link, tên gốc từ danh sách đã cào và ghép mô tả <code>[Nguồn] &lt;tên gốc&gt;. &lt;tóm tắt&gt;</code>.</li>
+<li>Mở trang tìm kiếm và lấy danh sách mã sản phẩm (SKU), giữ đúng thứ tự BestBuy xếp (liên quan nhất đứng trước).</li>
+<li>Hỏi API giá cho từng nhóm 25 mã. Mỗi sản phẩm có trạng thái giá, và <strong>"đang sale" nghĩa là trạng thái <code>onSale</code></strong>.</li>
+<li>Với mỗi sản phẩm đang sale, hỏi thêm API chi tiết để lấy danh sách tính năng và link chuẩn.</li>
+<li>Đủ số deal cần thì dừng, không hỏi tiếp.</li>
 </ol>
-<p><strong>Vì sao chọn cách này.</strong></p>
-<ul>
-<li>Bản cũ để mô hình <strong>tự chép lại</strong> giá và link vào câu trả lời — có thể chép sai; một lượt đo còn trả <strong>8 deal</strong> dù được dặn
-  tối đa 3. Nguyên tắc mới: <strong>mô hình chỉ chọn, code giữ con số</strong>.</li>
-<li>Tên gốc ghép vào vì luna có lúc tóm tắt "This 6-quart air fryer…" mất cả hãng lẫn tên mẫu — ensemble mất thông tin hãng
-  (một nồi chiên Ninja $229,99 bị ước $167, lượt có tên ước $212).</li>
-<li>Mức suy luận <code>none</code> thay vì <code>low</code>: đo trên cùng danh sách deal, 2 từ khoá × 3 lượt — <code>none</code> 4,2–4,3 s, <code>low</code> 4,6–5,3 s, cả hai
-  6 / 6 lượt đủ 3 deal khác nhau, 0 lần sai giá / link.</li>
-</ul>
-<p><strong>Khi nào hỏng.</strong> Tiêu chí chọn vẫn là "mô tả chi tiết nhất, giá rõ ràng" — <strong>chưa phải "giảm nhiều nhất"</strong>; chưa có mốc so với
-một luật đơn giản không dùng LLM (ví dụ "3 deal giảm nhiều nhất") để chứng minh LLM đáng dùng ở bước này.</p>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Nếu LLM trả về <code>deal_number = 15</code> trong khi danh sách chỉ có 8 deal, hệ thống xử lý thế nào, và vì sao an toàn hơn cách cũ?</p>
-</blockquote>
-<h3 id="33-ensemble-uoc-gia-buoc-4">3.3 Ensemble ước giá (Bước 4)</h3>
-<p><strong>Bài toán.</strong> Ước giá trị thật của từng deal từ mô tả, đủ nhanh để người dùng không phải chờ lâu.</p>
-<p><strong>Cơ chế.</strong></p>
+<p>Để không bị nhận ra là chương trình, mọi yêu cầu đi qua thư viện <strong>curl_cffi</strong>. Thư viện này giả "dấu vân tay" kết nối giống hệt trình duyệt Chrome.</p>
+<p><strong>Amazon.</strong> Amazon có một lớp chặn mạnh hơn tên là <strong>AWS WAF</strong> (tường lửa của Amazon). Khi một chương trình mở amazon.com, Amazon không trả trang ngay. Nó gửi một đoạn mã nhỏ bắt máy kia chạy thử. Trình duyệt thật chạy được đoạn mã đó, còn curl_cffi thì không, nên bị chặn.</p>
+<p>Vì vậy hệ thống làm theo cách <strong>lai</strong>, gồm hai bước:</p>
 <ol>
-<li><strong>Viết lại mô tả</strong> (gpt-oss-20b trên Groq) theo khuôn <code>Title / Category / Brand / Description / Details</code> — đúng khuôn dữ liệu
-   lúc huấn luyện, để mô hình nhận đầu vào quen thuộc. Lỗi thì dùng mô tả gốc.</li>
-<li>Ba mô hình chạy <strong>cùng lúc</strong> trên cùng mô tả đã viết lại:</li>
+<li>Mở một <strong>trình duyệt chạy ngầm</strong> (Chromium, điều khiển bằng thư viện Playwright), vào trang chủ Amazon và để nó chạy đoạn mã kiểm tra. Amazon trả về một <strong>cookie</strong>, có thể hiểu là tấm vé chứng nhận "đã kiểm tra". Việc này mất vài giây, xong thì đóng trình duyệt.</li>
+<li>Đưa tấm vé cho curl_cffi. Từ đây curl_cffi tìm kiếm và mở trang chi tiết sản phẩm rất nhanh. Hệ thống còn gửi kèm một cookie ép Amazon hiện giá bằng đô la.</li>
 </ol>
+<figure class="diagram"><div class="diagram-scroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" role="img" aria-label="Cách lai lấy dữ liệu Amazon: Chromium chạy ngầm qua lớp chặn AWS WAF để lấy cookie, chuyển cookie sang curl_cffi, rồi curl_cffi tìm kiếm và mở trang chi tiết" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+  <defs>
+    <marker id="f2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566176"/>
+    </marker>
+    <marker id="f2-arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1D4ED8"/>
+    </marker>
+  </defs>
+
+  <!-- Ba bên tham gia -->
+  <g font-size="13" font-weight="600" text-anchor="middle">
+    <rect x="40" y="16" width="260" height="44" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="170" y="36">Chromium chạy ngầm</text>
+    <text x="170" y="52" font-size="11.5" font-weight="400" fill="#566176">Playwright, mở một lần mỗi lượt</text>
+    <rect x="320" y="16" width="240" height="44" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="440" y="36">curl_cffi</text>
+    <text x="440" y="52" font-size="11.5" font-weight="400" fill="#566176">giả dấu vân tay TLS của Chrome</text>
+    <rect x="600" y="16" width="240" height="44" rx="8" fill="#172033"/>
+    <text x="720" y="43" fill="#FFFFFF">amazon.com</text>
+  </g>
+  <g stroke="#B8C0CC" stroke-dasharray="4 5">
+    <line x1="170" y1="60" x2="170" y2="540"/>
+    <line x1="440" y1="60" x2="440" y2="540"/>
+    <line x1="720" y1="60" x2="720" y2="540"/>
+  </g>
+
+  <!-- Giai đoạn 1: qua WAF bằng trình duyệt -->
+  <g font-size="12">
+    <line x1="170" y1="92" x2="716" y2="92" stroke="#566176" stroke-width="1.5" marker-end="url(#f2-arrow)"/>
+    <text x="445" y="86" text-anchor="middle">GET trang chủ</text>
+    <line x1="720" y1="124" x2="174" y2="124" stroke="#566176" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#f2-arrow)"/>
+    <text x="445" y="118" text-anchor="middle">202 + đoạn JavaScript của AWS WAF (curl_cffi không chạy được JS)</text>
+    <rect x="60" y="138" width="220" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="170" y="154" text-anchor="middle">chạy JS ~1,6 s</text>
+    <text x="170" y="170" text-anchor="middle" font-weight="600">⇒ cookie aws-waf-token</text>
+    <rect x="300" y="190" width="400" height="38" rx="7" fill="#F7F9FC" stroke="#DCE1EA"/>
+    <text x="500" y="206" text-anchor="middle" fill="#566176">có lúc hiện trang "Continue shopping" (không có ô tìm kiếm)</text>
+    <text x="500" y="221" text-anchor="middle" fill="#566176">⇒ chỉ chờ tối đa 3 s rồi dùng cookie đang có (trước: chờ 20 s, mất cookie)</text>
+  </g>
+
+  <!-- Giai đoạn 2: chuyển cookie — mẹo chính -->
+  <line x1="170" y1="262" x2="436" y2="262" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#f2-arrow-blue)"/>
+  <text x="303" y="254" font-size="12.5" font-weight="600" fill="#1D4ED8" text-anchor="middle">chép cookie, đóng trình duyệt</text>
+  <text x="303" y="280" font-size="12" fill="#566176" text-anchor="middle">+ cookie i18n-prefs=USD (ép giá đô la)</text>
+
+  <!-- Giai đoạn 3: tìm kiếm bằng curl_cffi -->
+  <g font-size="12">
+    <line x1="440" y1="318" x2="716" y2="318" stroke="#566176" stroke-width="1.5" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="312" text-anchor="middle">GET /s?k=…&amp;ref=nb_sb_noss + Referer</text>
+    <line x1="720" y1="350" x2="444" y2="350" stroke="#566176" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="344" text-anchor="middle">200: HTML các thẻ sản phẩm</text>
+    <rect x="460" y="364" width="400" height="56" rx="7" fill="#FDF0EF" stroke="#E8B4AE"/>
+    <text x="476" y="384" fill="#B42318">thiếu ref hoặc Referer ⇒ 503</text>
+    <text x="476" y="401" fill="#B42318">trang 200 nhưng rỗng (chặn mềm) ⇒ nghỉ 2 s, lấy cookie mới,</text>
+    <text x="476" y="415" fill="#B42318">thử lại 1 lần; vẫn chặn ⇒ báo nguồn "blocked"</text>
+    <line x1="440" y1="452" x2="716" y2="452" stroke="#566176" stroke-width="1.5" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="446" text-anchor="middle">GET /dp/&lt;ASIN&gt; × 6, lần lượt (0,5–4,1 s / trang)</text>
+    <line x1="720" y1="484" x2="444" y2="484" stroke="#566176" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="478" text-anchor="middle">tính năng (#feature-bullets), hãng</text>
+    <rect x="300" y="502" width="280" height="32" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="440" y="523" text-anchor="middle">deal: tên, hãng, giá USD, tính năng, link</text>
+  </g>
+</svg></div><figcaption>Cách lai lấy dữ liệu Amazon. Trình duyệt thật chỉ dùng một lần để chạy đoạn mã kiểm tra của AWS WAF và nhận cookie. Mũi tên xanh là bước chuyển cookie sang curl_cffi; mọi yêu cầu sau đó đi bằng curl_cffi cho nhanh. Khung đỏ là những chỗ từng bị chặn và cách hệ thống xử lý.</figcaption></figure>
+<p>Ở Amazon, <strong>"đang sale" nghĩa là sản phẩm có giá gạch ngang cao hơn giá đang bán.</strong></p>
+<p><strong>Vì sao chọn cách lai.</strong> Dùng trình duyệt thật cho mọi bước thì chắc chắn qua được, nhưng chậm và tốn bộ nhớ. Cách lai chỉ dùng trình duyệt một lần mỗi lượt tìm, phần còn lại nhanh như tải trang bình thường.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Mô hình</th>
-<th>Trọng số</th>
-<th>Cách ước</th>
+<th>Cách đã thử (28/10)</th>
+<th>Kết quả</th>
+<th>Thời gian mỗi lần tìm</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Frontier</strong></td>
-<td>80 %</td>
-<td>tìm <strong>5 sản phẩm giống nhất</strong> trong ChromaDB (800.000 sản phẩm train, kèm giá thật) → đưa vào prompt của gpt-6-luna (<code>low</code>) làm ngữ cảnh → luna trả một con số. Đây là <strong>RAG</strong> (truy xuất rồi sinh câu trả lời)</td>
+<td>Chỉ dùng curl_cffi, thử 6 kiểu giả trình duyệt</td>
+<td>bị chặn</td>
+<td>—</td>
 </tr>
 <tr>
-<td><strong>Specialist</strong></td>
-<td>10 %</td>
-<td>Llama-3.2-3B fine-tune; prompt <code>"What does this cost to the nearest dollar? … Price is $"</code>, sinh tối đa 5 token. Tokenizer của Llama mã hoá mỗi số 0–999 thành <strong>một token</strong>, nên bài toán gần như "chọn 1 trong ~1.000 số"</td>
+<td>Trình duyệt thật vào thẳng trang tìm kiếm</td>
+<td>bị chặn</td>
+<td>—</td>
 </tr>
 <tr>
-<td><strong>DNN</strong></td>
-<td>10 %</td>
-<td>biến chữ thành vector 5.000 chiều bằng HashingVectorizer → mạng 8 khối residual → giá (đã log-hoá khi huấn luyện)</td>
+<td>Trình duyệt thật gõ vào ô tìm kiếm</td>
+<td>qua được</td>
+<td>6,3 giây, phải giữ trình duyệt mở</td>
+</tr>
+<tr>
+<td><strong>Cách lai (đang dùng)</strong></td>
+<td><strong>qua được</strong></td>
+<td><strong>1,3–1,8 giây</strong>, cộng vài giây lấy cookie</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>Bước 3 — kết hợp:</strong> <code>giá = 0,8 × Frontier + 0,1 × Llama + 0,1 × DNN</code>. Mô hình nào <strong>lỗi hoặc trả 0</strong> thì bị bỏ, trọng số chia lại
-   cho các mô hình còn lại. Ví dụ: Frontier $150, DNN $100, Llama quá giờ → (0,8 × 150 + 0,1 × 100) / 0,9 = <strong>$144,44</strong>.</p>
-<p><strong>Bước 4 — song song:</strong> 3 deal cũng chạy cùng lúc.</p>
-<p><strong>Vì sao chọn cách này.</strong></p>
+<p><strong>Những lần từng hỏng và cách đã sửa.</strong></p>
 <ul>
-<li><strong>Frontier đổi GPT-5.1 → gpt-6-luna <code>low</code></strong> (29/10). Đo trên 200 mẫu test đầu của <code>items_full</code>, cùng cách RAG, mỗi cấu hình
-  1 lượt:</li>
+<li><strong>Giá hiện bằng tiền Việt.</strong> Máy đặt ở Việt Nam nên Amazon tự đổi sang VND, và code cũ đọc nhầm số VND thành đô la. Giờ hệ thống ép hiển thị đô la, và bỏ qua mọi giá không có ký hiệu "$".</li>
+<li><strong>BestBuy chỉ trả 25 sản phẩm mỗi lần hỏi giá.</strong> Code cũ hỏi một lần cho hơn 200 mã, nên chỉ 25 mã được kiểm giá và bỏ sót nhiều deal. Giờ hỏi theo từng nhóm 25.</li>
+<li><strong>Trang "Continue shopping" của Amazon (29/10).</strong> Sau khi qua lớp kiểm tra, Amazon có lúc hiện một trang trung gian không có ô tìm kiếm. Code cũ chờ ô tìm kiếm tới 20 giây, rồi báo lỗi và bỏ luôn cookie đã có. Giờ chỉ chờ tối đa 3 giây rồi dùng cookie đang có.</li>
+<li><strong>Trang trắng (chặn mềm).</strong> Đôi khi Amazon trả một trang trông bình thường nhưng không có sản phẩm nào. Hệ thống nghỉ 2 giây, xin cookie mới và thử lại một lần.</li>
 </ul>
+<p><strong>Giới hạn còn lại.</strong> Amazon có thể đổi lớp chặn bất kỳ lúc nào. Gửi yêu cầu dồn dập thì bị chặn tạm thời, nên khi thử nghiệm phải để thưa ra. 6 trang chi tiết Amazon vẫn mở lần lượt, đây là chỗ chậm nhất còn lại (mục 6.3).</p>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li>BestBuy: <code>segment4/price_agents/bestbuy_deals.py</code> — <code>_init_session</code>, <code>search_bestbuy</code>, <code>get_price_blocks</code> (nhóm 25 mã, <code>PRICE_BLOCKS_BATCH_SIZE</code>), <code>get_product_details</code>, <code>search_filter_scrape_bestbuy</code>.</li>
+<li>Amazon: <code>segment4/price_agents/amazon_deals.py</code> — <code>_get_waf_cookies</code> (trình duyệt ngầm, chờ ô tìm kiếm tối đa <code>WAIT_SEARCH_BOX_MS = 3000</code>), <code>init_amazon_session</code> (cookie <code>i18n-prefs=USD</code>), <code>search_amazon</code> (link <code>/s?k=…&amp;ref=nb_sb_noss</code> kèm header <code>Referer</code>; bị chặn thì ném <code>AmazonBlockedError</code>), <code>scrape_product_page</code>, <code>search_filter_scrape_amazon</code> (thử lại một lần).</li>
+<li>Trạng thái từng nguồn: <code>_run_source</code> trong <code>multi_source_planning_agent.py</code>.</li>
+</ul>
+</details>
+<h3 id="52-chon-deal-bang-llm">5.2 Chọn deal bằng LLM</h3>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Từ khoảng 8–12 sản phẩm của hai trang, gpt-6-luna chọn 3 deal và viết tóm tắt. Mô hình chỉ chọn số thứ tự. Giá và link do code lấy từ dữ liệu đã cào, nên mô hình không thể ghi sai.</p>
+</blockquote>
+<p>Bước này cần một LLM vì nó phải đọc mô tả và tóm tắt lại thành câu gọn, để ensemble ở bước sau đọc được. Hệ thống làm bốn việc:</p>
+<ol>
+<li><strong>Bỏ hàng trùng.</strong> BestBuy hay liệt kê mỗi màu của cùng một mẫu thành một sản phẩm riêng, cùng link nhưng giá khác nhau. Hệ thống gộp các bản trùng (cùng link, hoặc cùng tên khi bỏ chữ chỉ màu) và giữ bản rẻ nhất. Ví dụ ngày 29/10: 5 màu tai nghe Sony WH-1000XM5 có giá từ $228 đến $298, được gộp lại còn bản $228.</li>
+<li><strong>Đánh số.</strong> Mỗi sản phẩm được đánh số "Deal 1", "Deal 2"… trong câu hỏi gửi luna.</li>
+<li><strong>Luna trả lời theo khuôn cố định.</strong> Kỹ thuật này gọi là <strong>structured output</strong>: thay vì viết văn tự do, luna phải trả về đúng hai trường là số thứ tự của deal và câu tóm tắt.</li>
+<li><strong>Code ghép kết quả.</strong> Code lấy giá, link và tên gốc của sản phẩm theo số thứ tự đó, rồi ghép thành mô tả "[Nguồn] tên gốc. tóm tắt của luna". Số thứ tự không hợp lệ hoặc bị lặp thì bỏ qua. Tối đa giữ 3 deal.</li>
+</ol>
+<p><strong>Vì sao làm như vậy.</strong> Bản cũ để mô hình tự chép lại giá và link vào câu trả lời, nên có thể chép sai. Một lần đo, bản cũ còn trả về 8 deal dù đã được dặn chọn tối đa 3. Nguyên tắc mới: <strong>mô hình chỉ chọn, code giữ con số.</strong></p>
+<p>Tên gốc được ghép vào đầu mô tả vì luna có lúc tóm tắt mà quên tên hãng. Ví dụ: "This 6-quart air fryer…" không còn chữ "Ninja". Thiếu tên hãng, ensemble đoán một nồi chiên Ninja $229,99 chỉ còn $167, trong khi lượt có tên đoán $212.</p>
+<p>Mức suy luận được chọn bằng cách đo trên cùng một danh sách deal, mỗi cấu hình 3 lần:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cấu hình</th>
+<th>Thời gian</th>
+<th>Số lần chọn đủ 3 deal khác nhau</th>
+<th>Sai giá hoặc link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gpt-5-nano (bản cũ)</td>
+<td>3,3–4,4 giây</td>
+<td>5 / 6</td>
+<td>có thể, vì mô hình tự chép</td>
+</tr>
+<tr>
+<td><strong>gpt-6-luna, <code>none</code> (đang dùng)</strong></td>
+<td><strong>4,2–4,3 giây</strong></td>
+<td><strong>6 / 6</strong></td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>gpt-6-luna, <code>low</code></td>
+<td>4,6–5,3 giây</td>
+<td>6 / 6</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Giới hạn còn lại.</strong> Luna đang chọn theo tiêu chí "mô tả rõ ràng, giá rõ ràng", <strong>chưa phải "giảm nhiều nhất"</strong>. Cũng chưa có phép so với một luật đơn giản không dùng AI (ví dụ "lấy 3 deal giảm nhiều nhất") để chứng minh dùng LLM ở bước này là đáng.</p>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li><code>segment4/bestbuy_untils/multi_source_scanner_agent.py</code> — <code>MODEL = "gpt-6-luna"</code>, <code>REASONING_EFFORT = "none"</code>, <code>dedupe_deals</code>, khuôn trả lời <code>PickedDeals</code> (<code>deal_number</code>, <code>product_description</code>), <code>scan</code>.</li>
+<li><code>segment4/bestbuy_untils/unified_deal.py</code> — gộp dữ liệu hai nguồn về một dạng (<code>UnifiedScrapedDeal</code>).</li>
+</ul>
+</details>
+<h3 id="53-uoc-gia">5.3 Ước giá</h3>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Mỗi deal được viết lại mô tả cho đúng khuôn lúc huấn luyện, rồi 3 mô hình cùng đoán giá và hệ thống lấy trung bình có trọng số. Mô hình nào lỗi thì bị bỏ, phần trọng số của nó chia cho các mô hình còn lại.</p>
+</blockquote>
+<figure class="diagram"><div class="diagram-scroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" role="img" aria-label="Ensemble ước giá: mô tả được viết lại, ba mô hình chạy song song với trọng số 80, 10, 10 phần trăm, mô hình lỗi hoặc trả 0 bị bỏ và trọng số chia lại" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+  <defs>
+    <marker id="f3-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566176"/>
+    </marker>
+    <marker id="f3-arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#B42318"/>
+    </marker>
+  </defs>
+
+  <!-- Đầu vào và viết lại -->
+  <rect x="20" y="146" width="140" height="64" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="90" y="173" font-size="12.5" font-weight="600" text-anchor="middle">Mô tả deal</text>
+  <text x="90" y="191" font-size="11.5" fill="#566176" text-anchor="middle">từ Bước 3</text>
+  <line x1="160" y1="178" x2="186" y2="178" stroke="#566176" stroke-width="1.5" marker-end="url(#f3-arrow)"/>
+  <rect x="190" y="146" width="168" height="64" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="274" y="170" font-size="12.5" font-weight="600" text-anchor="middle">Viết lại mô tả</text>
+  <text x="274" y="187" font-size="11.5" fill="#566176" text-anchor="middle">gpt-oss-20b (Groq)</text>
+  <text x="274" y="201" font-size="11.5" fill="#566176" text-anchor="middle">khuôn như lúc huấn luyện</text>
+
+  <!-- Ba mô hình song song -->
+  <g stroke="#566176" stroke-width="1.5" fill="none">
+    <path d="M358 170 C 382 170, 382 66, 408 66" marker-end="url(#f3-arrow)"/>
+    <path d="M358 178 L 408 178" marker-end="url(#f3-arrow)"/>
+    <path d="M358 186 C 382 186, 382 290, 408 290" marker-end="url(#f3-arrow)"/>
+  </g>
+  <g font-size="12">
+    <rect x="412" y="30" width="270" height="72" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="428" y="54" font-size="13" font-weight="600">Frontier — trọng số 0,8</text>
+    <text x="428" y="73" fill="#566176">RAG: 5 sản phẩm giống nhất (ChromaDB)</text>
+    <text x="428" y="90" fill="#566176">⇒ gpt-6-luna (low) trả một con số</text>
+
+    <rect x="412" y="142" width="270" height="72" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="428" y="166" font-size="13" font-weight="600">Llama 3B fine-tune — 0,1</text>
+    <text x="428" y="185" fill="#566176">GPU T4 trên Modal, ~0,9 s khi máy ấm</text>
+    <text x="428" y="202" fill="#566176">search_key chờ tối đa 10 s</text>
+
+    <rect x="412" y="254" width="270" height="72" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="428" y="278" font-size="13" font-weight="600">DNN 289 triệu tham số — 0,1</text>
+    <text x="428" y="297" fill="#566176">chạy trên máy, 0,1–0,2 s</text>
+    <text x="428" y="314" fill="#566176">HashingVectorizer → 8 khối residual</text>
+  </g>
+
+  <!-- Kết hợp -->
+  <g stroke="#566176" stroke-width="1.5" fill="none">
+    <path d="M682 66 C 708 66, 708 170, 734 170" marker-end="url(#f3-arrow)"/>
+    <path d="M682 178 L 734 178" marker-end="url(#f3-arrow)"/>
+    <path d="M682 290 C 708 290, 708 186, 734 186" marker-end="url(#f3-arrow)"/>
+  </g>
+  <rect x="738" y="122" width="122" height="112" rx="8" fill="#172033"/>
+  <g fill="#FFFFFF" text-anchor="middle">
+    <text x="799" y="150" font-size="13" font-weight="600">Trung bình</text>
+    <text x="799" y="167" font-size="13" font-weight="600">có trọng số</text>
+    <text x="799" y="190" font-size="11.5">bỏ mô hình lỗi</text>
+    <text x="799" y="205" font-size="11.5">hoặc trả 0,</text>
+    <text x="799" y="220" font-size="11.5">chia lại trọng số</text>
+  </g>
+
+  <!-- Hai ví dụ: đủ mô hình và thiếu Llama -->
+  <line x1="20" y1="362" x2="860" y2="362" stroke="#DCE1EA"/>
+  <text x="20" y="390" font-size="12.5" font-weight="600">Ví dụ cùng một deal</text>
+  <rect x="20" y="404" width="410" height="96" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="38" y="428" font-size="12.5" font-weight="600">Đủ 3 mô hình</text>
+  <text x="38" y="452" font-size="12" fill="#566176">Frontier $150, Llama $60, DNN $100</text>
+  <text x="38" y="480" font-size="13">0,8 × 150 + 0,1 × 60 + 0,1 × 100 = <tspan font-weight="700">$136</tspan></text>
+
+  <rect x="450" y="404" width="410" height="96" rx="8" fill="#FFFFFF" stroke="#E8B4AE"/>
+  <text x="468" y="428" font-size="12.5" font-weight="600" fill="#B42318">Llama quá 10 s (máy Modal nguội)</text>
+  <text x="468" y="452" font-size="12" fill="#566176">Frontier $150, DNN $100, Llama bị bỏ</text>
+  <text x="468" y="480" font-size="13">(0,8 × 150 + 0,1 × 100) / 0,9 = <tspan font-weight="700">$144,44</tspan></text>
+</svg></div><figcaption>Ensemble ước giá. Ba mô hình (viền xanh) chạy cùng lúc trên cùng mô tả đã viết lại, với trọng số 0,8, 0,1 và 0,1. Mô hình lỗi hoặc trả 0 bị bỏ và trọng số được chia lại. Ví dụ bên phải: Llama quá giờ thì giá được tính lại từ hai mô hình còn lại.</figcaption></figure>
+<p>Một deal đi qua ba bước:</p>
+<ol>
+<li><strong>Viết lại mô tả.</strong> gpt-oss-20b viết lại mô tả theo khuôn năm dòng Title, Category, Brand, Description, Details, giống hệt dữ liệu lúc huấn luyện. Mô hình đọc đầu vào quen thuộc thì đoán chính xác hơn. Nếu bước này lỗi, hệ thống dùng mô tả gốc.</li>
+<li><strong>Ba mô hình cùng đoán.</strong> Frontier tra ChromaDB lấy 5 sản phẩm giống nhất rồi hỏi gpt-6-luna (RAG, mục 1.6). Specialist gửi mô tả lên Llama trên Modal. DNN tính ngay trên máy. Ba việc chạy cùng lúc nên thời gian chỉ bằng việc chậm nhất.</li>
+<li><strong>Kết hợp.</strong> Hệ thống lấy trung bình có trọng số, chỉ tính các mô hình trả về giá lớn hơn 0.</li>
+</ol>
+<p><strong>Vì sao coi giá 0 là lỗi.</strong> Frontier và Llama trả về 0 khi không đọc ra được con số nào trong câu trả lời. Trước đây số 0 được tính thẳng vào trung bình, kéo kết quả xuống còn khoảng 20 % giá thật mà không ai biết. Giờ số 0 bị loại.</p>
+<p><strong>Frontier đổi từ GPT-5.1 sang gpt-6-luna (29/10).</strong> Trước khi đổi, dự án đo 4 cấu hình trên cùng 200 sản phẩm test, mỗi cấu hình 1 lần:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Cấu hình Frontier</th>
 <th>MAE</th>
-<th>Tiền cho 200 lời gọi</th>
+<th>Tiền cho 200 lần gọi</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>GPT-5.1 <code>none</code> (cũ)</td>
+<td>GPT-5.1, <code>none</code> (bản cũ)</td>
 <td>$31,16</td>
 <td>$0,179</td>
 </tr>
 <tr>
-<td>gpt-6-luna <code>none</code></td>
+<td>gpt-6-luna, <code>none</code></td>
 <td>$31,42</td>
 <td>$0,013</td>
 </tr>
 <tr>
-<td><strong>gpt-6-luna <code>low</code> (chọn)</strong></td>
+<td><strong>gpt-6-luna, <code>low</code> (đang dùng)</strong></td>
 <td><strong>$29,69</strong></td>
 <td><strong>$0,018</strong></td>
 </tr>
 <tr>
-<td>gpt-6.1-terra <code>none</code></td>
+<td>gpt-6.1-terra, <code>none</code></td>
 <td>$28,51</td>
 <td>$0,130</td>
 </tr>
 </tbody>
 </table></div>
-<p>So từng mẫu, khoảng dao động 95 % của mọi chênh lệch đều chứa 0 → <strong>không cấu hình nào chắc chắn tốt hơn hay kém hơn GPT-5.1</strong>
-  với 200 mẫu. Chọn luna <code>low</code> vì <strong>không kém</strong>, rẻ hơn GPT-5.1 ~10 lần, rẻ hơn terra ~7 lần, và cả hệ thống dùng chung một mô hình.
-  (MAE $31 ở đây thấp hơn $44,06 của bảng 1.3 — khác cách / tập đánh giá; so sánh trong bảng này là trên cùng 200 mẫu.)
-- <strong>Coi 0 là lỗi:</strong> Frontier và Llama trả 0 khi không đọc ra được con số. Trước đây số 0 đi thẳng vào trung bình, kéo kết quả
-  xuống ~20 % giá thật mà không ai biết.</p>
-<p><strong>Khi nào hỏng.</strong></p>
+<p>Các mức chênh này đều nhỏ. Với 200 sản phẩm và 1 lần đo, <strong>không kết luận được cấu hình nào thật sự tốt hơn</strong>, chỉ chắc là cấu hình mới không kém GPT-5.1. Dự án chọn luna <code>low</code> vì rẻ hơn GPT-5.1 khoảng 10 lần, rẻ hơn terra khoảng 7 lần, và cả hệ thống dùng chung một mô hình.</p>
+<p>Lưu ý: MAE của Frontier ở bảng này (khoảng $31) thấp hơn con số $44 ở mục 3.1. Hai lần đo dùng cách đánh giá khác nhau. Phép so ở bảng này là công bằng vì cả 4 cấu hình chạy trên cùng 200 sản phẩm.</p>
+<p><strong>Giới hạn còn lại.</strong> Llama hay trả lặp lại vài con số ($60, $220, $350…) cho các sản phẩm khác nhau. Điều này đã thấy trong log nhưng chưa tìm ra nguyên nhân. Khi máy chủ Modal đang tắt, Llama cần 32–46 giây để khởi động, nên ứng dụng 1 chỉ chờ tối đa 10 giây rồi bỏ qua Llama ở lượt đó (mục 5.5).</p>
+<details class="in-code"><summary>Trong code</summary>
 <ul>
-<li><strong>Ngoài vùng huấn luyện:</strong> hàng trên $999 (laptop, TV) bị ước thấp; nhóm hàng không có trong dữ liệu (đồ bếp như nồi chiên
-  không dầu) làm RAG kéo về sản phẩm sai loại — kiểm 29/10: 20 sản phẩm gần nhất của "air fryer" là rơ-le điện.</li>
-<li><strong>Llama hay lặp lại vài giá</strong> ($60, $220, $350…) cho các sản phẩm khác nhau — đã thấy trong log, chưa phân tích nguyên nhân.</li>
-<li><strong>Modal nguội:</strong> Llama mất 32–46 s để bật máy; search_key chỉ chờ 10 s rồi bỏ Llama ở lượt đó (mục 3.5, Phần 4).</li>
+<li><code>segment4/price_agents/ensemble_agent.py</code> — <code>price</code> (3 mô hình chạy song song), <code>_safe_price</code> (mô hình lỗi trả <code>None</code>), <code>combine</code> (bỏ giá 0, chia lại trọng số).</li>
+<li><code>segment4/price_agents/frontier_agent.py</code> — <code>MODEL = "gpt-6-luna"</code>, <code>REASONING_EFFORT = "low"</code>, <code>find_similars</code> (tra ChromaDB).</li>
+<li><code>segment4/price_agents/preprocessor.py</code> — viết lại mô tả; mô hình đặt bằng biến <code>PRICER_PREPROCESSOR_MODEL</code> trong <code>.env</code>.</li>
+<li>Đo MAE Frontier: <code>scripts/do_luong/eval_frontier.py</code>.</li>
 </ul>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Nếu cả Frontier lẫn Llama đều lỗi, giá ước của deal đó lấy từ đâu, và nó đáng tin tới mức nào?</p>
+</details>
+<h3 id="54-thong-bao">5.4 Thông báo</h3>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Khi deal tốt nhất có discount vượt ngưỡng, luna viết vài câu vui và hệ thống gửi lên điện thoại qua Pushover. Chỉ gửi khi link đúng là của BestBuy hoặc Amazon.</p>
 </blockquote>
-<h3 id="34-thong-bao">3.4 Thông báo</h3>
-<p><strong>Bài toán.</strong> Báo cho người dùng khi có deal thật sự tốt, không báo nhầm, không gửi link lạ.</p>
-<p><strong>Cơ chế.</strong> Deal tốt nhất có discount vượt ngưỡng ($100 ở app 1, $50 ở app 2) → gpt-6-luna viết 2–3 câu vui, gây tò mò →
-Pushover gửi lên điện thoại kèm link. Có nút gửi tay trong giao diện.</p>
-<p><strong>Vì sao chọn cách này.</strong></p>
+<p><strong>Pushover</strong> là một dịch vụ gửi thông báo đẩy (push notification) tới điện thoại. Khi deal tốt nhất vượt ngưỡng ($100 ở ứng dụng 1, $50 ở ứng dụng 2), gpt-6-luna viết 2–3 câu giới thiệu deal và hệ thống gửi kèm link. Giao diện cũng có nút để gửi tay một deal bất kỳ.</p>
+<p><strong>Vì sao phải kiểm link.</strong> Chữ trên trang bán hàng là dữ liệu không đáng tin, mà chữ đó lại được đưa vào câu hỏi gửi LLM. Trong khi đó, ứng dụng có đường gửi tin ra ngoài tới điện thoại. Ghép hai điều này lại, về lý thuyết, một trang bán hàng có thể "dụ" hệ thống gửi một link lạ cho người dùng. Vì vậy hệ thống chỉ gửi khi link thuộc <code>bestbuy.com</code> hoặc <code>amazon.com</code>. Link vốn do code tự dựng, nên đây là lớp kiểm thêm cho chắc.</p>
+<p><strong>Gửi lỗi không làm mất kết quả.</strong> Nếu Pushover không phản hồi trong 15 giây hoặc báo lỗi, hệ thống ghi lại lỗi và bảng kết quả vẫn hiện bình thường.</p>
+<p><strong>Giới hạn còn lại.</strong> Thông báo chỉ đúng khi giá ước đúng. Hiện chưa đếm được hệ thống báo nhầm bao nhiêu lần và bỏ lỡ bao nhiêu deal tốt.</p>
+<details class="in-code"><summary>Trong code</summary>
 <ul>
-<li><strong>Kiểm tên miền trước khi gửi:</strong> chỉ gửi khi link thuộc <code>bestbuy.com</code> / <code>amazon.com</code>. Lý do: chữ trên trang bán hàng là
-  <strong>dữ liệu không đáng tin</strong> và được đưa vào prompt của LLM; app lại có đường gửi ra ngoài. Ghép hai điều đó là đủ để một trang
-  "dụ" hệ thống gửi link lạ tới điện thoại. Link vốn do code dựng nên đây là lớp kiểm thêm.</li>
-<li><strong>Gửi lỗi không làm mất kết quả:</strong> Pushover có giới hạn chờ 15 s; trả mã khác 200 thì ghi lỗi, bảng kết quả vẫn hiện.</li>
+<li><code>segment4/price_agents/messaging_agent.py</code> — <code>craft_message</code> (gpt-6-luna qua thư viện LiteLLM), <code>push</code> (giới hạn chờ 15 giây, báo lỗi khi Pushover trả mã khác 200), <code>notify</code>.</li>
+<li>Kiểm link: <code>is_store_url</code> trong <code>multi_source_planning_agent.py</code>; nút gửi tay: <code>send_notification</code> trong <code>multi_source_framework.py</code>.</li>
 </ul>
-<p><strong>Khi nào hỏng.</strong> Thông báo chỉ tốt bằng giá ước: ước sai thì báo nhầm. Chưa đếm tỉ lệ báo nhầm / bỏ lỡ (Phần 6).</p>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Vì sao kiểm tên miền vẫn cần, dù link do code dựng chứ không do LLM viết?</p>
+</details>
+<h3 id="55-giao-dien-nap-mo-hinh-va-giu-am-may-chu">5.5 Giao diện, nạp mô hình và giữ ấm máy chủ</h3>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Khi vừa mở ứng dụng, hệ thống nạp sẵn mô hình và đánh thức máy chủ chạy Llama. Trong lúc có người dùng, nó giữ máy chủ không tắt. Lần tìm đầu tiên vì vậy không phải chờ.</p>
 </blockquote>
-<h3 id="35-giao-dien-nap-mo-hinh-va-giu-am-modal">3.5 Giao diện, nạp mô hình và giữ ấm Modal</h3>
-<p><strong>Bài toán.</strong> Lần tìm đầu tiên không phải chờ nạp mô hình; Llama trên Modal sẵn sàng khi cần mà không tốn tiền GPU vô ích.</p>
-<p><strong>Cơ chế.</strong></p>
-<ul>
-<li><strong>Luồng nền khi mở app:</strong> đánh thức Modal ngay (gửi một lời gọi không chờ kết quả), đồng thời nạp ChromaDB + mô hình
-  (~9–20 s) trong lúc người dùng gõ từ khoá. Có khoá để lần bấm Search sớm không tạo ra hai bộ mô hình.</li>
-<li><strong>Giữ ấm:</strong> Modal tự tắt máy sau 60 s rảnh. App ping mỗi 50 s; <strong>ngừng sau 15 phút không có lượt tìm</strong>, tự bật lại khi có lượt
-  tìm mới; tắt app là ngừng.</li>
-<li><strong>Chờ Llama tối đa 10 s</strong> (chỉ app 1). Quá giờ thì bỏ Llama ở deal đó, 45 s sau đó bỏ qua luôn (máy đang khởi động).</li>
-<li><strong>Ô Status</strong> hiện trạng thái từng nguồn (<code>BestBuy: ok (6), Amazon: ok (6)</code>) và báo lỗi nếu pipeline hỏng (trước đây giao
-  diện treo "Processing..." mãi).</li>
-</ul>
-<p><strong>Vì sao chọn cách này.</strong> Cách tốt hơn là bảo Modal tự giữ máy lâu hơn (đổi cấu hình phía server), nhưng <strong>Modal không cho tạo
-app GPU mới khi tài khoản chưa gắn thẻ</strong> (29/10) → giữ ấm từ phía app. Chi phí: ~$0,59 / giờ chỉ trong lúc app mở và có người
-tìm trong 15 phút gần nhất; mở app mà không tìm gì thì tối đa ~$0,16.</p>
-<p><strong>Khi nào hỏng.</strong> Bấm Search ngay sau khi mở app (trước ~40 s) thì máy Modal chưa bật xong → lượt đầu thiếu Llama. App 2 không
-giữ ấm nên mỗi lần quét đầu phải chờ máy bật (giữ hành vi cũ, không giới hạn chờ).</p>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Modal tính tiền theo cái gì, và vì sao "giữ ấm" lại tốn tiền dù máy gần như không làm gì?</p>
-</blockquote>
-<hr />
-<h2 id="phan-4-ot-toi-uu-2829102026">Phần 4: Đợt tối ưu 28–29/10/2026</h2>
-<h3 id="41-cach-lam">4.1 Cách làm</h3>
+<p><strong>Vấn đề.</strong> Llama chạy trên <strong>Modal</strong>, một dịch vụ cho thuê GPU theo giây. Để đỡ tốn tiền, Modal tự tắt máy sau 60 giây không có việc. Lần gọi sau đó phải chờ máy bật lại và nạp Llama, mất 32–46 giây. Hiện tượng này gọi là <strong>khởi động nguội (cold start)</strong>. Trước đợt tối ưu, gần như lần tìm nào cũng bị chờ như vậy.</p>
+<p><strong>Cách xử lý.</strong></p>
 <ol>
-<li><strong>Đo mốc trước khi sửa</strong> — script bọc từng hàm từ bên ngoài (không sửa code) đo thời gian, chặn Pushover khi đo.</li>
-<li><strong>Sửa từng thứ một</strong>, mỗi thứ một commit; mốc quay lại là tag <code>moc-truoc-toi-uu-2026-10-29</code>.</li>
-<li><strong>Kiểm hồi quy sau mỗi bước</strong> trên cùng 2 từ khoá: không lỗi · cả hai nguồn có deal · 3 deal khác nhau · giá USD &gt; 0 · giá ước
-   hợp lý so với mốc · có số thời gian.</li>
-<li><strong>Cố định đầu vào khi so mô hình:</strong> cào một lần, lưu danh sách deal, so mọi cấu hình trên cùng danh sách (web đổi từng phút).</li>
-<li><strong>Kiểm chéo:</strong> một agent AI mới, không biết gì về quá trình sửa, đọc toàn bộ thay đổi — tìm ra <strong>3 lỗi thật</strong> mà các lượt đo
-   bỏ sót (Modal nguội + 3 deal song song chờ ~30 s; app 2 bị đổi hành vi ngoài ý muốn; app 2 có thể treo khi gửi tin lỗi) →
-   đã sửa và thử lại với Modal thật.</li>
+<li><strong>Lúc mở ứng dụng</strong>, hệ thống gửi một lệnh đánh thức máy Modal, đồng thời nạp ChromaDB và các mô hình (9–20 giây) trong lúc người dùng còn đang gõ từ khoá.</li>
+<li><strong>Giữ ấm:</strong> cứ 50 giây hệ thống gọi nhẹ máy Modal một lần để máy không tắt. Nếu 15 phút không có lần tìm nào thì ngừng gọi. Có lần tìm mới thì tự bật lại. Tắt ứng dụng là ngừng hẳn.</li>
+<li><strong>Chờ có giới hạn:</strong> ứng dụng 1 chỉ chờ Llama tối đa 10 giây. Quá thời gian thì bỏ Llama ở deal đó và tính giá bằng hai mô hình còn lại.</li>
+<li><strong>Báo trạng thái:</strong> ô Status trên giao diện hiện trạng thái từng nguồn, ví dụ "BestBuy: ok (6), Amazon: ok (6)". Nếu pipeline lỗi, ô này báo lỗi. Trước đây giao diện bị treo ở chữ "Processing..." mãi.</li>
 </ol>
-<h3 id="42-truoc-va-sau">4.2 Trước và sau</h3>
+<p><strong>Vì sao không bảo Modal tự giữ máy lâu hơn.</strong> Đó là cách tốt hơn, nhưng Modal không cho tạo ứng dụng GPU mới khi tài khoản chưa gắn thẻ thanh toán (29/10). Vì vậy hệ thống giữ ấm từ phía ứng dụng.</p>
+<p><strong>Chi phí.</strong> Modal tính tiền theo thời gian máy GPU còn bật, kể cả lúc máy rảnh. Giữ ấm tốn khoảng $0,59 mỗi giờ, và chỉ tốn trong lúc ứng dụng đang mở và có người tìm trong 15 phút gần nhất. Mở ứng dụng mà không tìm gì thì tốn tối đa khoảng $0,16.</p>
+<p><strong>Giới hạn còn lại.</strong> Nếu bấm tìm ngay khi vừa mở ứng dụng (chưa tới khoảng 40 giây), máy Modal chưa bật xong và lượt đầu sẽ thiếu Llama. Ứng dụng 2 không giữ ấm, nên mỗi lần quét đầu tiên vẫn phải chờ máy bật (giữ nguyên hành vi cũ).</p>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li><code>segment4/search_key.py</code> — <code>App.preload</code> (chạy ngầm khi mở ứng dụng), <code>App._run_pipeline</code> (lỗi hiện ở ô Status).</li>
+<li><code>segment4/price_agents/specialist_agent.py</code> — <code>wake_up_modal</code>, <code>start_keep_warm</code>, <code>PING_SECONDS = 50</code>, <code>KEEP_WARM_IDLE_STOP = 900</code>, <code>COLD_SKIP_SECONDS = 45</code>; giới hạn chờ đặt bằng <code>SPECIALIST_TIMEOUT_SECONDS = 10</code> trong <code>multi_source_planning_agent.py</code> (ứng dụng 2 không đặt, nên chờ như cũ).</li>
+</ul>
+</details>
+<hr />
+<h2 id="phan-6-ot-toi-uu-2829102026">Phần 6: Đợt tối ưu 28–29/10/2026</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Một lần tìm từ 70–107 giây còn 21–34 giây, chất lượng giá ước không đổi. Ba chỗ cắt được nhiều thời gian nhất: cookie Amazon không còn chờ vô ích, máy Llama được giữ ấm, và bước ước giá chạy song song.</p>
+</blockquote>
+<h3 id="61-cach-lam">6.1 Cách làm</h3>
+<p>Đợt tối ưu đi theo năm nguyên tắc:</p>
+<ol>
+<li><strong>Đo trước khi sửa.</strong> Một script đo thời gian của từng hàm trong pipeline mà không cần sửa code. Khi đo, thông báo Pushover bị chặn để không gửi tin thật.</li>
+<li><strong>Sửa từng thứ một.</strong> Mỗi thay đổi là một commit riêng. Mốc để quay lại bản cũ là tag <code>moc-truoc-toi-uu-2026-10-29</code>.</li>
+<li><strong>Kiểm lại sau mỗi bước</strong> trên cùng 2 từ khoá, xem có làm hỏng chỗ đang chạy tốt không. Phải đạt cả năm điều: không lỗi, cả hai nguồn có hàng, ra 3 deal khác nhau, giá là đô la và lớn hơn 0, giá ước gần với lượt đo cũ.</li>
+<li><strong>Cố định đầu vào khi so mô hình.</strong> Giá trên web thay đổi từng phút. Vì vậy hệ thống cào dữ liệu một lần, lưu lại, rồi so mọi cấu hình trên cùng danh sách đó.</li>
+<li><strong>Nhờ người đọc độc lập.</strong> Một agent AI mới, không biết gì về quá trình sửa, đọc toàn bộ thay đổi. Nó tìm ra 3 lỗi thật mà các lượt đo đã bỏ sót (mục 6.4). Cả 3 đã được sửa và thử lại.</li>
+</ol>
+<h3 id="62-truoc-va-sau">6.2 Trước và sau</h3>
+<figure class="diagram"><div class="diagram-scroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 312" role="img" aria-label="Thời gian một lượt tìm theo bước: wireless headphones từ 69,5 giây còn 21,3 giây; air fryer từ 106,7 giây còn 30,2 giây; phần giảm nhiều nhất là bước cào và bước ước giá" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+<rect x="236" y="18" width="12" height="12" rx="3" fill="#2a78d6"/>
+<text x="254" y="28" font-size="12.5" fill="#3A4357">Bước 1 — cào</text>
+<rect x="368.8" y="18" width="12" height="12" rx="3" fill="#eb6834"/>
+<text x="386.8" y="28" font-size="12.5" fill="#3A4357">Bước 3 — chọn deal</text>
+<rect x="546.0" y="18" width="12" height="12" rx="3" fill="#1baf7a"/>
+<text x="564.0" y="28" font-size="12.5" fill="#3A4357">Bước 4 — ước giá</text>
+<line x1="236.0" y1="70" x2="236.0" y2="266" stroke="#EBEEF3"/>
+<text x="236.0" y="286" font-size="11.5" fill="#566176" text-anchor="middle">0 s</text>
+<line x1="342.2" y1="70" x2="342.2" y2="266" stroke="#EBEEF3"/>
+<text x="342.2" y="286" font-size="11.5" fill="#566176" text-anchor="middle">20 s</text>
+<line x1="448.4" y1="70" x2="448.4" y2="266" stroke="#EBEEF3"/>
+<text x="448.4" y="286" font-size="11.5" fill="#566176" text-anchor="middle">40 s</text>
+<line x1="554.5" y1="70" x2="554.5" y2="266" stroke="#EBEEF3"/>
+<text x="554.5" y="286" font-size="11.5" fill="#566176" text-anchor="middle">60 s</text>
+<line x1="660.7" y1="70" x2="660.7" y2="266" stroke="#EBEEF3"/>
+<text x="660.7" y="286" font-size="11.5" fill="#566176" text-anchor="middle">80 s</text>
+<line x1="766.9" y1="70" x2="766.9" y2="266" stroke="#EBEEF3"/>
+<text x="766.9" y="286" font-size="11.5" fill="#566176" text-anchor="middle">100 s</text>
+<text x="20" y="78" font-size="13" font-weight="600">wireless headphones</text>
+<text x="20" y="182" font-size="13" font-weight="600">air fryer</text>
+<text x="224" y="108" font-size="12.5" fill="#566176" text-anchor="end">trước tối ưu</text>
+<rect x="236.0" y="92" width="174.1" height="24" fill="#2a78d6"><title>wireless headphones, trước tối ưu — Bước 1 — cào: 32,8 s</title></rect>
+<rect x="412.1" y="92" width="16.1" height="24" fill="#eb6834"><title>wireless headphones, trước tối ưu — Bước 3 — chọn deal: 3,4 s</title></rect>
+<path d="M430.2,92 h171.3 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-171.3 z" fill="#1baf7a"><title>wireless headphones, trước tối ưu — Bước 4 — ước giá: 33,4 s</title></path>
+<text x="613.5" y="109" font-size="13" font-weight="700">69,5 s</text>
+<text x="224" y="144" font-size="12.5" fill="#566176" text-anchor="end">sau tối ưu</text>
+<rect x="236.0" y="128" width="64.8" height="24" fill="#2a78d6"><title>wireless headphones, sau tối ưu — Bước 1 — cào: 12,2 s</title></rect>
+<rect x="302.8" y="128" width="24.0" height="24" fill="#eb6834"><title>wireless headphones, sau tối ưu — Bước 3 — chọn deal: 4,9 s</title></rect>
+<path d="M328.8,128 h15.8 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-15.8 z" fill="#1baf7a"><title>wireless headphones, sau tối ưu — Bước 4 — ước giá: 4,1 s</title></path>
+<text x="356.6" y="145" font-size="13" font-weight="700">21,3 s</text>
+<text x="224" y="212" font-size="12.5" fill="#566176" text-anchor="end">trước tối ưu</text>
+<rect x="236.0" y="196" width="338.2" height="24" fill="#2a78d6"><title>air fryer, trước tối ưu — Bước 1 — cào: 63,7 s</title></rect>
+<rect x="576.2" y="196" width="19.2" height="24" fill="#eb6834"><title>air fryer, trước tối ưu — Bước 3 — chọn deal: 4,0 s</title></rect>
+<path d="M597.4,196 h201.1 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-201.1 z" fill="#1baf7a"><title>air fryer, trước tối ưu — Bước 4 — ước giá: 39,0 s</title></path>
+<text x="810.5" y="213" font-size="13" font-weight="700">106,7 s</text>
+<text x="224" y="248" font-size="12.5" fill="#566176" text-anchor="end">sau tối ưu</text>
+<rect x="236.0" y="232" width="117.3" height="24" fill="#2a78d6"><title>air fryer, sau tối ưu — Bước 1 — cào: 22,1 s</title></rect>
+<rect x="355.3" y="232" width="21.4" height="24" fill="#eb6834"><title>air fryer, sau tối ưu — Bước 3 — chọn deal: 4,4 s</title></rect>
+<path d="M378.7,232 h13.6 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-13.6 z" fill="#1baf7a"><title>air fryer, sau tối ưu — Bước 4 — ước giá: 3,7 s</title></path>
+<text x="404.3" y="249" font-size="13" font-weight="700">30,2 s</text>
+</svg></div><figcaption>Thời gian một lần tìm theo từng bước, đo ngày 29/10/2026. Ở lượt sau tối ưu, máy Modal đã được đánh thức trước. Bước 1 và Bước 4 giảm nhiều nhất. Bước 2 dưới 0,1 giây nên không hiện. Rê chuột lên từng đoạn để xem số; số đầy đủ ở bảng dưới.</figcaption></figure>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Chỗ</th>
 <th>Trước</th>
 <th>Sau</th>
-<th>Nguyên nhân gốc → cách sửa</th>
+<th>Nguyên nhân và cách sửa</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Lấy cookie Amazon</td>
-<td>22–44 s</td>
-<td>~5 s</td>
-<td>chờ ô tìm kiếm 20 s trên trang "Continue shopping" rồi vứt cookie → chờ 3 s, dùng cookie có sẵn</td>
+<td>22–44 giây</td>
+<td>khoảng 5 giây</td>
+<td>chờ ô tìm kiếm 20 giây trên trang "Continue shopping" rồi bỏ cookie; giờ chờ tối đa 3 giây và dùng cookie có sẵn</td>
 </tr>
 <tr>
-<td>Lần Search đầu</td>
-<td>+~22 s nạp mô hình</td>
-<td>0 s</td>
-<td>nạp lười ở lần bấm đầu → nạp ở luồng nền khi mở app</td>
+<td>Lần tìm đầu tiên</td>
+<td>thêm khoảng 22 giây để nạp mô hình</td>
+<td>không thêm</td>
+<td>trước đây nạp ở lần bấm đầu; giờ nạp ngầm khi mở ứng dụng</td>
 </tr>
 <tr>
-<td>Llama (Modal)</td>
-<td>31,5–46 s mỗi lượt máy nguội</td>
-<td>~0,9 s khi ấm; nguội thì bỏ sau 10–14 s</td>
-<td>Modal tắt máy sau 60 s → đánh thức + ping + giới hạn chờ</td>
+<td>Llama trên Modal</td>
+<td>31,5–46 giây khi máy đã tắt</td>
+<td>khoảng 0,9 giây khi máy ấm</td>
+<td>máy tự tắt sau 60 giây; giờ đánh thức, giữ ấm và giới hạn thời gian chờ</td>
 </tr>
 <tr>
-<td>Bước 4 (3 deal)</td>
-<td>33–40 s</td>
-<td>~4 s</td>
-<td>tuần tự cả deal lẫn mô hình → song song 2 tầng</td>
+<td>Bước 4 (ước giá 3 deal)</td>
+<td>33–40 giây</td>
+<td>khoảng 4 giây</td>
+<td>trước đây làm lần lượt; giờ chạy song song hai tầng</td>
 </tr>
 <tr>
-<td>Bước 3</td>
-<td>3,3–4,4 s, có lượt trả 8 deal</td>
-<td>3,7–5,1 s, luôn ≤ 3 deal</td>
+<td>Bước 3 (chọn deal)</td>
+<td>3,3–4,4 giây, có lần trả 8 deal</td>
+<td>3,7–5,1 giây, luôn tối đa 3 deal</td>
 <td>đổi sang luna, chọn theo số thứ tự</td>
 </tr>
 <tr>
-<td><strong>Cả một lượt tìm</strong></td>
-<td><strong>69,5 s</strong> (<code>wireless headphones</code>) / <strong>106,7 s</strong> (<code>air fryer</code>)</td>
-<td><strong>21,3 s</strong> / <strong>30,2 s</strong>; chạy app thật (<code>laptop</code>) 27,1 s</td>
-<td></td>
+<td><strong>Cả một lần tìm</strong></td>
+<td><strong>69,5 giây</strong> (wireless headphones), <strong>106,7 giây</strong> (air fryer)</td>
+<td><strong>21,3 giây</strong> và <strong>30,2 giây</strong></td>
+<td>người dùng chạy thật với từ khoá "laptop": 27,1 giây</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="43-xu-ly-song-song-vi-sao-an-toan">4.3 Xử lý song song — vì sao an toàn</h3>
+<h3 id="63-chay-song-song-vi-sao-an-toan">6.3 Chạy song song — vì sao an toàn</h3>
+<p>Hầu hết thời gian của pipeline là <strong>chờ mạng</strong>: chờ OpenAI, Groq, Modal, BestBuy, Amazon trả lời. Phần tính toán trên máy rất ngắn. Vì vậy hệ thống dùng <strong>luồng (thread)</strong>: trong lúc một việc đang chờ mạng, việc khác chạy tiếp. Cách này đơn giản, không phải viết lại code theo kiểu khác.</p>
+<p>Chạy song song thì phải cẩn thận ở những chỗ dùng chung tài nguyên:</p>
 <ul>
-<li>Dùng <strong>luồng (thread)</strong> chứ không dùng async: gần như toàn bộ thời gian là <strong>chờ mạng</strong> (OpenAI, Groq, Modal, hai trang web);
-  phần tính toán trên máy rất ngắn. Luồng cho lợi ích tương đương mà không phải viết lại code.</li>
-<li><strong>Khoá</strong> ở những chỗ dùng chung tài nguyên: model GPU trên máy (DNN, bộ mã hoá câu + ChromaDB) chạy lần lượt; các lời gọi Llama
-  <strong>xếp hàng</strong> để Modal không bật thêm máy nguội (tốn tiền, không nhanh hơn) — máy ấm chỉ ~0,9 s mỗi lời gọi.</li>
-<li><strong>Cố ý chưa song song</strong> trang chi tiết Amazon: gửi dồn dập dễ bị chặn IP. Đây là chỗ chậm lớn nhất còn lại (13–19 s).</li>
+<li><strong>Mô hình trên GPU của máy</strong> (DNN, bộ tạo embedding kèm ChromaDB) được cho chạy lần lượt, vì nhiều luồng cùng dùng một mô hình GPU dễ gây lỗi. Mỗi lần chỉ mất dưới nửa giây nên gần như không làm chậm.</li>
+<li><strong>Các lần gọi Llama xếp hàng.</strong> Nếu gọi cùng lúc, Modal có thể bật thêm máy mới, mỗi máy lại phải khởi động nguội, vừa tốn tiền vừa không nhanh hơn. Máy ấm chỉ mất khoảng 0,9 giây mỗi lần, nên 3 deal xếp hàng vẫn nhanh.</li>
+<li><strong>Cố ý chưa song song:</strong> 6 trang chi tiết Amazon vẫn mở lần lượt, vì gửi dồn dập dễ bị chặn. Đây là chỗ chậm nhất còn lại, khoảng 13–19 giây.</li>
 </ul>
-<h3 id="44-a-thu-va-khong-dung">4.4 Đã thử và không dùng</h3>
+<h3 id="64-a-thu-nhung-khong-dung">6.4 Đã thử nhưng không dùng</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -662,42 +1056,96 @@ giữ ấm nên mỗi lần quét đầu phải chờ máy bật (giữ hành vi
 </thead>
 <tbody>
 <tr>
-<td>App Modal mới (giữ ấm 10 phút phía server, tối đa 1 máy, ghim phiên bản thư viện)</td>
+<td>Ứng dụng Modal mới, tự giữ máy 10 phút, tối đa 1 máy</td>
 <td>chưa chạy được</td>
-<td>Modal từ chối deploy app GPU mới khi chưa gắn thẻ</td>
+<td>Modal từ chối tạo ứng dụng GPU mới khi chưa gắn thẻ</td>
 </tr>
 <tr>
-<td>gpt-6-luna <code>low</code> cho Bước 3</td>
-<td>4,6–5,3 s, cùng chất lượng</td>
-<td><code>none</code> nhanh hơn</td>
+<td>gpt-6-luna <code>low</code> cho bước chọn deal</td>
+<td>chậm hơn, chất lượng như nhau</td>
+<td>mức <code>none</code> nhanh hơn</td>
 </tr>
 <tr>
 <td>gpt-6.1-terra cho Frontier</td>
 <td>MAE $28,51</td>
-<td>không phân biệt được với luna low, đắt hơn ~7 lần</td>
+<td>không phân biệt được với luna <code>low</code>, đắt hơn khoảng 7 lần</td>
 </tr>
 <tr>
 <td>gpt-6-luna <code>none</code> cho Frontier</td>
 <td>MAE $31,42</td>
-<td>luna low sát hơn ~$1,7, tiền chênh rất nhỏ</td>
+<td>luna <code>low</code> sát hơn một chút, tiền chênh rất nhỏ</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="45-bai-hoc">4.5 Bài học</h3>
+<p>Ba lỗi người đọc độc lập tìm ra (đã sửa):</p>
 <ol>
-<li><strong>Đo trước khi đoán:</strong> chỗ chậm nhất buổi sáng (cookie Amazon chờ 20 s vô ích) không nằm trong danh sách dự đoán ban đầu —
-   chỉ lộ ra khi đo từng hàm.</li>
-<li><strong>"HTTP 200" không có nghĩa là có dữ liệu</strong> (trang chặn mềm của Amazon); <strong>"không có" khác "bị chặn"</strong> — nay mỗi nguồn báo
-   trạng thái riêng.</li>
-<li><strong>Mô hình chỉ đề xuất, code giữ con số</strong> — áp ở Bước 3 (giá / link) và ensemble (số 0 là lỗi).</li>
-<li><strong>Hàm dùng chung phải kiểm mọi bên gọi:</strong> đổi giới hạn chờ Llama suýt làm app 2 gần như luôn mất Llama.</li>
-<li><strong>Một người đọc độc lập</strong> bắt được lỗi mà người sửa và các lượt đo đều bỏ sót.</li>
+<li>Khi máy Modal đang tắt và 3 deal chạy song song, cả 3 lần gọi Llama đều lần lượt chờ đủ 10 giây, tổng khoảng 30 giây. Giờ lần đầu quá giờ thì các lần sau bỏ qua ngay; đo thật cả nhóm còn 12,7 giây.</li>
+<li>Giới hạn chờ 10 giây vô tình áp cả cho ứng dụng 2, ứng dụng vốn không giữ ấm, nên Llama gần như luôn bị bỏ. Giờ ứng dụng 2 chờ như cũ.</li>
+<li>Ứng dụng 2 có thể bị treo khi gửi tin lỗi. Giờ lỗi chỉ được ghi lại.</li>
 </ol>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Vì sao phải cố định danh sách deal trước khi so gpt-5-nano với gpt-6-luna, thay vì mỗi lượt cào lại từ đầu?</p>
-</blockquote>
+<h3 id="65-bai-hoc">6.5 Bài học</h3>
+<ol>
+<li><strong>Đo trước khi đoán.</strong> Chỗ chậm nhất buổi sáng (cookie Amazon chờ vô ích 20 giây) không nằm trong dự đoán ban đầu. Nó chỉ lộ ra khi đo từng hàm.</li>
+<li><strong>Trang trả về bình thường chưa chắc có dữ liệu.</strong> "Không có hàng" khác "bị chặn". Giờ mỗi nguồn báo trạng thái riêng.</li>
+<li><strong>Mô hình chỉ đề xuất, code giữ con số</strong>, áp ở cả bước chọn deal lẫn bước ước giá.</li>
+<li><strong>Sửa một hàm dùng chung thì phải kiểm mọi nơi gọi nó.</strong> Đổi giới hạn chờ Llama suýt làm hỏng ứng dụng 2.</li>
+<li><strong>Một người đọc độc lập</strong> bắt được lỗi mà cả người sửa lẫn các lượt đo đều bỏ sót.</li>
+</ol>
+<details class="in-code"><summary>Trong code</summary>
+<ul>
+<li>Script đo: <code>scripts/do_luong/</code> — <code>profile_pipeline.py</code> (cả pipeline), <code>save_pools.py</code> (lưu danh sách deal để so trên cùng đầu vào), <code>eval_frontier.py</code> (MAE Frontier), <code>test_modal_nguoi.py</code> (Modal tắt và 3 lời gọi song song), <code>probe_keywords.py</code> (từ khoá có nằm trong dữ liệu huấn luyện không).</li>
+<li>Từng thay đổi kèm số trước và sau: <code>docs/changelog/README.md</code>.</li>
+<li>Song song: <code>estimate_prices</code> và <code>_estimate_one</code> trong <code>multi_source_planning_agent.py</code>, <code>price</code> trong <code>ensemble_agent.py</code>; khoá ở <code>frontier_agent.py</code>, <code>neural_network_agent.py</code>, <code>specialist_agent.py</code>.</li>
+</ul>
+</details>
 <hr />
-<h2 id="phan-5-ket-qua-va-anh-gia">Phần 5: Kết quả và đánh giá</h2>
-<h3 id="51-mot-luot-chay-that-user-chay-app-tu-khoa-laptop-2910">5.1 Một lượt chạy thật (User chạy app, từ khoá <code>laptop</code>, 29/10)</h3>
+<h2 id="phan-7-ket-qua">Phần 7: Kết quả</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Hệ thống nhanh gấp khoảng 3 lần và không còn sập vì một chỗ lỗi. Độ đúng của giá ước mới đo được trên dữ liệu test; độ đúng trên hàng thật hôm nay chưa đo.</p>
+</blockquote>
+<h3 id="71-so-o-tong-hop">7.1 Số đo tổng hợp</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Chỉ số</th>
+<th>Giá trị</th>
+<th>Đo thế nào</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Thời gian một lần tìm</td>
+<td>21–34 giây</td>
+<td>2 từ khoá, máy Modal đã đánh thức, ngày 29/10</td>
+</tr>
+<tr>
+<td>MAE của Frontier (luna <code>low</code>)</td>
+<td>$29,69</td>
+<td>200 sản phẩm test, 1 lần đo</td>
+</tr>
+<tr>
+<td>MAE của cả ensemble (bản dùng GPT-5.1)</td>
+<td>$29,9</td>
+<td>200 sản phẩm test, lúc huấn luyện</td>
+</tr>
+<tr>
+<td>Bộ nhớ RAM cao nhất</td>
+<td>khoảng 3,9 GB</td>
+<td>khi chạy pipeline</td>
+</tr>
+<tr>
+<td>Tiền OpenAI mỗi lần tìm</td>
+<td>khoảng $0,001</td>
+<td>ước từ số chữ đã đo</td>
+</tr>
+<tr>
+<td>Tiền GPU Modal mỗi lần tìm khi máy ấm</td>
+<td>khoảng $0,0005</td>
+<td>3 lần gọi, mỗi lần khoảng 0,9 giây</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="72-mot-lan-chay-that">7.2 Một lần chạy thật</h3>
+<p>Ngày 29/10, người dùng chạy ứng dụng với từ khoá "laptop". Cả lượt mất 27,1 giây.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -712,7 +1160,7 @@ giữ ấm nên mỗi lần quét đầu phải chờ máy bật (giữ hành vi
 <td>[Amazon] Acer Aspire 14 AI Copilot+ PC</td>
 <td>$597,86</td>
 <td>$864,73</td>
-<td>$266,87 → <strong>tự gửi thông báo</strong></td>
+<td>$266,87, hệ thống tự gửi thông báo</td>
 </tr>
 <tr>
 <td>[BestBuy] HP OmniBook X Flip 2-in-1</td>
@@ -728,61 +1176,20 @@ giữ ấm nên mỗi lần quét đầu phải chờ máy bật (giữ hành vi
 </tr>
 </tbody>
 </table></div>
-<p>Cả lượt 27,1 s: cào 11,2 s · chọn deal 5,1 s · ước giá 8,3 s (máy Modal vừa bật xong). Với laptop cần đọc kết quả cẩn thận: dữ
-liệu huấn luyện là hàng 2023 giá ≤ $999, nên giá ước của các máy mới, đắt chưa đáng tin (mục 3.3, Phần 6).</p>
-<h3 id="52-so-o-tong-hop">5.2 Số đo tổng hợp</h3>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Chỉ số</th>
-<th>Giá trị</th>
-<th>Điều kiện đo</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Thời gian một lượt tìm</td>
-<td>21–34 s</td>
-<td>2 từ khoá, Modal đã đánh thức, 29/10</td>
-</tr>
-<tr>
-<td>MAE Frontier (luna low)</td>
-<td>$29,69</td>
-<td>200 mẫu test, 1 lượt</td>
-</tr>
-<tr>
-<td>MAE ensemble (bản GPT-5.1)</td>
-<td>$29,9</td>
-<td>200 mẫu test, lúc huấn luyện</td>
-</tr>
-<tr>
-<td>RAM đỉnh</td>
-<td>~3,9 GB</td>
-<td>khi chạy pipeline</td>
-</tr>
-<tr>
-<td>Tiền OpenAI mỗi lượt tìm</td>
-<td>~$0,001</td>
-<td>ước từ số token đã đo</td>
-</tr>
-<tr>
-<td>Tiền GPU Modal mỗi lượt (máy ấm)</td>
-<td>~$0,0005</td>
-<td>3 lời gọi × ~0,9 s × $0,000164 / s</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="53-chua-o-ghi-thang-e-khong-hieu-nham">5.3 Chưa đo (ghi thẳng để không hiểu nhầm)</h3>
+<p>Với laptop cần đọc kết quả cẩn thận. Dữ liệu huấn luyện là hàng năm 2023 và giá dưới $999, nên giá ước cho các máy mới hoặc đắt chưa đáng tin (mục 2.3).</p>
+<h3 id="73-nhung-gi-chua-o">7.3 Những gì chưa đo</h3>
+<p>Ghi rõ để không hiểu nhầm:</p>
 <ul>
-<li><strong>MAE của cả ensemble sau khi đổi Frontier sang luna</strong> — mới đo riêng Frontier.</li>
-<li><strong>Độ đúng của giá ước trên sản phẩm cào thật hôm nay</strong> — MAE chỉ đo trên dữ liệu Amazon 2023 đã xử lý.</li>
-<li><strong>Tỉ lệ báo nhầm / bỏ lỡ</strong> của thông báo.</li>
-<li><strong>App 2 (<code>price_is_right.py</code>) chạy lại sau đợt sửa</strong> — mới kiểm bằng đọc code và chạy thử từng phần.</li>
+<li><strong>MAE của cả ensemble sau khi Frontier đổi sang luna.</strong> Mới đo riêng Frontier.</li>
+<li><strong>Độ đúng của giá ước trên sản phẩm cào thật hôm nay.</strong> MAE chỉ đo trên dữ liệu Amazon năm 2023.</li>
+<li><strong>Số lần báo nhầm và số deal tốt bị bỏ lỡ.</strong></li>
+<li><strong>Ứng dụng 2 chạy lại sau đợt sửa.</strong> Mới kiểm bằng đọc code và chạy thử từng phần.</li>
 </ul>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> MAE $29,69 cho biết điều gì về giá ước của một laptop $1.200 cào từ BestBuy hôm nay — và không cho biết điều gì?</p>
-</blockquote>
 <hr />
-<h2 id="phan-6-gioi-han-va-huong-phat-trien">Phần 6: Giới hạn và hướng phát triển</h2>
+<h2 id="phan-8-gioi-han-huong-phat-trien-tu-khoa-nen-thu">Phần 8: Giới hạn, hướng phát triển, từ khoá nên thử</h2>
+<blockquote class="summary"><p><strong>Tóm tắt</strong>Giới hạn lớn nhất nằm ở dữ liệu huấn luyện và ở việc chưa đo độ đúng trên hàng thật. Muốn kết quả đáng tin, nên thử các từ khoá có giá từ $100 đến $500 thuộc 8 nhóm hàng của dữ liệu.</p>
+</blockquote>
+<h3 id="81-gioi-han-va-huong-tiep">8.1 Giới hạn và hướng tiếp</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -793,49 +1200,81 @@ liệu huấn luyện là hàng 2023 giá ≤ $999, nên giá ước của các 
 </thead>
 <tbody>
 <tr>
-<td>Dữ liệu huấn luyện: 8 nhóm hàng, giá ≤ $999, năm 2023</td>
-<td>laptop / TV đắt bị ước thấp; đồ bếp không có trong dữ liệu</td>
-<td>thêm nhóm hàng và khoảng giá khi huấn luyện lại; trước mắt hướng người dùng tới nhóm hàng phù hợp</td>
+<td>Dữ liệu chỉ có 8 nhóm hàng, giá dưới $999, năm 2023</td>
+<td>laptop và TV đắt bị ước thấp; đồ bếp không có trong dữ liệu</td>
+<td>thêm nhóm hàng và khoảng giá khi huấn luyện lại</td>
 </tr>
 <tr>
-<td>Chưa có thước đo trên hàng cào thật</td>
+<td>Chưa đo độ đúng trên hàng cào thật</td>
 <td>chưa biết giá ước cho sản phẩm hôm nay sai bao nhiêu</td>
-<td>bộ 15–20 sản phẩm có giá tham chiếu, chấm bằng code</td>
+<td>lập bộ 15–20 sản phẩm có giá tham chiếu, chấm bằng code</td>
 </tr>
 <tr>
 <td>Giá gốc của shop có cào được nhưng chưa dùng</td>
-<td>Bước 3 không thấy, bảng không hiện để đối chiếu với giá AI</td>
-<td>đưa giá gốc vào danh sách deal và bảng kết quả</td>
+<td>bước chọn deal không thấy, bảng kết quả không hiện để so với giá AI</td>
+<td>đưa giá gốc vào danh sách deal và bảng</td>
 </tr>
 <tr>
-<td>Bước 3 chọn theo "mô tả chi tiết", chưa có mốc không dùng LLM</td>
+<td>Bước chọn deal chưa so với cách không dùng AI</td>
 <td>chưa chứng minh LLM đáng dùng ở bước này</td>
 <td>so với luật "3 deal giảm nhiều nhất"</td>
 </tr>
 <tr>
 <td>Trang chi tiết Amazon mở lần lượt</td>
-<td>Bước 1 còn 11–26 s</td>
-<td>mở song song 2–3 trang, mỗi luồng một session, đo tỉ lệ bị chặn</td>
+<td>Bước 1 còn 11–26 giây</td>
+<td>mở 2–3 trang cùng lúc, đo xem có bị chặn nhiều hơn không</td>
 </tr>
 <tr>
-<td>Llama hay lặp lại vài giá</td>
-<td>đóng góp 10 % kém tin cậy</td>
-<td>thử 10–20 sản phẩm đa dạng, so khuôn đầu vào với lúc huấn luyện</td>
+<td>Llama hay lặp lại vài con số giá</td>
+<td>phần đóng góp 10 % kém tin cậy</td>
+<td>thử 10–20 sản phẩm đa dạng, so đầu vào với lúc huấn luyện</td>
 </tr>
 <tr>
-<td>Amazon thay đổi lớp chặn</td>
-<td>có thể ra 0 deal bất kỳ lúc nào</td>
+<td>Amazon có thể đổi lớp chặn</td>
+<td>có lúc ra 0 deal</td>
 <td>trạng thái nguồn đã báo rõ; theo dõi tỉ lệ thành công</td>
 </tr>
 <tr>
 <td>Chưa lưu lịch sử</td>
 <td>tìm lại sản phẩm cũ vẫn phải ước lại</td>
-<td>lưu kết quả vào SQLite — vừa nhanh hơn, vừa có lịch sử giá</td>
+<td>lưu kết quả vào SQLite, vừa nhanh hơn vừa có lịch sử giá</td>
 </tr>
 </tbody>
 </table></div>
-<blockquote class="quiz"><p><strong>Tự kiểm</strong> Trong các hướng trên, hướng nào nên làm trước nếu mục tiêu là "giá ước đáng tin hơn", và vì sao không phải "chạy nhanh hơn"?</p>
-</blockquote>
+<h3 id="82-nen-thu-tu-khoa-nao">8.2 Nên thử từ khoá nào</h3>
+<p>Bảng dưới được kiểm ngày 29/10 bằng cách tra 20 sản phẩm gần nhất trong ChromaDB cho từng từ khoá. Giá trong ngoặc là giá ở giữa của 20 sản phẩm đó.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Nhóm</th>
+<th>Từ khoá</th>
+<th>Vì sao</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nên thử</td>
+<td>noise cancelling headphones ($175), soundbar ($215), gaming monitor ($235), action camera ($175), digital piano ($315), electric guitar ($425), cordless drill ($111)</td>
+<td>sản phẩm gần nhất đúng loại; giá $100–$500 nên dễ có discount trên $100</td>
+</tr>
+<tr>
+<td>Tránh</td>
+<td>laptop, gaming laptop, smart tv</td>
+<td>nhiều hàng trên $999, ensemble đoán thấp; giá phụ thuộc nhiều vào thông số</td>
+</tr>
+<tr>
+<td>Tránh</td>
+<td>air fryer, coffee maker, microwave, blender</td>
+<td>không có đồ bếp trong dữ liệu: sản phẩm gần nhất của "air fryer" là rơ-le điện, của "blender" là một phần mềm làm nhạc</td>
+</tr>
+<tr>
+<td>Ít lợi</td>
+<td>phone case, wireless earbuds, smartwatch</td>
+<td>giá ở giữa chỉ $21–$42, hiếm khi giảm trên $100</td>
+</tr>
+</tbody>
+</table></div>
+<p>BestBuy có thể đã ngừng bán nhạc cụ (chưa kiểm). Nếu vậy, các từ khoá nhạc cụ sẽ chỉ ra deal Amazon.</p>
 <hr />
 <h2 id="phu-luc">Phụ lục</h2>
 <h3 id="a-cai-at-va-chay">A. Cài đặt và chạy</h3>
@@ -843,78 +1282,47 @@ liệu huấn luyện là hàng 2023 giá ≤ $999, nên giá ước của các 
 uv sync                                  # cài thư viện theo uv.lock
 uv run playwright install chromium       # trình duyệt chạy ngầm để lấy cookie Amazon
 cd segment4
-uv run search_key.py                     # app 1 → http://127.0.0.1:7860
-uv run price_is_right.py                 # app 2
+uv run search_key.py                     # ứng dụng 1, mở http://127.0.0.1:7860
+uv run price_is_right.py                 # ứng dụng 2
 </code></pre>
-<p>File <code>.env</code> ở <code>tech2ai/.env</code>: <code>OPENAI_API_KEY</code>, <code>GROQ_API_KEY</code>, <code>PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b</code>,
-<code>PUSHOVER_USER</code>, <code>PUSHOVER_TOKEN</code>, <code>HF_TOKEN</code>. Modal đọc token ở <code>~/.modal.toml</code>; app <code>pricer-service</code> đã deploy sẵn.
-<strong>Mẹo:</strong> mở app rồi đợi ~40 s mới tìm lượt đầu để Llama có mặt; nên thử các từ khoá như <code>noise cancelling headphones</code>,
-<code>soundbar</code>, <code>gaming monitor</code>, <code>digital piano</code> (giá $100–$500, nằm trong vùng dữ liệu huấn luyện).</p>
-<h3 id="b-thuat-ngu">B. Thuật ngữ</h3>
+<p>File <code>.env</code> đặt ở <code>tech2ai/.env</code>, gồm <code>OPENAI_API_KEY</code>, <code>GROQ_API_KEY</code>, <code>PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b</code>, <code>PUSHOVER_USER</code>, <code>PUSHOVER_TOKEN</code>, <code>HF_TOKEN</code>. Modal đọc khoá ở <code>~/.modal.toml</code>, ứng dụng <code>pricer-service</code> trên Modal đã được triển khai sẵn.</p>
+<p>Mẹo: mở ứng dụng rồi đợi khoảng 40 giây mới tìm lượt đầu, để Llama kịp sẵn sàng.</p>
+<h3 id="b-tai-lieu-lien-quan">B. Tài liệu liên quan</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Thuật ngữ</th>
-<th>Nghĩa trong dự án</th>
+<th>Tài liệu</th>
+<th>Nội dung</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>MAE</strong></td>
-<td>sai số tuyệt đối trung bình: trung bình của |giá đoán − giá thật| trên tập test</td>
+<td><code>segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md</code></td>
+<td>tài liệu kỹ thuật ứng dụng 1: từng file, từng hàm</td>
 </tr>
 <tr>
-<td><strong>RAG</strong></td>
-<td>truy xuất rồi sinh: tìm sản phẩm giống trong ChromaDB, đưa vào prompt để LLM ước giá</td>
+<td><code>segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md</code></td>
+<td>tài liệu kỹ thuật ứng dụng 2</td>
 </tr>
 <tr>
-<td><strong>Ensemble</strong></td>
-<td>kết hợp nhiều mô hình bằng trung bình có trọng số</td>
+<td><code>scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md</code></td>
+<td>dữ liệu, mô hình truyền thống, DNN</td>
 </tr>
 <tr>
-<td><strong>Fine-tune / QLoRA</strong></td>
-<td>huấn luyện thêm một mô hình có sẵn; QLoRA = nén mô hình gốc 4-bit + chỉ huấn luyện một adapter nhỏ (~73 MB)</td>
+<td><code>scraping_data_tv/Data_processing_for_English_data/report_fine_tune_llm.md</code></td>
+<td>fine-tune Llama 3.2 bằng QLoRA</td>
 </tr>
 <tr>
-<td><strong>Structured output</strong></td>
-<td>bắt LLM trả lời theo khuôn dữ liệu cố định (Pydantic) thay vì văn bản tự do</td>
+<td><code>docs/changelog/README.md</code></td>
+<td>từng thay đổi code ngày 29/10, kèm số trước và sau</td>
 </tr>
 <tr>
-<td><strong>Reasoning effort</strong></td>
-<td>mức "suy nghĩ" trước khi trả lời của gpt-6-luna (<code>none</code>, <code>low</code>, …); cao hơn thì chậm và tốn hơn, không chắc tốt hơn</td>
-</tr>
-<tr>
-<td><strong>Cold start</strong></td>
-<td>thời gian máy GPU trên Modal khởi động lại sau khi đã tắt (32–46 s)</td>
-</tr>
-<tr>
-<td><strong>AWS WAF</strong></td>
-<td>lớp chống bot của Amazon, bắt trình duyệt chạy JavaScript để nhận cookie</td>
-</tr>
-<tr>
-<td><strong>Chặn mềm</strong></td>
-<td>trang trả mã 200 bình thường nhưng không có dữ liệu</td>
-</tr>
-<tr>
-<td><strong>Kiểm hồi quy</strong></td>
-<td>chạy lại các trường hợp cũ để chắc thay đổi mới không làm hỏng thứ đang chạy tốt</td>
-</tr>
-<tr>
-<td><strong>Nhiễu</strong></td>
-<td>chênh lệch giữa các lần chạy lặp lại mà không đổi gì — chênh lệch nhỏ hơn nhiễu thì chưa kết luận được</td>
+<td><code>scripts/do_luong/</code></td>
+<td>các script đo dùng lại được</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="c-tai-lieu-lien-quan">C. Tài liệu liên quan</h3>
-<ul>
-<li><code>segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md</code> — tài liệu kỹ thuật app 1 (từng file, từng hàm, cơ chế chi tiết).</li>
-<li><code>segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md</code> — tài liệu app 2.</li>
-<li><code>scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md</code> — dữ liệu, mô hình truyền thống, DNN.</li>
-<li><code>scraping_data_tv/Data_processing_for_English_data/report_fine_tune_llm.md</code> — fine-tune Llama 3.2 bằng QLoRA.</li>
-<li><code>docs/changelog/README.md</code> — từng thay đổi code ngày 29/10 kèm số trước / sau và phương án đã thử.</li>
-<li><code>scripts/do_luong/</code> — script đo dùng lại: cả pipeline, MAE Frontier, từ khoá có trong vùng dữ liệu không.</li>
-</ul>
-<h3 id="d-lich-su-bao-cao">D. Lịch sử báo cáo</h3>
+<h3 id="c-lich-su-bao-cao">C. Lịch sử báo cáo</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -927,17 +1335,17 @@ uv run price_is_right.py                 # app 2
 <tr>
 <td>1 — <code>report_system.md</code></td>
 <td>11/05/2026</td>
-<td>theo từng ngày học Week 8, kèm nhiều code</td>
+<td>viết theo từng ngày học tuần 8, kèm nhiều code</td>
 </tr>
 <tr>
 <td>2 — <code>report_system2.html</code></td>
 <td>26/09/2026</td>
-<td>bản HTML (giao diện) của bản 1 <span class="ev ev-inferred">suy luận từ nội dung và ngày sửa file</span></td>
+<td>bản trang web của bản 1 (suy ra từ nội dung và ngày sửa file)</td>
 </tr>
 <tr>
-<td><strong>3 — <code>report_system3.md</code> / <code>.html</code></strong></td>
+<td><strong>3 — <code>report_system3.md</code>, <code>report_system3.html</code></strong></td>
 <td><strong>29/10/2026</strong></td>
-<td><strong>viết lại theo hệ thống hiện tại + đợt tối ưu 28–29/10</strong></td>
+<td><strong>viết lại theo hệ thống hiện tại cho người đọc chưa biết dự án, kèm đợt tối ưu 28–29/10</strong></td>
 </tr>
 </tbody>
 </table></div>
@@ -946,6 +1354,11 @@ uv run price_is_right.py                 # app 2
 </div>
 <script>
   hljs.highlightAll();
+  // Khi in: mở mọi ô "Trong code" để bản giấy đủ nội dung, in xong trả lại như cũ
+  const closed = () => [...document.querySelectorAll('details.in-code:not([open])')];
+  let opened = [];
+  addEventListener('beforeprint', () => { opened = closed(); opened.forEach(d => d.open = true); });
+  addEventListener('afterprint', () => { opened.forEach(d => d.open = false); });
   // Tô mục lục theo phần đang đọc + thanh tiến độ đọc (phản hồi thao tác cuộn của người đọc)
   const links = [...document.querySelectorAll('.toc a[data-id]')];
   const byId = Object.fromEntries(links.map(a => [a.dataset.id, a]));

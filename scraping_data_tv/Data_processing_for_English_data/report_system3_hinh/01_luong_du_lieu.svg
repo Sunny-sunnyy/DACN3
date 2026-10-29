@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 790" role="img" aria-label="Luồng dữ liệu của app search_key: luồng nền khi mở app, rồi 4 bước cào song song, gộp, chọn deal, ước giá song song, cuối cùng bảng kết quả và thông báo" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+  <defs>
+    <marker id="f1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566176"/>
+    </marker>
+  </defs>
+
+  <!-- Luồng nền khi mở app -->
+  <rect x="20" y="16" width="840" height="96" rx="10" fill="none" stroke="#B8C0CC" stroke-dasharray="6 5"/>
+  <text x="38" y="42" font-size="12.5" font-weight="600" fill="#566176">Khi mở app — chạy nền, trước lần tìm đầu</text>
+  <rect x="38" y="56" width="248" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="162" y="81" font-size="12.5" text-anchor="middle">Đánh thức máy Modal (Llama)</text>
+  <rect x="304" y="56" width="262" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="435" y="81" font-size="12.5" text-anchor="middle">Nạp ChromaDB + 3 mô hình (9–20 s)</text>
+  <rect x="584" y="56" width="258" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="713" y="81" font-size="12.5" text-anchor="middle">Giữ ấm: ping 50 s, ngừng sau 15 phút</text>
+
+  <!-- Từ khoá -->
+  <rect x="380" y="132" width="250" height="36" rx="18" fill="#172033"/>
+  <text x="505" y="155" font-size="13" font-weight="600" text-anchor="middle" fill="#FFFFFF">Người dùng nhập từ khoá</text>
+  <line x1="505" y1="168" x2="505" y2="192" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Cột tên bước -->
+  <g font-size="13" font-weight="700">
+    <text x="24" y="232">Bước 1</text>
+    <text x="24" y="382">Bước 2</text>
+    <text x="24" y="462">Bước 3</text>
+    <text x="24" y="560">Bước 4</text>
+  </g>
+  <g font-size="12" fill="#566176">
+    <text x="24" y="250">11–26 s</text>
+    <text x="24" y="400">&lt; 0,1 s</text>
+    <text x="24" y="480">4–5 s</text>
+    <text x="24" y="578">~4 s</text>
+  </g>
+
+  <!-- Bước 1: hai nguồn song song -->
+  <rect x="150" y="196" width="710" height="118" rx="10" fill="#F7F9FC" stroke="#DCE1EA"/>
+  <text x="168" y="219" font-size="13" font-weight="600">Cào hai nguồn cùng lúc</text>
+  <rect x="168" y="232" width="324" height="66" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="184" y="256" font-size="13" font-weight="600">BestBuy — API nội bộ</text>
+  <text x="184" y="278" font-size="12" fill="#566176">giá theo lô 25 SKU, "đang sale" = onSale</text>
+  <rect x="518" y="232" width="324" height="66" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="534" y="256" font-size="13" font-weight="600">Amazon — cookie WAF → curl_cffi</text>
+  <text x="534" y="278" font-size="12" fill="#566176">"đang sale" = có giá gạch ngang lớn hơn</text>
+  <text x="505" y="334" font-size="12" fill="#566176" text-anchor="middle">mỗi nguồn trả trạng thái ok / empty / blocked / error — nguồn lỗi không kéo nguồn kia</text>
+  <line x1="505" y1="342" x2="505" y2="358" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Bước 2 -->
+  <rect x="150" y="362" width="710" height="52" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="168" y="384" font-size="13" font-weight="600">Gộp thành một danh sách, bỏ hàng trùng</text>
+  <text x="168" y="403" font-size="12" fill="#566176">cùng link hoặc cùng tên khi bỏ từ chỉ màu ⇒ giữ bản rẻ nhất (ví dụ 12 → 8 deal)</text>
+  <line x1="505" y1="414" x2="505" y2="438" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Bước 3 -->
+  <rect x="150" y="442" width="710" height="52" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="168" y="464" font-size="13" font-weight="600">gpt-6-luna chọn 3 deal</text>
+  <text x="168" y="483" font-size="12" fill="#566176">mô hình trả số thứ tự + tóm tắt; code lấy giá, link, tên gốc từ danh sách đã cào</text>
+  <line x1="505" y1="494" x2="505" y2="518" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Bước 4: 3 deal song song, mỗi deal 3 mô hình song song -->
+  <rect x="150" y="522" width="710" height="150" rx="10" fill="#F7F9FC" stroke="#DCE1EA"/>
+  <text x="168" y="545" font-size="13" font-weight="600">Ước giá 3 deal cùng lúc</text>
+  <g font-size="12">
+    <rect x="168" y="558" width="216" height="98" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="184" y="580" font-weight="600" font-size="13">Deal 1</text>
+    <rect x="184" y="592" width="56" height="24" rx="5" fill="#E8EEFD"/><text x="212" y="608" text-anchor="middle">Llama</text>
+    <rect x="246" y="592" width="66" height="24" rx="5" fill="#E8EEFD"/><text x="279" y="608" text-anchor="middle">Frontier</text>
+    <rect x="318" y="592" width="50" height="24" rx="5" fill="#E8EEFD"/><text x="343" y="608" text-anchor="middle">DNN</text>
+    <text x="184" y="640" fill="#566176">0,1 L + 0,8 F + 0,1 D</text>
+
+    <rect x="397" y="558" width="216" height="98" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="413" y="580" font-weight="600" font-size="13">Deal 2</text>
+    <rect x="413" y="592" width="56" height="24" rx="5" fill="#E8EEFD"/><text x="441" y="608" text-anchor="middle">Llama</text>
+    <rect x="475" y="592" width="66" height="24" rx="5" fill="#E8EEFD"/><text x="508" y="608" text-anchor="middle">Frontier</text>
+    <rect x="547" y="592" width="50" height="24" rx="5" fill="#E8EEFD"/><text x="572" y="608" text-anchor="middle">DNN</text>
+    <text x="413" y="640" fill="#566176">0,1 L + 0,8 F + 0,1 D</text>
+
+    <rect x="626" y="558" width="216" height="98" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="642" y="580" font-weight="600" font-size="13">Deal 3</text>
+    <rect x="642" y="592" width="56" height="24" rx="5" fill="#E8EEFD"/><text x="670" y="608" text-anchor="middle">Llama</text>
+    <rect x="704" y="592" width="66" height="24" rx="5" fill="#E8EEFD"/><text x="737" y="608" text-anchor="middle">Frontier</text>
+    <rect x="776" y="592" width="50" height="24" rx="5" fill="#E8EEFD"/><text x="801" y="608" text-anchor="middle">DNN</text>
+    <text x="642" y="640" fill="#566176">0,1 L + 0,8 F + 0,1 D</text>
+  </g>
+  <line x1="300" y1="672" x2="300" y2="704" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+
+  <!-- Kết quả và thông báo -->
+  <rect x="150" y="708" width="300" height="48" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="300" y="737" font-size="13" font-weight="600" text-anchor="middle">Bảng kết quả, sắp theo discount</text>
+  <line x1="450" y1="732" x2="486" y2="732" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+  <rect x="490" y="708" width="226" height="48" rx="10" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="603" y="729" font-size="12.5" text-anchor="middle">discount &gt; $100 và link</text>
+  <text x="603" y="746" font-size="12.5" text-anchor="middle">bestbuy.com / amazon.com?</text>
+  <line x1="716" y1="732" x2="752" y2="732" stroke="#566176" stroke-width="1.5" marker-end="url(#f1-arrow)"/>
+  <text x="734" y="724" font-size="12" text-anchor="middle" fill="#566176">có</text>
+  <rect x="756" y="708" width="104" height="48" rx="10" fill="#172033"/>
+  <text x="808" y="737" font-size="13" font-weight="600" text-anchor="middle" fill="#FFFFFF">Pushover</text>
+</svg>

@@ -9,7 +9,8 @@ File .md là nguồn duy nhất — sửa .md rồi sinh lại, không sửa tay
     > **Mục đích:** …   /   > **Phạm vi:** …
     **Nhãn:** a · b · c
     **Thẻ giá:** <tên sản phẩm> | <giá bán> | <giá ước> | <chênh lệch> | <chú thích>
-Nhãn bằng chứng trong thân bài ([đã đo], [có trong code], [suy luận], [đề xuất]) được tô màu theo loại.
+Trong thân bài: blockquote bắt đầu bằng **Tóm tắt.** thành hộp tóm tắt; <details markdown="1"><summary>Trong code</summary>
+thành ô bấm mới mở (tự mở khi in). Nhãn bằng chứng trong thân bài ([đã đo], [có trong code], [suy luận], [đề xuất]) được tô màu theo loại.
 Giao diện cũ (nền tối) vẫn sinh bằng gen_report_system.py.
 """
 import html
@@ -57,8 +58,19 @@ def chip(m: re.Match) -> str:
 
 
 body = re.sub(r"(?:<strong>)?\[((?:đã đo|đã kiểm|có trong code|suy luận|đề xuất)[^\]<]*)\](?:</strong>)?", chip, body)
-# Ô "Tự kiểm" có khung riêng
-body = re.sub(r"<blockquote>\s*<p><strong>Tự kiểm:</strong>", '<blockquote class="quiz"><p><strong>Tự kiểm</strong>', body)
+# Hộp "Tóm tắt." đầu mỗi phần có khung riêng
+body = re.sub(r"<blockquote>\s*<p><strong>Tóm tắt\.</strong>\s*", '<blockquote class="summary"><p><strong>Tóm tắt</strong>', body)
+# Ô "Trong code" cuối mỗi mục: bấm mới mở, chỉ dành cho người cần tìm file / hàm
+body = re.sub(r"<details>\s*<summary>Trong code</summary>", '<details class="in-code"><summary>Trong code</summary>', body)
+# Hình SVG chèn bằng cú pháp ảnh Markdown ⇒ nhúng thẳng vào trang (HTML vẫn là một file), chú thích = alt
+def inline_svg(m: re.Match) -> str:
+    alt, src = m.group(1), m.group(2)
+    svg = (MD_PATH.parent / src).read_text(encoding="utf-8")
+    svg = re.sub(r"<\?xml[^>]*>\s*", "", svg).strip()
+    return f'<figure class="diagram"><div class="diagram-scroll">{svg}</div><figcaption>{alt}</figcaption></figure>'
+
+
+body = re.sub(r'<p><img alt="([^"]*)" src="([^"]+\.svg)" ?/?></p>', inline_svg, body)
 # Bảng cuộn ngang được trên màn hình hẹp, không làm cả trang cuộn ngang
 body = re.sub(r"<table>", '<div class="table-wrap"><table>', body).replace("</table>", "</table></div>")
 
@@ -171,7 +183,7 @@ page = f"""<!DOCTYPE html>
 
   /* Thân bài */
   .content > * {{ max-width: var(--measure); }}
-  .content > .table-wrap, .content > pre {{ max-width: 100%; }}
+  .content > .table-wrap, .content > pre, .content > figure {{ max-width: 100%; }}
   .content h2 {{ font: 700 28px/1.25 var(--sans); letter-spacing: -0.015em; margin: 72px 0 18px; padding-top: 8px; }}
   .content h2:first-child {{ margin-top: 0; }}
   .content h3 {{ font: 600 20px/1.35 var(--sans); margin: 40px 0 12px; }}
@@ -189,6 +201,13 @@ page = f"""<!DOCTYPE html>
   .content pre code {{ background: none; padding: 0; font-size: 13.5px; line-height: 1.6; }}
   .hljs {{ background: transparent; padding: 0; }}
 
+  figure.diagram {{ max-width: 100%; margin: 28px 0 32px; padding: 20px 22px 14px; background: var(--surface);
+                    border: 1px solid var(--rule); border-radius: 10px; }}
+  figure.diagram svg {{ display: block; width: 100%; height: auto; }}
+  .diagram-scroll {{ overflow-x: auto; }}
+  /* màn hình hẹp: hình giữ cỡ đọc được, cuộn ngang trong khung hình (chú thích và trang không cuộn) */
+  @media (max-width: 720px) {{ figure.diagram {{ padding: 14px 12px 10px; }} figure.diagram svg {{ min-width: 680px; }} }}
+  figure.diagram figcaption {{ font: 400 14px/1.55 var(--sans); color: var(--muted); margin-top: 12px; max-width: 72ch; }}
   .table-wrap {{ overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }}
   table {{ border-collapse: collapse; width: 100%; font: 400 14.5px/1.5 var(--sans); }}
   th {{ text-align: left; font-weight: 600; background: #F0F3F8; color: var(--ink); padding: 11px 14px; border-bottom: 1px solid var(--rule); }}
@@ -198,9 +217,17 @@ page = f"""<!DOCTYPE html>
 
   blockquote {{ margin: 0 0 20px; padding: 14px 18px; border-left: 3px solid var(--rule); color: var(--muted); }}
   blockquote p:last-child {{ margin-bottom: 0; }}
-  blockquote.quiz {{ background: var(--blue-soft); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; color: var(--ink);
-                    font-style: italic; margin-top: 28px; }}
-  blockquote.quiz strong {{ font: 700 13px/1 var(--sans); font-style: normal; color: var(--blue); display: block; margin-bottom: 8px; }}
+  blockquote.summary {{ background: var(--blue-soft); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0;
+                       color: var(--ink); font-size: 17.5px; margin: 0 0 28px; padding: 16px 20px; }}
+  blockquote.summary strong {{ font: 700 13px/1 var(--sans); color: var(--blue); display: block; margin-bottom: 8px; }}
+
+  details.in-code {{ margin: 24px 0 8px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface);
+                    font: 400 14.5px/1.6 var(--sans); }}
+  details.in-code summary {{ cursor: pointer; padding: 10px 16px; font-weight: 600; color: var(--muted); }}
+  details.in-code summary:hover {{ color: var(--ink); }}
+  details.in-code[open] summary {{ border-bottom: 1px solid var(--rule); color: var(--ink); }}
+  details.in-code > :not(summary) {{ margin: 12px 16px 14px; }}
+  details.in-code ul {{ padding-left: 1.2em; }}
 
   .ev {{ display: inline-block; font: 600 12px/1.6 var(--sans); padding: 0 7px; border-radius: 4px; white-space: nowrap; vertical-align: 1px; }}
   .ev-measured {{ background: #E3F3E8; color: #17603A; }}
@@ -232,7 +259,7 @@ page = f"""<!DOCTYPE html>
     main {{ padding: 0; }}
     .price-tag {{ transform: none; box-shadow: none; border: 1px solid #999; }}
     .content h2 {{ break-before: page; margin-top: 0; }}
-    .table-wrap, pre, blockquote {{ break-inside: avoid; }}
+    .table-wrap, pre, blockquote, figure {{ break-inside: avoid; }}
     a {{ color: inherit; text-decoration: none; }}
   }}
 </style>
@@ -262,6 +289,11 @@ page = f"""<!DOCTYPE html>
 </div>
 <script>
   hljs.highlightAll();
+  // Khi in: mở mọi ô "Trong code" để bản giấy đủ nội dung, in xong trả lại như cũ
+  const closed = () => [...document.querySelectorAll('details.in-code:not([open])')];
+  let opened = [];
+  addEventListener('beforeprint', () => {{ opened = closed(); opened.forEach(d => d.open = true); }});
+  addEventListener('afterprint', () => {{ opened.forEach(d => d.open = false); }});
   // Tô mục lục theo phần đang đọc + thanh tiến độ đọc (phản hồi thao tác cuộn của người đọc)
   const links = [...document.querySelectorAll('.toc a[data-id]')];
   const byId = Object.fromEntries(links.map(a => [a.dataset.id, a]));

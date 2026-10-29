@@ -1,388 +1,542 @@
 # Báo cáo: Hệ thống AI Price Intelligence — "The Price Is Right" (bản 3)
 
-> **Mục đích:** Trình bày hệ thống tìm deal và ước lượng giá trị thật của sản phẩm — bài toán, kiến trúc, cách từng khâu hoạt động, vì sao chọn cách làm đó, kết quả đo được và giới hạn còn lại.
-> **Phạm vi:** Đồ án DACN3 — từ dữ liệu và mô hình (tóm tắt) đến hai ứng dụng đang chạy, kèm đợt tối ưu ngày 28–29/10/2026.
+> **Mục đích:** Giải thích hệ thống tìm deal và ước lượng giá trị thật của sản phẩm sao cho người chưa biết gì về dự án, hoặc đã lâu không xem lại, chỉ cần đọc file này là hiểu.
+> **Phạm vi:** Đồ án DACN3 — từ dữ liệu và mô hình đến hai ứng dụng đang chạy, kèm đợt tối ưu ngày 28–29/10/2026.
 
 **Nhãn:** 29/10/2026 · segment4/ · search_key.py · price_is_right.py
 **Thẻ giá:** Sony WH-1000XM5 — BestBuy | 228,00 | 313,92 | 85,92 | Một deal thật từ lượt đo ngày 29/10/2026, từ khoá "wireless headphones". Mô hình chỉ đọc mô tả, không nhìn giá bán.
 
-**Cách đọc báo cáo này.** Mỗi khâu được giải thích theo cùng một thứ tự: *bài toán* (khâu này giải quyết việc gì) → *cơ chế*
-(nó chạy thế nào) → *vì sao chọn cách này* (và cách nào đã bị bỏ) → *khi nào nó hỏng*. Cuối mỗi phần có **một câu tự kiểm**:
-trả lời được mà không cần nhìn lại là đã hiểu phần đó. Số liệu luôn ghi kèm **đo ngày nào, trên dữ liệu gì**; chỗ nào chỉ là
-suy luận thì ghi rõ là suy luận.
+## Phần 0: Đọc nhanh
 
-**Thay đổi so với bản 2 (11/05/2026):** viết lại theo hệ thống hiện tại thay vì theo từng ngày học; mô hình OpenAI chuyển hết
-sang gpt-6-luna; cách vượt lớp chặn Amazon đổi hẳn; thêm xử lý song song, chống sập, giữ ấm Modal; thời gian một lượt tìm từ
-70–107 giây còn 21–34 giây. Bản 2 vẫn giữ nguyên ở `report_system.md` / `report_system2.html` để đối chiếu.
+> **Tóm tắt.** Hệ thống tìm sản phẩm đang giảm giá trên BestBuy và Amazon, rồi dùng AI đoán xem sản phẩm đó thật ra đáng giá bao nhiêu. Nếu giá bán thấp hơn nhiều so với giá AI đoán, đó là một deal tốt và hệ thống gửi thông báo lên điện thoại.
+
+**Hệ thống làm gì.** Khi thấy một món hàng "đang giảm giá", người mua thường không biết mức giảm đó có thật không. Giá gạch ngang có thể bị đẩy lên cho đẹp. Hệ thống trả lời câu hỏi: *"Đọc mô tả này, món hàng đáng giá bao nhiêu?"* Sau đó nó so con số đó với giá bán. Phần chênh lệch gọi là **discount** (mức hời). Discount càng lớn thì deal càng tốt.
+
+**Có hai ứng dụng.**
+
+- **Ứng dụng 1 (`search_key.py`):** người dùng gõ một từ khoá, ví dụ "noise cancelling headphones". Hệ thống tìm hàng đang sale trên BestBuy và Amazon, chọn ra 3 deal, ước giá và hiện bảng kết quả.
+- **Ứng dụng 2 (`price_is_right.py`):** tự chạy mỗi 5 phút. Nó đọc tin khuyến mãi của trang DealNews, chọn 5 deal, ước giá và tự báo khi gặp deal tốt.
+
+**Kết quả chính.**
+
+| Điều cần biết | Con số | Ghi chú |
+|---|---|---|
+| Sai số trung bình khi ước giá (cả hệ thống, lúc huấn luyện) | khoảng $30 mỗi sản phẩm | đo trên 200 sản phẩm chưa từng dùng để huấn luyện |
+| Thời gian một lần tìm (ứng dụng 1) | 21–34 giây | trước đợt tối ưu: 70–107 giây |
+| Tiền API mỗi lần tìm | khoảng 0,1 cent | ước từ số liệu đo, chưa tính GPU Modal |
+
+**Đọc tiếp ở đâu.**
+
+| Bạn muốn biết | Đọc |
+|---|---|
+| Các khái niệm AI dùng trong dự án | Phần 1 |
+| Dữ liệu lấy từ đâu, vì sao chỉ có 8 nhóm hàng | Phần 2 |
+| Đã thử những mô hình nào, vì sao chọn cách kết hợp 3 mô hình | Phần 3 |
+| Hệ thống chạy thế nào từ lúc gõ từ khoá đến lúc ra kết quả | Phần 4 và 5 |
+| Đã tối ưu những gì, nhanh hơn bao nhiêu | Phần 6 |
+| Kết quả, chỗ còn yếu, nên thử từ khoá nào | Phần 7 và 8 |
 
 ---
 
-## Phần 1: Bài toán và hành trình
+## Phần 1: Kiến thức cần biết trước
 
-### 1.1 Bài toán
+> **Tóm tắt.** Tám khái niệm dưới đây xuất hiện khắp báo cáo. Mỗi khái niệm được giải thích bằng lời thường và một ví dụ ngay trong dự án.
 
-Trên các trang bán hàng, một sản phẩm "đang giảm giá" chưa chắc đã rẻ: giá gạch ngang có thể bị đẩy lên, hoặc giá gốc vốn đã
-thấp hơn mức shop ghi. Hệ thống trả lời câu hỏi: **"Với mô tả này, sản phẩm đáng giá bao nhiêu?"** — rồi so với giá bán để biết
-deal có thật sự tốt không.
+### 1.1 Mô hình học máy ước giá
 
-- **Đầu vào:** một từ khoá (app 1) hoặc tin khuyến mãi từ RSS của DealNews (app 2).
-- **Đầu ra:** tối đa 3 deal (app 1) / 5 deal (app 2), mỗi deal có giá bán, **giá ước lượng**, **discount = giá ước − giá bán**;
-  discount lớn thì gửi thông báo đẩy lên điện thoại (Pushover).
-- Mô hình **không nhìn giá bán** khi ước giá — chỉ nhìn mô tả sản phẩm. Nếu nhìn giá bán, nó sẽ có xu hướng đoán gần giá đó và
-  mất ý nghĩa so sánh.
+Một **mô hình học máy** là một chương trình tự rút ra quy luật từ rất nhiều ví dụ. Ở đây, mỗi ví dụ là một cặp: *mô tả sản phẩm* và *giá thật* của nó. Mô hình xem 800.000 cặp như vậy. Sau đó, khi được đưa một mô tả mới, nó đoán ra một con số giá.
 
-### 1.2 Hành trình: dữ liệu → mô hình → hệ thống
+Ví dụ: mô hình đã thấy hàng nghìn tai nghe chống ồn của Sony giá $250–$350. Gặp một tai nghe Sony chống ồn mới, nó sẽ đoán trong khoảng đó.
 
-| Giai đoạn | Làm gì | Kết quả chính | Chi tiết |
-|---|---|---|---|
-| Thu thập dữ liệu | Amazon Reviews 2023 (McAuley-Lab), **8 nhóm hàng**: Automotive, Electronics, Office Products, Tools & Home Improvement, Cell Phones & Accessories, Toys & Games, Appliances, Musical Instruments | ~2,93 triệu sản phẩm → bỏ trùng còn ~2,89 triệu | `Report_data_processing_v2.md` (Day 1) |
-| Lọc và lấy mẫu | giữ giá **$0,5–$999,49**, mô tả đủ dài; lấy mẫu có trọng số `giá²`, giảm trọng số nhóm Automotive (×0,05) và Tools (×0,5) để không lệch về hàng rẻ | **820.000** sản phẩm (800k train / 10k val / 10k test); giá trung bình ~$59 → ~$140 | như trên |
-| Tiền xử lý bằng LLM | viết lại mỗi sản phẩm theo khuôn `Title / Category / Brand / Description / Details`, bỏ mã linh kiện | dataset `SeanSunny/items_full` trên HuggingFace | Day 2 |
-| Mô hình | từ đoán ngẫu nhiên tới mạng nơ-ron sâu, LLM, fine-tune | bảng 1.3 | Day 3–5, `report_fine_tune_llm.md` |
-| Hệ thống | đưa mô hình thành 2 ứng dụng có giao diện, cào dữ liệu thật, thông báo | Phần 2–3 | báo cáo này |
-| Tối ưu | đo, sửa lỗi, tăng tốc, chống sập | Phần 4 | báo cáo này |
+### 1.2 MAE — thước đo độ đúng
 
-### 1.3 So sánh mô hình (lúc huấn luyện)
+**MAE** (sai số tuyệt đối trung bình) cho biết mô hình đoán lệch trung bình bao nhiêu đô la. Món hàng giá thật $100, mô hình đoán $90, vậy là lệch $10. Lấy trung bình độ lệch trên nhiều sản phẩm thì ra MAE. **MAE càng thấp càng tốt.**
 
-Sai số tuyệt đối trung bình (**MAE** — trung bình |giá đoán − giá thật|, càng thấp càng tốt) trên **200 mẫu test**, số lấy từ
-các báo cáo huấn luyện:
+MAE luôn được đo trên **tập test**. Đó là các sản phẩm mô hình chưa từng thấy lúc học. Đo trên chính các sản phẩm đã dùng để học thì giống như cho học sinh làm lại đúng đề đã chữa, không nói lên điều gì.
 
-| Mô hình | MAE | Ghi chú |
-|---|---|---|
-| Đoán ngẫu nhiên | $382,08 | mốc dưới |
-| Luôn đoán giá trung bình | $106,18 | mốc không dùng mô hình |
-| XGBoost (đặc trưng từ chữ) | $68,23 | mô hình truyền thống tốt nhất |
-| Claude Opus 4.5 (không huấn luyện thêm) | $47,10 | LLM tiên tiến, hỏi thẳng |
-| DNN 289 triệu tham số (HashingVectorizer → 8 khối residual) | $46,02 | chạy trên máy, dùng trong ensemble |
-| GPT-5.1 + RAG | $44,06 | Frontier ban đầu |
-| Llama-3.2-3B fine-tune QLoRA | $39,85 | adapter ~73 MB, chạy trên Modal |
-| **Ensemble 0,8 × Frontier + 0,1 × Llama + 0,1 × DNN** | **$29,9** | dùng trong hệ thống |
+### 1.3 Embedding — biến câu chữ thành dãy số
 
-**Vì sao ensemble tốt hơn từng mô hình:** ba mô hình sai theo những cách khác nhau (LLM có kiến thức chung, Llama học khuôn giá
-của đúng dữ liệu này, DNN bám vào từ khoá); trung bình có trọng số làm các sai lệch ngược chiều triệt tiêu một phần.
+Máy tính không hiểu chữ, nó chỉ làm việc với số. Một **embedding** biến một câu thành một dãy số. Dự án dùng mô hình `all-MiniLM-L6-v2`, mỗi câu thành 384 số. Dãy số này gọi là **vector**.
 
-> **Tự kiểm:** Vì sao dữ liệu huấn luyện chỉ giữ hàng dưới $999,49, và điều đó ảnh hưởng thế nào khi người dùng tìm "laptop"?
+Điểm quan trọng: hai câu có nghĩa giống nhau sẽ cho hai dãy số gần nhau. "Tai nghe chống ồn Sony" và "Sony noise cancelling headphones" sẽ nằm gần nhau. "Nồi chiên không dầu" thì nằm xa.
+
+### 1.4 Cơ sở dữ liệu vector — tìm sản phẩm giống nhất
+
+**ChromaDB** là một cơ sở dữ liệu chuyên lưu vector. Dự án lưu vector của 800.000 sản phẩm kèm giá thật của chúng. Khi cần ước giá một món hàng, hệ thống biến mô tả của nó thành vector rồi hỏi ChromaDB: "5 sản phẩm nào gần nhất?" Câu trả lời có trong chưa tới nửa giây.
+
+### 1.5 LLM và mức suy luận
+
+**LLM** (mô hình ngôn ngữ lớn) là loại AI đọc và viết văn bản, ví dụ GPT hay Llama. Dự án dùng **gpt-6-luna** của OpenAI. Đây là một mô hình rẻ và nhanh, được gọi qua mạng (API) và trả tiền theo lượng chữ.
+
+Luna có thiết lập **mức suy luận** (`reasoning effort`). Mức `none` thì trả lời ngay. Mức `low` thì "nghĩ" một chút trước khi trả lời, chậm hơn và tốn hơn một ít. Mức cao hơn không chắc đã cho kết quả tốt hơn, nên dự án chọn mức bằng cách đo.
+
+### 1.6 RAG — tra cứu rồi mới trả lời
+
+**RAG** (tra cứu rồi sinh câu trả lời) là cách giúp LLM trả lời có căn cứ. Thay vì hỏi thẳng "món này giá bao nhiêu?", hệ thống làm hai bước:
+
+1. Tra ChromaDB để lấy 5 sản phẩm giống nhất kèm giá thật của chúng.
+2. Đưa cả 5 sản phẩm đó vào câu hỏi gửi LLM: "Đây là vài món tương tự và giá của chúng. Món này giá bao nhiêu?"
+
+Giống như một người định giá nhìn vài món đã bán gần đây trước khi ra giá.
+
+### 1.7 Fine-tune và QLoRA — dạy thêm cho một mô hình có sẵn
+
+**Fine-tune** là lấy một LLM có sẵn rồi cho nó học thêm trên dữ liệu riêng. Dự án lấy **Llama-3.2-3B** (một LLM nhỏ của Meta) và dạy nó đúng một việc: đọc mô tả, trả lời giá.
+
+Dạy lại toàn bộ mô hình thì rất tốn GPU, nên dự án dùng **QLoRA**. Mô hình gốc được nén nhỏ (lượng tử hoá 4-bit) và giữ nguyên, chỉ một phần gắn thêm rất nhỏ được học, gọi là **adapter**. Toàn bộ "kiến thức mới" nằm trong một file adapter khoảng 73 MB.
+
+### 1.8 Ensemble — kết hợp nhiều mô hình
+
+**Ensemble** là cho nhiều mô hình cùng đoán, rồi lấy trung bình có trọng số. Mỗi mô hình sai theo một kiểu khác nhau, nên khi cộng lại, các sai lệch ngược chiều triệt tiêu bớt nhau. Kết quả thường tốt hơn từng mô hình riêng lẻ. Hệ thống này kết hợp 3 mô hình (Phần 3).
 
 ---
 
-## Phần 2: Kiến trúc tổng thể
+## Phần 2: Bài toán và dữ liệu
 
-### 2.1 Ba tầng
+> **Tóm tắt.** Dữ liệu huấn luyện là 820.000 sản phẩm Amazon thuộc 8 nhóm hàng, giá từ $0,5 đến $999,49. Giới hạn này quyết định hệ thống ước giá tốt cho loại hàng nào và kém cho loại nào.
 
-```
-Tầng giao diện   search_key.py / price_is_right.py           (Gradio, cổng 7860)
-Tầng framework   multi_source_framework.py / deal_agent_framework.py
-                 (mở ChromaDB, nạp agent một lần, giữ kết quả, memory.json của app 2)
-Tầng agent       price_agents/ + bestbuy_untils/
-                 mỗi agent một việc: cào, chọn deal, ước giá, viết tin nhắn, điều phối
-```
+### 2.1 Thế nào là một deal tốt
 
-Mỗi agent kế thừa lớp `Agent` (log có màu theo agent) và làm **một việc**. Phần điều phối (`MultiSourcePlanningAgent`,
-`PlanningAgent`) là code Python viết thẳng các bước — không để LLM tự quyết thứ tự, vì các bước luôn cố định.
+Mô hình **chỉ đọc mô tả sản phẩm**, không được nhìn giá bán. Nếu nhìn thấy giá bán, nó sẽ có xu hướng đoán gần con số đó, và phép so sánh mất ý nghĩa. Hệ thống tính `discount = giá ước − giá bán`. Ứng dụng 1 gửi thông báo khi discount lớn hơn $100, ứng dụng 2 khi lớn hơn $50.
 
-### 2.2 Hai ứng dụng
+### 2.2 Dữ liệu lấy từ đâu
 
-| | App 1 — `search_key.py` | App 2 — `price_is_right.py` |
+Dữ liệu là bộ **Amazon Reviews 2023** công khai của nhóm McAuley-Lab. Dự án lấy **8 nhóm hàng**: Automotive (ô tô), Electronics (điện tử), Office Products (văn phòng), Tools & Home Improvement (dụng cụ), Cell Phones & Accessories (điện thoại và phụ kiện), Toys & Games (đồ chơi), Appliances (thiết bị gia dụng), Musical Instruments (nhạc cụ).
+
+Dữ liệu được làm sạch qua bốn bước:
+
+1. **Bỏ hàng trùng:** khoảng 2,93 triệu sản phẩm, bỏ trùng còn khoảng 2,89 triệu.
+2. **Lọc:** chỉ giữ hàng giá từ $0,5 đến $999,49 và có mô tả dài ít nhất 600 ký tự. Hàng trên $1.000 thường là đồ công nghiệp hoặc xa xỉ, quá ít mẫu để học. Mô tả quá ngắn thì không đủ thông tin để đoán giá.
+3. **Lấy mẫu có chủ đích:** dữ liệu gốc có rất nhiều phụ tùng ô tô giá rẻ. Lấy ngẫu nhiên thì mô hình sẽ quen đoán thấp. Dự án ưu tiên hàng đắt hơn (xác suất được chọn tỉ lệ với bình phương giá) và giảm mạnh tỉ lệ nhóm Automotive. Kết quả là 820.000 sản phẩm, giá trung bình tăng từ khoảng $59 lên khoảng $140.
+4. **Viết lại mô tả bằng LLM:** mô tả gốc rất lộn xộn (mã linh kiện, quảng cáo, thông số rời rạc). Mỗi sản phẩm được viết lại theo một khuôn cố định gồm năm dòng: Title, Category, Brand, Description, Details. Việc này dùng mô hình gpt-oss-20b trên Groq, chạy theo lô (batch), tốn khoảng $30.
+
+Cuối cùng chia thành 800.000 sản phẩm để học, 10.000 để kiểm tra khi học và 10.000 để test. Bộ dữ liệu đã đưa lên HuggingFace với tên `SeanSunny/items_full`.
+
+### 2.3 Hệ quả của dữ liệu lên cách dùng
+
+Vì dữ liệu chỉ có 8 nhóm hàng và giá dưới $999, hệ thống ước tốt nhất cho hàng điện tử, nhạc cụ, dụng cụ tầm giá $50–$500. Nó **kém** ở ba trường hợp:
+
+- **Hàng đắt hơn $999** (laptop cao cấp, TV lớn): mô hình gần như chưa từng thấy mức giá đó, nên có xu hướng đoán thấp.
+- **Nhóm hàng không có trong dữ liệu**, ví dụ đồ bếp như nồi chiên không dầu: khi tra ChromaDB, hệ thống kéo về những sản phẩm sai loại.
+- **Hàng rất rẻ** (ốp điện thoại, tai nghe $20): giá đúng hay sai cũng hiếm khi tạo ra discount trên $100.
+
+Danh sách từ khoá nên thử nằm ở Phần 8.
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- Xử lý dữ liệu: `scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md` (Day 1–2), các file trong `Code_Data_processing/pricer/`: `parser.py`, `items.py`, `batch.py`.
+- Ngưỡng lọc: `MIN_PRICE = 0.5`, `MAX_PRICE = 999.49`, `MIN_CHARS = 600` trong `Code_Data_processing/pricer/parser.py`.
+- Bộ dữ liệu: HuggingFace `SeanSunny/items_full` (820.000), `SeanSunny/items_lite` (22.000).
+
+</details>
+
+---
+
+## Phần 3: Mô hình ước giá
+
+> **Tóm tắt.** Dự án đã thử từ cách đoán đơn giản nhất đến LLM và mô hình tự huấn luyện. Kết hợp 3 mô hình cho sai số thấp nhất, khoảng $30 mỗi sản phẩm, nên hệ thống dùng cách kết hợp này.
+
+### 3.1 Đã thử những gì
+
+Bảng dưới là sai số trên cùng 200 sản phẩm test (lấy từ các báo cáo lúc huấn luyện):
+
+| Cách ước giá | MAE | Nói ngắn |
 |---|---|---|
-| Kích hoạt | người dùng nhập từ khoá | tự chạy mỗi 5 phút |
-| Nguồn deal | cào BestBuy + Amazon | RSS DealNews (5 chuyên mục) |
-| Chọn deal | gpt-6-luna chọn 3 | gpt-6-luna chọn 5 |
-| Ước giá | ensemble (dùng chung) | ensemble (dùng chung) |
-| Thông báo | discount > $100 | discount > $50 |
-| Nhớ | không | `memory.json` để không báo trùng |
+| Đoán bừa | $382 | mốc dưới cùng |
+| Luôn đoán giá trung bình | $106 | mốc không dùng mô hình |
+| XGBoost, một mô hình học máy truyền thống | $68 | tốt nhất trong nhóm truyền thống |
+| Claude Opus 4.5, hỏi thẳng không cho học thêm | $47 | LLM mạnh nhưng không biết dữ liệu này |
+| Mạng nơ-ron sâu (DNN) tự huấn luyện | $46 | chạy ngay trên máy, rất nhanh |
+| GPT-5.1 kèm RAG | $44 | biết kiến thức chung, có 5 sản phẩm tham khảo |
+| Llama-3.2-3B fine-tune bằng QLoRA | $40 | học đúng dữ liệu giá này |
+| **Kết hợp 3 mô hình (ensemble)** | **$30** | **dùng trong hệ thống** |
 
-### 2.3 Luồng dữ liệu của app 1
+### 3.2 Ba mô hình được kết hợp
 
-```
-Mở app ── luồng nền: đánh thức Modal ‖ nạp mô hình (~9–20 s) ── giữ ấm Modal
-   │
-Từ khoá
-   │
-Bước 1  Cào song song   BestBuy (API nội bộ)  ‖  Amazon (trình duyệt ngầm lấy cookie → curl_cffi)
-   │                    → mỗi nguồn ≤ N sản phẩm đang sale + trạng thái ok / empty / blocked / error
-Bước 2  Gộp             → một danh sách chung; gộp hàng trùng (giữ bản rẻ nhất)
-Bước 3  Chọn deal       → gpt-6-luna trả số thứ tự 3 deal + tóm tắt; code lấy giá / URL thật
-Bước 4  Ước giá         → 3 deal song song; mỗi deal: viết lại mô tả → Llama ‖ Frontier ‖ DNN → trung bình có trọng số
-   │
-Bảng kết quả (sắp theo discount) → discount > $100 và link đúng shop → gửi Pushover
-```
+| Mô hình | Trọng số | Mạnh ở đâu |
+|---|---|---|
+| **Frontier**: LLM kèm RAG | 80 % | biết kiến thức chung về hàng hoá, lại có 5 sản phẩm tương tự để so |
+| **Specialist**: Llama fine-tune | 10 % | đã học thói quen giá của chính bộ dữ liệu này |
+| **DNN**: mạng nơ-ron sâu | 10 % | nắm chắc các từ khoá gắn với giá (hãng, dòng sản phẩm) |
 
-### 2.4 Mô hình nào chạy ở đâu
+Công thức là `giá = 0,8 × Frontier + 0,1 × Specialist + 0,1 × DNN`. Frontier được trọng số lớn nhất vì nó đúng nhất khi đứng riêng. Hai mô hình còn lại kéo kết quả lại mỗi khi Frontier đoán lệch xa.
+
+Hai chi tiết đáng nhớ:
+
+- **Llama đoán giá như chọn đáp án.** Bộ tách chữ (tokenizer) của Llama coi mỗi số từ 0 đến 999 là đúng một "từ". Vì vậy đoán giá với Llama giống như chọn 1 trong khoảng 1.000 đáp án, dễ học hơn việc ghép từng chữ số.
+- **DNN đọc theo từ khoá.** Nó biến mô tả thành 5.000 ô đánh dấu "có hoặc không có từ này" (kỹ thuật HashingVectorizer), rồi đưa qua một mạng 8 khối, tổng cộng 289 triệu tham số. Nó mạnh vì dữ liệu đã được viết lại theo khuôn, hãng và nhóm hàng luôn ghi rõ.
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- `segment4/price_agents/ensemble_agent.py` — kết hợp 3 mô hình (`WEIGHTS`, `combine`).
+- `segment4/price_agents/frontier_agent.py`, `specialist_agent.py`, `neural_network_agent.py`, `deep_neural_network.py`.
+- Chi tiết huấn luyện: `Report_data_processing_v2.md` (DNN), `report_fine_tune_llm.md` (Llama QLoRA).
+
+</details>
+
+---
+
+## Phần 4: Hệ thống tổng thể
+
+> **Tóm tắt.** Code chia thành ba tầng: giao diện, khung điều phối, và các "agent". Mỗi agent làm đúng một việc. Một lần tìm đi qua bốn bước: lấy dữ liệu, gộp, chọn deal, ước giá.
+
+### 4.1 Ba tầng
+
+| Tầng | Gồm | Làm gì |
+|---|---|---|
+| Giao diện | `search_key.py`, `price_is_right.py` | trang web (Gradio) để gõ từ khoá, xem bảng và log |
+| Khung điều phối | `multi_source_framework.py`, `deal_agent_framework.py` | mở ChromaDB, nạp các mô hình một lần, giữ kết quả |
+| Agent | thư mục `price_agents/`, `bestbuy_untils/` | mỗi agent một việc: lấy dữ liệu, chọn deal, ước giá, viết tin nhắn, điều phối |
+
+**Agent** ở đây chỉ là một lớp Python làm một việc rõ ràng và tự ghi log. Thứ tự các bước do code viết sẵn, không để LLM tự quyết. Lý do: các bước luôn cố định, để LLM tự quyết chỉ làm chậm và khó đoán hơn.
+
+### 4.2 Một lần tìm diễn ra thế nào
+
+![Một lần tìm của ứng dụng 1. Viền xanh là các việc chạy cùng lúc: hai nguồn ở Bước 1, ba deal ở Bước 4, và trong mỗi deal ba mô hình. Bước 2 và 3 phải chờ bước trước xong. Phần trên cùng chạy ngầm ngay khi mở ứng dụng, trước lần tìm đầu.](report_system3_hinh/01_luong_du_lieu.svg)
+
+Kể theo thứ tự:
+
+1. **Khi vừa mở ứng dụng**, hệ thống chạy ngầm ba việc: đánh thức máy chủ chạy Llama, nạp ChromaDB cùng các mô hình, và bắt đầu "giữ ấm" máy chủ đó (mục 5.5). Nhờ vậy lần tìm đầu tiên không phải chờ thêm.
+2. **Bước 1, lấy dữ liệu:** hệ thống tìm trên BestBuy và Amazon **cùng lúc**, mỗi bên lấy tối đa vài sản phẩm đang sale. Mỗi bên báo lại một trạng thái: có hàng, không có hàng, bị chặn, hoặc lỗi. Một bên hỏng không làm hỏng bên kia.
+3. **Bước 2, gộp:** hai danh sách thành một, bỏ các sản phẩm trùng.
+4. **Bước 3, chọn deal:** gpt-6-luna chọn ra 3 deal và viết tóm tắt cho từng deal.
+5. **Bước 4, ước giá:** 3 deal được ước giá **cùng lúc**. Trong mỗi deal, 3 mô hình cũng chạy cùng lúc.
+6. **Kết quả:** bảng sắp theo discount. Nếu deal tốt nhất có discount trên $100 và link đúng là của BestBuy hoặc Amazon, hệ thống gửi thông báo lên điện thoại.
+
+### 4.3 Mỗi phần chạy ở đâu
 
 | Thành phần | Chạy ở | Vì sao |
 |---|---|---|
-| gpt-6-luna (chọn deal, Frontier, tin nhắn) | OpenAI API | LLM lớn, trả tiền theo token, rất rẻ |
-| gpt-oss-20b (viết lại mô tả) | Groq qua LiteLLM | nhanh (0,3–1,1 s / lần) |
-| Llama-3.2-3B fine-tune | Modal, GPU T4 | theo thiết kế của khoá học: mô hình chạy trên GPU thuê, chỉ tính tiền khi máy bật [suy luận: GPU 4 GB của máy User đã dùng cho DNN + bộ mã hoá câu] |
-| DNN, SentenceTransformer, ChromaDB | máy User (GPU) | nhỏ, nhanh (DNN 0,1–0,2 s; tìm RAG 0,0–0,3 s) |
+| gpt-6-luna (chọn deal, Frontier, viết tin nhắn) | máy chủ OpenAI, gọi qua mạng | LLM lớn, trả tiền theo lượng chữ, rất rẻ |
+| gpt-oss-20b (viết lại mô tả) | máy chủ Groq, gọi qua mạng | rất nhanh, dưới 1 giây mỗi lần |
+| Llama-3.2-3B fine-tune | GPU thuê trên Modal | theo thiết kế của khoá học; Modal chỉ tính tiền khi máy đang bật |
+| DNN, bộ tạo embedding, ChromaDB | máy tính của người dùng | nhỏ và nhanh, dưới nửa giây |
 
-> **Tự kiểm:** Ở Bước 4, vì sao 3 mô hình có thể chạy cùng lúc, nhưng Bước 3 và Bước 4 thì không thể chạy song song với nhau?
+<details markdown="1">
+<summary>Trong code</summary>
 
----
+- Điều phối 4 bước: `segment4/price_agents/multi_source_planning_agent.py` — `search_and_scrape`, `combine`, `select_top_deals`, `estimate_prices`, `plan`.
+- Lớp cơ sở của mọi agent: `segment4/price_agents/agent.py`.
+- Ứng dụng 2 dùng `segment4/price_agents/planning_agent.py`.
 
-## Phần 3: Từng khâu theo lớp
-
-### 3.1 Cào dữ liệu BestBuy và Amazon
-
-**Bài toán.** Lấy danh sách sản phẩm **đang giảm giá** khớp từ khoá, kèm tên, hãng, giá, mô tả tính năng, link — từ hai trang
-có lớp chống bot, chạy trên máy WSL2 đặt tại Việt Nam.
-
-**Cơ chế — BestBuy.** Trang sản phẩm của BestBuy chặn request từ WSL2, nhưng các API JSON nội bộ thì không:
-
-1. Mở trang chủ với `?intl=nosplash` để bỏ qua bước chọn quốc gia.
-2. Tải trang tìm kiếm, lấy mọi mã sản phẩm (SKU) theo **đúng thứ tự trên trang** (liên quan nhất trước).
-3. Gọi API giá theo **lô 25 SKU** → tên, hãng, giá hiện tại, giá gốc; **"đang sale" = `pricingType == "onSale"`**.
-4. Với mỗi SKU đang sale, gọi API chi tiết → danh sách tính năng + link chuẩn. Đủ số deal thì dừng sớm.
-
-**Cơ chế — Amazon.** Amazon bật **AWS WAF**: trang đầu tiên trả một đoạn JavaScript bắt trình duyệt tự chứng minh là người
-thật. Thư viện `curl_cffi` giả được "dấu vân tay" mạng của Chrome nhưng **không chạy JavaScript**, nên một mình nó không qua.
-Cách làm là **lai**:
-
-1. Mở Chromium chạy ngầm (Playwright), vào trang chủ, chờ cookie `aws-waf-token` (~1,6 s), đóng trình duyệt.
-2. Chép cookie sang `curl_cffi`, thêm cookie `i18n-prefs=USD` để ép giá đô la.
-3. Tìm kiếm bằng link `/s?k=…&ref=nb_sb_noss` kèm header `Referer` — giống như bấm ô tìm kiếm trên trang chủ.
-4. Đọc từng thẻ sản phẩm: **"đang sale" = có giá gạch ngang lớn hơn giá hiện tại**; mở trang chi tiết lấy tính năng.
-
-**Vì sao chọn cách này.**
-
-- Dùng trình duyệt thật cho mọi bước thì chắc chắn qua, nhưng chậm (6,3 s mỗi lần tìm, phải giữ trình duyệt mở). Cách lai chỉ
-  dùng trình duyệt **một lần** để lấy cookie, phần còn lại nhanh như request thường (1,3–1,8 s / lần tìm) [đã đo 28/10].
-- Với BestBuy, gọi API nhanh và ổn định hơn đọc HTML, lại không bị chặn.
-
-**Khi nào hỏng.**
-
-- **Amazon đổi lớp chặn** bất kỳ lúc nào. Ngày 28/10 đổi sang WAF (code cũ ra 0 sản phẩm); ngày 29/10 trang chủ hiện trang trung
-  gian "Continue shopping" làm code chờ vô ích 20 giây (đã sửa — Phần 4).
-- **Chặn mềm:** Amazon trả trang bình thường (mã 200) nhưng không có sản phẩm — gặp 3 lần trong khoảng 8 lượt ngày 29/10. Code
-  thử lại một lần với cookie mới; vẫn rỗng thì báo nguồn đó `empty`.
-- **Gửi request dồn dập** → bị chặn IP tạm thời. Thử nghiệm Amazon phải thưa, có nghỉ.
-- **Giá VND:** IP Việt Nam làm Amazon hiện giá VND; code cũ đọc nhầm thành đô la. Nay chuỗi giá không có `$` bị bỏ qua.
-- **Lỗi BestBuy đã gặp (28/10):** API giá **âm thầm chỉ trả 25 SKU** mỗi lần dù gửi nhiều hơn → trước đó chỉ 25 / 200+ sản phẩm
-  được kiểm giá (`wireless headphones` ra 2 deal thay vì 6).
-
-> **Tự kiểm:** Vì sao `curl_cffi` qua được lớp chặn của BestBuy nhưng không qua được AWS WAF của Amazon nếu không có trình duyệt?
-
-### 3.2 Chọn deal bằng LLM (Bước 3)
-
-**Bài toán.** Từ 8–12 sản phẩm của hai nguồn, chọn 3 deal có mô tả rõ ràng và tóm tắt lại thành câu để đưa cho ensemble.
-
-**Cơ chế.**
-
-1. **Gộp hàng trùng** trước: cùng nguồn và (cùng link, hoặc cùng tên khi bỏ các từ chỉ màu) → giữ bản rẻ nhất. Ví dụ 29/10:
-   BestBuy trả 5 màu tai nghe WH-1000XM5 **cùng một link** nhưng giá $228–$298 → giữ bản $228; danh sách 12 → 8.
-2. Mỗi sản phẩm được đánh số `Deal 1`, `Deal 2`… trong prompt (không kèm link).
-3. gpt-6-luna trả về theo khuôn cố định (**structured output**): `deal_number` + câu tóm tắt.
-4. **Code** lấy giá, link, tên gốc từ danh sách đã cào và ghép mô tả `[Nguồn] <tên gốc>. <tóm tắt>`.
-
-**Vì sao chọn cách này.**
-
-- Bản cũ để mô hình **tự chép lại** giá và link vào câu trả lời — có thể chép sai; một lượt đo còn trả **8 deal** dù được dặn
-  tối đa 3. Nguyên tắc mới: **mô hình chỉ chọn, code giữ con số**.
-- Tên gốc ghép vào vì luna có lúc tóm tắt "This 6-quart air fryer…" mất cả hãng lẫn tên mẫu — ensemble mất thông tin hãng
-  (một nồi chiên Ninja $229,99 bị ước $167, lượt có tên ước $212).
-- Mức suy luận `none` thay vì `low`: đo trên cùng danh sách deal, 2 từ khoá × 3 lượt — `none` 4,2–4,3 s, `low` 4,6–5,3 s, cả hai
-  6 / 6 lượt đủ 3 deal khác nhau, 0 lần sai giá / link.
-
-**Khi nào hỏng.** Tiêu chí chọn vẫn là "mô tả chi tiết nhất, giá rõ ràng" — **chưa phải "giảm nhiều nhất"**; chưa có mốc so với
-một luật đơn giản không dùng LLM (ví dụ "3 deal giảm nhiều nhất") để chứng minh LLM đáng dùng ở bước này.
-
-> **Tự kiểm:** Nếu LLM trả về `deal_number = 15` trong khi danh sách chỉ có 8 deal, hệ thống xử lý thế nào, và vì sao an toàn hơn cách cũ?
-
-### 3.3 Ensemble ước giá (Bước 4)
-
-**Bài toán.** Ước giá trị thật của từng deal từ mô tả, đủ nhanh để người dùng không phải chờ lâu.
-
-**Cơ chế.**
-
-1. **Viết lại mô tả** (gpt-oss-20b trên Groq) theo khuôn `Title / Category / Brand / Description / Details` — đúng khuôn dữ liệu
-   lúc huấn luyện, để mô hình nhận đầu vào quen thuộc. Lỗi thì dùng mô tả gốc.
-2. Ba mô hình chạy **cùng lúc** trên cùng mô tả đã viết lại:
-
-| Mô hình | Trọng số | Cách ước |
-|---|---|---|
-| **Frontier** | 80 % | tìm **5 sản phẩm giống nhất** trong ChromaDB (800.000 sản phẩm train, kèm giá thật) → đưa vào prompt của gpt-6-luna (`low`) làm ngữ cảnh → luna trả một con số. Đây là **RAG** (truy xuất rồi sinh câu trả lời) |
-| **Specialist** | 10 % | Llama-3.2-3B fine-tune; prompt `"What does this cost to the nearest dollar? … Price is $"`, sinh tối đa 5 token. Tokenizer của Llama mã hoá mỗi số 0–999 thành **một token**, nên bài toán gần như "chọn 1 trong ~1.000 số" |
-| **DNN** | 10 % | biến chữ thành vector 5.000 chiều bằng HashingVectorizer → mạng 8 khối residual → giá (đã log-hoá khi huấn luyện) |
-
-**Bước 3 — kết hợp:** `giá = 0,8 × Frontier + 0,1 × Llama + 0,1 × DNN`. Mô hình nào **lỗi hoặc trả 0** thì bị bỏ, trọng số chia lại
-   cho các mô hình còn lại. Ví dụ: Frontier $150, DNN $100, Llama quá giờ → (0,8 × 150 + 0,1 × 100) / 0,9 = **$144,44**.
-
-**Bước 4 — song song:** 3 deal cũng chạy cùng lúc.
-
-**Vì sao chọn cách này.**
-
-- **Frontier đổi GPT-5.1 → gpt-6-luna `low`** (29/10). Đo trên 200 mẫu test đầu của `items_full`, cùng cách RAG, mỗi cấu hình
-  1 lượt:
-
-| Cấu hình Frontier | MAE | Tiền cho 200 lời gọi |
-|---|---|---|
-| GPT-5.1 `none` (cũ) | $31,16 | $0,179 |
-| gpt-6-luna `none` | $31,42 | $0,013 |
-| **gpt-6-luna `low` (chọn)** | **$29,69** | **$0,018** |
-| gpt-6.1-terra `none` | $28,51 | $0,130 |
-
-  So từng mẫu, khoảng dao động 95 % của mọi chênh lệch đều chứa 0 → **không cấu hình nào chắc chắn tốt hơn hay kém hơn GPT-5.1**
-  với 200 mẫu. Chọn luna `low` vì **không kém**, rẻ hơn GPT-5.1 ~10 lần, rẻ hơn terra ~7 lần, và cả hệ thống dùng chung một mô hình.
-  (MAE $31 ở đây thấp hơn $44,06 của bảng 1.3 — khác cách / tập đánh giá; so sánh trong bảng này là trên cùng 200 mẫu.)
-- **Coi 0 là lỗi:** Frontier và Llama trả 0 khi không đọc ra được con số. Trước đây số 0 đi thẳng vào trung bình, kéo kết quả
-  xuống ~20 % giá thật mà không ai biết.
-
-**Khi nào hỏng.**
-
-- **Ngoài vùng huấn luyện:** hàng trên $999 (laptop, TV) bị ước thấp; nhóm hàng không có trong dữ liệu (đồ bếp như nồi chiên
-  không dầu) làm RAG kéo về sản phẩm sai loại — kiểm 29/10: 20 sản phẩm gần nhất của "air fryer" là rơ-le điện.
-- **Llama hay lặp lại vài giá** ($60, $220, $350…) cho các sản phẩm khác nhau — đã thấy trong log, chưa phân tích nguyên nhân.
-- **Modal nguội:** Llama mất 32–46 s để bật máy; search_key chỉ chờ 10 s rồi bỏ Llama ở lượt đó (mục 3.5, Phần 4).
-
-> **Tự kiểm:** Nếu cả Frontier lẫn Llama đều lỗi, giá ước của deal đó lấy từ đâu, và nó đáng tin tới mức nào?
-
-### 3.4 Thông báo
-
-**Bài toán.** Báo cho người dùng khi có deal thật sự tốt, không báo nhầm, không gửi link lạ.
-
-**Cơ chế.** Deal tốt nhất có discount vượt ngưỡng ($100 ở app 1, $50 ở app 2) → gpt-6-luna viết 2–3 câu vui, gây tò mò →
-Pushover gửi lên điện thoại kèm link. Có nút gửi tay trong giao diện.
-
-**Vì sao chọn cách này.**
-
-- **Kiểm tên miền trước khi gửi:** chỉ gửi khi link thuộc `bestbuy.com` / `amazon.com`. Lý do: chữ trên trang bán hàng là
-  **dữ liệu không đáng tin** và được đưa vào prompt của LLM; app lại có đường gửi ra ngoài. Ghép hai điều đó là đủ để một trang
-  "dụ" hệ thống gửi link lạ tới điện thoại. Link vốn do code dựng nên đây là lớp kiểm thêm.
-- **Gửi lỗi không làm mất kết quả:** Pushover có giới hạn chờ 15 s; trả mã khác 200 thì ghi lỗi, bảng kết quả vẫn hiện.
-
-**Khi nào hỏng.** Thông báo chỉ tốt bằng giá ước: ước sai thì báo nhầm. Chưa đếm tỉ lệ báo nhầm / bỏ lỡ (Phần 6).
-
-> **Tự kiểm:** Vì sao kiểm tên miền vẫn cần, dù link do code dựng chứ không do LLM viết?
-
-### 3.5 Giao diện, nạp mô hình và giữ ấm Modal
-
-**Bài toán.** Lần tìm đầu tiên không phải chờ nạp mô hình; Llama trên Modal sẵn sàng khi cần mà không tốn tiền GPU vô ích.
-
-**Cơ chế.**
-
-- **Luồng nền khi mở app:** đánh thức Modal ngay (gửi một lời gọi không chờ kết quả), đồng thời nạp ChromaDB + mô hình
-  (~9–20 s) trong lúc người dùng gõ từ khoá. Có khoá để lần bấm Search sớm không tạo ra hai bộ mô hình.
-- **Giữ ấm:** Modal tự tắt máy sau 60 s rảnh. App ping mỗi 50 s; **ngừng sau 15 phút không có lượt tìm**, tự bật lại khi có lượt
-  tìm mới; tắt app là ngừng.
-- **Chờ Llama tối đa 10 s** (chỉ app 1). Quá giờ thì bỏ Llama ở deal đó, 45 s sau đó bỏ qua luôn (máy đang khởi động).
-- **Ô Status** hiện trạng thái từng nguồn (`BestBuy: ok (6), Amazon: ok (6)`) và báo lỗi nếu pipeline hỏng (trước đây giao
-  diện treo "Processing..." mãi).
-
-**Vì sao chọn cách này.** Cách tốt hơn là bảo Modal tự giữ máy lâu hơn (đổi cấu hình phía server), nhưng **Modal không cho tạo
-app GPU mới khi tài khoản chưa gắn thẻ** (29/10) → giữ ấm từ phía app. Chi phí: ~$0,59 / giờ chỉ trong lúc app mở và có người
-tìm trong 15 phút gần nhất; mở app mà không tìm gì thì tối đa ~$0,16.
-
-**Khi nào hỏng.** Bấm Search ngay sau khi mở app (trước ~40 s) thì máy Modal chưa bật xong → lượt đầu thiếu Llama. App 2 không
-giữ ấm nên mỗi lần quét đầu phải chờ máy bật (giữ hành vi cũ, không giới hạn chờ).
-
-> **Tự kiểm:** Modal tính tiền theo cái gì, và vì sao "giữ ấm" lại tốn tiền dù máy gần như không làm gì?
+</details>
 
 ---
 
-## Phần 4: Đợt tối ưu 28–29/10/2026
+## Phần 5: Từng khâu
 
-### 4.1 Cách làm
+### 5.1 Lấy dữ liệu từ BestBuy và Amazon
 
-1. **Đo mốc trước khi sửa** — script bọc từng hàm từ bên ngoài (không sửa code) đo thời gian, chặn Pushover khi đo.
-2. **Sửa từng thứ một**, mỗi thứ một commit; mốc quay lại là tag `moc-truoc-toi-uu-2026-10-29`.
-3. **Kiểm hồi quy sau mỗi bước** trên cùng 2 từ khoá: không lỗi · cả hai nguồn có deal · 3 deal khác nhau · giá USD > 0 · giá ước
-   hợp lý so với mốc · có số thời gian.
-4. **Cố định đầu vào khi so mô hình:** cào một lần, lưu danh sách deal, so mọi cấu hình trên cùng danh sách (web đổi từng phút).
-5. **Kiểm chéo:** một agent AI mới, không biết gì về quá trình sửa, đọc toàn bộ thay đổi — tìm ra **3 lỗi thật** mà các lượt đo
-   bỏ sót (Modal nguội + 3 deal song song chờ ~30 s; app 2 bị đổi hành vi ngoài ý muốn; app 2 có thể treo khi gửi tin lỗi) →
-   đã sửa và thử lại với Modal thật.
+> **Tóm tắt.** Cả hai trang đều chặn chương trình tự động. Với BestBuy, hệ thống gọi thẳng các "cửa sau" dữ liệu (API) mà chính trang web dùng. Với Amazon, hệ thống dùng một trình duyệt thật để "xin vé vào cửa", rồi dùng vé đó cho các lần tải sau.
 
-### 4.2 Trước và sau
+**BestBuy.** Trang sản phẩm của BestBuy chặn yêu cầu đến từ máy của dự án. Nhưng bản thân trang web BestBuy lấy giá và thông tin qua các **API**, tức các địa chỉ trả về dữ liệu dạng bảng thay vì trang web. Các địa chỉ này thì không bị chặn. Hệ thống làm bốn việc:
 
-| Chỗ | Trước | Sau | Nguyên nhân gốc → cách sửa |
+1. Mở trang tìm kiếm và lấy danh sách mã sản phẩm (SKU), giữ đúng thứ tự BestBuy xếp (liên quan nhất đứng trước).
+2. Hỏi API giá cho từng nhóm 25 mã. Mỗi sản phẩm có trạng thái giá, và **"đang sale" nghĩa là trạng thái `onSale`**.
+3. Với mỗi sản phẩm đang sale, hỏi thêm API chi tiết để lấy danh sách tính năng và link chuẩn.
+4. Đủ số deal cần thì dừng, không hỏi tiếp.
+
+Để không bị nhận ra là chương trình, mọi yêu cầu đi qua thư viện **curl_cffi**. Thư viện này giả "dấu vân tay" kết nối giống hệt trình duyệt Chrome.
+
+**Amazon.** Amazon có một lớp chặn mạnh hơn tên là **AWS WAF** (tường lửa của Amazon). Khi một chương trình mở amazon.com, Amazon không trả trang ngay. Nó gửi một đoạn mã nhỏ bắt máy kia chạy thử. Trình duyệt thật chạy được đoạn mã đó, còn curl_cffi thì không, nên bị chặn.
+
+Vì vậy hệ thống làm theo cách **lai**, gồm hai bước:
+
+1. Mở một **trình duyệt chạy ngầm** (Chromium, điều khiển bằng thư viện Playwright), vào trang chủ Amazon và để nó chạy đoạn mã kiểm tra. Amazon trả về một **cookie**, có thể hiểu là tấm vé chứng nhận "đã kiểm tra". Việc này mất vài giây, xong thì đóng trình duyệt.
+2. Đưa tấm vé cho curl_cffi. Từ đây curl_cffi tìm kiếm và mở trang chi tiết sản phẩm rất nhanh. Hệ thống còn gửi kèm một cookie ép Amazon hiện giá bằng đô la.
+
+![Cách lai lấy dữ liệu Amazon. Trình duyệt thật chỉ dùng một lần để chạy đoạn mã kiểm tra của AWS WAF và nhận cookie. Mũi tên xanh là bước chuyển cookie sang curl_cffi; mọi yêu cầu sau đó đi bằng curl_cffi cho nhanh. Khung đỏ là những chỗ từng bị chặn và cách hệ thống xử lý.](report_system3_hinh/02_amazon_lai.svg)
+
+Ở Amazon, **"đang sale" nghĩa là sản phẩm có giá gạch ngang cao hơn giá đang bán.**
+
+**Vì sao chọn cách lai.** Dùng trình duyệt thật cho mọi bước thì chắc chắn qua được, nhưng chậm và tốn bộ nhớ. Cách lai chỉ dùng trình duyệt một lần mỗi lượt tìm, phần còn lại nhanh như tải trang bình thường.
+
+| Cách đã thử (28/10) | Kết quả | Thời gian mỗi lần tìm |
+|---|---|---|
+| Chỉ dùng curl_cffi, thử 6 kiểu giả trình duyệt | bị chặn | — |
+| Trình duyệt thật vào thẳng trang tìm kiếm | bị chặn | — |
+| Trình duyệt thật gõ vào ô tìm kiếm | qua được | 6,3 giây, phải giữ trình duyệt mở |
+| **Cách lai (đang dùng)** | **qua được** | **1,3–1,8 giây**, cộng vài giây lấy cookie |
+
+**Những lần từng hỏng và cách đã sửa.**
+
+- **Giá hiện bằng tiền Việt.** Máy đặt ở Việt Nam nên Amazon tự đổi sang VND, và code cũ đọc nhầm số VND thành đô la. Giờ hệ thống ép hiển thị đô la, và bỏ qua mọi giá không có ký hiệu "$".
+- **BestBuy chỉ trả 25 sản phẩm mỗi lần hỏi giá.** Code cũ hỏi một lần cho hơn 200 mã, nên chỉ 25 mã được kiểm giá và bỏ sót nhiều deal. Giờ hỏi theo từng nhóm 25.
+- **Trang "Continue shopping" của Amazon (29/10).** Sau khi qua lớp kiểm tra, Amazon có lúc hiện một trang trung gian không có ô tìm kiếm. Code cũ chờ ô tìm kiếm tới 20 giây, rồi báo lỗi và bỏ luôn cookie đã có. Giờ chỉ chờ tối đa 3 giây rồi dùng cookie đang có.
+- **Trang trắng (chặn mềm).** Đôi khi Amazon trả một trang trông bình thường nhưng không có sản phẩm nào. Hệ thống nghỉ 2 giây, xin cookie mới và thử lại một lần.
+
+**Giới hạn còn lại.** Amazon có thể đổi lớp chặn bất kỳ lúc nào. Gửi yêu cầu dồn dập thì bị chặn tạm thời, nên khi thử nghiệm phải để thưa ra. 6 trang chi tiết Amazon vẫn mở lần lượt, đây là chỗ chậm nhất còn lại (mục 6.3).
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- BestBuy: `segment4/price_agents/bestbuy_deals.py` — `_init_session`, `search_bestbuy`, `get_price_blocks` (nhóm 25 mã, `PRICE_BLOCKS_BATCH_SIZE`), `get_product_details`, `search_filter_scrape_bestbuy`.
+- Amazon: `segment4/price_agents/amazon_deals.py` — `_get_waf_cookies` (trình duyệt ngầm, chờ ô tìm kiếm tối đa `WAIT_SEARCH_BOX_MS = 3000`), `init_amazon_session` (cookie `i18n-prefs=USD`), `search_amazon` (link `/s?k=…&ref=nb_sb_noss` kèm header `Referer`; bị chặn thì ném `AmazonBlockedError`), `scrape_product_page`, `search_filter_scrape_amazon` (thử lại một lần).
+- Trạng thái từng nguồn: `_run_source` trong `multi_source_planning_agent.py`.
+
+</details>
+
+### 5.2 Chọn deal bằng LLM
+
+> **Tóm tắt.** Từ khoảng 8–12 sản phẩm của hai trang, gpt-6-luna chọn 3 deal và viết tóm tắt. Mô hình chỉ chọn số thứ tự. Giá và link do code lấy từ dữ liệu đã cào, nên mô hình không thể ghi sai.
+
+Bước này cần một LLM vì nó phải đọc mô tả và tóm tắt lại thành câu gọn, để ensemble ở bước sau đọc được. Hệ thống làm bốn việc:
+
+1. **Bỏ hàng trùng.** BestBuy hay liệt kê mỗi màu của cùng một mẫu thành một sản phẩm riêng, cùng link nhưng giá khác nhau. Hệ thống gộp các bản trùng (cùng link, hoặc cùng tên khi bỏ chữ chỉ màu) và giữ bản rẻ nhất. Ví dụ ngày 29/10: 5 màu tai nghe Sony WH-1000XM5 có giá từ $228 đến $298, được gộp lại còn bản $228.
+2. **Đánh số.** Mỗi sản phẩm được đánh số "Deal 1", "Deal 2"… trong câu hỏi gửi luna.
+3. **Luna trả lời theo khuôn cố định.** Kỹ thuật này gọi là **structured output**: thay vì viết văn tự do, luna phải trả về đúng hai trường là số thứ tự của deal và câu tóm tắt.
+4. **Code ghép kết quả.** Code lấy giá, link và tên gốc của sản phẩm theo số thứ tự đó, rồi ghép thành mô tả "[Nguồn] tên gốc. tóm tắt của luna". Số thứ tự không hợp lệ hoặc bị lặp thì bỏ qua. Tối đa giữ 3 deal.
+
+**Vì sao làm như vậy.** Bản cũ để mô hình tự chép lại giá và link vào câu trả lời, nên có thể chép sai. Một lần đo, bản cũ còn trả về 8 deal dù đã được dặn chọn tối đa 3. Nguyên tắc mới: **mô hình chỉ chọn, code giữ con số.**
+
+Tên gốc được ghép vào đầu mô tả vì luna có lúc tóm tắt mà quên tên hãng. Ví dụ: "This 6-quart air fryer…" không còn chữ "Ninja". Thiếu tên hãng, ensemble đoán một nồi chiên Ninja $229,99 chỉ còn $167, trong khi lượt có tên đoán $212.
+
+Mức suy luận được chọn bằng cách đo trên cùng một danh sách deal, mỗi cấu hình 3 lần:
+
+| Cấu hình | Thời gian | Số lần chọn đủ 3 deal khác nhau | Sai giá hoặc link |
 |---|---|---|---|
-| Lấy cookie Amazon | 22–44 s | ~5 s | chờ ô tìm kiếm 20 s trên trang "Continue shopping" rồi vứt cookie → chờ 3 s, dùng cookie có sẵn |
-| Lần Search đầu | +~22 s nạp mô hình | 0 s | nạp lười ở lần bấm đầu → nạp ở luồng nền khi mở app |
-| Llama (Modal) | 31,5–46 s mỗi lượt máy nguội | ~0,9 s khi ấm; nguội thì bỏ sau 10–14 s | Modal tắt máy sau 60 s → đánh thức + ping + giới hạn chờ |
-| Bước 4 (3 deal) | 33–40 s | ~4 s | tuần tự cả deal lẫn mô hình → song song 2 tầng |
-| Bước 3 | 3,3–4,4 s, có lượt trả 8 deal | 3,7–5,1 s, luôn ≤ 3 deal | đổi sang luna, chọn theo số thứ tự |
-| **Cả một lượt tìm** | **69,5 s** (`wireless headphones`) / **106,7 s** (`air fryer`) | **21,3 s** / **30,2 s**; chạy app thật (`laptop`) 27,1 s | |
+| gpt-5-nano (bản cũ) | 3,3–4,4 giây | 5 / 6 | có thể, vì mô hình tự chép |
+| **gpt-6-luna, `none` (đang dùng)** | **4,2–4,3 giây** | **6 / 6** | **0** |
+| gpt-6-luna, `low` | 4,6–5,3 giây | 6 / 6 | 0 |
 
-### 4.3 Xử lý song song — vì sao an toàn
+**Giới hạn còn lại.** Luna đang chọn theo tiêu chí "mô tả rõ ràng, giá rõ ràng", **chưa phải "giảm nhiều nhất"**. Cũng chưa có phép so với một luật đơn giản không dùng AI (ví dụ "lấy 3 deal giảm nhiều nhất") để chứng minh dùng LLM ở bước này là đáng.
 
-- Dùng **luồng (thread)** chứ không dùng async: gần như toàn bộ thời gian là **chờ mạng** (OpenAI, Groq, Modal, hai trang web);
-  phần tính toán trên máy rất ngắn. Luồng cho lợi ích tương đương mà không phải viết lại code.
-- **Khoá** ở những chỗ dùng chung tài nguyên: model GPU trên máy (DNN, bộ mã hoá câu + ChromaDB) chạy lần lượt; các lời gọi Llama
-  **xếp hàng** để Modal không bật thêm máy nguội (tốn tiền, không nhanh hơn) — máy ấm chỉ ~0,9 s mỗi lời gọi.
-- **Cố ý chưa song song** trang chi tiết Amazon: gửi dồn dập dễ bị chặn IP. Đây là chỗ chậm lớn nhất còn lại (13–19 s).
+<details markdown="1">
+<summary>Trong code</summary>
 
-### 4.4 Đã thử và không dùng
+- `segment4/bestbuy_untils/multi_source_scanner_agent.py` — `MODEL = "gpt-6-luna"`, `REASONING_EFFORT = "none"`, `dedupe_deals`, khuôn trả lời `PickedDeals` (`deal_number`, `product_description`), `scan`.
+- `segment4/bestbuy_untils/unified_deal.py` — gộp dữ liệu hai nguồn về một dạng (`UnifiedScrapedDeal`).
+
+</details>
+
+### 5.3 Ước giá
+
+> **Tóm tắt.** Mỗi deal được viết lại mô tả cho đúng khuôn lúc huấn luyện, rồi 3 mô hình cùng đoán giá và hệ thống lấy trung bình có trọng số. Mô hình nào lỗi thì bị bỏ, phần trọng số của nó chia cho các mô hình còn lại.
+
+![Ensemble ước giá. Ba mô hình (viền xanh) chạy cùng lúc trên cùng mô tả đã viết lại, với trọng số 0,8, 0,1 và 0,1. Mô hình lỗi hoặc trả 0 bị bỏ và trọng số được chia lại. Ví dụ bên phải: Llama quá giờ thì giá được tính lại từ hai mô hình còn lại.](report_system3_hinh/03_ensemble.svg)
+
+Một deal đi qua ba bước:
+
+1. **Viết lại mô tả.** gpt-oss-20b viết lại mô tả theo khuôn năm dòng Title, Category, Brand, Description, Details, giống hệt dữ liệu lúc huấn luyện. Mô hình đọc đầu vào quen thuộc thì đoán chính xác hơn. Nếu bước này lỗi, hệ thống dùng mô tả gốc.
+2. **Ba mô hình cùng đoán.** Frontier tra ChromaDB lấy 5 sản phẩm giống nhất rồi hỏi gpt-6-luna (RAG, mục 1.6). Specialist gửi mô tả lên Llama trên Modal. DNN tính ngay trên máy. Ba việc chạy cùng lúc nên thời gian chỉ bằng việc chậm nhất.
+3. **Kết hợp.** Hệ thống lấy trung bình có trọng số, chỉ tính các mô hình trả về giá lớn hơn 0.
+
+**Vì sao coi giá 0 là lỗi.** Frontier và Llama trả về 0 khi không đọc ra được con số nào trong câu trả lời. Trước đây số 0 được tính thẳng vào trung bình, kéo kết quả xuống còn khoảng 20 % giá thật mà không ai biết. Giờ số 0 bị loại.
+
+**Frontier đổi từ GPT-5.1 sang gpt-6-luna (29/10).** Trước khi đổi, dự án đo 4 cấu hình trên cùng 200 sản phẩm test, mỗi cấu hình 1 lần:
+
+| Cấu hình Frontier | MAE | Tiền cho 200 lần gọi |
+|---|---|---|
+| GPT-5.1, `none` (bản cũ) | $31,16 | $0,179 |
+| gpt-6-luna, `none` | $31,42 | $0,013 |
+| **gpt-6-luna, `low` (đang dùng)** | **$29,69** | **$0,018** |
+| gpt-6.1-terra, `none` | $28,51 | $0,130 |
+
+Các mức chênh này đều nhỏ. Với 200 sản phẩm và 1 lần đo, **không kết luận được cấu hình nào thật sự tốt hơn**, chỉ chắc là cấu hình mới không kém GPT-5.1. Dự án chọn luna `low` vì rẻ hơn GPT-5.1 khoảng 10 lần, rẻ hơn terra khoảng 7 lần, và cả hệ thống dùng chung một mô hình.
+
+Lưu ý: MAE của Frontier ở bảng này (khoảng $31) thấp hơn con số $44 ở mục 3.1. Hai lần đo dùng cách đánh giá khác nhau. Phép so ở bảng này là công bằng vì cả 4 cấu hình chạy trên cùng 200 sản phẩm.
+
+**Giới hạn còn lại.** Llama hay trả lặp lại vài con số ($60, $220, $350…) cho các sản phẩm khác nhau. Điều này đã thấy trong log nhưng chưa tìm ra nguyên nhân. Khi máy chủ Modal đang tắt, Llama cần 32–46 giây để khởi động, nên ứng dụng 1 chỉ chờ tối đa 10 giây rồi bỏ qua Llama ở lượt đó (mục 5.5).
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- `segment4/price_agents/ensemble_agent.py` — `price` (3 mô hình chạy song song), `_safe_price` (mô hình lỗi trả `None`), `combine` (bỏ giá 0, chia lại trọng số).
+- `segment4/price_agents/frontier_agent.py` — `MODEL = "gpt-6-luna"`, `REASONING_EFFORT = "low"`, `find_similars` (tra ChromaDB).
+- `segment4/price_agents/preprocessor.py` — viết lại mô tả; mô hình đặt bằng biến `PRICER_PREPROCESSOR_MODEL` trong `.env`.
+- Đo MAE Frontier: `scripts/do_luong/eval_frontier.py`.
+
+</details>
+
+### 5.4 Thông báo
+
+> **Tóm tắt.** Khi deal tốt nhất có discount vượt ngưỡng, luna viết vài câu vui và hệ thống gửi lên điện thoại qua Pushover. Chỉ gửi khi link đúng là của BestBuy hoặc Amazon.
+
+**Pushover** là một dịch vụ gửi thông báo đẩy (push notification) tới điện thoại. Khi deal tốt nhất vượt ngưỡng ($100 ở ứng dụng 1, $50 ở ứng dụng 2), gpt-6-luna viết 2–3 câu giới thiệu deal và hệ thống gửi kèm link. Giao diện cũng có nút để gửi tay một deal bất kỳ.
+
+**Vì sao phải kiểm link.** Chữ trên trang bán hàng là dữ liệu không đáng tin, mà chữ đó lại được đưa vào câu hỏi gửi LLM. Trong khi đó, ứng dụng có đường gửi tin ra ngoài tới điện thoại. Ghép hai điều này lại, về lý thuyết, một trang bán hàng có thể "dụ" hệ thống gửi một link lạ cho người dùng. Vì vậy hệ thống chỉ gửi khi link thuộc `bestbuy.com` hoặc `amazon.com`. Link vốn do code tự dựng, nên đây là lớp kiểm thêm cho chắc.
+
+**Gửi lỗi không làm mất kết quả.** Nếu Pushover không phản hồi trong 15 giây hoặc báo lỗi, hệ thống ghi lại lỗi và bảng kết quả vẫn hiện bình thường.
+
+**Giới hạn còn lại.** Thông báo chỉ đúng khi giá ước đúng. Hiện chưa đếm được hệ thống báo nhầm bao nhiêu lần và bỏ lỡ bao nhiêu deal tốt.
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- `segment4/price_agents/messaging_agent.py` — `craft_message` (gpt-6-luna qua thư viện LiteLLM), `push` (giới hạn chờ 15 giây, báo lỗi khi Pushover trả mã khác 200), `notify`.
+- Kiểm link: `is_store_url` trong `multi_source_planning_agent.py`; nút gửi tay: `send_notification` trong `multi_source_framework.py`.
+
+</details>
+
+### 5.5 Giao diện, nạp mô hình và giữ ấm máy chủ
+
+> **Tóm tắt.** Khi vừa mở ứng dụng, hệ thống nạp sẵn mô hình và đánh thức máy chủ chạy Llama. Trong lúc có người dùng, nó giữ máy chủ không tắt. Lần tìm đầu tiên vì vậy không phải chờ.
+
+**Vấn đề.** Llama chạy trên **Modal**, một dịch vụ cho thuê GPU theo giây. Để đỡ tốn tiền, Modal tự tắt máy sau 60 giây không có việc. Lần gọi sau đó phải chờ máy bật lại và nạp Llama, mất 32–46 giây. Hiện tượng này gọi là **khởi động nguội (cold start)**. Trước đợt tối ưu, gần như lần tìm nào cũng bị chờ như vậy.
+
+**Cách xử lý.**
+
+1. **Lúc mở ứng dụng**, hệ thống gửi một lệnh đánh thức máy Modal, đồng thời nạp ChromaDB và các mô hình (9–20 giây) trong lúc người dùng còn đang gõ từ khoá.
+2. **Giữ ấm:** cứ 50 giây hệ thống gọi nhẹ máy Modal một lần để máy không tắt. Nếu 15 phút không có lần tìm nào thì ngừng gọi. Có lần tìm mới thì tự bật lại. Tắt ứng dụng là ngừng hẳn.
+3. **Chờ có giới hạn:** ứng dụng 1 chỉ chờ Llama tối đa 10 giây. Quá thời gian thì bỏ Llama ở deal đó và tính giá bằng hai mô hình còn lại.
+4. **Báo trạng thái:** ô Status trên giao diện hiện trạng thái từng nguồn, ví dụ "BestBuy: ok (6), Amazon: ok (6)". Nếu pipeline lỗi, ô này báo lỗi. Trước đây giao diện bị treo ở chữ "Processing..." mãi.
+
+**Vì sao không bảo Modal tự giữ máy lâu hơn.** Đó là cách tốt hơn, nhưng Modal không cho tạo ứng dụng GPU mới khi tài khoản chưa gắn thẻ thanh toán (29/10). Vì vậy hệ thống giữ ấm từ phía ứng dụng.
+
+**Chi phí.** Modal tính tiền theo thời gian máy GPU còn bật, kể cả lúc máy rảnh. Giữ ấm tốn khoảng $0,59 mỗi giờ, và chỉ tốn trong lúc ứng dụng đang mở và có người tìm trong 15 phút gần nhất. Mở ứng dụng mà không tìm gì thì tốn tối đa khoảng $0,16.
+
+**Giới hạn còn lại.** Nếu bấm tìm ngay khi vừa mở ứng dụng (chưa tới khoảng 40 giây), máy Modal chưa bật xong và lượt đầu sẽ thiếu Llama. Ứng dụng 2 không giữ ấm, nên mỗi lần quét đầu tiên vẫn phải chờ máy bật (giữ nguyên hành vi cũ).
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- `segment4/search_key.py` — `App.preload` (chạy ngầm khi mở ứng dụng), `App._run_pipeline` (lỗi hiện ở ô Status).
+- `segment4/price_agents/specialist_agent.py` — `wake_up_modal`, `start_keep_warm`, `PING_SECONDS = 50`, `KEEP_WARM_IDLE_STOP = 900`, `COLD_SKIP_SECONDS = 45`; giới hạn chờ đặt bằng `SPECIALIST_TIMEOUT_SECONDS = 10` trong `multi_source_planning_agent.py` (ứng dụng 2 không đặt, nên chờ như cũ).
+
+</details>
+
+---
+
+## Phần 6: Đợt tối ưu 28–29/10/2026
+
+> **Tóm tắt.** Một lần tìm từ 70–107 giây còn 21–34 giây, chất lượng giá ước không đổi. Ba chỗ cắt được nhiều thời gian nhất: cookie Amazon không còn chờ vô ích, máy Llama được giữ ấm, và bước ước giá chạy song song.
+
+### 6.1 Cách làm
+
+Đợt tối ưu đi theo năm nguyên tắc:
+
+1. **Đo trước khi sửa.** Một script đo thời gian của từng hàm trong pipeline mà không cần sửa code. Khi đo, thông báo Pushover bị chặn để không gửi tin thật.
+2. **Sửa từng thứ một.** Mỗi thay đổi là một commit riêng. Mốc để quay lại bản cũ là tag `moc-truoc-toi-uu-2026-10-29`.
+3. **Kiểm lại sau mỗi bước** trên cùng 2 từ khoá, xem có làm hỏng chỗ đang chạy tốt không. Phải đạt cả năm điều: không lỗi, cả hai nguồn có hàng, ra 3 deal khác nhau, giá là đô la và lớn hơn 0, giá ước gần với lượt đo cũ.
+4. **Cố định đầu vào khi so mô hình.** Giá trên web thay đổi từng phút. Vì vậy hệ thống cào dữ liệu một lần, lưu lại, rồi so mọi cấu hình trên cùng danh sách đó.
+5. **Nhờ người đọc độc lập.** Một agent AI mới, không biết gì về quá trình sửa, đọc toàn bộ thay đổi. Nó tìm ra 3 lỗi thật mà các lượt đo đã bỏ sót (mục 6.4). Cả 3 đã được sửa và thử lại.
+
+### 6.2 Trước và sau
+
+![Thời gian một lần tìm theo từng bước, đo ngày 29/10/2026. Ở lượt sau tối ưu, máy Modal đã được đánh thức trước. Bước 1 và Bước 4 giảm nhiều nhất. Bước 2 dưới 0,1 giây nên không hiện. Rê chuột lên từng đoạn để xem số; số đầy đủ ở bảng dưới.](report_system3_hinh/04_thoi_gian_truoc_sau.svg)
+
+| Chỗ | Trước | Sau | Nguyên nhân và cách sửa |
+|---|---|---|---|
+| Lấy cookie Amazon | 22–44 giây | khoảng 5 giây | chờ ô tìm kiếm 20 giây trên trang "Continue shopping" rồi bỏ cookie; giờ chờ tối đa 3 giây và dùng cookie có sẵn |
+| Lần tìm đầu tiên | thêm khoảng 22 giây để nạp mô hình | không thêm | trước đây nạp ở lần bấm đầu; giờ nạp ngầm khi mở ứng dụng |
+| Llama trên Modal | 31,5–46 giây khi máy đã tắt | khoảng 0,9 giây khi máy ấm | máy tự tắt sau 60 giây; giờ đánh thức, giữ ấm và giới hạn thời gian chờ |
+| Bước 4 (ước giá 3 deal) | 33–40 giây | khoảng 4 giây | trước đây làm lần lượt; giờ chạy song song hai tầng |
+| Bước 3 (chọn deal) | 3,3–4,4 giây, có lần trả 8 deal | 3,7–5,1 giây, luôn tối đa 3 deal | đổi sang luna, chọn theo số thứ tự |
+| **Cả một lần tìm** | **69,5 giây** (wireless headphones), **106,7 giây** (air fryer) | **21,3 giây** và **30,2 giây** | người dùng chạy thật với từ khoá "laptop": 27,1 giây |
+
+### 6.3 Chạy song song — vì sao an toàn
+
+Hầu hết thời gian của pipeline là **chờ mạng**: chờ OpenAI, Groq, Modal, BestBuy, Amazon trả lời. Phần tính toán trên máy rất ngắn. Vì vậy hệ thống dùng **luồng (thread)**: trong lúc một việc đang chờ mạng, việc khác chạy tiếp. Cách này đơn giản, không phải viết lại code theo kiểu khác.
+
+Chạy song song thì phải cẩn thận ở những chỗ dùng chung tài nguyên:
+
+- **Mô hình trên GPU của máy** (DNN, bộ tạo embedding kèm ChromaDB) được cho chạy lần lượt, vì nhiều luồng cùng dùng một mô hình GPU dễ gây lỗi. Mỗi lần chỉ mất dưới nửa giây nên gần như không làm chậm.
+- **Các lần gọi Llama xếp hàng.** Nếu gọi cùng lúc, Modal có thể bật thêm máy mới, mỗi máy lại phải khởi động nguội, vừa tốn tiền vừa không nhanh hơn. Máy ấm chỉ mất khoảng 0,9 giây mỗi lần, nên 3 deal xếp hàng vẫn nhanh.
+- **Cố ý chưa song song:** 6 trang chi tiết Amazon vẫn mở lần lượt, vì gửi dồn dập dễ bị chặn. Đây là chỗ chậm nhất còn lại, khoảng 13–19 giây.
+
+### 6.4 Đã thử nhưng không dùng
 
 | Phương án | Kết quả | Vì sao không dùng |
 |---|---|---|
-| App Modal mới (giữ ấm 10 phút phía server, tối đa 1 máy, ghim phiên bản thư viện) | chưa chạy được | Modal từ chối deploy app GPU mới khi chưa gắn thẻ |
-| gpt-6-luna `low` cho Bước 3 | 4,6–5,3 s, cùng chất lượng | `none` nhanh hơn |
-| gpt-6.1-terra cho Frontier | MAE $28,51 | không phân biệt được với luna low, đắt hơn ~7 lần |
-| gpt-6-luna `none` cho Frontier | MAE $31,42 | luna low sát hơn ~$1,7, tiền chênh rất nhỏ |
+| Ứng dụng Modal mới, tự giữ máy 10 phút, tối đa 1 máy | chưa chạy được | Modal từ chối tạo ứng dụng GPU mới khi chưa gắn thẻ |
+| gpt-6-luna `low` cho bước chọn deal | chậm hơn, chất lượng như nhau | mức `none` nhanh hơn |
+| gpt-6.1-terra cho Frontier | MAE $28,51 | không phân biệt được với luna `low`, đắt hơn khoảng 7 lần |
+| gpt-6-luna `none` cho Frontier | MAE $31,42 | luna `low` sát hơn một chút, tiền chênh rất nhỏ |
 
-### 4.5 Bài học
+Ba lỗi người đọc độc lập tìm ra (đã sửa):
 
-1. **Đo trước khi đoán:** chỗ chậm nhất buổi sáng (cookie Amazon chờ 20 s vô ích) không nằm trong danh sách dự đoán ban đầu —
-   chỉ lộ ra khi đo từng hàm.
-2. **"HTTP 200" không có nghĩa là có dữ liệu** (trang chặn mềm của Amazon); **"không có" khác "bị chặn"** — nay mỗi nguồn báo
-   trạng thái riêng.
-3. **Mô hình chỉ đề xuất, code giữ con số** — áp ở Bước 3 (giá / link) và ensemble (số 0 là lỗi).
-4. **Hàm dùng chung phải kiểm mọi bên gọi:** đổi giới hạn chờ Llama suýt làm app 2 gần như luôn mất Llama.
-5. **Một người đọc độc lập** bắt được lỗi mà người sửa và các lượt đo đều bỏ sót.
+1. Khi máy Modal đang tắt và 3 deal chạy song song, cả 3 lần gọi Llama đều lần lượt chờ đủ 10 giây, tổng khoảng 30 giây. Giờ lần đầu quá giờ thì các lần sau bỏ qua ngay; đo thật cả nhóm còn 12,7 giây.
+2. Giới hạn chờ 10 giây vô tình áp cả cho ứng dụng 2, ứng dụng vốn không giữ ấm, nên Llama gần như luôn bị bỏ. Giờ ứng dụng 2 chờ như cũ.
+3. Ứng dụng 2 có thể bị treo khi gửi tin lỗi. Giờ lỗi chỉ được ghi lại.
 
-> **Tự kiểm:** Vì sao phải cố định danh sách deal trước khi so gpt-5-nano với gpt-6-luna, thay vì mỗi lượt cào lại từ đầu?
+### 6.5 Bài học
+
+1. **Đo trước khi đoán.** Chỗ chậm nhất buổi sáng (cookie Amazon chờ vô ích 20 giây) không nằm trong dự đoán ban đầu. Nó chỉ lộ ra khi đo từng hàm.
+2. **Trang trả về bình thường chưa chắc có dữ liệu.** "Không có hàng" khác "bị chặn". Giờ mỗi nguồn báo trạng thái riêng.
+3. **Mô hình chỉ đề xuất, code giữ con số**, áp ở cả bước chọn deal lẫn bước ước giá.
+4. **Sửa một hàm dùng chung thì phải kiểm mọi nơi gọi nó.** Đổi giới hạn chờ Llama suýt làm hỏng ứng dụng 2.
+5. **Một người đọc độc lập** bắt được lỗi mà cả người sửa lẫn các lượt đo đều bỏ sót.
+
+<details markdown="1">
+<summary>Trong code</summary>
+
+- Script đo: `scripts/do_luong/` — `profile_pipeline.py` (cả pipeline), `save_pools.py` (lưu danh sách deal để so trên cùng đầu vào), `eval_frontier.py` (MAE Frontier), `test_modal_nguoi.py` (Modal tắt và 3 lời gọi song song), `probe_keywords.py` (từ khoá có nằm trong dữ liệu huấn luyện không).
+- Từng thay đổi kèm số trước và sau: `docs/changelog/README.md`.
+- Song song: `estimate_prices` và `_estimate_one` trong `multi_source_planning_agent.py`, `price` trong `ensemble_agent.py`; khoá ở `frontier_agent.py`, `neural_network_agent.py`, `specialist_agent.py`.
+
+</details>
 
 ---
 
-## Phần 5: Kết quả và đánh giá
+## Phần 7: Kết quả
 
-### 5.1 Một lượt chạy thật (User chạy app, từ khoá `laptop`, 29/10)
+> **Tóm tắt.** Hệ thống nhanh gấp khoảng 3 lần và không còn sập vì một chỗ lỗi. Độ đúng của giá ước mới đo được trên dữ liệu test; độ đúng trên hàng thật hôm nay chưa đo.
+
+### 7.1 Số đo tổng hợp
+
+| Chỉ số | Giá trị | Đo thế nào |
+|---|---|---|
+| Thời gian một lần tìm | 21–34 giây | 2 từ khoá, máy Modal đã đánh thức, ngày 29/10 |
+| MAE của Frontier (luna `low`) | $29,69 | 200 sản phẩm test, 1 lần đo |
+| MAE của cả ensemble (bản dùng GPT-5.1) | $29,9 | 200 sản phẩm test, lúc huấn luyện |
+| Bộ nhớ RAM cao nhất | khoảng 3,9 GB | khi chạy pipeline |
+| Tiền OpenAI mỗi lần tìm | khoảng $0,001 | ước từ số chữ đã đo |
+| Tiền GPU Modal mỗi lần tìm khi máy ấm | khoảng $0,0005 | 3 lần gọi, mỗi lần khoảng 0,9 giây |
+
+### 7.2 Một lần chạy thật
+
+Ngày 29/10, người dùng chạy ứng dụng với từ khoá "laptop". Cả lượt mất 27,1 giây.
 
 | Deal | Giá bán | Giá ước | Discount |
 |---|---|---|---|
-| [Amazon] Acer Aspire 14 AI Copilot+ PC | $597,86 | $864,73 | $266,87 → **tự gửi thông báo** |
+| [Amazon] Acer Aspire 14 AI Copilot+ PC | $597,86 | $864,73 | $266,87, hệ thống tự gửi thông báo |
 | [BestBuy] HP OmniBook X Flip 2-in-1 | $649,99 | $887,05 | $237,06 |
 | [BestBuy] HP Victus 15.6" Gaming Laptop | $949,99 | $979,55 | $29,56 |
 
-Cả lượt 27,1 s: cào 11,2 s · chọn deal 5,1 s · ước giá 8,3 s (máy Modal vừa bật xong). Với laptop cần đọc kết quả cẩn thận: dữ
-liệu huấn luyện là hàng 2023 giá ≤ $999, nên giá ước của các máy mới, đắt chưa đáng tin (mục 3.3, Phần 6).
+Với laptop cần đọc kết quả cẩn thận. Dữ liệu huấn luyện là hàng năm 2023 và giá dưới $999, nên giá ước cho các máy mới hoặc đắt chưa đáng tin (mục 2.3).
 
-### 5.2 Số đo tổng hợp
+### 7.3 Những gì chưa đo
 
-| Chỉ số | Giá trị | Điều kiện đo |
-|---|---|---|
-| Thời gian một lượt tìm | 21–34 s | 2 từ khoá, Modal đã đánh thức, 29/10 |
-| MAE Frontier (luna low) | $29,69 | 200 mẫu test, 1 lượt |
-| MAE ensemble (bản GPT-5.1) | $29,9 | 200 mẫu test, lúc huấn luyện |
-| RAM đỉnh | ~3,9 GB | khi chạy pipeline |
-| Tiền OpenAI mỗi lượt tìm | ~$0,001 | ước từ số token đã đo |
-| Tiền GPU Modal mỗi lượt (máy ấm) | ~$0,0005 | 3 lời gọi × ~0,9 s × $0,000164 / s |
+Ghi rõ để không hiểu nhầm:
 
-### 5.3 Chưa đo (ghi thẳng để không hiểu nhầm)
-
-- **MAE của cả ensemble sau khi đổi Frontier sang luna** — mới đo riêng Frontier.
-- **Độ đúng của giá ước trên sản phẩm cào thật hôm nay** — MAE chỉ đo trên dữ liệu Amazon 2023 đã xử lý.
-- **Tỉ lệ báo nhầm / bỏ lỡ** của thông báo.
-- **App 2 (`price_is_right.py`) chạy lại sau đợt sửa** — mới kiểm bằng đọc code và chạy thử từng phần.
-
-> **Tự kiểm:** MAE $29,69 cho biết điều gì về giá ước của một laptop $1.200 cào từ BestBuy hôm nay — và không cho biết điều gì?
+- **MAE của cả ensemble sau khi Frontier đổi sang luna.** Mới đo riêng Frontier.
+- **Độ đúng của giá ước trên sản phẩm cào thật hôm nay.** MAE chỉ đo trên dữ liệu Amazon năm 2023.
+- **Số lần báo nhầm và số deal tốt bị bỏ lỡ.**
+- **Ứng dụng 2 chạy lại sau đợt sửa.** Mới kiểm bằng đọc code và chạy thử từng phần.
 
 ---
 
-## Phần 6: Giới hạn và hướng phát triển
+## Phần 8: Giới hạn, hướng phát triển, từ khoá nên thử
+
+> **Tóm tắt.** Giới hạn lớn nhất nằm ở dữ liệu huấn luyện và ở việc chưa đo độ đúng trên hàng thật. Muốn kết quả đáng tin, nên thử các từ khoá có giá từ $100 đến $500 thuộc 8 nhóm hàng của dữ liệu.
+
+### 8.1 Giới hạn và hướng tiếp
 
 | Giới hạn | Ảnh hưởng | Hướng tiếp |
 |---|---|---|
-| Dữ liệu huấn luyện: 8 nhóm hàng, giá ≤ $999, năm 2023 | laptop / TV đắt bị ước thấp; đồ bếp không có trong dữ liệu | thêm nhóm hàng và khoảng giá khi huấn luyện lại; trước mắt hướng người dùng tới nhóm hàng phù hợp |
-| Chưa có thước đo trên hàng cào thật | chưa biết giá ước cho sản phẩm hôm nay sai bao nhiêu | bộ 15–20 sản phẩm có giá tham chiếu, chấm bằng code |
-| Giá gốc của shop có cào được nhưng chưa dùng | Bước 3 không thấy, bảng không hiện để đối chiếu với giá AI | đưa giá gốc vào danh sách deal và bảng kết quả |
-| Bước 3 chọn theo "mô tả chi tiết", chưa có mốc không dùng LLM | chưa chứng minh LLM đáng dùng ở bước này | so với luật "3 deal giảm nhiều nhất" |
-| Trang chi tiết Amazon mở lần lượt | Bước 1 còn 11–26 s | mở song song 2–3 trang, mỗi luồng một session, đo tỉ lệ bị chặn |
-| Llama hay lặp lại vài giá | đóng góp 10 % kém tin cậy | thử 10–20 sản phẩm đa dạng, so khuôn đầu vào với lúc huấn luyện |
-| Amazon thay đổi lớp chặn | có thể ra 0 deal bất kỳ lúc nào | trạng thái nguồn đã báo rõ; theo dõi tỉ lệ thành công |
-| Chưa lưu lịch sử | tìm lại sản phẩm cũ vẫn phải ước lại | lưu kết quả vào SQLite — vừa nhanh hơn, vừa có lịch sử giá |
+| Dữ liệu chỉ có 8 nhóm hàng, giá dưới $999, năm 2023 | laptop và TV đắt bị ước thấp; đồ bếp không có trong dữ liệu | thêm nhóm hàng và khoảng giá khi huấn luyện lại |
+| Chưa đo độ đúng trên hàng cào thật | chưa biết giá ước cho sản phẩm hôm nay sai bao nhiêu | lập bộ 15–20 sản phẩm có giá tham chiếu, chấm bằng code |
+| Giá gốc của shop có cào được nhưng chưa dùng | bước chọn deal không thấy, bảng kết quả không hiện để so với giá AI | đưa giá gốc vào danh sách deal và bảng |
+| Bước chọn deal chưa so với cách không dùng AI | chưa chứng minh LLM đáng dùng ở bước này | so với luật "3 deal giảm nhiều nhất" |
+| Trang chi tiết Amazon mở lần lượt | Bước 1 còn 11–26 giây | mở 2–3 trang cùng lúc, đo xem có bị chặn nhiều hơn không |
+| Llama hay lặp lại vài con số giá | phần đóng góp 10 % kém tin cậy | thử 10–20 sản phẩm đa dạng, so đầu vào với lúc huấn luyện |
+| Amazon có thể đổi lớp chặn | có lúc ra 0 deal | trạng thái nguồn đã báo rõ; theo dõi tỉ lệ thành công |
+| Chưa lưu lịch sử | tìm lại sản phẩm cũ vẫn phải ước lại | lưu kết quả vào SQLite, vừa nhanh hơn vừa có lịch sử giá |
 
-> **Tự kiểm:** Trong các hướng trên, hướng nào nên làm trước nếu mục tiêu là "giá ước đáng tin hơn", và vì sao không phải "chạy nhanh hơn"?
+### 8.2 Nên thử từ khoá nào
+
+Bảng dưới được kiểm ngày 29/10 bằng cách tra 20 sản phẩm gần nhất trong ChromaDB cho từng từ khoá. Giá trong ngoặc là giá ở giữa của 20 sản phẩm đó.
+
+| Nhóm | Từ khoá | Vì sao |
+|---|---|---|
+| Nên thử | noise cancelling headphones ($175), soundbar ($215), gaming monitor ($235), action camera ($175), digital piano ($315), electric guitar ($425), cordless drill ($111) | sản phẩm gần nhất đúng loại; giá $100–$500 nên dễ có discount trên $100 |
+| Tránh | laptop, gaming laptop, smart tv | nhiều hàng trên $999, ensemble đoán thấp; giá phụ thuộc nhiều vào thông số |
+| Tránh | air fryer, coffee maker, microwave, blender | không có đồ bếp trong dữ liệu: sản phẩm gần nhất của "air fryer" là rơ-le điện, của "blender" là một phần mềm làm nhạc |
+| Ít lợi | phone case, wireless earbuds, smartwatch | giá ở giữa chỉ $21–$42, hiếm khi giảm trên $100 |
+
+BestBuy có thể đã ngừng bán nhạc cụ (chưa kiểm). Nếu vậy, các từ khoá nhạc cụ sẽ chỉ ra deal Amazon.
 
 ---
 
@@ -395,44 +549,29 @@ cd tech2ai
 uv sync                                  # cài thư viện theo uv.lock
 uv run playwright install chromium       # trình duyệt chạy ngầm để lấy cookie Amazon
 cd segment4
-uv run search_key.py                     # app 1 → http://127.0.0.1:7860
-uv run price_is_right.py                 # app 2
+uv run search_key.py                     # ứng dụng 1, mở http://127.0.0.1:7860
+uv run price_is_right.py                 # ứng dụng 2
 ```
 
-File `.env` ở `tech2ai/.env`: `OPENAI_API_KEY`, `GROQ_API_KEY`, `PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b`,
-`PUSHOVER_USER`, `PUSHOVER_TOKEN`, `HF_TOKEN`. Modal đọc token ở `~/.modal.toml`; app `pricer-service` đã deploy sẵn.
-**Mẹo:** mở app rồi đợi ~40 s mới tìm lượt đầu để Llama có mặt; nên thử các từ khoá như `noise cancelling headphones`,
-`soundbar`, `gaming monitor`, `digital piano` (giá $100–$500, nằm trong vùng dữ liệu huấn luyện).
+File `.env` đặt ở `tech2ai/.env`, gồm `OPENAI_API_KEY`, `GROQ_API_KEY`, `PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b`, `PUSHOVER_USER`, `PUSHOVER_TOKEN`, `HF_TOKEN`. Modal đọc khoá ở `~/.modal.toml`, ứng dụng `pricer-service` trên Modal đã được triển khai sẵn.
 
-### B. Thuật ngữ
+Mẹo: mở ứng dụng rồi đợi khoảng 40 giây mới tìm lượt đầu, để Llama kịp sẵn sàng.
 
-| Thuật ngữ | Nghĩa trong dự án |
+### B. Tài liệu liên quan
+
+| Tài liệu | Nội dung |
 |---|---|
-| **MAE** | sai số tuyệt đối trung bình: trung bình của \|giá đoán − giá thật\| trên tập test |
-| **RAG** | truy xuất rồi sinh: tìm sản phẩm giống trong ChromaDB, đưa vào prompt để LLM ước giá |
-| **Ensemble** | kết hợp nhiều mô hình bằng trung bình có trọng số |
-| **Fine-tune / QLoRA** | huấn luyện thêm một mô hình có sẵn; QLoRA = nén mô hình gốc 4-bit + chỉ huấn luyện một adapter nhỏ (~73 MB) |
-| **Structured output** | bắt LLM trả lời theo khuôn dữ liệu cố định (Pydantic) thay vì văn bản tự do |
-| **Reasoning effort** | mức "suy nghĩ" trước khi trả lời của gpt-6-luna (`none`, `low`, …); cao hơn thì chậm và tốn hơn, không chắc tốt hơn |
-| **Cold start** | thời gian máy GPU trên Modal khởi động lại sau khi đã tắt (32–46 s) |
-| **AWS WAF** | lớp chống bot của Amazon, bắt trình duyệt chạy JavaScript để nhận cookie |
-| **Chặn mềm** | trang trả mã 200 bình thường nhưng không có dữ liệu |
-| **Kiểm hồi quy** | chạy lại các trường hợp cũ để chắc thay đổi mới không làm hỏng thứ đang chạy tốt |
-| **Nhiễu** | chênh lệch giữa các lần chạy lặp lại mà không đổi gì — chênh lệch nhỏ hơn nhiễu thì chưa kết luận được |
+| `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md` | tài liệu kỹ thuật ứng dụng 1: từng file, từng hàm |
+| `segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md` | tài liệu kỹ thuật ứng dụng 2 |
+| `scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md` | dữ liệu, mô hình truyền thống, DNN |
+| `scraping_data_tv/Data_processing_for_English_data/report_fine_tune_llm.md` | fine-tune Llama 3.2 bằng QLoRA |
+| `docs/changelog/README.md` | từng thay đổi code ngày 29/10, kèm số trước và sau |
+| `scripts/do_luong/` | các script đo dùng lại được |
 
-### C. Tài liệu liên quan
-
-- `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md` — tài liệu kỹ thuật app 1 (từng file, từng hàm, cơ chế chi tiết).
-- `segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md` — tài liệu app 2.
-- `scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md` — dữ liệu, mô hình truyền thống, DNN.
-- `scraping_data_tv/Data_processing_for_English_data/report_fine_tune_llm.md` — fine-tune Llama 3.2 bằng QLoRA.
-- `docs/changelog/README.md` — từng thay đổi code ngày 29/10 kèm số trước / sau và phương án đã thử.
-- `scripts/do_luong/` — script đo dùng lại: cả pipeline, MAE Frontier, từ khoá có trong vùng dữ liệu không.
-
-### D. Lịch sử báo cáo
+### C. Lịch sử báo cáo
 
 | Bản | Ngày | Nội dung |
 |---|---|---|
-| 1 — `report_system.md` | 11/05/2026 | theo từng ngày học Week 8, kèm nhiều code |
-| 2 — `report_system2.html` | 26/09/2026 | bản HTML (giao diện) của bản 1 [suy luận từ nội dung và ngày sửa file] |
-| **3 — `report_system3.md` / `.html`** | **29/10/2026** | **viết lại theo hệ thống hiện tại + đợt tối ưu 28–29/10** |
+| 1 — `report_system.md` | 11/05/2026 | viết theo từng ngày học tuần 8, kèm nhiều code |
+| 2 — `report_system2.html` | 26/09/2026 | bản trang web của bản 1 (suy ra từ nội dung và ngày sửa file) |
+| **3 — `report_system3.md`, `report_system3.html`** | **29/10/2026** | **viết lại theo hệ thống hiện tại cho người đọc chưa biết dự án, kèm đợt tối ưu 28–29/10** |

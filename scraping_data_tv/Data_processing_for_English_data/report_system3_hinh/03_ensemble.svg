@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" role="img" aria-label="Ensemble ước giá: mô tả được viết lại, ba mô hình chạy song song với trọng số 80, 10, 10 phần trăm, mô hình lỗi hoặc trả 0 bị bỏ và trọng số chia lại" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+  <defs>
+    <marker id="f3-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566176"/>
+    </marker>
+    <marker id="f3-arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#B42318"/>
+    </marker>
+  </defs>
+
+  <!-- Đầu vào và viết lại -->
+  <rect x="20" y="146" width="140" height="64" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="90" y="173" font-size="12.5" font-weight="600" text-anchor="middle">Mô tả deal</text>
+  <text x="90" y="191" font-size="11.5" fill="#566176" text-anchor="middle">từ Bước 3</text>
+  <line x1="160" y1="178" x2="186" y2="178" stroke="#566176" stroke-width="1.5" marker-end="url(#f3-arrow)"/>
+  <rect x="190" y="146" width="168" height="64" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="274" y="170" font-size="12.5" font-weight="600" text-anchor="middle">Viết lại mô tả</text>
+  <text x="274" y="187" font-size="11.5" fill="#566176" text-anchor="middle">gpt-oss-20b (Groq)</text>
+  <text x="274" y="201" font-size="11.5" fill="#566176" text-anchor="middle">khuôn như lúc huấn luyện</text>
+
+  <!-- Ba mô hình song song -->
+  <g stroke="#566176" stroke-width="1.5" fill="none">
+    <path d="M358 170 C 382 170, 382 66, 408 66" marker-end="url(#f3-arrow)"/>
+    <path d="M358 178 L 408 178" marker-end="url(#f3-arrow)"/>
+    <path d="M358 186 C 382 186, 382 290, 408 290" marker-end="url(#f3-arrow)"/>
+  </g>
+  <g font-size="12">
+    <rect x="412" y="30" width="270" height="72" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="428" y="54" font-size="13" font-weight="600">Frontier — trọng số 0,8</text>
+    <text x="428" y="73" fill="#566176">RAG: 5 sản phẩm giống nhất (ChromaDB)</text>
+    <text x="428" y="90" fill="#566176">⇒ gpt-6-luna (low) trả một con số</text>
+
+    <rect x="412" y="142" width="270" height="72" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="428" y="166" font-size="13" font-weight="600">Llama 3B fine-tune — 0,1</text>
+    <text x="428" y="185" fill="#566176">GPU T4 trên Modal, ~0,9 s khi máy ấm</text>
+    <text x="428" y="202" fill="#566176">search_key chờ tối đa 10 s</text>
+
+    <rect x="412" y="254" width="270" height="72" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <text x="428" y="278" font-size="13" font-weight="600">DNN 289 triệu tham số — 0,1</text>
+    <text x="428" y="297" fill="#566176">chạy trên máy, 0,1–0,2 s</text>
+    <text x="428" y="314" fill="#566176">HashingVectorizer → 8 khối residual</text>
+  </g>
+
+  <!-- Kết hợp -->
+  <g stroke="#566176" stroke-width="1.5" fill="none">
+    <path d="M682 66 C 708 66, 708 170, 734 170" marker-end="url(#f3-arrow)"/>
+    <path d="M682 178 L 734 178" marker-end="url(#f3-arrow)"/>
+    <path d="M682 290 C 708 290, 708 186, 734 186" marker-end="url(#f3-arrow)"/>
+  </g>
+  <rect x="738" y="122" width="122" height="112" rx="8" fill="#172033"/>
+  <g fill="#FFFFFF" text-anchor="middle">
+    <text x="799" y="150" font-size="13" font-weight="600">Trung bình</text>
+    <text x="799" y="167" font-size="13" font-weight="600">có trọng số</text>
+    <text x="799" y="190" font-size="11.5">bỏ mô hình lỗi</text>
+    <text x="799" y="205" font-size="11.5">hoặc trả 0,</text>
+    <text x="799" y="220" font-size="11.5">chia lại trọng số</text>
+  </g>
+
+  <!-- Hai ví dụ: đủ mô hình và thiếu Llama -->
+  <line x1="20" y1="362" x2="860" y2="362" stroke="#DCE1EA"/>
+  <text x="20" y="390" font-size="12.5" font-weight="600">Ví dụ cùng một deal</text>
+  <rect x="20" y="404" width="410" height="96" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+  <text x="38" y="428" font-size="12.5" font-weight="600">Đủ 3 mô hình</text>
+  <text x="38" y="452" font-size="12" fill="#566176">Frontier $150, Llama $60, DNN $100</text>
+  <text x="38" y="480" font-size="13">0,8 × 150 + 0,1 × 60 + 0,1 × 100 = <tspan font-weight="700">$136</tspan></text>
+
+  <rect x="450" y="404" width="410" height="96" rx="8" fill="#FFFFFF" stroke="#E8B4AE"/>
+  <text x="468" y="428" font-size="12.5" font-weight="600" fill="#B42318">Llama quá 10 s (máy Modal nguội)</text>
+  <text x="468" y="452" font-size="12" fill="#566176">Frontier $150, DNN $100, Llama bị bỏ</text>
+  <text x="468" y="480" font-size="13">(0,8 × 150 + 0,1 × 100) / 0,9 = <tspan font-weight="700">$144,44</tspan></text>
+</svg>

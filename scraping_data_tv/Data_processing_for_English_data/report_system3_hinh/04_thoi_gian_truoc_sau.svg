@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 312" role="img" aria-label="Thời gian một lượt tìm theo bước: wireless headphones từ 69,5 giây còn 21,3 giây; air fryer từ 106,7 giây còn 30,2 giây; phần giảm nhiều nhất là bước cào và bước ước giá" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+<rect x="236" y="18" width="12" height="12" rx="3" fill="#2a78d6"/>
+<text x="254" y="28" font-size="12.5" fill="#3A4357">Bước 1 — cào</text>
+<rect x="368.8" y="18" width="12" height="12" rx="3" fill="#eb6834"/>
+<text x="386.8" y="28" font-size="12.5" fill="#3A4357">Bước 3 — chọn deal</text>
+<rect x="546.0" y="18" width="12" height="12" rx="3" fill="#1baf7a"/>
+<text x="564.0" y="28" font-size="12.5" fill="#3A4357">Bước 4 — ước giá</text>
+<line x1="236.0" y1="70" x2="236.0" y2="266" stroke="#EBEEF3"/>
+<text x="236.0" y="286" font-size="11.5" fill="#566176" text-anchor="middle">0 s</text>
+<line x1="342.2" y1="70" x2="342.2" y2="266" stroke="#EBEEF3"/>
+<text x="342.2" y="286" font-size="11.5" fill="#566176" text-anchor="middle">20 s</text>
+<line x1="448.4" y1="70" x2="448.4" y2="266" stroke="#EBEEF3"/>
+<text x="448.4" y="286" font-size="11.5" fill="#566176" text-anchor="middle">40 s</text>
+<line x1="554.5" y1="70" x2="554.5" y2="266" stroke="#EBEEF3"/>
+<text x="554.5" y="286" font-size="11.5" fill="#566176" text-anchor="middle">60 s</text>
+<line x1="660.7" y1="70" x2="660.7" y2="266" stroke="#EBEEF3"/>
+<text x="660.7" y="286" font-size="11.5" fill="#566176" text-anchor="middle">80 s</text>
+<line x1="766.9" y1="70" x2="766.9" y2="266" stroke="#EBEEF3"/>
+<text x="766.9" y="286" font-size="11.5" fill="#566176" text-anchor="middle">100 s</text>
+<text x="20" y="78" font-size="13" font-weight="600">wireless headphones</text>
+<text x="20" y="182" font-size="13" font-weight="600">air fryer</text>
+<text x="224" y="108" font-size="12.5" fill="#566176" text-anchor="end">trước tối ưu</text>
+<rect x="236.0" y="92" width="174.1" height="24" fill="#2a78d6"><title>wireless headphones, trước tối ưu — Bước 1 — cào: 32,8 s</title></rect>
+<rect x="412.1" y="92" width="16.1" height="24" fill="#eb6834"><title>wireless headphones, trước tối ưu — Bước 3 — chọn deal: 3,4 s</title></rect>
+<path d="M430.2,92 h171.3 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-171.3 z" fill="#1baf7a"><title>wireless headphones, trước tối ưu — Bước 4 — ước giá: 33,4 s</title></path>
+<text x="613.5" y="109" font-size="13" font-weight="700">69,5 s</text>
+<text x="224" y="144" font-size="12.5" fill="#566176" text-anchor="end">sau tối ưu</text>
+<rect x="236.0" y="128" width="64.8" height="24" fill="#2a78d6"><title>wireless headphones, sau tối ưu — Bước 1 — cào: 12,2 s</title></rect>
+<rect x="302.8" y="128" width="24.0" height="24" fill="#eb6834"><title>wireless headphones, sau tối ưu — Bước 3 — chọn deal: 4,9 s</title></rect>
+<path d="M328.8,128 h15.8 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-15.8 z" fill="#1baf7a"><title>wireless headphones, sau tối ưu — Bước 4 — ước giá: 4,1 s</title></path>
+<text x="356.6" y="145" font-size="13" font-weight="700">21,3 s</text>
+<text x="224" y="212" font-size="12.5" fill="#566176" text-anchor="end">trước tối ưu</text>
+<rect x="236.0" y="196" width="338.2" height="24" fill="#2a78d6"><title>air fryer, trước tối ưu — Bước 1 — cào: 63,7 s</title></rect>
+<rect x="576.2" y="196" width="19.2" height="24" fill="#eb6834"><title>air fryer, trước tối ưu — Bước 3 — chọn deal: 4,0 s</title></rect>
+<path d="M597.4,196 h201.1 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-201.1 z" fill="#1baf7a"><title>air fryer, trước tối ưu — Bước 4 — ước giá: 39,0 s</title></path>
+<text x="810.5" y="213" font-size="13" font-weight="700">106,7 s</text>
+<text x="224" y="248" font-size="12.5" fill="#566176" text-anchor="end">sau tối ưu</text>
+<rect x="236.0" y="232" width="117.3" height="24" fill="#2a78d6"><title>air fryer, sau tối ưu — Bước 1 — cào: 22,1 s</title></rect>
+<rect x="355.3" y="232" width="21.4" height="24" fill="#eb6834"><title>air fryer, sau tối ưu — Bước 3 — chọn deal: 4,4 s</title></rect>
+<path d="M378.7,232 h13.6 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-13.6 z" fill="#1baf7a"><title>air fryer, sau tối ưu — Bước 4 — ước giá: 3,7 s</title></path>
+<text x="404.3" y="249" font-size="13" font-weight="700">30,2 s</text>
+</svg>

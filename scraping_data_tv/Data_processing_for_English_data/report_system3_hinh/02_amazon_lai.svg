@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" role="img" aria-label="Cách lai lấy dữ liệu Amazon: Chromium chạy ngầm qua lớp chặn AWS WAF để lấy cookie, chuyển cookie sang curl_cffi, rồi curl_cffi tìm kiếm và mở trang chi tiết" font-family="Be Vietnam Pro, system-ui, sans-serif" fill="#172033">
+  <defs>
+    <marker id="f2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566176"/>
+    </marker>
+    <marker id="f2-arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1D4ED8"/>
+    </marker>
+  </defs>
+
+  <!-- Ba bên tham gia -->
+  <g font-size="13" font-weight="600" text-anchor="middle">
+    <rect x="40" y="16" width="260" height="44" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="170" y="36">Chromium chạy ngầm</text>
+    <text x="170" y="52" font-size="11.5" font-weight="400" fill="#566176">Playwright, mở một lần mỗi lượt</text>
+    <rect x="320" y="16" width="240" height="44" rx="8" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="440" y="36">curl_cffi</text>
+    <text x="440" y="52" font-size="11.5" font-weight="400" fill="#566176">giả dấu vân tay TLS của Chrome</text>
+    <rect x="600" y="16" width="240" height="44" rx="8" fill="#172033"/>
+    <text x="720" y="43" fill="#FFFFFF">amazon.com</text>
+  </g>
+  <g stroke="#B8C0CC" stroke-dasharray="4 5">
+    <line x1="170" y1="60" x2="170" y2="540"/>
+    <line x1="440" y1="60" x2="440" y2="540"/>
+    <line x1="720" y1="60" x2="720" y2="540"/>
+  </g>
+
+  <!-- Giai đoạn 1: qua WAF bằng trình duyệt -->
+  <g font-size="12">
+    <line x1="170" y1="92" x2="716" y2="92" stroke="#566176" stroke-width="1.5" marker-end="url(#f2-arrow)"/>
+    <text x="445" y="86" text-anchor="middle">GET trang chủ</text>
+    <line x1="720" y1="124" x2="174" y2="124" stroke="#566176" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#f2-arrow)"/>
+    <text x="445" y="118" text-anchor="middle">202 + đoạn JavaScript của AWS WAF (curl_cffi không chạy được JS)</text>
+    <rect x="60" y="138" width="220" height="40" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="170" y="154" text-anchor="middle">chạy JS ~1,6 s</text>
+    <text x="170" y="170" text-anchor="middle" font-weight="600">⇒ cookie aws-waf-token</text>
+    <rect x="300" y="190" width="400" height="38" rx="7" fill="#F7F9FC" stroke="#DCE1EA"/>
+    <text x="500" y="206" text-anchor="middle" fill="#566176">có lúc hiện trang "Continue shopping" (không có ô tìm kiếm)</text>
+    <text x="500" y="221" text-anchor="middle" fill="#566176">⇒ chỉ chờ tối đa 3 s rồi dùng cookie đang có (trước: chờ 20 s, mất cookie)</text>
+  </g>
+
+  <!-- Giai đoạn 2: chuyển cookie — mẹo chính -->
+  <line x1="170" y1="262" x2="436" y2="262" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#f2-arrow-blue)"/>
+  <text x="303" y="254" font-size="12.5" font-weight="600" fill="#1D4ED8" text-anchor="middle">chép cookie, đóng trình duyệt</text>
+  <text x="303" y="280" font-size="12" fill="#566176" text-anchor="middle">+ cookie i18n-prefs=USD (ép giá đô la)</text>
+
+  <!-- Giai đoạn 3: tìm kiếm bằng curl_cffi -->
+  <g font-size="12">
+    <line x1="440" y1="318" x2="716" y2="318" stroke="#566176" stroke-width="1.5" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="312" text-anchor="middle">GET /s?k=…&amp;ref=nb_sb_noss + Referer</text>
+    <line x1="720" y1="350" x2="444" y2="350" stroke="#566176" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="344" text-anchor="middle">200: HTML các thẻ sản phẩm</text>
+    <rect x="460" y="364" width="400" height="56" rx="7" fill="#FDF0EF" stroke="#E8B4AE"/>
+    <text x="476" y="384" fill="#B42318">thiếu ref hoặc Referer ⇒ 503</text>
+    <text x="476" y="401" fill="#B42318">trang 200 nhưng rỗng (chặn mềm) ⇒ nghỉ 2 s, lấy cookie mới,</text>
+    <text x="476" y="415" fill="#B42318">thử lại 1 lần; vẫn chặn ⇒ báo nguồn "blocked"</text>
+    <line x1="440" y1="452" x2="716" y2="452" stroke="#566176" stroke-width="1.5" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="446" text-anchor="middle">GET /dp/&lt;ASIN&gt; × 6, lần lượt (0,5–4,1 s / trang)</text>
+    <line x1="720" y1="484" x2="444" y2="484" stroke="#566176" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#f2-arrow)"/>
+    <text x="578" y="478" text-anchor="middle">tính năng (#feature-bullets), hãng</text>
+    <rect x="300" y="502" width="280" height="32" rx="7" fill="#FFFFFF" stroke="#DCE1EA"/>
+    <text x="440" y="523" text-anchor="middle">deal: tên, hãng, giá USD, tính năng, link</text>
+  </g>
+</svg>
