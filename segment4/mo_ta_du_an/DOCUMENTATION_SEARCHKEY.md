@@ -49,7 +49,7 @@ segment4/
 |   |-- bestbuy_deals.py                 # BestBuy: curl_cffi + internal APIs
 |   |-- amazon_deals.py                  # Amazon: Playwright (cookie WAF) + curl_cffi + HTML parsing
 |   |
-|   |-- frontier_agent.py               # GPT-5.1 + RAG (ChromaDB)
+|   |-- frontier_agent.py               # gpt-6.1-terra + RAG (ChromaDB)
 |   |-- specialist_agent.py             # Fine-tuned Llama-3.2-3B (Modal)
 |   |-- neural_network_agent.py         # PyTorch DNN local
 |   |-- deep_neural_network.py          # DNN model class definition
@@ -134,7 +134,7 @@ Step 3: select_top_deals()
 Step 4: estimate_prices()
     |-- EnsembleAgent.price() cho moi deal:
     |   |-- Preprocessor (LiteLLM) -> rewrite text
-    |   |-- FrontierAgent (GPT-5.1 + RAG 5 similar products)  -> 80%
+    |   |-- FrontierAgent (gpt-6.1-terra + RAG 5 similar products)  -> 80%
     |   |-- SpecialistAgent (Llama-3.2-3B fine-tuned, Modal)   -> 10%
     |   |-- NeuralNetworkAgent (PyTorch DNN local)             -> 10%
     |   |-- combined = frontier*0.8 + specialist*0.1 + neural*0.1
@@ -313,7 +313,7 @@ EnsembleAgent.price(description):
 
 | Model | Class | Weight | Resource |
 |-------|-------|--------|----------|
-| Frontier | `FrontierAgent` | 80% | OpenAI GPT-5.1 + ChromaDB RAG (5 similar products) |
+| Frontier | `FrontierAgent` | 80% | OpenAI gpt-6.1-terra (tu 29/10, truoc la GPT-5.1) + ChromaDB RAG (5 similar products) |
 | Specialist | `SpecialistAgent` | 10% | Fine-tuned Llama-3.2-3B tren Modal (remote call) |
 | Neural Network | `NeuralNetworkAgent` | 10% | PyTorch DNN local (`deep_neural_network.pth`) |
 
@@ -397,7 +397,7 @@ multi_source_planning_agent.py          deals.py (Opportunity)
     |
     +-- ensemble_agent.py
     |       |-- preprocessor.py (LiteLLM)
-    |       |-- frontier_agent.py (GPT-5.1 + ChromaDB)
+    |       |-- frontier_agent.py (gpt-6.1-terra + ChromaDB)
     |       |-- specialist_agent.py (Modal Llama)
     |       |-- neural_network_agent.py (PyTorch DNN)
     |       v

@@ -10,7 +10,10 @@ class FrontierAgent(Agent):
     name = "Frontier Agent"
     color = Agent.YELLOW
 
-    MODEL = "gpt-5.1"
+    # Đo 29/10, 200 mẫu test items_full, RAG như cũ, 1 lượt / cấu hình: gpt-5.1 none MAE $31,16 | luna none $31,42 |
+    # luna low $29,69 | terra none $28,51 (sát hơn gpt-5.1 ở 87 mẫu, kém hơn 50) — chênh lệch chưa vượt nhiễu.
+    MODEL = "gpt-6.1-terra"
+    REASONING_EFFORT = "none"
 
     def __init__(self, collection):
         """
@@ -19,7 +22,6 @@ class FrontierAgent(Agent):
         """
         self.log("Initializing Frontier Agent")
         self.client = OpenAI()
-        self.MODEL = "gpt-5.1"
         self.log("Frontier Agent is setting up with OpenAI")
         self.collection = collection
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
@@ -92,7 +94,7 @@ class FrontierAgent(Agent):
             model=self.MODEL,
             messages=self.messages_for(description, documents, prices),
             seed=42,
-            reasoning_effort="none",
+            reasoning_effort=self.REASONING_EFFORT,
         )
         reply = response.choices[0].message.content
         result = self.get_price(reply)
