@@ -19,13 +19,14 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests as curl_requests
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 
 logger = logging.getLogger(__name__)
 
 MIN_FEATURES_LEN = 50  # Approach B threshold: if features < 50 chars, scrape product page
 WAF_TOKEN_COOKIE = "aws-waf-token"
+WAIT_SEARCH_BOX_MS = 3000
 # Direct /s?k= links without these get 503 from WAF; mimic a search-box submit from the homepage
 SEARCH_REF = "nb_sb_noss"
 SEARCH_HEADERS = {"Referer": "https://www.amazon.com/"}
@@ -81,7 +82,13 @@ def _get_waf_cookies() -> list[dict]:
                 if any(c["name"] == WAF_TOKEN_COOKIE for c in ctx.cookies()):
                     break
                 time.sleep(0.5)
-            page.wait_for_selector("#twotabsearchtextbox", timeout=20000)
+            # 29/10: sau khi qua WAF, Amazon có lúc hiện trang "Continue shopping" (không có ô tìm kiếm).
+            # Chờ ô tìm kiếm 20 s rồi ném lỗi làm mất luôn cookie WAF đã có (mỗi lần mất ~22 s).
+            # Token có sau ~1,6 s và một mình nó đủ cho curl_cffi tìm kiếm (đo 29/10: 16 sản phẩm).
+            try:
+                page.wait_for_selector("#twotabsearchtextbox", timeout=WAIT_SEARCH_BOX_MS)
+            except PlaywrightTimeoutError:
+                logger.info("[Amazon Init] No search box (interstitial page) - using WAF cookies as is")
             cookies = ctx.cookies()
         finally:
             browser.close()
