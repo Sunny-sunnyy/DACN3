@@ -15,7 +15,7 @@ User tự nhận hay chọn phương án "khuyến nghị" dù chưa hiểu. Ch�
 ## 1. Có cần hỏi không
 
 Chỉ hỏi khi câu trả lời đổi phạm vi, cách làm, cách kiểm, quyền hoặc tiền. Có mặc định thông thường ⇒ làm theo và nói ra.
-Không hỏi lại điều đã chốt (handoff / memory). Bị chặn bởi việc của User (gắn thẻ Modal, cấp quyền) ⇒ nói rõ chặn ở đâu,
+Không hỏi lại điều đã chốt (`session_prompt/CURRENT_HANDOFF.md`, `docs/changelog/`; Claude Code có thêm memory). Bị chặn bởi việc của User (gắn thẻ Modal, cấp quyền) ⇒ nói rõ chặn ở đâu,
 đưa phương án thay thế.
 
 ## 2. Mỗi phương án
@@ -37,7 +37,7 @@ Thêm phương án "giữ như cũ" khi đó là lựa chọn thật.
 - Phản biện cả phương án mình khuyến nghị.
 - Kết bằng **một câu tự kiểm**: "nếu hiểu đúng thì trả lời được: …".
 - Sau khi User chọn: nhắc lại 2–3 dòng **nghĩa là gì, cái giá là gì**. Câu trả lời của User sửa / bổ sung đề bài (ví dụ
-  "dự án cá nhân, không liên quan CEO", "chỉ tối ưu, giữ ổn định") ⇒ ghi lại (memory / handoff) và đi theo.
+  "đây là dự án cá nhân", "chỉ tối ưu, giữ ổn định") ⇒ ghi lại (`CURRENT_HANDOFF.md`; Claude Code ghi thêm memory) và đi theo.
 - User nói không hiểu câu hỏi ⇒ giải thích lại bằng ví dụ đúng bài toán trước khi hỏi tiếp.
 
 ## 4. Bàn mở (brainstorm)

@@ -1,6 +1,23 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+(Other coding agents read the same content — `AGENTS.md` points here.)
+
+## Cách làm việc (đọc trước — áp dụng cho mọi agent)
+
+- **Luật đầy đủ: [`session_prompt/CACH_LAM_VIEC.md`](session_prompt/CACH_LAM_VIEC.md)** — quyền, an toàn, bằng chứng,
+  môi trường / bẫy kỹ thuật, khi nào dùng skill nào, ghi chép, checklist kết phiên. Mở phiên:
+  [`session_prompt/START_SESSION.md`](session_prompt/START_SESSION.md). Trạng thái phiên gần nhất:
+  [`session_prompt/CURRENT_HANDOFF.md`](session_prompt/CURRENT_HANDOFF.md).
+- Năm điều không được quên:
+  1. Tiếng Việt, lời thường; **chỉ bắt đầu việc mới khi User nói "làm đi"** (hoặc chọn một phương án agent đưa ra); mọi lựa chọn kèm hệ quả / khi nào sai / chọn
+     khác mất gì (skill `propose-options`).
+  2. **Commit, push, merge, deploy Modal, cài thư viện, đổi `.env`, xoá dữ liệu, chạy app thật (gửi Pushover thật) ⇒ hỏi trước.**
+     Không đọc / in `.env`. Repo công khai ⇒ không commit tài liệu công ty / khoá học.
+  3. Chạy thật, không mock; đo trước–sau cùng đầu vào; chạy LLM ≥ 2 lượt khi cần biết nhiễu (skill `run-experiment`).
+  4. Code đơn giản, code giữ con số, giải thích được bằng lời thường (skill `practical-project-coding`); mỗi thay đổi code
+     một file trong `docs/changelog/`.
+  5. Một việc nặng một lúc, luôn `timeout`; Amazon request thưa; `uv run` thay `python`.
 
 ## Project Overview
 
@@ -11,8 +28,8 @@ AI Price Intelligence System (DACN3) — A multi-agent system that searches for 
 **IMPORTANT:** This project uses `uv` as the sole package manager and runtime. The virtual environment is managed by `uv` in the project root (`tech2ai/`). NEVER use `python` or `pip` directly — always use `uv run` to execute scripts (it automatically activates the correct venv and resolves dependencies).
 
 ```bash
-# Install dependencies
-uv sync
+# Install dependencies (đổi / cài gói ⇒ hỏi User trước; chỉ kiểm thì dùng --dry-run — bản thường từng gỡ gói cài tay)
+uv sync --locked --dry-run
 
 # Run Multi-Source Deal Finder (keyword search UI)
 cd segment4 && uv run search_key.py
@@ -41,7 +58,7 @@ uv run python -c "print('hello')"
 
 ## Architecture
 
-All active code lives in `segment4/`. Other dirs (`base/`, `ghi_chu/`, `sandbox/`) are reference/experimental only.
+All active code lives in `segment4/`. Other dirs (`w8/`, `scraping_data_tv/`, `fine_tune_qwen*/`, `segment4/khong_su_dung/`, `segment4/sandbox/`, `shopping_assistant_v*/`) are reference/experimental only.
 
 ### Two Applications
 
@@ -99,4 +116,4 @@ Optional: `BRAVE_API_KEY` (only for price_is_right.py), `GOOGLE_API_KEY`, `HF_TO
 - `curl_cffi` with `impersonate="chrome"` is required for both BestBuy and Amazon scraping from WSL2
 - BestBuy uses internal APIs (searchpage + priceBlocks + v2 product); priceBlocks returns max 25 SKUs/request → batched
 - Amazon uses HTML search page parsing. Direct `/s?k=` needs `&ref=nb_sb_noss` + `Referer` or WAF returns 503; prices forced to USD via cookie `i18n-prefs=USD` (IP in Vietnam shows VND otherwise; old ZIP POST no longer works)
-- Deprecated files: `amazon_scanner_agent.py` (Brave MCP removed), `bestbuy_scanner_agent.py` (Brave MCP, still exists but unused by search_key pipeline)
+- Deprecated files (moved to `segment4/khong_su_dung/`, unused): `amazon_scanner_agent.py`, `bestbuy_scanner_agent.py` (Brave MCP removed)

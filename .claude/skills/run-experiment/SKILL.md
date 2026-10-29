@@ -6,7 +6,8 @@ description: Dùng trước khi thử bất kỳ thay đổi nào ở cào dữ 
 # Thí nghiệm có kỷ luật — tech2ai
 
 Chuyển thể 29/10/2026 từ skill cùng tên ở một repo khác của User; nguyên tắc lấy từ khoá AI FDE (ghi chú riêng của User:
-`session_prompt/ghi_chu_khoa_hoc/GHI_CHU_AI_FDE.md`, không commit). Luật trong `CLAUDE.md` và lời User thắng skill này.
+`session_prompt/ghi_chu_khoa_hoc/GHI_CHU_AI_FDE.md` — chỉ có trên máy User, không commit). Luật trong
+`session_prompt/CACH_LAM_VIEC.md` và lời User thắng skill này.
 
 ## 1. Trước khi đo — ghi ra (kế hoạch ngắn hoặc mục trong handoff), giờ lấy bằng `date`
 
@@ -32,7 +33,7 @@ Chuyển thể 29/10/2026 từ skill cùng tên ở một repo khác của User;
   chạy mọi cấu hình trên cùng pool (29/10: so nano ↔ luna none ↔ luna low).
 - **≤ 20 mẫu / phép thử**, chọn bằng máy (seed ghi trước). Ghi rõ bộ **đã thấy** hay **giữ kín**; bộ đã dùng để quyết từ đó
   chỉ là bộ hồi quy.
-- Người chấm: **code** khi chấm được (giá, số deal, khớp URL); lời văn (tin nhắn) ⇒ **agent con chấm mù** (phiếu trộn mã,
+- Người chấm: **code** khi chấm được (giá, số deal, khớp URL); lời văn (tin nhắn) ⇒ **agent con chấm mù** (agent không có agent con ⇒ User chấm vài phiếu, hoặc mở phiên agent khác) (phiếu trộn mã,
   không biết bản nào) + 2–3 phiếu đã biết mức để kiểm người chấm. Không dùng chính mô hình đang thử để chấm.
 
 ## 3. Đo
@@ -43,8 +44,8 @@ Chuyển thể 29/10/2026 từ skill cùng tên ở một repo khác của User;
 3. **Đo theo tầng** khi lỗi có thể ở nhiều chỗ: cào (đủ / đúng giá USD?) → chọn deal → tiền xử lý (preprocess) → từng mô
    hình (Frontier / Llama / DNN) → ensemble → thông báo.
 4. **Chạy thật**, không mock. Lỗi provider / mạng / chặn là kết quả quan sát được — ghi lại, không che.
-5. Script đo mẫu: `SESSION_HANDOFF_OPTIMIZE.md` Phụ lục A (bọc hàm từ ngoài, không sửa code dự án; đối số `warm` = đánh thức
-   Modal trước).
+5. Script đo dùng lại: `scripts/do_luong/` (README trong đó — pipeline, pool deal, MAE Frontier, Modal nguội). Bọc hàm từ
+   ngoài, không sửa code dự án; đối số `warm` = đánh thức Modal trước.
 
 ## 4. Kết luận
 
@@ -57,6 +58,6 @@ Chuyển thể 29/10/2026 từ skill cùng tên ở một repo khác của User;
 
 ## 5. Hồ sơ — kể cả khi bỏ
 
-Phương án không dùng vẫn ghi: số đo, tiền, giây, vì sao bỏ (ví dụ luna `low`: 4,6–5,3 s so `none` 4,2–4,3 s, cùng 6/6 đủ
-deal ⇒ chọn `none`). Ghi vào handoff / changelog. Kết thúc bằng **3–5 dòng lời thường cho User**: đã thử gì, vì sao, kết quả,
+Phương án không dùng vẫn ghi: số đo, tiền, giây, vì sao bỏ (ví dụ Bước 3 chọn deal — luna `low`: 4,6–5,3 s so `none` 4,2–4,3 s, cùng 6/6
+đủ deal ⇒ chọn `none`). Ghi vào `docs/changelog/` (file của thay đổi + bảng "Đã thử, chưa áp dụng"). Kết thúc bằng **3–5 dòng lời thường cho User**: đã thử gì, vì sao, kết quả,
 quyết định, giới hạn.

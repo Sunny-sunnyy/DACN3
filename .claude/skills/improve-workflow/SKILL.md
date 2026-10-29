@@ -6,8 +6,8 @@ description: Dùng lúc kết phiên, khi User phải nhắc / sửa agent cùng
 # Tự cải tiến cách làm — tech2ai
 
 Chuyển thể 29/10/2026 từ skill cùng tên ở một repo khác của User. Nguyên tắc (khoá AI FDE): agent sai thì sửa vào **harness**
-(CLAUDE.md + `.claude/skills/` + memory + hook), không chỉ sửa một lần; người duyệt cho **thử**, bằng chứng quyết **giữ / gỡ**.
-Sổ: `session_prompt/SO_CAI_TIEN.md` (tạo khi có mục đầu tiên).
+(`session_prompt/` + `CLAUDE.md` / `AGENTS.md` + `.claude/skills/` + hook; Claude Code có thêm memory), không chỉ sửa một lần; người duyệt cho **thử**, bằng chứng quyết **giữ / gỡ**.
+Sổ: `session_prompt/SO_CAI_TIEN.md`.
 
 ## 1. Đầu vào — chỉ sự cố có bằng chứng
 
@@ -17,11 +17,11 @@ Mỗi sự cố ghi: ngày · chuyện gì · **mất gì** (giờ / USD / dữ 
 
 ## 2. Đề xuất — tối đa 3 mỗi vòng, nấc rẻ trước
 
-1. **Gỡ / gộp / dời:** luật trùng, hết hiệu lực, nằm sai chỗ (bài học chỉ ở handoff hay memory ⇒ về skill / CLAUDE.md).
+1. **Gỡ / gộp / dời:** luật trùng, hết hiệu lực, nằm sai chỗ (bài học chỉ ở handoff hay memory ⇒ về skill / `CACH_LAM_VIEC.md`).
 2. **Sửa câu** của luật có sẵn mà vẫn bị làm sai.
 3. **Thêm luật** vào đúng một chỗ, 1–3 dòng, kèm "vì sao" (sự cố).
 4. **Rào bằng máy** (hook / quyền Claude Code) khi luật chữ bị vi phạm **≥ 2 lần**. Agent soạn; **User duyệt và tự áp**
-   (skill `update-config`).
+   (Claude Code: skill `update-config`; agent khác: User tự sửa file cấu hình của agent đó).
 
 Mỗi đề xuất theo `propose-options` mục 2: sự cố + lần thứ mấy; sửa ở đâu (nguyên văn dòng thêm / gỡ); cái giá (thêm chữ phải
 đọc, chặn nhầm gì); cách biết có ích; khi nào gỡ.
@@ -36,7 +36,8 @@ Mỗi đề xuất theo `propose-options` mục 2: sự cố + lần thứ mấy
 
 ## 4. Giữ harness gọn
 
-- `CLAUDE.md` và handoff đang đọc mỗi phiên: đếm dòng (`wc -l`); handoff quá ~60 dòng ⇒ dời phần cũ ra `archive/`.
+- File đọc mỗi phiên (`session_prompt/START_SESSION.md`, `CACH_LAM_VIEC.md`, `CURRENT_HANDOFF.md`, `CLAUDE.md`): đếm dòng
+  (`wc -l`); `CURRENT_HANDOFF.md` quá 60 dòng ⇒ dời phần cũ ra `session_prompt/archive/`.
 - Memory sai / đã bị thay ⇒ sửa hoặc xoá. Một luật ghi hai chỗ ⇒ giữ một, chỗ kia trỏ tới.
 
 ## 5. Kết vòng

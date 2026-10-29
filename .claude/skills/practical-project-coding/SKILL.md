@@ -5,9 +5,10 @@ description: Dùng khi thiết kế cách cài đặt, viết, debug, refactor, 
 
 # Practical project coding — tech2ai
 
-Chuyển thể 29/10/2026 từ skill cùng tên của một repo khác của User; bổ sung bài học thật của tech2ai. Luật trong `CLAUDE.md`
-và lời User thắng skill này khi khác nhau. Nguyên tắc chung về cách viết (nghĩ trước, thay đổi đúng chỗ): skill
-`karpathy-guidelines` — skill này là phần riêng của repo.
+Chuyển thể 29/10/2026 từ skill cùng tên của một repo khác của User; bổ sung bài học thật của tech2ai. Luật trong
+`session_prompt/CACH_LAM_VIEC.md` và lời User thắng skill này khi khác nhau. Nguyên tắc chung về cách viết (nghĩ trước, thay đổi đúng chỗ): skill
+`karpathy-guidelines` — skill này là phần riêng của repo. Chỗ karpathy nói "viết test rồi cho pass": ở repo này "test" = phép
+kiểm **chạy thật** (cổng 3), không mock.
 
 ## Mục đích
 
@@ -72,14 +73,13 @@ từ trước ⇒ ghi lại, không xoá.
 - Đọc lại diff: đúng phạm vi; không phức tạp thừa; không lộ secret / raw exception; **kiểu xuống dòng không đổi** (nhiều file
   trong `segment4/price_agents/` là CRLF — sửa bằng script Python phải giữ `\r\n`, nếu không cả file thành diff).
 - Việc vừa / lớn: giao **agent con ngữ cảnh mới đọc diff** trước khi commit (không đưa kết luận của mình, chỉ đưa code +
-  mục tiêu); kiểm từng phát hiện trước khi sửa (skill `receiving-code-review`).
+  mục tiêu); kiểm từng phát hiện trước khi sửa, không sửa theo mù (Claude Code có thêm skill máy `receiving-code-review`).
+  Agent không có agent con ⇒ ghi "chưa kiểm độc lập" và đề nghị User mở một phiên agent khác đọc diff.
 - Bàn giao ngắn: đổi gì · đã chạy gì · số trước ⇒ sau · phần chưa kiểm · **"Giải thích ngắn" lời thường** (làm gì, vì sao,
   ảnh hưởng gì) — User phải tự nói lại được.
 
 ## Môi trường (tech2ai)
 
-- `uv run …` cho mọi lệnh Python, không `python` / `pip` trực tiếp; kiểm môi trường bằng `uv sync --locked --dry-run`
-  (bản không `--dry-run` từng gỡ gói cài tay).
-- `.env` ở `tech2ai/.env` — không đọc / in; script ở `/tmp` dùng `load_dotenv(find_dotenv(usecwd=True))` và chạy từ `segment4/`.
-- Script thử để ở `/tmp/…`, không để trong repo.
-- **Repo đẩy lên GitHub công khai:** không commit tài liệu công ty / khoá học; commit / push luôn hỏi User.
+Môi trường, bẫy kỹ thuật, an toàn (`uv run`, `.env`, CRLF, `perf_counter`, Amazon, Modal, luna, repo công khai):
+`session_prompt/CACH_LAM_VIEC.md` mục 4, 7 — không chép lại ở đây. Thêm riêng cho code: script ngoài repo nạp khoá bằng
+`load_dotenv(find_dotenv(usecwd=True))` và chạy từ `segment4/`; script đo dùng lại ⇒ `scripts/do_luong/`.
