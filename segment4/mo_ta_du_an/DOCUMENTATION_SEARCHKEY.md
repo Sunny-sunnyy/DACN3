@@ -6,7 +6,7 @@
 **Cap nhat:** 2026-04-06
 **Ngon ngu:** Python 3.12 + `uv`
 
-Ung dung web tim kiem va danh gia deals tot nhat tu **BestBuy** va **Amazon** dong thoi. Pipeline 4 buoc: search song song (curl_cffi) -> chon top 3 (GPT-5-nano) -> uoc luong gia (Ensemble 3 models) -> hien thi ket qua.
+Ung dung web tim kiem va danh gia deals tot nhat tu **BestBuy** va **Amazon** dong thoi. Pipeline 4 buoc: search song song (curl_cffi) -> chon top 3 (gpt-6-luna) -> uoc luong gia (Ensemble 3 models) -> hien thi ket qua.
 
 ---
 
@@ -44,7 +44,7 @@ segment4/
 |   |
 |   |-- multi_source_planning_agent.py   # CORE - Pipeline 4 buoc
 |   |-- ensemble_agent.py                # Ket hop 3 models du doan gia
-|   |-- messaging_agent.py               # Push notification (Pushover + GPT-5-nano)
+|   |-- messaging_agent.py               # Push notification (Pushover + gpt-6-luna)
 |   |
 |   |-- bestbuy_deals.py                 # BestBuy: curl_cffi + internal APIs
 |   |-- amazon_deals.py                  # Amazon: Playwright (cookie WAF) + curl_cffi + HTML parsing
@@ -62,7 +62,7 @@ segment4/
 |   |-- scanner_agent.py               # Chi dung boi price_is_right.py
 |
 |-- bestbuy_untils/                      # UTILITIES (ten thu muc co chu y)
-|   |-- multi_source_scanner_agent.py    # GPT-5-nano chon top 3 tu pool
+|   |-- multi_source_scanner_agent.py    # gpt-6-luna chon top 3 tu pool
 |   |-- unified_deal.py                  # Chuan hoa deal tu 2 nguon
 |   |-- gradio_helpers.py                # Queue logging, HTML formatters
 |   |-- clarification_agent.py           # Sinh cau hoi lam ro (hien KHONG dung trong pipeline)
@@ -91,7 +91,7 @@ Doc theo thu tu nay de hieu toan bo luong hoat dong:
    |-- 4a. bestbuy_deals.py   -- curl_cffi + BestBuy APIs
    |-- 4b. amazon_deals.py    -- Playwright lay cookie WAF + curl_cffi + Amazon HTML parsing
    |-- 4c. unified_deal.py    -- Chuan hoa ScrapedBestBuyDeal/ScrapedAmazonDeal -> UnifiedScrapedDeal
-   |-- 4d. multi_source_scanner_agent.py  -- GPT-5-nano chon top 3
+   |-- 4d. multi_source_scanner_agent.py  -- gpt-6-luna chon top 3
    |-- 4e. ensemble_agent.py  -- Goi 3 models (doc tiep frontier/specialist/neural)
    |
 5. deals.py                   -- Data models (Deal, Opportunity, DealSelection)
@@ -125,7 +125,7 @@ Step 2: combine()
     |
     v
 Step 3: select_top_deals()
-    |-- MultiSourceScannerAgent.scan()  (GPT-5-nano, Structured Outputs)
+    |-- MultiSourceScannerAgent.scan()  (gpt-6-luna, Structured Outputs)
     |
     v
     DealSelection (top 3 Deal objects)
@@ -268,9 +268,9 @@ Chon top 3 deals tu pool chung.
 
 | Thanh phan | Chuc nang |
 |------------|-----------|
-| `MODEL` | `gpt-5-nano` |
-| `scan(unified_deals)` | GPT-5-nano + Structured Outputs -> `DealSelection` (top 3) |
-| `reasoning_effort` | `"minimal"` (nhanh, re) |
+| `MODEL` | `gpt-6-luna` (tu 29/10; luna khong nhan `"minimal"`) |
+| `scan(unified_deals)` | gop hang trung (`dedupe_deals`) -> luna tra `deal_number` + tom tat (`PickedDeals`) -> code lay gia/URL tu pool, ghep `[Nguon] <ten goc>. <tom tat>` -> `DealSelection` (toi da 3) |
+| `reasoning_effort` | `"none"` (do 29/10: none 4,2-4,3 s, low 4,6-5,3 s, ca hai 6/6 du 3 deal khac nhau) |
 
 **Prompt:** Yeu cau GPT chon 3 deals co description chi tiet nhat, prefix [BestBuy] hoac [Amazon].
 
@@ -317,7 +317,7 @@ EnsembleAgent.price(description):
 | Specialist | `SpecialistAgent` | 10% | Fine-tuned Llama-3.2-3B tren Modal (remote call) |
 | Neural Network | `NeuralNetworkAgent` | 10% | PyTorch DNN local (`deep_neural_network.pth`) |
 
-**Luu y:** 3 models hien chay **sequential**. Se toi uu parallel trong tuong lai (Step 4 cua plan_fix.md).
+**Luu y (29/10):** 3 deal chay song song, trong moi deal 3 model chay song song (ThreadPoolExecutor). Model loi / tra 0 bi bo, chia lai trong so. Llama cho toi da 10 s (search_key), qua thi bo Llama o deal do.
 
 ---
 
@@ -339,7 +339,7 @@ Gui push notification qua Pushover API.
 | Method | Chuc nang |
 |--------|-----------|
 | `push(text)` | POST Pushover API |
-| `craft_message(...)` | GPT-5-nano viet message vui, FOMO |
+| `craft_message(...)` | gpt-6-luna (reasoning none) viet message vui, FOMO |
 | `notify(description, price, estimate, url)` | Craft message + push |
 | `alert(opportunity)` | Format va push (dung boi price_is_right.py) |
 
@@ -445,21 +445,22 @@ PRICER_PREPROCESSOR_MODEL=ollama/llama3.2  # Tuy chon (default)
 
 ---
 
-## Thoi gian thuc thi (uoc tinh)
+## Thoi gian thuc thi (do that 29/10, Modal da duoc danh thuc khi mo app)
 
 ```
-Total: ~70-100s (tuy keyword va so san pham sale)
+Total: ~21-34s (truoc toi uu 69,5-106,7s cung 2 tu khoa)
 
-  |-- Step 1: Search+Filter+Scrape (parallel)  ~6s
-  |     |-- BestBuy (curl_cffi + APIs)          ~4-8s
-  |     |-- Amazon (Playwright cookie + curl)   ~10-25s
+  |-- Step 1: Search+Filter+Scrape (parallel)  ~12-26s
+  |     |-- BestBuy (curl_cffi + APIs)          ~7-12s
+  |     |-- Amazon (cookie WAF ~5s + 6 trang chi tiet tuan tu 0,5-4s/trang)
   |
   |-- Step 2: Combine                           <1s
   |
-  |-- Step 3: Select top 3 (GPT-5-nano)        ~5-10s
+  |-- Step 3: Select top 3 (gpt-6-luna)        ~4-5s
   |
-  |-- Step 4: Estimate (3 models x 3 deals)    ~40-60s
+  |-- Step 4: Estimate (song song)             ~4s (Modal nguoi: Llama bi bo sau ~10-14s)
 ```
+Lan mo app dau: nap mo hinh (~20s) chay nen luc mo app, khong con roi vao lan bam Search dau.
 
 ---
 

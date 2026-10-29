@@ -221,6 +221,39 @@ Cosori $99 → $133.70. Không auto-notify (discount < $100).
 - Bước 3 **dao động 4,2 → 25,3 giây** với cùng mô hình, cùng cỡ input → độ trễ API OpenAI, không phải code.
 - Hầu hết thời gian là **chờ mạng (I/O)**, không phải tính toán (DNN 0,1 giây, RAG 0,0–0,3 giây).
 
+### 3.4 Sau tối ưu — 29/10 (nhánh `toi-uu-search-key`, mốc quay lại: tag `moc-truoc-toi-uu-2026-10-29`) [ĐÃ KIỂM]
+
+Đo bằng script Phụ lục A (bản 29/10: `time.perf_counter()` vì đồng hồ WSL có lúc nhảy lùi ~4 s; thêm đối số `warm`
+= đánh thức Modal ngay đầu, như lúc mở app; kết quả JSON ở `/tmp/prof/runs/`). Pushover bị chặn khi đo.
+
+| | Mốc 29/10 sáng | Sau tối ưu |
+|---|---|---|
+| `wireless headphones` cả lượt | 69,5 s | **21,3 s** (lượt cuối) / 34,3 s |
+| `air fryer` cả lượt | 106,7 s | **30,2 s** |
+| Lấy cookie Amazon | 22–44 s (trình duyệt chờ ô tìm kiếm tới timeout) | ~5 s |
+| Bước 3 chọn deal | nano 3,3–4,4 s (1/3 lượt trả 8 deal) | luna none 4,2–4,9 s, luôn ≤ 3 deal |
+| Bước 4 ước giá | 33–40 s (Modal nguội + tuần tự) | ~4 s |
+| Modal nguội | chờ 32–46 s | bỏ Llama sau ~10–14 s (3 lời gọi song song: 12,7 s cả nhóm) |
+| RAM đỉnh | 3,7–3,9 GB | 3,9 GB |
+
+**Đã đổi (7 commit):** `4f22fe0` cookie Amazon không chờ trang "Continue shopping" · `a3a6b03` luna chọn theo số thứ tự,
+code giữ giá/URL, gộp hàng trùng (giữ bản rẻ nhất) · `c2f1b69` trạng thái từng nguồn, ensemble bỏ mô hình lỗi/0 và chia
+lại trọng số, chỉ gửi link bestbuy/amazon, Gradio báo lỗi thay vì treo · `8e667cf` đánh thức + giữ ấm Modal phía app,
+chờ Llama tối đa 10 s, nạp mô hình khi mở app · `1c44ea1` Bước 4 song song · `d6f6155` ghép tên sản phẩm gốc vào mô tả
+(luna có lúc tóm tắt mất tên hãng) · `65109f4` sửa theo kiểm chéo sub-agent (kiểm "bỏ qua" trong khoá; price_is_right
+chờ Llama không giới hạn như cũ; PlanningAgent không treo khi gửi tin / ước giá lỗi).
+
+**Chưa làm / còn mở:**
+- **Giao diện Gradio chưa bấm thử** sau đợt sửa (User tự thử — app thật gửi Pushover thật).
+- **Amazon chặn mềm ngày càng hay gặp:** trang 200 không sản phẩm (2,4 KB khi không lấy được token; ~282 KB có token) —
+  3 lần / ~8 lượt 29/10; code thử lại 1 lần, nay log tiêu đề + chữ đầu trang ("Page without results") để nhận dạng rồi mới sửa.
+- **Chỗ chậm lớn nhất còn lại:** 6 trang chi tiết Amazon mở tuần tự (0,5–4,1 s / trang) ⇒ P4 (song song 2–3, session riêng).
+- **Modal app mới không deploy được** ("Please add a payment method to use T4 GPU functions"). `segment4/pricer_service_v2.py`
+  (chưa commit) sẵn sàng nếu User gắn thẻ: scaledown 10 phút, max 1 máy, ghim thư viện, log thời gian cold start.
+- Kiểm chéo còn 3 điểm nhỏ chưa sửa (ghi để biết): ping giữ ấm không qua khoá; `dedupe_deals` gộp bắc cầu khi chuỗi trùng
+  (giá/URL vẫn đi cặp); `is_store_url` gần như luôn đúng vì URL do code dựng.
+- Q5 (giá gốc của shop), Q6 (Llama hay ra $60/$220/$350 — các giá trị lặp lại), P5 (SQLite) chưa làm.
+
 ---
 
 ## 4. Song song / bất đồng bộ: phân tích
