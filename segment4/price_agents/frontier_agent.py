@@ -11,9 +11,10 @@ class FrontierAgent(Agent):
     color = Agent.YELLOW
 
     # Đo 29/10, 200 mẫu test items_full, RAG như cũ, 1 lượt / cấu hình: gpt-5.1 none MAE $31,16 | luna none $31,42 |
-    # luna low $29,69 | terra none $28,51 (sát hơn gpt-5.1 ở 87 mẫu, kém hơn 50) — chênh lệch chưa vượt nhiễu.
-    MODEL = "gpt-6.1-terra"
-    REASONING_EFFORT = "none"
+    # luna low $29,69 | terra none $28,51 — luna low ↔ terra không phân biệt được (chưa vượt nhiễu); chọn luna low:
+    # không kém gpt-5.1, rẻ hơn terra ~7 lần, cả dự án dùng chung một mô hình (User chọn 29/10).
+    MODEL = "gpt-6-luna"
+    REASONING_EFFORT = "low"
 
     def __init__(self, collection):
         """

@@ -30,7 +30,7 @@ uv run python -c "print('hello')"
 ## Tech Stack
 
 - **Python 3.12** with `uv` package manager
-- **LLMs:** OpenAI gpt-6.1-terra (Frontier) + gpt-6-luna (deal selection, messages) — both since 2026-10-29, replacing GPT-5.1 / gpt-5-nano / gpt-5-mini; fine-tuned Llama-3.2-3B on Modal
+- **LLMs:** OpenAI gpt-6-luna for Frontier (reasoning `low`), deal selection and messages (reasoning `none`) — since 2026-10-29, replacing GPT-5.1 / gpt-5-nano / gpt-5-mini; fine-tuned Llama-3.2-3B on Modal
 - **ML:** PyTorch DNN (ResidualBlocks), XGBoost, scikit-learn
 - **Vector DB:** ChromaDB with sentence-transformers/all-MiniLM-L6-v2
 - **Web Scraping:** `curl_cffi` (Chrome impersonation) + BeautifulSoup4; Amazon also uses Playwright headless Chromium once per search to pass the AWS WAF JS challenge (needs `uv run playwright install chromium`)
@@ -67,7 +67,7 @@ Agent Layer:     price_agents/ (single-responsibility agents inheriting from Age
 ### Price Estimation Ensemble
 
 `EnsembleAgent` combines three independent models:
-- **FrontierAgent (80%)** — gpt-6.1-terra (reasoning `none`) + RAG from ChromaDB (800K+ products). Measured 2026-10-29 on the first 200 test items of `SeanSunny/items_full` (1 run each): gpt-5.1 MAE $31.16, luna none $31.42, luna low $29.69, terra none $28.51 — differences within noise
+- **FrontierAgent (80%)** — gpt-6-luna (reasoning `low`) + RAG from ChromaDB (800K+ products). Measured 2026-10-29 on the first 200 test items of `SeanSunny/items_full` (1 run each): gpt-5.1 MAE $31.16, luna none $31.42, luna low $29.69, terra none $28.51 — differences within noise; luna low chosen (not worse than gpt-5.1, ~7x cheaper than terra, one model for the whole project)
 - **SpecialistAgent (10%)** — Fine-tuned Llama-3.2-3B on Modal
 - **NeuralNetworkAgent (10%)** — PyTorch DNN loaded from `deep_neural_network.pth`
 

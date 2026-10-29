@@ -254,10 +254,11 @@ chờ Llama không giới hạn như cũ; PlanningAgent không treo khi gửi ti
   (giá/URL vẫn đi cặp); `is_store_url` gần như luôn đúng vì URL do code dựng.
 - Q5 (giá gốc của shop), Q6 (Llama hay ra $60/$220/$350 — các giá trị lặp lại), P5 (SQLite) chưa làm.
 
-**Frontier đổi GPT-5.1 → gpt-6.1-terra (User chọn 29/10, sau khi đo):** 200 mẫu test đầu `SeanSunny/items_full`, cùng RAG,
+**Frontier đổi GPT-5.1 → gpt-6-luna `low` (User chọn 29/10, sau khi đo; thử terra trước rồi đổi):** 200 mẫu test đầu `SeanSunny/items_full`, cùng RAG,
 1 lượt / cấu hình — gpt-5.1 none MAE $31,16 ($0,179 / 200 mẫu) · luna none $31,42 ($0,013) · luna low $29,69 ($0,018) ·
 **terra none $28,51** ($0,130; sát hơn gpt-5.1 ở 87 mẫu, kém hơn 50). So từng mẫu: khoảng 95 % của chênh lệch đều chứa 0 ⇒
-chưa vượt nhiễu, chỉ chắc là **không kém** GPT-5.1. Script `/tmp/prof/eval_frontier.py` (đối số `model:effort`).
+chưa vượt nhiễu, chỉ chắc là **không kém** GPT-5.1. Luna low ↔ terra cũng không phân biệt được (−4,47 … +2,11) ⇒
+chọn luna low: rẻ hơn terra ~7 lần, cả dự án một mô hình. Script `/tmp/prof/eval_frontier.py` (đối số `model:effort`).
 (MAE $31 thấp hơn số $44,06 của bảng xếp hạng — khác cách / tập đánh giá; so sánh ở đây là cùng 200 mẫu.)
 
 ---
