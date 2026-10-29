@@ -1,6 +1,6 @@
 # SEARCH_KEY.PY — Multi-Source Deal Finder
 
-**Cập nhật lần cuối:** 29/10/2026 (đợt tối ưu: luna, chống sập, giữ ấm Modal, song song Bước 4 — xem `docs/changelog/`)
+**Cập nhật lần cuối:** 14:02, 29/10/2026 (đợt tối ưu: luna, chống sập, giữ ấm Modal, song song Bước 4; bổ sung cơ chế cào, song song, tối ưu, chống sập, chi phí, giới hạn — xem `docs/changelog/`)
 **Ngôn ngữ:** Python 3.12 + `uv`
 
 Ứng dụng web tìm deal tốt nhất từ **BestBuy** và **Amazon** cùng lúc. Pipeline 4 bước: cào song song (curl_cffi) → chọn
@@ -214,6 +214,200 @@ trả lại chữ gốc.
 | `craft_message(...)` | gpt-6-luna reasoning none qua LiteLLM (`allowed_openai_params=["reasoning_effort"]`) |
 | `push(text)` | POST Pushover, `timeout=15`, HTTP ≠ 200 → RuntimeError |
 | `notify(...)` | viết tin + gửi |
+
+---
+
+> Các mục dưới giải thích **vì sao** hệ thống làm như vậy, **đã đo được gì** và **còn giới hạn gì**. Nhãn: **[đã đo]** = chạy
+> thật có số · **[có trong code]** = đọc code, chưa đo riêng · **[suy luận]** = suy ra, chưa kiểm · **[đề xuất]** = chưa làm.
+
+## Cào dữ liệu — cơ chế chi tiết
+
+### BestBuy: gọi API nội bộ thay vì đọc trang HTML
+
+- **Vì sao:** trang sản phẩm BestBuy chặn request từ WSL2 (HTTP/2 + CDN Akamai) [có trong code — chú thích đầu
+  `bestbuy_deals.py`]. Trang tìm kiếm và các API JSON nội bộ thì vẫn trả dữ liệu khi dùng `curl_cffi` giả dấu vân tay TLS của
+  Chrome (`impersonate="chrome"`).
+- **Luồng** [có trong code]:
+  1. `_init_session()` mở `/?intl=nosplash` để bỏ qua trang chọn quốc gia.
+  2. `search_bestbuy()` tải trang tìm kiếm, tìm mọi `"skuId":"…"` trong dữ liệu dựng sẵn của trang (Apollo SSR cache);
+     `dict.fromkeys` bỏ trùng nhưng **giữ thứ tự trên trang** (liên quan nhất đứng trước); bỏ link `openbox` / `refurbished`.
+  3. `get_price_blocks()` gọi `/api/3.0/priceBlocks?skus=…` theo **lô 25 SKU**: tên, hãng, `currentPrice`, `regularPrice`,
+     `savingsAmount`, `totalSavingsPercent`, và **"đang sale" = `pricingType == "onSale"`**.
+  4. Với mỗi SKU đang sale: `get_product_details()` gọi `/api/v2/product/<sku>` lấy danh sách tính năng (`title: description`)
+     và URL chuẩn `seoPdpUrl`.
+  5. **Dừng sớm** khi đủ `max_results` deal — không gọi hết các lô còn lại.
+- **Lỗi đã sửa ngày 28/10** [đã đo] (commit `1a67113`):
+  - priceBlocks **chỉ trả tối đa 25 SKU mỗi lần** dù gửi 40 hay 199 SKU ⇒ trước đó chỉ 25 / 200+ sản phẩm được kiểm giá
+    (`wireless headphones` 2 ⇒ 6 deal, `air fryer` 3 ⇒ 6, `laptop` 1 ⇒ 3).
+  - `set()` làm mất thứ tự liên quan của trang ⇒ đổi sang `dict.fromkeys`.
+  - Khoá `buttonState.skuId` thiếu ở 21 / 25 mục ⇒ dùng `sku.skuId`.
+- **Đặc điểm dữ liệu** [đã đo 29/10]: BestBuy trả các màu của cùng một mẫu với **cùng URL nhưng giá khác** (5 màu
+  WH-1000XM5, $228–$298) ⇒ Bước 3 gộp lại, giữ bản rẻ nhất.
+
+### Amazon: cách lai trình duyệt ngầm + curl_cffi
+
+- **Lớp chặn:** Amazon bật **AWS WAF JavaScript challenge** — trang đầu trả mã 202 kèm đoạn JS bắt trình duyệt tự chứng minh
+  là người thật. `curl_cffi` chỉ giả TLS, **không chạy JavaScript** ⇒ không tự qua được [đã đo 28/10: 6 kiểu giả trình duyệt
+  đều 503].
+- **Cách làm** [có trong code + đã đo]:
+  1. `_get_waf_cookies()`: Playwright mở Chromium chạy ngầm (`channel="chromium"`), vào **trang chủ** (vào thẳng link tìm
+     kiếm thì vẫn 503), chờ cookie `aws-waf-token` (~1,6 s), đóng trình duyệt ngay (`finally`).
+  2. `init_amazon_session()`: chép cookie sang session `curl_cffi` + cookie `i18n-prefs=USD`.
+  3. `search_amazon()`: `/s?k=<từ khoá>&ref=nb_sb_noss` + header `Referer: https://www.amazon.com/` — giả như bấm ô tìm kiếm
+     trên trang chủ; **thiếu một trong hai là 503**.
+  4. `parse_search_results()`: mỗi thẻ sản phẩm lấy ASIN, tên, giá hiện tại, giá gạch ngang; **"đang sale" = có giá gạch
+     ngang lớn hơn giá hiện tại**; URL dựng từ ASIN (`/dp/<ASIN>`).
+  5. `scrape_product_page()`: trang chi tiết ⇒ `#feature-bullets` (không có thì `#productDescription`), hãng từ `#bylineInfo`.
+- **Bẫy đã gặp** [đã đo]:
+  - **Giá VND:** IP Việt Nam ⇒ Amazon hiện giá VND; hàm cũ bỏ hết ký tự không phải số ⇒ số VND bị đọc như USD. Nay ép USD
+    bằng cookie, và chuỗi giá không có `$` ⇒ 0 ⇒ bị lọc, không bao giờ đưa giá VND vào ensemble.
+  - **Đặt ZIP bằng POST cũ không còn chạy** (API mới cần CSRF token) ⇒ Amazon vẫn ghi "Deliver to Vietnam" [suy luận: một số
+    hàng không giao về VN có thể bị ẩn giá].
+  - **Trang "Continue shopping"** (29/10): sau khi qua WAF, trang chủ không có ô tìm kiếm ⇒ code cũ chờ 20 s rồi báo lỗi và
+    **bỏ luôn cookie đã có** ⇒ nay chờ tối đa 3 s rồi dùng cookie đang có (lấy cookie 22 s ⇒ ~5 s).
+  - **Chặn mềm:** trang 200 nhưng không có thẻ sản phẩm (2,4 KB khi chưa có token; ~282 KB khi có) — gặp 3 lần trong ~8 lượt
+    ngày 29/10. Code thử lại 1 lần với cookie mới; trang rỗng được log tiêu đề + chữ đầu trang để nhận dạng sau.
+  - **Gửi dồn dập ⇒ bị chặn IP tạm thời** ⇒ thử nghiệm Amazon phải thưa, có nghỉ giữa các lượt.
+- **Approach A / B:** thông số trên trang tìm kiếm ≥ 50 ký tự (A) gần như không còn từ 28/10 ⇒ hầu hết sản phẩm phải mở trang
+  chi tiết (B), **lần lượt**, 0,5–4,1 s / trang [đã đo].
+
+### Dữ liệu sau khi cào
+
+`ScrapedBestBuyDeal` / `ScrapedAmazonDeal` → `UnifiedScrapedDeal(title ≤ 200 ký tự, brand, price, features ≤ 1500 ký tự,
+url, source)`. **Giá gốc của shop (`regularPrice`, `list_price`) có cào được nhưng chưa đưa vào pipeline** [có trong code] —
+xem "Giới hạn đã biết".
+
+---
+
+## Chọn deal bằng LLM (Bước 3) — vì sao làm thế này
+
+- **Trước 29/10** [đã đo]: gpt-5-nano tự **chép lại** giá và URL của deal nó chọn (có thể chép sai) và 1 / 3 lượt đo trả
+  **8 deal** dù được dặn tối đa 3 ⇒ Bước 4 phải ước giá cho cả 8.
+- **Nay** [có trong code]: mỗi deal trong prompt được đánh số `Deal 1`, `Deal 2`… (không kèm URL); luna chỉ trả
+  `deal_number` + câu tóm tắt; **code** lấy giá, URL, tên gốc từ danh sách đã cào, bỏ số không hợp lệ / lặp, tối đa 3.
+  Nguyên tắc: *mô hình chỉ đề xuất, code giữ con số*.
+- **Gộp hàng trùng trước khi hỏi LLM:** cùng nguồn và (cùng URL hoặc cùng tên khi bỏ các từ chỉ màu ở cuối) ⇒ giữ bản rẻ nhất
+  ở vị trí xuất hiện đầu. Ví dụ [đã đo]: 12 deal `wireless headphones` ⇒ 8 (5 màu WH-1000XM5 gộp còn bản $228).
+- **Tên gốc ghép vào đầu mô tả:** luna `none` có lúc tóm tắt "This 6-quart air fryer…" mất cả hãng lẫn tên mẫu ⇒ bảng kết quả
+  không biết là hàng gì, ensemble mất thông tin hãng (Ninja DoubleStack $229,99 ước $167 so với $212 ở lượt có tên) [đã đo].
+  Nay mô tả = `[Nguồn] <tên gốc>. <tóm tắt của luna>`.
+- **Chọn `reasoning_effort="none"`** [đã đo, 2 danh sách deal × 3 lượt, cùng đầu vào]: none 4,2–4,3 s, low 4,6–5,3 s, cả hai
+  6 / 6 lượt đủ 3 deal khác nhau, 0 sai giá / URL; nano cũ 3,3–4,4 s, 5 / 6.
+- **Tiêu chí chọn của prompt vẫn là "mô tả chi tiết nhất, giá rõ ràng"** (giữ như bản cũ), chưa phải "giảm nhiều nhất".
+
+---
+
+## Xử lý song song
+
+| Chỗ | Cách | Vì sao | Kết quả |
+|---|---|---|---|
+| BestBuy ‖ Amazon (Bước 1) | `ThreadPoolExecutor(2)` | hai nguồn độc lập, chủ yếu chờ mạng | có từ trước |
+| 3 deal (Bước 4) | `ThreadPoolExecutor(số deal)` | các deal độc lập | Bước 4 33–40 s ⇒ ~4 s [đã đo] |
+| 3 mô hình trong một deal | `ThreadPoolExecutor(3)` sau bước tiền xử lý | Llama / Frontier / DNN chỉ cần chung một `rewrite` | như trên |
+
+- **Vì sao dùng luồng (thread) mà không dùng async:** gần như toàn bộ thời gian là chờ mạng (OpenAI, Groq, Modal, BestBuy,
+  Amazon); DNN chỉ 0,1–0,2 s, RAG 0,0–0,3 s [đã đo 28/10]. Luồng cho lợi ích tương đương mà không phải viết lại code sang
+  async; pipeline vốn đã chạy trong một luồng worker của Gradio. Async chỉ đáng khi cần phục vụ nhiều người dùng cùng lúc
+  [suy luận].
+- **Khoá (lock) — chỗ nào và vì sao** [có trong code]:
+  - `FrontierAgent._search_lock`: encode câu (SentenceTransformer trên GPU) + query ChromaDB đi lần lượt — dùng chung một
+    model GPU giữa các luồng; mỗi lần chỉ 0,1–0,3 s nên khoá gần như không làm chậm.
+  - `NeuralNetworkAgent._lock`: một model PyTorch trên GPU dùng chung ⇒ suy luận lần lượt.
+  - `SpecialistAgent._call_lock`: các lời gọi Llama xếp hàng — gọi song song có thể làm Modal **bật thêm máy nguội** (tốn tiền,
+    không nhanh hơn); máy ấm chỉ ~0,9 s / lời gọi nên 3 deal xếp hàng vẫn ~2,7 s, chạy song song với Frontier.
+  - `MultiSourceFramework._init_lock`, `App._framework_lock`: luồng nạp nền lúc mở app và lần bấm Search sớm không tạo 2 bộ mô hình.
+- **Hai tầng ThreadPoolExecutor không kẹt nhau:** mỗi tầng một pool riêng, không khoá nào được giữ trong lúc chờ kết quả của
+  pool kia [có trong code, agent con đọc diff xác nhận].
+- **Việc chậm nhất quyết định thời gian cả bước:** Bước 4 chỉ nhanh khi Modal ấm; Modal nguội thì vẫn mất ~10–14 s (giới hạn chờ).
+- **Cố ý chưa song song:**
+  - Trang chi tiết Amazon (6 trang lần lượt, 13–19 s): gửi dồn dập dễ bị chặn [đã gặp 28/10].
+  - Chi tiết BestBuy (~0,6 s / SKU): lợi nhỏ.
+  - Cả hai cần mỗi luồng một session riêng vì `curl_cffi.Session` không bảo đảm an toàn khi nhiều luồng dùng chung [suy luận].
+  - Đề xuất P4 [đề xuất]: song song 2–3 trang Amazon, session riêng mỗi luồng, đo tỉ lệ bị chặn trước khi giữ.
+
+---
+
+## Tối ưu tốc độ — trước / sau và nguyên nhân
+
+Đo bằng `scripts/do_luong/profile_pipeline.py` (bọc hàm từ ngoài, Pushover bị chặn khi đo, đồng hồ `perf_counter`) [đã đo 29/10]:
+
+| Chỗ | Trước | Sau | Nguyên nhân gốc / cách sửa |
+|---|---|---|---|
+| Lấy cookie Amazon | 22–44 s | ~5 s | chờ ô tìm kiếm 20 s trên trang "Continue shopping" rồi vứt cookie ⇒ chờ 3 s, dùng cookie có sẵn |
+| Lần Search đầu tiên | +~22 s nạp thư viện + Chroma + mô hình | 0 s (nạp ở luồng nền khi mở app, ~9–20 s) | trước nạp lười ở lần bấm đầu |
+| Llama trên Modal | 31,5–46 s mỗi lượt máy nguội | ~0,9 s khi ấm; nguội thì bỏ sau ~10–14 s | Modal tắt máy sau 60 s rảnh ⇒ đánh thức khi mở app + ping 50 s + chờ tối đa 10 s |
+| Bước 4 (3 deal) | 33–40 s | ~4 s | trước tuần tự cả deal lẫn mô hình ⇒ song song 2 tầng |
+| Bước 3 | 3,3–4,4 s (có lượt trả 8 deal) | 3,7–5,1 s, luôn ≤ 3 deal | đổi sang luna + chọn theo số thứ tự; chậm hơn ~0,5–1 s nhưng Bước 4 không còn bị phình |
+| **Cả lượt** | **69,5 s / 106,7 s** (2 từ khoá) | **21,3–34,3 s**; User chạy app thật 27,1 s | |
+
+**Đã thử, chưa áp dụng** (chi tiết ở `docs/changelog/README.md`):
+- App Modal mới `pricer-service-v2` (giữ ấm 10 phút phía server, tối đa 1 máy, ghim thư viện, log thời gian khởi động):
+  Modal từ chối deploy app GPU mới khi tài khoản chưa gắn thẻ ⇒ giữ ấm từ phía app thay thế. File `segment4/pricer_service_v2.py`
+  để sẵn (chưa commit).
+- luna `low` cho Bước 3 (chậm hơn, cùng chất lượng); gpt-6.1-terra cho Frontier (MAE $28,51, đắt hơn luna low ~7 lần, chênh
+  lệch chưa vượt nhiễu).
+
+**Chỗ chậm còn lại** [đã đo]: trang chi tiết Amazon lần lượt (Bước 1 còn 11–26 s, Amazon thường là nhánh chậm hơn BestBuy).
+
+---
+
+## Chống sập và an toàn
+
+- **Trạng thái từng nguồn** `ok (n)` / `empty` / `blocked` / `error` — trước đây mọi trường hợp đều thành "0 sản phẩm";
+  một nguồn ném lỗi làm mất cả kết quả nguồn kia [có trong code + đã đo].
+- **Ensemble chia lại trọng số khi thiếu mô hình** [có trong code; công thức kiểm offline]:
+  - Đủ 3 mô hình (Llama $60, Frontier $150, DNN $100) ⇒ 0,8 × 150 + 0,1 × 60 + 0,1 × 100 = **$136**.
+  - Thiếu Llama (quá giờ) ⇒ (0,8 × 150 + 0,1 × 100) / 0,9 = **$144,44**.
+  - Frontier trả 0 ⇒ (0,1 × 60 + 0,1 × 100) / 0,2 = **$80** — coi 0 là lỗi vì Frontier / Llama trả 0 khi không đọc được số;
+    trước đây số 0 đi thẳng vào trung bình, kéo ước lượng xuống còn ~20 % mà không ai biết.
+  - Không mô hình nào hợp lệ ⇒ bỏ deal đó, các deal khác vẫn hiện.
+- **Kiểm link trước khi gửi thông báo** (`is_store_url`): chữ trên trang cào là **dữ liệu không đáng tin**, lại được đưa vào
+  prompt của LLM; app có đường gửi ra ngoài (Pushover) ⇒ chỉ gửi khi host là `bestbuy.com` / `amazon.com` (chặn
+  `amazon.com.evil.io`, `evilamazon.com`, `javascript:`) [có trong code, kiểm offline]. URL vốn do code dựng nên đây là lớp
+  kiểm thêm.
+- **Gửi tin:** `timeout=15`, HTTP ≠ 200 ⇒ báo lỗi; lỗi gửi chỉ ghi log, không làm mất bảng kết quả.
+- **Giao diện:** lỗi pipeline hiện ở ô Status thay vì treo "Processing..." mãi.
+- **Kiểm chéo:** một agent con chưa biết gì về phiên làm việc đọc diff cả nhánh và tìm ra 3 lỗi thật mà các lượt đo bỏ sót
+  (Modal nguội + 3 deal song song ~30 s; `price_is_right` bị đổi hành vi; `PlanningAgent` có thể treo) — đã sửa và thử lại
+  với Modal thật [đã đo] (`docs/changelog/2026_10_29_06_sua_theo_kiem_cheo.md`).
+
+---
+
+## Chi phí mỗi lượt tìm
+
+[suy luận — ước từ số token và giá đã đo ngày 29/10; chưa có đồng hồ tiền trong app]
+
+| Phần | Ước mỗi lượt (3 deal) | Căn cứ |
+|---|---|---|
+| Bước 3 — luna none | ~$0,0003–0,0007 | 1.322–4.755 token vào, ~300–500 token ra (đo 29/10); giá luna $0,10 / $0,50 mỗi triệu token |
+| Frontier — luna low × 3 | ~$0,0003 | $0,018 cho 200 lời gọi khi đo MAE |
+| Llama trên Modal × 3 (máy ấm) | ~$0,0005 | ~0,9 s × $0,000164 / s mỗi lời gọi |
+| Viết tin nhắn (chỉ khi gửi) | < $0,0001 | LiteLLM báo $0,000016 cho một lời gọi ngắn |
+| Groq gpt-oss-20b × 3 | chưa đo | — |
+| Giữ ấm Modal | ~$0,59 / giờ khi app mở và có người tìm trong 15 phút gần nhất | giá T4 |
+
+---
+
+## Giới hạn đã biết
+
+- **Chưa có thước đo chất lượng trên hàng cào thật:** MAE chỉ đo trên 200 mẫu test (dữ liệu Amazon 2023 đã xử lý), chưa biết
+  giá ước cho sản phẩm hôm nay sai bao nhiêu [đề xuất: 15–20 sản phẩm có giá tham chiếu, chấm bằng code].
+- **Vùng dữ liệu huấn luyện:** chỉ 8 nhóm hàng, giá ≤ $999 ⇒ laptop / TV đắt bị ước thấp, đồ bếp không có trong dữ liệu (mục
+  "Nên thử từ khoá nào").
+- **Llama hay lặp lại một số giá** ($60, $220, $350, $700, $950 xuất hiện nhiều lần cho các sản phẩm khác nhau) [đã thấy trong
+  log, chưa phân tích nguyên nhân].
+- **Giá gốc của shop chưa dùng:** có `regularPrice` / `list_price` nhưng Bước 3 không thấy, bảng kết quả không hiện để đối
+  chiếu với giá AI ước [đề xuất Q5].
+- **Amazon mong manh:** phụ thuộc WAF, trang chặn mềm, "Deliver to Vietnam".
+- **`price_is_right.py` chưa chạy lại** sau đợt sửa (dùng chung Ensemble / Frontier / Specialist / Messaging).
+- **Chưa có mốc không dùng LLM cho Bước 3** (ví dụ "3 deal giảm nhiều nhất") để chứng minh LLM đáng dùng [đề xuất].
+- **Bước tiền xử lý vẫn dùng Groq**, chưa đo nếu đổi sang luna.
+
+## Kiểm chứng lại
+
+Script trong `scripts/do_luong/` (đọc README ở đó): `profile_pipeline.py` (cả pipeline, có `warm`), `save_pools.py` +
+so Bước 3 trên cùng đầu vào, `eval_frontier.py` (MAE 200 mẫu), `test_modal_nguoi.py` (Modal nguội + 3 lời gọi song song),
+`probe_keywords.py` (từ khoá có trong vùng dữ liệu không). Mỗi thay đổi ghi ở `docs/changelog/`.
 
 ---
 
