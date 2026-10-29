@@ -8,6 +8,7 @@ Handles:
 """
 
 import logging
+import threading
 import time
 from typing import List, Optional
 
@@ -42,6 +43,7 @@ class MultiSourceFramework:
         self.log(f"ChromaDB collection: {self.collection.name}, count: {self.collection.count()}")
 
         self.planner: Optional[MultiSourcePlanningAgent] = None
+        self._init_lock = threading.Lock()  # nạp nền lúc mở app + bấm tìm sớm không được tạo 2 bộ mô hình
         self.current_opportunities: List[Opportunity] = []
         self.log("Multi-Source Framework is ready")
 
@@ -50,11 +52,12 @@ class MultiSourceFramework:
         logging.info(text)
 
     def init_agents_as_needed(self):
-        if not self.planner:
-            self.log("Initializing Multi-Source Planning Agent...")
-            t0 = time.time()
-            self.planner = MultiSourcePlanningAgent(self.collection)
-            self.log(f"[TIMER] All agents initialized in {time.time() - t0:.1f}s")
+        with self._init_lock:
+            if not self.planner:
+                self.log("Initializing Multi-Source Planning Agent...")
+                t0 = time.time()
+                self.planner = MultiSourcePlanningAgent(self.collection)
+                self.log(f"[TIMER] All agents initialized in {time.time() - t0:.1f}s")
 
     def run(self, keyword: str, max_urls: int = 6, source: str = "All") -> List[Opportunity]:
         """Run the full pipeline with keyword."""

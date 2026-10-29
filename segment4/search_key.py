@@ -15,6 +15,7 @@ import gradio as gr
 from dotenv import load_dotenv
 
 from multi_source_framework import MultiSourceFramework
+from price_agents.specialist_agent import wake_up_modal
 from bestbuy_untils.gradio_helpers import (
     QueueHandler,
     setup_logging,
@@ -30,14 +31,28 @@ class App:
 
     def __init__(self):
         self.framework = None
+        self._framework_lock = threading.Lock()
         self.current_keyword = ""
         self.current_max_urls = 6
         self.current_source = "All"
 
     def get_framework(self):
-        if not self.framework:
-            self.framework = MultiSourceFramework()
+        with self._framework_lock:
+            if not self.framework:
+                self.framework = MultiSourceFramework()
         return self.framework
+
+    def preload(self):
+        """Chạy nền lúc mở app: đánh thức Modal (khởi động 32-46 s) và nạp mô hình (~20 s) trong lúc người dùng gõ
+        từ khoá; trước đây cả hai rơi vào lần bấm Search đầu tiên."""
+        try:
+            wake_up_modal()
+            framework = self.get_framework()
+            framework.init_agents_as_needed()
+            framework.planner.ensemble.specialist.start_keep_warm()
+            logging.info("Preload done: models loaded, Modal kept warm")
+        except Exception:
+            logging.exception("Preload failed - models will load on the first search")
 
     # =========================================================================
     # EVENT HANDLERS
@@ -201,4 +216,6 @@ if __name__ == "__main__":
     print("Multi-Source Deal Finder - Starting...")
     print("Sources: BestBuy, Amazon (selectable)")
     print("=" * 60)
-    App().run()
+    app = App()
+    threading.Thread(target=app.preload, daemon=True, name="preload").start()
+    app.run()

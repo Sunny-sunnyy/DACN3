@@ -241,6 +241,12 @@ def search_amazon(session: curl_requests.Session, keyword: str) -> list[dict]:
     card_count = resp.text.count('data-component-type="s-search-result"')
     if card_count and not products:
         logger.warning(f"[Amazon Search] {card_count} cards but 0 USD prices parsed - currency not USD?")
+    if not card_count:
+        # 29/10: gặp trang 200 không có sản phẩm (2,4 KB và ~282 KB) chưa rõ là gì => ghi lại để nhận dạng
+        soup = BeautifulSoup(resp.text, "html.parser")
+        title = soup.title.get_text(strip=True) if soup.title else ""
+        text = " ".join(soup.get_text(" ", strip=True).split())[:160]
+        logger.warning(f"[Amazon Search] Page without results | title: {title[:80]!r} | text: {text!r}")
     sale_count = sum(1 for p in products if p["on_sale"])
     logger.info(f"[Amazon Search] Found {len(products)} products ({sale_count} on sale)")
     return products
