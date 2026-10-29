@@ -1,7 +1,7 @@
 """
 Clarification Agent - Generates questions to refine user's search query.
 
-Uses GPT-5-mini to:
+Uses gpt-6-luna to:
 1. Generate 3 relevant clarification questions based on product keyword
 2. Build a refined search query from user's answers
 
@@ -60,16 +60,16 @@ class ClarificationAgent:
     """
     Agent that generates clarification questions before search.
     
-    Uses GPT-5-mini to:
+    Uses gpt-6-luna to:
     1. Generate 3 relevant questions based on user's keyword
     2. Build a refined search query from user's answers
     
     Attributes:
-        MODEL: OpenAI model to use (gpt-5-mini)
+        MODEL: OpenAI model to use (gpt-6-luna)
         openai: OpenAI client instance
     """
     
-    MODEL = "gpt-5-mini"
+    MODEL = "gpt-6-luna"
     
     GENERATE_QUESTIONS_PROMPT = """You are a smart shopping assistant. When a user wants to search for a product, 
 you need to ask 3 clarification questions to better understand their needs.
@@ -102,7 +102,7 @@ RULES:
     def __init__(self):
         """Initialize with OpenAI client."""
         self.openai = OpenAI()
-        logging.info("ClarificationAgent initialized with GPT-5-mini")
+        logging.info("ClarificationAgent initialized with gpt-6-luna")
     
     def generate_questions(self, keyword: str) -> ClarificationResponse:
         """

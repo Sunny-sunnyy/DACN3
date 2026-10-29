@@ -4,7 +4,7 @@ Multi-Source Planning Agent - Pipeline Logic
 Handles the pipeline:
 1. Search + Filter + Scrape BestBuy and Amazon in PARALLEL (ThreadPoolExecutor)
 2. Combine into unified pool
-3. Select top deals (GPT-5-nano)
+3. Select top deals (gpt-6-luna)
 4. Estimate prices (EnsembleAgent)
 """
 
@@ -113,8 +113,8 @@ class MultiSourcePlanningAgent(Agent):
     # =========================================================================
 
     def select_top_deals(self, unified_deals: List[UnifiedScrapedDeal]) -> Optional[DealSelection]:
-        """Select top deals using GPT-5-nano."""
-        self.log("[Step 3/4] GPT-5-nano selecting top deals from combined pool...")
+        """Select top deals using gpt-6-luna."""
+        self.log("[Step 3/4] gpt-6-luna selecting top deals from combined pool...")
         selection = self.multi_scanner.scan(unified_deals)
         if selection and selection.deals:
             self.log(f"Selected {len(selection.deals)} best deals")
@@ -152,7 +152,7 @@ class MultiSourcePlanningAgent(Agent):
 
         1. Search + Filter + Scrape (based on source selection)
         2. Combine into unified pool
-        3. Select top deals (GPT-5-nano)
+        3. Select top deals (gpt-6-luna)
         4. Estimate prices (EnsembleAgent)
         """
         pipeline_start = time.time()

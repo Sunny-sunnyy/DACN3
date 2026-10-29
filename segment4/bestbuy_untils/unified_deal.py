@@ -70,12 +70,12 @@ class UnifiedScrapedDeal:
         """Return a short string description."""
         return f"<[{self.source}] {self.title[:40]}... | ${self.price}>"
     
-    def describe(self) -> str:
+    def describe(self, include_url: bool = True) -> str:
         """
         Return a longer string to describe this deal for use in calling a model.
-        
+
         Returns:
-            Formatted string with Source, Title, Brand, Price, Features, URL
+            Formatted string with Source, Title, Brand, Price, Features, URL (optional)
         """
         parts = [f"Source: {self.source}", f"Title: {self.title}"]
         
@@ -87,7 +87,8 @@ class UnifiedScrapedDeal:
         if self.features and len(self.features) > 10:
             parts.append(f"Features: {self.features.strip()}")
         
-        parts.append(f"URL: {self.url}")
+        if include_url:
+            parts.append(f"URL: {self.url}")
         
         return "\n".join(parts)
     

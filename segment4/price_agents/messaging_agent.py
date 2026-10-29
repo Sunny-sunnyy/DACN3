@@ -10,7 +10,7 @@ pushover_url = "https://api.pushover.net/1/messages.json"
 class MessagingAgent(Agent):
     name = "Messaging Agent"
     color = Agent.MAGENTA
-    MODEL = "gpt-5-nano"
+    MODEL = "gpt-6-luna"
 
     def __init__(self):
         """
@@ -59,6 +59,8 @@ class MessagingAgent(Agent):
             messages=[
                 {"role": "user", "content": user_prompt},
             ],
+            reasoning_effort="none",  # tin nhắn ngắn, không cần suy luận (mặc định của luna là medium)
+            allowed_openai_params=["reasoning_effort"],  # litellm 1.79 chưa biết luna nhận tham số này
         )
         return response.choices[0].message.content
 
