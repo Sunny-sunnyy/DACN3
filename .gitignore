@@ -189,3 +189,6 @@ fine_tune_qwen/
 
 # Ghi chép lấy từ dự án MekongAI (công ty) — không đẩy lên GitHub công khai
 session_prompt/tu_mekongai/
+
+# Ghi chú khoá học trả phí (tóm tắt) — không đưa lên repo công khai
+session_prompt/ghi_chu_khoa_hoc/
