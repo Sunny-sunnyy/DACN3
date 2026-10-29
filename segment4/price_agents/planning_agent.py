@@ -46,12 +46,24 @@ class PlanningAgent(Agent):
         self.log("Planning Agent is kicking off a run")
         selection = self.scanner.scan(memory=memory)
         if selection:
-            opportunities = [self.run(deal) for deal in selection.deals[:5]]
+            opportunities = []
+            for deal in selection.deals[:5]:
+                try:
+                    opportunities.append(self.run(deal))
+                except Exception as e:
+                    # Ensemble không ra giá cho deal này (cả 3 mô hình lỗi): bỏ deal, không làm hỏng cả lượt quét
+                    self.log(f"Planning Agent skipped a deal (no estimate): {type(e).__name__}: {e}")
+            if not opportunities:
+                return None
             opportunities.sort(key=lambda opp: opp.discount, reverse=True)
             best = opportunities[0]
             self.log(f"Planning Agent has identified the best deal has discount ${best.discount:.2f}")
             if best.discount > self.DEAL_THRESHOLD:
-                self.messenger.alert(best)
+                try:
+                    self.messenger.alert(best)
+                except Exception as e:
+                    # Gửi tin lỗi không được chặn việc ghi memory.json
+                    self.log(f"Planning Agent could not send the alert: {type(e).__name__}: {e}")
             self.log("Planning Agent has completed a run")
             return best if best.discount > self.DEAL_THRESHOLD else None
         return None

@@ -51,11 +51,13 @@ class MultiSourcePlanningAgent(Agent):
     name = "Multi-Source Planning Agent"
     color = Agent.GREEN
     DEAL_THRESHOLD = 100
+    # Chờ Llama (Modal) tối đa 10 s: search_key đánh thức + giữ ấm Modal; máy nguội thì bỏ Llama (10% trọng số)
+    SPECIALIST_TIMEOUT_SECONDS = 10
 
     def __init__(self, collection):
         self.log("Initializing Multi-Source Planning Agent")
         self.source_status: dict[str, str] = {}
-        self.ensemble = EnsembleAgent(collection)
+        self.ensemble = EnsembleAgent(collection, specialist_timeout=self.SPECIALIST_TIMEOUT_SECONDS)
         self.messenger = MessagingAgent()
         self.multi_scanner = MultiSourceScannerAgent()
         self.log("Multi-Source Planning Agent is ready")

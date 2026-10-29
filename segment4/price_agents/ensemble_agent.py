@@ -14,13 +14,13 @@ class EnsembleAgent(Agent):
     color = Agent.YELLOW
     WEIGHTS = {"frontier": 0.8, "specialist": 0.1, "neural_network": 0.1}
 
-    def __init__(self, collection):
+    def __init__(self, collection, specialist_timeout: Optional[float] = None):
         """
         Create an instance of Ensemble, by creating each of the models
         And loading the weights of the Ensemble
         """
         self.log("Initializing Ensemble Agent")
-        self.specialist = SpecialistAgent()
+        self.specialist = SpecialistAgent(timeout_seconds=specialist_timeout)
         self.frontier = FrontierAgent(collection)
         self.neural_network = NeuralNetworkAgent()
         self.preprocessor = Preprocessor()

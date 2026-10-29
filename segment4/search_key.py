@@ -47,6 +47,9 @@ class App:
         từ khoá; trước đây cả hai rơi vào lần bấm Search đầu tiên."""
         try:
             wake_up_modal()
+        except Exception:
+            logging.exception("Could not wake up Modal - Llama may be skipped on the first search")
+        try:
             framework = self.get_framework()
             framework.init_agents_as_needed()
             framework.planner.ensemble.specialist.start_keep_warm()
