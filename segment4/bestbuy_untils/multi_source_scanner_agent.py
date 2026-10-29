@@ -142,9 +142,11 @@ Deals:
                 continue
             used.add(n)
             source_deal = valid_deals[n - 1]
-            # Giá và URL lấy từ dữ liệu đã cào, không lấy từ mô hình
+            # Giá và URL lấy từ dữ liệu đã cào, không lấy từ mô hình.
+            # Tên gốc do code ghép vào đầu: luna (none) có lúc tóm tắt "This 6-quart air fryer..." mất cả hãng lẫn
+            # tên mẫu (29/10) => bảng kết quả không biết là hàng gì, ensemble mất thông tin hãng để ước giá.
             deals.append(Deal(
-                product_description=f"[{source_deal.source}] {pick.product_description.strip()}",
+                product_description=f"[{source_deal.source}] {source_deal.title}. {pick.product_description.strip()}",
                 price=source_deal.price,
                 url=source_deal.url,
             ))
