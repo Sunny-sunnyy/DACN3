@@ -34,7 +34,10 @@ class MessagingAgent(Agent):
             "message": text,
             "sound": "cashregister",
         }
-        requests.post(pushover_url, data=payload)
+        resp = requests.post(pushover_url, data=payload, timeout=15)
+        if resp.status_code != 200:
+            # Gửi hỏng phải hiện ra log, không lặng lẽ coi là đã gửi
+            raise RuntimeError(f"Pushover returned HTTP {resp.status_code}")
 
     def alert(self, opportunity: Opportunity):
         """

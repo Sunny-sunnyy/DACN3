@@ -1,3 +1,6 @@
+import logging
+from typing import Dict, Optional
+
 from price_agents.agent import Agent
 from price_agents.specialist_agent import SpecialistAgent
 from price_agents.frontier_agent import FrontierAgent
@@ -8,6 +11,7 @@ from price_agents.preprocessor import Preprocessor
 class EnsembleAgent(Agent):
     name = "Ensemble Agent"
     color = Agent.YELLOW
+    WEIGHTS = {"frontier": 0.8, "specialist": 0.1, "neural_network": 0.1}
 
     def __init__(self, collection):
         """
@@ -32,9 +36,33 @@ class EnsembleAgent(Agent):
         self.log("Running Ensemble Agent - preprocessing text")
         rewrite = self.preprocessor.preprocess(description)
         self.log(f"Pre-processed text using {self.preprocessor.model_name}")
-        specialist = self.specialist.price(rewrite)
-        frontier = self.frontier.price(rewrite)
-        neural_network = self.neural_network.price(rewrite)
-        combined = frontier * 0.8 + specialist * 0.1 + neural_network * 0.1
+        estimates = {
+            "specialist": self._safe_price("specialist", self.specialist.price, rewrite),
+            "frontier": self._safe_price("frontier", self.frontier.price, rewrite),
+            "neural_network": self._safe_price("neural_network", self.neural_network.price, rewrite),
+        }
+        combined = self.combine(estimates)
         self.log(f"Ensemble Agent complete - returning ${combined:.2f}")
         return combined
+
+    def _safe_price(self, name: str, price_fn, text: str) -> Optional[float]:
+        """Một mô hình lỗi (mạng, Modal, parse) không làm hỏng cả ước lượng: ghi lỗi, trả None."""
+        try:
+            return price_fn(text)
+        except Exception as e:
+            logging.exception(f"[Ensemble] {name} failed: {type(e).__name__}: {e}")
+            return None
+
+    def combine(self, estimates: Dict[str, Optional[float]]) -> float:
+        """Trung bình có trọng số 0.8 / 0.1 / 0.1 trên các mô hình trả giá hợp lệ (> 0).
+        Frontier và Llama trả 0 khi không đọc được số => coi là lỗi, không đưa 0 vào trung bình
+        (trước đây Frontier 0 kéo ước lượng xuống ~20% giá thật mà không ai biết).
+        Thiếu mô hình thì chia lại trọng số cho các mô hình còn lại."""
+        valid = {name: value for name, value in estimates.items() if value is not None and value > 0}
+        missing = [name for name in estimates if name not in valid]
+        if not valid:
+            raise ValueError(f"No model returned a valid price: {estimates}")
+        if missing:
+            self.log(f"Ensemble Agent: missing {missing} - reweighting the others")
+        total_weight = sum(self.WEIGHTS[name] for name in valid)
+        return sum(self.WEIGHTS[name] * value for name, value in valid.items()) / total_weight

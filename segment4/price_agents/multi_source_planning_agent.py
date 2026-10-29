@@ -11,7 +11,8 @@ Handles the pipeline:
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
+from typing import Callable, List, Optional
+from urllib.parse import urlparse
 
 from price_agents.agent import Agent
 from price_agents.deals import Deal, DealSelection, Opportunity
@@ -26,12 +27,22 @@ from price_agents.bestbuy_deals import (
 
 # Amazon: Playwright (WAF cookies) + curl_cffi + HTML parsing
 from price_agents.amazon_deals import (
+    AmazonBlockedError,
     ScrapedAmazonDeal,
     search_filter_scrape_amazon,
 )
 
 from bestbuy_untils.unified_deal import UnifiedScrapedDeal
 from bestbuy_untils.multi_source_scanner_agent import MultiSourceScannerAgent
+
+STORE_DOMAINS = ("bestbuy.com", "amazon.com")
+
+
+def is_store_url(url: str) -> bool:
+    """Chỉ gửi thông báo cho link thuộc đúng 2 cửa hàng: nội dung trang cào là dữ liệu không tin cậy,
+    link lạ không được đi tới điện thoại người dùng."""
+    host = (urlparse(url).hostname or "").lower()
+    return any(host == d or host.endswith("." + d) for d in STORE_DOMAINS)
 
 
 class MultiSourcePlanningAgent(Agent):
@@ -43,6 +54,7 @@ class MultiSourcePlanningAgent(Agent):
 
     def __init__(self, collection):
         self.log("Initializing Multi-Source Planning Agent")
+        self.source_status: dict[str, str] = {}
         self.ensemble = EnsembleAgent(collection)
         self.messenger = MessagingAgent()
         self.multi_scanner = MultiSourceScannerAgent()
@@ -66,27 +78,44 @@ class MultiSourcePlanningAgent(Agent):
         self.log(f"[Amazon] Got {len(deals)} sale products")
         return deals
 
+    def _run_source(self, name: str, pipeline: Callable, keyword: str, max_results: int) -> list:
+        """Chạy một nguồn; một nguồn lỗi không làm hỏng nguồn kia.
+        Ghi trạng thái để phân biệt "không có hàng sale" với "bị chặn" và "lỗi" (trước đây đều thành 0 sản phẩm)."""
+        try:
+            deals = pipeline(keyword, max_results)
+            self.source_status[name] = f"ok ({len(deals)})" if deals else "empty"
+            return deals
+        except AmazonBlockedError as e:
+            self.source_status[name] = "blocked"
+            self.log(f"[{name}] BLOCKED: {e}")
+        except Exception as e:
+            self.source_status[name] = "error"
+            logging.exception(f"[{name}] ERROR: {type(e).__name__}: {e}")
+        return []
+
     def search_and_scrape(
         self, keyword: str, max_results: int = 6, source: str = "All"
     ) -> tuple[List[ScrapedBestBuyDeal], List[ScrapedAmazonDeal]]:
         """Search and scrape based on source selection."""
+        self.source_status = {}
         if source == "All":
             self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy + Amazon parallel)...")
             with ThreadPoolExecutor(max_workers=2) as executor:
-                bb_future = executor.submit(self._bestbuy_pipeline, keyword, max_results)
-                az_future = executor.submit(self._amazon_pipeline, keyword, max_results)
+                bb_future = executor.submit(self._run_source, "BestBuy", self._bestbuy_pipeline, keyword, max_results)
+                az_future = executor.submit(self._run_source, "Amazon", self._amazon_pipeline, keyword, max_results)
                 bb_deals = bb_future.result()
                 az_deals = az_future.result()
         elif source == "BestBuy":
             self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (BestBuy only)...")
-            bb_deals = self._bestbuy_pipeline(keyword, max_results)
+            bb_deals = self._run_source("BestBuy", self._bestbuy_pipeline, keyword, max_results)
             az_deals = []
         elif source == "Amazon":
             self.log(f"[Step 1/4] Search+Filter+Scrape '{keyword}' (Amazon only)...")
             bb_deals = []
-            az_deals = self._amazon_pipeline(keyword, max_results)
+            az_deals = self._run_source("Amazon", self._amazon_pipeline, keyword, max_results)
 
-        self.log(f"Total: {len(bb_deals)} BestBuy + {len(az_deals)} Amazon = {len(bb_deals) + len(az_deals)} products")
+        self.log(f"Total: {len(bb_deals)} BestBuy + {len(az_deals)} Amazon = {len(bb_deals) + len(az_deals)} products "
+                 f"| status: {self.source_status}")
         return bb_deals, az_deals
 
     # =========================================================================
@@ -130,7 +159,12 @@ class MultiSourcePlanningAgent(Agent):
 
         opportunities = []
         for deal in deal_selection.deals:
-            estimate = self.ensemble.price(deal.product_description)
+            try:
+                estimate = self.ensemble.price(deal.product_description)
+            except Exception as e:
+                # Cả 3 mô hình đều lỗi cho deal này: bỏ deal, các deal khác vẫn có kết quả
+                logging.exception(f"Skipping deal (no estimate): {deal.product_description[:60]} | {type(e).__name__}: {e}")
+                continue
             discount = estimate - deal.price
             opportunities.append(Opportunity(deal=deal, estimate=estimate, discount=discount))
 
@@ -190,13 +224,20 @@ class MultiSourcePlanningAgent(Agent):
         # Auto-notify
         if opportunities and opportunities[0].discount > self.DEAL_THRESHOLD:
             best = opportunities[0]
-            self.log(f"Auto-notifying: Discount ${best.discount:.2f} > threshold ${self.DEAL_THRESHOLD}")
-            self.messenger.notify(
-                description=best.deal.product_description[:200],
-                deal_price=best.deal.price,
-                estimated_true_value=best.estimate,
-                url=best.deal.url,
-            )
+            if not is_store_url(best.deal.url):
+                self.log(f"NOT notifying: URL is not a BestBuy/Amazon link: {best.deal.url[:80]}")
+            else:
+                self.log(f"Auto-notifying: Discount ${best.discount:.2f} > threshold ${self.DEAL_THRESHOLD}")
+                try:
+                    self.messenger.notify(
+                        description=best.deal.product_description[:200],
+                        deal_price=best.deal.price,
+                        estimated_true_value=best.estimate,
+                        url=best.deal.url,
+                    )
+                except Exception as e:
+                    # Lỗi gửi tin không được làm mất bảng kết quả đã có
+                    logging.exception(f"Notification failed: {type(e).__name__}: {e}")
 
         total = time.time() - pipeline_start
         self.log(f"Pipeline completed! Total time: {total:.1f}s ({total/60:.1f} min)")

@@ -14,7 +14,7 @@ from typing import List, Optional
 import chromadb
 from dotenv import load_dotenv
 
-from price_agents.multi_source_planning_agent import MultiSourcePlanningAgent
+from price_agents.multi_source_planning_agent import MultiSourcePlanningAgent, is_store_url
 from price_agents.deals import Opportunity
 
 BG_CYAN = '\033[46m'
@@ -74,13 +74,19 @@ class MultiSourceFramework:
 
         opp = self.current_opportunities[index]
         self.init_agents_as_needed()
+        if not is_store_url(opp.deal.url):
+            return f"Not sent: URL is not a BestBuy/Amazon link ({opp.deal.url[:60]})"
 
-        self.planner.messenger.notify(
-            description=opp.deal.product_description[:200],
-            deal_price=opp.deal.price,
-            estimated_true_value=opp.estimate,
-            url=opp.deal.url,
-        )
+        try:
+            self.planner.messenger.notify(
+                description=opp.deal.product_description[:200],
+                deal_price=opp.deal.price,
+                estimated_true_value=opp.estimate,
+                url=opp.deal.url,
+            )
+        except Exception as e:
+            logging.exception("Notification failed")
+            return f"Not sent: {type(e).__name__}: {str(e)[:150]}"
 
         return f"Sent! Deal #{index}: {opp.deal.product_description[:40]}... (${opp.deal.price:.2f})"
 

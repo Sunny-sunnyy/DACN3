@@ -32,6 +32,10 @@ SEARCH_REF = "nb_sb_noss"
 SEARCH_HEADERS = {"Referer": "https://www.amazon.com/"}
 
 
+class AmazonBlockedError(Exception):
+    """Amazon trả trang chặn (AWS WAF / CAPTCHA) thay vì kết quả tìm kiếm."""
+
+
 class ScrapedAmazonDeal:
     """Raw scraped product data from Amazon."""
 
@@ -228,10 +232,10 @@ def search_amazon(session: curl_requests.Session, keyword: str) -> list[dict]:
 
     if "/errors/validateCaptcha" in resp.text:
         logger.error("[Amazon Search] CAPTCHA detected!")
-        return []
+        raise AmazonBlockedError("CAPTCHA")
     if _is_waf_blocked(resp):
         logger.error(f"[Amazon Search] Blocked by AWS WAF (status {resp.status_code})")
-        return []
+        raise AmazonBlockedError(f"AWS WAF, status {resp.status_code}")
 
     products = parse_search_results(resp.text)
     card_count = resp.text.count('data-component-type="s-search-result"')
@@ -307,9 +311,13 @@ def search_filter_scrape_amazon(
     if session is None:
         session = init_amazon_session()
 
-    products = search_amazon(session, keyword)
+    try:
+        products = search_amazon(session, keyword)
+    except AmazonBlockedError:
+        products = []
     if not products:
-        # WAF is flaky: an occasional block / slow homepage -> retry once with fresh cookies
+        # WAF is flaky: an occasional block / slow homepage -> retry once with fresh cookies.
+        # Lần thử lại vẫn bị chặn => AmazonBlockedError bay lên để pipeline báo "bị chặn", không báo "0 sản phẩm".
         logger.info("[Amazon] No products, retrying once with a fresh browser session")
         time.sleep(2)
         session = init_amazon_session()

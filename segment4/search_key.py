@@ -68,9 +68,17 @@ class App:
         log_data.append(f"Source: {source_label}")
 
         def worker():
-            opps = self.get_framework().run(query, self.current_max_urls, self.current_source)
-            table = opportunities_to_html(opps)
-            status = f"Found {len(opps)} deals!" if opps else "No deals found."
+            # Lỗi trong luồng này phải được báo ra; trước đây vòng lặp bên dưới chờ kết quả mãi ("Processing..." không dừng)
+            try:
+                framework = self.get_framework()
+                opps = framework.run(query, self.current_max_urls, self.current_source)
+                table = opportunities_to_html(opps)
+                status = f"Found {len(opps)} deals!" if opps else "No deals found."
+                if framework.planner and framework.planner.source_status:
+                    status += " | " + ", ".join(f"{k}: {v}" for k, v in framework.planner.source_status.items())
+            except Exception as e:
+                logging.exception("Pipeline failed")
+                table, status = "", f"Error: {type(e).__name__}: {str(e)[:200]}"
             result_q.put((table, status))
 
         thread = threading.Thread(target=worker)
