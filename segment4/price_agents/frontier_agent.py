@@ -1,4 +1,5 @@
 import re
+import threading
 from typing import List, Dict
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
@@ -22,6 +23,8 @@ class FrontierAgent(Agent):
         self.log("Frontier Agent is setting up with OpenAI")
         self.collection = collection
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        # Bước 4 chạy song song nhiều deal: encode (GPU) + query Chroma đi lần lượt cho chắc (~0,1-0,3 s / lần)
+        self._search_lock = threading.Lock()
         self.log("Frontier Agent is ready")
 
     def make_context(self, similars: List[str], prices: List[float]) -> str:
@@ -58,8 +61,9 @@ class FrontierAgent(Agent):
         self.log(
             "Frontier Agent is performing a RAG search of the Chroma datastore to find 5 similar products"
         )
-        vector = self.model.encode([description])
-        results = self.collection.query(query_embeddings=vector.astype(float).tolist(), n_results=5)
+        with self._search_lock:
+            vector = self.model.encode([description])
+            results = self.collection.query(query_embeddings=vector.astype(float).tolist(), n_results=5)
         documents = results["documents"][0][:]
         prices = [m["price"] for m in results["metadatas"][0][:]]
         self.log("Frontier Agent has found similar products")

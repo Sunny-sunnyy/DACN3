@@ -153,20 +153,24 @@ class MultiSourcePlanningAgent(Agent):
     # PIPELINE STEP 4: ESTIMATE PRICES
     # =========================================================================
 
+    def _estimate_one(self, deal: Deal) -> Optional[Opportunity]:
+        try:
+            estimate = self.ensemble.price(deal.product_description)
+        except Exception as e:
+            # Cả 3 mô hình đều lỗi cho deal này: bỏ deal, các deal khác vẫn có kết quả
+            logging.exception(f"Skipping deal (no estimate): {deal.product_description[:60]} | {type(e).__name__}: {e}")
+            return None
+        self.log(f"Estimated ${estimate:.2f} for ${deal.price:.2f} | {deal.product_description[:50]}")
+        return Opportunity(deal=deal, estimate=estimate, discount=estimate - deal.price)
+
     def estimate_prices(self, deal_selection: DealSelection) -> List[Opportunity]:
         """Estimate prices using EnsembleAgent."""
         self.log("[Step 4/4] Estimating prices with EnsembleAgent (3 models)...")
 
-        opportunities = []
-        for deal in deal_selection.deals:
-            try:
-                estimate = self.ensemble.price(deal.product_description)
-            except Exception as e:
-                # Cả 3 mô hình đều lỗi cho deal này: bỏ deal, các deal khác vẫn có kết quả
-                logging.exception(f"Skipping deal (no estimate): {deal.product_description[:60]} | {type(e).__name__}: {e}")
-                continue
-            discount = estimate - deal.price
-            opportunities.append(Opportunity(deal=deal, estimate=estimate, discount=discount))
+        # Các deal độc lập nhau => ước giá song song (trước: tuần tự ~2,5-3 s / deal khi Modal ấm)
+        with ThreadPoolExecutor(max_workers=max(1, len(deal_selection.deals))) as executor:
+            results = list(executor.map(self._estimate_one, deal_selection.deals))
+        opportunities = [opp for opp in results if opp is not None]
 
         opportunities.sort(key=lambda x: x.discount, reverse=True)
         self.log(f"Estimated {len(opportunities)} opportunities")

@@ -1,3 +1,5 @@
+import threading
+
 from price_agents.agent import Agent
 from price_agents.deep_neural_network import DeepNeuralNetworkInference
 
@@ -15,6 +17,7 @@ class NeuralNetworkAgent(Agent):
         self.neural_network = DeepNeuralNetworkInference()
         self.neural_network.setup()
         self.neural_network.load("deep_neural_network.pth")
+        self._lock = threading.Lock()  # một model PyTorch trên GPU dùng chung giữa các luồng: suy luận lần lượt
         self.log("Neural Network Agent is ready and weights are loaded")
 
     def price(self, description: str) -> float:
@@ -24,6 +27,7 @@ class NeuralNetworkAgent(Agent):
         :return: the price as a float
         """
         self.log("Neural Network Agent is starting a prediction")
-        result = self.neural_network.inference(description)
+        with self._lock:
+            result = self.neural_network.inference(description)
         self.log(f"Neural Network Agent completed - predicting ${result:.2f}")
         return result

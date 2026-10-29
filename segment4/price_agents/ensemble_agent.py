@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Optional
 
 from price_agents.agent import Agent
@@ -36,11 +37,15 @@ class EnsembleAgent(Agent):
         self.log("Running Ensemble Agent - preprocessing text")
         rewrite = self.preprocessor.preprocess(description)
         self.log(f"Pre-processed text using {self.preprocessor.model_name}")
-        estimates = {
-            "specialist": self._safe_price("specialist", self.specialist.price, rewrite),
-            "frontier": self._safe_price("frontier", self.frontier.price, rewrite),
-            "neural_network": self._safe_price("neural_network", self.neural_network.price, rewrite),
+        # 3 mô hình độc lập, cùng nhận `rewrite` => chạy song song (chờ mạng là chính: Modal, OpenAI)
+        models = {
+            "specialist": self.specialist.price,
+            "frontier": self.frontier.price,
+            "neural_network": self.neural_network.price,
         }
+        with ThreadPoolExecutor(max_workers=len(models)) as executor:
+            futures = {name: executor.submit(self._safe_price, name, fn, rewrite) for name, fn in models.items()}
+            estimates = {name: f.result() for name, f in futures.items()}
         combined = self.combine(estimates)
         self.log(f"Ensemble Agent complete - returning ${combined:.2f}")
         return combined
