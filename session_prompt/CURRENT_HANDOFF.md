@@ -1,10 +1,11 @@
 # CURRENT_HANDOFF — phiên gần nhất (≤ 60 dòng; khối cũ ⇒ `archive/`)
 
-**Cập nhật lần cuối: 13:46, ngày 29/10/2026** — phiên Claude Code (Opus), cả ngày 29/10.
+**Cập nhật lần cuối: 13:53, ngày 29/10/2026** — phiên Claude Code (Opus), cả ngày 29/10.
 
 ## Hệ thống lúc kết phiên
-- Nhánh **`toi-uu-search-key`** (chưa gộp vào `claudedev`, chưa push). Tag quay lại: **`moc-truoc-toi-uu-2026-10-29`**
-  (= `claudedev` trước đợt tối ưu). Quay về bản cũ: `git checkout claudedev` (working tree phải sạch: commit / stash trước).
+- Nhánh **`claudedev`** — đã gộp (fast-forward) `toi-uu-search-key` lúc kết phiên 29/10 sau khi User chạy app ổn; **chưa push**
+  (`origin/claudedev` còn ở `54c18bf`). Tag mốc trước đợt tối ưu: **`moc-truoc-toi-uu-2026-10-29`** (`2860714`) — xem bản
+  cũ: `git switch --detach moc-truoc-toi-uu-2026-10-29` (working tree phải sạch). Nhánh `toi-uu-search-key` còn giữ.
   Untracked cố ý không commit: `segment4/.codegraph/`, `shopping_assistant_v3/`, `segment4/pricer_service_v2.py`.
 - Mô hình: luna cho mọi lời gọi OpenAI của search_key (Frontier `low`; chọn deal, tin nhắn `none`). Tiền xử lý mô tả vẫn
   Groq `gpt-oss-20b`. `autonomous_planning_agent.py` còn GPT-5.1 nhưng không chạy (price_is_right dùng `PlanningAgent`).
@@ -24,15 +25,15 @@
   Tránh `laptop` / `smart tv` (> $999), đồ bếp (`air fryer`… không có trong dữ liệu), hàng < $50.
 
 ## Việc đang chờ (thứ tự đề xuất)
-1. **User chạy app sau khi đổi Frontier sang luna low** (`cd segment4 && uv run search_key.py`, 1 từ khoá) — pipeline đầy
-   đủ chưa chạy lại sau thay đổi này.
-2. **Gộp `toi-uu-search-key` vào `claudedev`** khi User thấy ổn; push khi User cho phép (repo công khai).
+1. ~~User chạy app với Frontier luna low~~ — User báo chạy ổn (29/10). ~~Gộp vào `claudedev`~~ — đã gộp.
+2. **Push `claudedev`** khi User cho phép (repo công khai). Lưu ý: commit `2860714` có chú thích `.gitignore` nhắc tên công
+   ty (bản sau đã sửa trung tính) — muốn xoá khỏi lịch sử thì phải viết lại commit **trước** khi push; hỏi User.
 3. Chạy thử `price_is_right.py` một lần (dùng chung Ensemble / Frontier / Specialist đã đổi; gửi Pushover thật nếu có deal).
 4. Tuỳ User: cào thử 6 từ khoá nên thử (không gọi LLM) xem BestBuy / Amazon có bao nhiêu deal sale; mở song song trang chi tiết Amazon (P4, ~13–19 s còn lại ở Bước 1); nhận dạng trang Amazon 200 rỗng
    (log "Page without results"); thước đo chất lượng trên hàng cào thật; mốc không dùng LLM cho Bước 3; thử bỏ Llama.
 
 ## Câu hỏi đang chờ User (hỏi mỗi lần một câu)
-- App chạy ổn với Frontier luna low chưa ⇒ có gộp nhánh không?
+- Có push `claudedev` lên GitHub không (và có viết lại commit `2860714` trước khi push không)?
 - Có gắn thẻ Modal để dùng app `pricer-service-v2` (giữ ấm phía server, tối đa 1 máy) không?
 
 ## Quyền phiên 29/10 (đã hết hạn)
