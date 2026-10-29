@@ -287,9 +287,18 @@ cd segment4 && uv run price_is_right.py    # App 2 → http://127.0.0.1:7860
 - `report_fine_tune_llm.md` đã có đầy đủ nội dung (570 dòng) từ session trước, không cần thêm
 - Commit + push lên `claudedev`
 
+### Session 5 (2026-10-28) — chi tiết ở `SESSION_HANDOFF_OPTIMIZE.md`
+- Working dir đổi thành `/home/minhhieu/price2026wsl/tech2ai`; `.env` nằm ở `tech2ai/.env`
+- Sửa BestBuy (`1a67113`): priceBlocks chỉ trả 25 SKU/request → gọi theo lô
+- Sửa Amazon (`25dbef4`): Amazon bật AWS WAF → Playwright lấy cookie + curl_cffi; ép giá USD (IP VN hiện VND)
+- Đo pipeline: 72–90 giây/lượt, Modal cold start chiếm 64% → đề xuất tối ưu (chưa sửa code)
+
 ---
 
 ## 10. Việc cần làm trong session tiếp theo
+
+> **Cập nhật 2026-10-29:** việc tối ưu pipeline `search_key` (số đo, đề xuất, prompt cho session mới) nằm ở
+> **`SESSION_HANDOFF_OPTIMIZE.md`**. `segment4/plan.md` nhắc ở mục 7 và 10.3 bên dưới **không còn tồn tại**.
 
 1. **Báo cáo — trạng thái hiện tại:**
    - `Report_data_processing_v2.md` — HOÀN THÀNH (2559 dòng, Week 6 Day 1-5 + DL models)
