@@ -1,480 +1,276 @@
-# SEARCH_KEY.PY - Multi-Source Deal Finder
+# SEARCH_KEY.PY — Multi-Source Deal Finder
 
-## Tong quan
+**Cập nhật lần cuối:** 29/10/2026 (đợt tối ưu: luna, chống sập, giữ ấm Modal, song song Bước 4 — xem `docs/changelog/`)
+**Ngôn ngữ:** Python 3.12 + `uv`
 
-**Ten:** Multi-Source Deal Finder (search_key.py)
-**Cap nhat:** 2026-04-06
-**Ngon ngu:** Python 3.12 + `uv`
-
-Ung dung web tim kiem va danh gia deals tot nhat tu **BestBuy** va **Amazon** dong thoi. Pipeline 4 buoc: search song song (curl_cffi) -> chon top 3 (gpt-6-luna) -> uoc luong gia (Ensemble 3 models) -> hien thi ket qua.
+Ứng dụng web tìm deal tốt nhất từ **BestBuy** và **Amazon** cùng lúc. Pipeline 4 bước: cào song song (curl_cffi) → chọn
+top 3 (gpt-6-luna) → ước lượng giá (ensemble 3 mô hình, chạy song song) → bảng kết quả + thông báo Pushover.
 
 ---
 
-## Dau vao va Dau ra
+## Đầu vào và đầu ra
 
-**Dau vao:**
+| Đầu vào | Mô tả | Ví dụ |
+|---|---|---|
+| Keyword | Từ khoá sản phẩm | `noise cancelling headphones`, `gaming monitor` |
+| Max URLs | Số sản phẩm đang sale tối đa mỗi nguồn | 3–20 (giao diện mặc định 5) |
+| Source | All / BestBuy / Amazon | All |
 
-| Input | Mo ta | Vi du |
-|-------|-------|-------|
-| Keyword | Tu khoa san pham | "laptop", "Smart TV", "headphones" |
-| Max URLs | So san pham toi da moi nguon | 3-20 (mac dinh: 6) |
-
-**Dau ra:**
-
-| Output | Mo ta |
-|--------|-------|
-| Bang ket qua | Top 3 deals: Ten, Gia sale, Gia uoc luong, Discount, URL (clickable) |
-| Pipeline logs | Real-time logs hien thi tien trinh tung buoc |
-| Push Notification | Thong bao qua Pushover (tuy chon) |
+| Đầu ra | Mô tả |
+|---|---|
+| Bảng kết quả | Tối đa 3 deal: mô tả, giá sale, giá ước lượng, discount, URL |
+| Status | Số deal + trạng thái từng nguồn, ví dụ `BestBuy: ok (6), Amazon: ok (6)`; lỗi pipeline cũng hiện ở đây |
+| Pipeline logs | Log thời gian thực của từng bước |
+| Push Notification | Tự gửi khi discount > $100 (chỉ cho link bestbuy.com / amazon.com); có nút gửi tay |
 
 ---
 
-## Cau truc thu muc
+## Cấu trúc thư mục (phần search_key dùng)
 
 ```
 segment4/
-|
-|-- search_key.py                        # ENTRY POINT - Gradio UI
-|-- multi_source_framework.py            # FRAMEWORK - ChromaDB init, lazy agent loading
-|
-|-- price_agents/                        # TAT CA AGENTS
-|   |-- __init__.py
-|   |-- agent.py                         # Base class (ANSI logging)
-|   |-- deals.py                         # Data models: Deal, DealSelection, Opportunity, ScrapedDeal
-|   |
-|   |-- multi_source_planning_agent.py   # CORE - Pipeline 4 buoc
-|   |-- ensemble_agent.py                # Ket hop 3 models du doan gia
-|   |-- messaging_agent.py               # Push notification (Pushover + gpt-6-luna)
-|   |
-|   |-- bestbuy_deals.py                 # BestBuy: curl_cffi + internal APIs
-|   |-- amazon_deals.py                  # Amazon: Playwright (cookie WAF) + curl_cffi + HTML parsing
-|   |
-|   |-- frontier_agent.py               # gpt-6-luna (low) + RAG (ChromaDB)
-|   |-- specialist_agent.py             # Fine-tuned Llama-3.2-3B (Modal)
-|   |-- neural_network_agent.py         # PyTorch DNN local
-|   |-- deep_neural_network.py          # DNN model class definition
-|   |-- preprocessor.py                 # LiteLLM text preprocessing
-|   |
-|   |-- amazon_scanner_agent.py         # DEPRECATED - da xoa code
-|   |-- bestbuy_scanner_agent.py        # DEPRECATED - khong duoc import boi pipeline
-|   |-- autonomous_planning_agent.py    # Chi dung boi price_is_right.py
-|   |-- planning_agent.py              # Chi dung boi price_is_right.py
-|   |-- scanner_agent.py               # Chi dung boi price_is_right.py
-|
-|-- bestbuy_untils/                      # UTILITIES (ten thu muc co chu y)
-|   |-- multi_source_scanner_agent.py    # gpt-6-luna chon top 3 tu pool
-|   |-- unified_deal.py                  # Chuan hoa deal tu 2 nguon
-|   |-- gradio_helpers.py                # Queue logging, HTML formatters
-|   |-- clarification_agent.py           # Sinh cau hoi lam ro (hien KHONG dung trong pipeline)
-|
-|-- products_vectorstore/                # ChromaDB - 800K+ san pham da embed
-|   |-- chroma.sqlite3
-|
-|-- deep_neural_network.pth              # PyTorch DNN model weights
-|-- log_utils.py                         # ANSI -> HTML color formatter
-|-- .env                                 # API keys (khong commit)
+|-- search_key.py                        # ĐIỂM VÀO — Gradio UI; nạp mô hình + đánh thức Modal ở luồng nền
+|-- multi_source_framework.py            # FRAMEWORK — ChromaDB, nạp agent (có khoá), gửi thông báo tay
+|-- price_agents/
+|   |-- multi_source_planning_agent.py   # LÕI — pipeline 4 bước, trạng thái từng nguồn, is_store_url
+|   |-- bestbuy_deals.py                 # BestBuy: curl_cffi + API nội bộ
+|   |-- amazon_deals.py                  # Amazon: Playwright (cookie WAF) + curl_cffi + HTML; AmazonBlockedError
+|   |-- ensemble_agent.py                # 3 mô hình song song, bỏ mô hình lỗi / trả 0, chia lại trọng số
+|   |-- frontier_agent.py                # gpt-6-luna (low) + RAG ChromaDB
+|   |-- specialist_agent.py              # Llama-3.2-3B trên Modal: timeout, giữ ấm, wake_up_modal
+|   |-- neural_network_agent.py          # PyTorch DNN chạy trên máy (có khoá khi chạy song song)
+|   |-- deep_neural_network.py           # định nghĩa DNN
+|   |-- preprocessor.py                  # LiteLLM viết lại mô tả (.env đang đặt groq/openai/gpt-oss-20b)
+|   |-- messaging_agent.py               # Pushover + gpt-6-luna viết tin nhắn
+|   |-- deals.py                         # Deal, DealSelection, Opportunity
+|   |-- agent.py                         # lớp cơ sở (log màu ANSI)
+|-- bestbuy_untils/
+|   |-- multi_source_scanner_agent.py    # gpt-6-luna chọn top 3 theo số thứ tự; dedupe_deals
+|   |-- unified_deal.py                  # chuẩn hoá deal của 2 nguồn
+|   |-- gradio_helpers.py                # hàng đợi log, HTML bảng kết quả
+|   |-- clarification_agent.py           # câu hỏi làm rõ (KHÔNG dùng trong pipeline)
+|-- products_vectorstore/                # ChromaDB 800.000 sản phẩm (không commit)
+|-- deep_neural_network.pth              # trọng số DNN (1,1 GB)
+|-- khong_su_dung/                       # code cũ: amazon_scanner_agent.py, bestbuy_scanner_agent.py (Brave MCP), pricer_service2.py
+```
+
+Phần dùng chung với `price_is_right.py`: `EnsembleAgent`, `FrontierAgent`, `SpecialistAgent`, `NeuralNetworkAgent`,
+`MessagingAgent`, `deals.py` — sửa ở đây là sửa luôn app 2.
+
+---
+
+## Thứ tự đọc code
+
+```
+1. search_key.py                    — Gradio, luồng nền preload, threading + hàng đợi log
+2. multi_source_framework.py        — ChromaDB, init_agents_as_needed (có khoá), run
+3. multi_source_planning_agent.py   — pipeline 4 bước (đọc kỹ)
+   |-- bestbuy_deals.py / amazon_deals.py
+   |-- unified_deal.py, multi_source_scanner_agent.py
+   |-- ensemble_agent.py → frontier / specialist / neural_network / preprocessor
+4. deals.py, agent.py
 ```
 
 ---
 
-## Cach doc code (Reading Order)
-
-Doc theo thu tu nay de hieu toan bo luong hoat dong:
+## Pipeline 4 bước
 
 ```
-1. search_key.py              -- Gradio UI, event handlers, threading
-   |
-2. multi_source_framework.py  -- ChromaDB init, goi planner.plan()
-   |
-3. multi_source_planning_agent.py  -- Pipeline 4 buoc (doc ky file nay)
-   |
-   |-- 4a. bestbuy_deals.py   -- curl_cffi + BestBuy APIs
-   |-- 4b. amazon_deals.py    -- Playwright lay cookie WAF + curl_cffi + Amazon HTML parsing
-   |-- 4c. unified_deal.py    -- Chuan hoa ScrapedBestBuyDeal/ScrapedAmazonDeal -> UnifiedScrapedDeal
-   |-- 4d. multi_source_scanner_agent.py  -- gpt-6-luna chon top 3
-   |-- 4e. ensemble_agent.py  -- Goi 3 models (doc tiep frontier/specialist/neural)
-   |
-5. deals.py                   -- Data models (Deal, Opportunity, DealSelection)
-6. agent.py                   -- Base class voi ANSI logging
+Mở app: luồng nền → wake_up_modal() → nạp framework + agent (~9–20 s) → giữ ấm Modal (ping mỗi 50 s)
+Người dùng nhập từ khoá
+    |
+Bước 1: search_and_scrape()   ThreadPoolExecutor(2): _run_source("BestBuy") ‖ _run_source("Amazon")
+    |                         mỗi nguồn: ok (n) / empty / blocked / error — nguồn lỗi không làm hỏng nguồn kia
+Bước 2: combine()             → List[UnifiedScrapedDeal]
+Bước 3: select_top_deals()    MultiSourceScannerAgent.scan(): dedupe_deals → gpt-6-luna (reasoning none)
+    |                         trả deal_number + tóm tắt; code lấy giá / URL / tên gốc từ danh sách → DealSelection (≤ 3)
+Bước 4: estimate_prices()     ThreadPoolExecutor: 3 deal song song; mỗi deal EnsembleAgent.price():
+    |                           preprocess → [Specialist ‖ Frontier ‖ DNN] → combine (bỏ mô hình lỗi / trả 0)
+    |                         deal không ước được → bỏ deal đó, các deal khác vẫn có kết quả
+    v
+List[Opportunity] (sắp theo discount) → nếu discount > $100 và is_store_url(url) → MessagingAgent.notify
 ```
 
 ---
 
-## Pipeline 4 buoc
+## Chi tiết từng file
 
-`MultiSourcePlanningAgent.plan(keyword, max_urls)` dieu phoi:
+### Tầng giao diện — `search_key.py`
 
-```
-User nhap keyword
-    |
-    v
-Step 1: search_and_scrape()
-    |-- _bestbuy_pipeline() ----+  ThreadPoolExecutor
-    |-- _amazon_pipeline()  ----+  (chay song song)
-    |                           |
-    v                           v
-    List[ScrapedBestBuyDeal]    List[ScrapedAmazonDeal]
-    |
-    v
-Step 2: combine()
-    |-- UnifiedScrapedDeal.from_bestbuy()
-    |-- UnifiedScrapedDeal.from_amazon()
-    |
-    v
-    List[UnifiedScrapedDeal]  (pool chung tu 2 nguon)
-    |
-    v
-Step 3: select_top_deals()
-    |-- MultiSourceScannerAgent.scan()  (gpt-6-luna, Structured Outputs)
-    |
-    v
-    DealSelection (top 3 Deal objects)
-    |
-    v
-Step 4: estimate_prices()
-    |-- EnsembleAgent.price() cho moi deal:
-    |   |-- Preprocessor (LiteLLM) -> rewrite text
-    |   |-- FrontierAgent (gpt-6-luna low + RAG 5 similar products)  -> 80%
-    |   |-- SpecialistAgent (Llama-3.2-3B fine-tuned, Modal)   -> 10%
-    |   |-- NeuralNetworkAgent (PyTorch DNN local)             -> 10%
-    |   |-- combined = frontier*0.8 + specialist*0.1 + neural*0.1
-    |
-    v
-    List[Opportunity]  (sorted by discount desc)
-    |
-    v
-Auto-notify neu discount > $100 (MessagingAgent -> Pushover)
-```
+| Thành phần | Chức năng |
+|---|---|
+| `App.get_framework()` | tạo `MultiSourceFramework` một lần (khoá `threading.Lock`) |
+| `App.preload()` | chạy ở luồng nền lúc mở app: `wake_up_modal()` (khối try riêng), nạp agent, `start_keep_warm()` |
+| `App._run_pipeline()` | luồng worker chạy pipeline; lỗi → ô Status ghi `Error: ...` (trước 29/10 bị treo "Processing...") |
+| `App.push_notification_handler()` | gửi thông báo tay cho deal ở vị trí được chọn |
 
----
+### Tầng framework — `multi_source_framework.py`
 
-## Chi tiet tung file
+| Thành phần | Chức năng |
+|---|---|
+| `__init__()` | `load_dotenv` (tìm `.env` ở `tech2ai/`), mở ChromaDB collection `products` |
+| `init_agents_as_needed()` | tạo `MultiSourcePlanningAgent` một lần (có khoá) |
+| `run(keyword, max_urls, source)` | gọi `planner.plan()` |
+| `send_notification(index)` | kiểm `is_store_url`, gửi; gửi lỗi → trả chuỗi "Not sent: ..." |
 
-### Tang UI
+### Tầng pipeline — `multi_source_planning_agent.py`
 
-#### `search_key.py` (~187 dong)
+| Thành phần | Bước | Chức năng |
+|---|---|---|
+| `DEAL_THRESHOLD = 100` | 4 | ngưỡng tự gửi thông báo |
+| `SPECIALIST_TIMEOUT_SECONDS = 10` | 4 | chờ Llama tối đa 10 s (chỉ search_key; price_is_right chờ không giới hạn) |
+| `_run_source(name, pipeline, ...)` | 1 | chạy một nguồn, ghi `source_status` |
+| `search_and_scrape()` | 1 | 2 nguồn song song |
+| `combine()` | 2 | chuyển sang `UnifiedScrapedDeal` |
+| `select_top_deals()` | 3 | gọi `MultiSourceScannerAgent.scan()` |
+| `_estimate_one()` / `estimate_prices()` | 4 | ước giá song song, sắp theo discount |
+| `plan()` | tất cả | chạy 4 bước, log `[TIMER]`, tự gửi thông báo (gửi lỗi không làm mất bảng kết quả) |
+| `is_store_url(url)` | — | chỉ chấp nhận host `bestbuy.com` / `amazon.com` (và tên miền con) |
 
-Entry point. Gradio web app.
+### Tầng cào dữ liệu
 
-| Thanh phan | Chuc nang |
-|------------|-----------|
-| `App.__init__()` | Lazy init framework, luu keyword + max_urls |
-| `App.get_framework()` | Tao `MultiSourceFramework` lan dau goi |
-| `App.search_handler()` | Validate input, goi `_run_pipeline()` |
-| `App._run_pipeline()` | Generator: chay pipeline trong thread rieng, yield log updates cho Gradio |
-| `App.push_notification_handler()` | Gui push notification cho deal tai index |
-| `App.run()` | Build Gradio Blocks UI, bind events |
+**`bestbuy_deals.py`** — curl_cffi + API nội bộ (không dùng Playwright):
 
-**Ky thuat:** Dung `threading.Thread` + `queue.Queue` de stream logs real-time. Worker thread chay pipeline, main thread poll queue va yield cho Gradio.
+| Hàm | Chức năng |
+|---|---|
+| `_init_session()` | session giả Chrome + bỏ qua trang chọn quốc gia |
+| `search_bestbuy(session, keyword)` | trang tìm kiếm → danh sách SKU (giữ thứ tự trên trang) |
+| `get_price_blocks(session, sku_ids)` | `/api/3.0/priceBlocks`, **tối đa 25 SKU mỗi request** → gọi theo lô |
+| `get_product_details(session, sku)` | `/api/v2/product/<sku>` → tính năng, URL |
+| `search_filter_scrape_bestbuy(keyword, max_results)` | lô priceBlocks → lọc hàng sale → lấy chi tiết, dừng sớm khi đủ |
 
----
+Thời gian (29/10): 7–12 s cho 4–6 deal.
 
-#### `multi_source_framework.py` (~91 dong)
+**`amazon_deals.py`** — cách lai Playwright + curl_cffi:
 
-Orchestrator. Quan ly resources.
+| Hàm | Chức năng |
+|---|---|
+| `_get_waf_cookies()` | Chromium chạy ngầm mở trang chủ, chờ cookie `aws-waf-token` (~1,6 s), chờ ô tìm kiếm tối đa 3 s (Amazon có lúc hiện trang "Continue shopping") → ~5 s |
+| `init_amazon_session()` | curl_cffi + cookie trình duyệt + `i18n-prefs=USD` (IP Việt Nam hiện giá VND) |
+| `search_amazon(session, keyword)` | `/s?k=...&ref=nb_sb_noss` + Referer; WAF / CAPTCHA → `AmazonBlockedError`; trang không có sản phẩm → log tiêu đề + chữ đầu trang |
+| `scrape_product_page(session, url)` | trang chi tiết → `#feature-bullets`, hãng |
+| `search_filter_scrape_amazon(keyword, max_results)` | tìm → rỗng thì nghỉ 2 s, lấy cookie mới, thử lại 1 lần (lần 2 vẫn bị chặn → `AmazonBlockedError`) → lọc hàng sale → lấy tính năng |
 
-| Thanh phan | Chuc nang |
-|------------|-----------|
-| `MultiSourceFramework.__init__()` | Load .env, init ChromaDB (800K+ products), planner = None |
-| `init_agents_as_needed()` | Lazy init `MultiSourcePlanningAgent` (tao 1 lan, giu suot session) |
-| `run(keyword, max_urls)` | Goi `planner.plan()`, luu ket qua |
-| `send_notification(index)` | Gui push notification cho deal tai index |
+Approach A (thông số ngay trên trang tìm kiếm ≥ 50 ký tự) hiếm khi xảy ra từ 28/10 — trang tìm kiếm gần như không còn khối
+thông số, nên hầu hết sản phẩm đi Approach B (mở trang chi tiết, **lần lượt từng trang**, 0,5–4,1 s / trang). Đây là chỗ
+chậm nhất còn lại của Bước 1 (Amazon ~9–28 s).
 
----
+### Tầng tiện ích
 
-### Tang Pipeline
+**`unified_deal.py`** — `UnifiedScrapedDeal(title, brand, price, features[:1500], url, source)`; `describe(include_url=True)`
+(Bước 3 gọi với `include_url=False`).
 
-#### `multi_source_planning_agent.py` (~197 dong)
+**`multi_source_scanner_agent.py`**
 
-**File quan trong nhat.** Chua toan bo logic pipeline 4 buoc.
+| Thành phần | Chức năng |
+|---|---|
+| `MODEL = "gpt-6-luna"`, `REASONING_EFFORT = "none"` | đo 29/10 trên danh sách deal đã lưu × 3 lượt: none 4,2–4,3 s, low 4,6–5,3 s, cả hai 6/6 lượt đủ 3 deal khác nhau |
+| `dedupe_deals()` | gộp hàng cùng nguồn + (cùng URL hoặc cùng tên khi bỏ từ chỉ màu), giữ bản rẻ nhất |
+| `PickedDeals` | schema: `deal_number` + `product_description` |
+| `scan()` | prompt đánh số "Deal N" (không có URL) → parse → code ghép `Deal("[Nguồn] <tên gốc>. <tóm tắt>", giá, URL)` |
 
-| Method | Step | Chuc nang |
-|--------|------|-----------|
-| `_bestbuy_pipeline()` | 1 | Goi `search_filter_scrape_bestbuy()` |
-| `_amazon_pipeline()` | 1 | Goi `search_filter_scrape_amazon()` |
-| `search_and_scrape()` | 1 | `ThreadPoolExecutor(max_workers=2)` chay 2 pipeline song song |
-| `combine()` | 2 | Convert sang `UnifiedScrapedDeal` |
-| `select_top_deals()` | 3 | Goi `MultiSourceScannerAgent.scan()` |
-| `estimate_prices()` | 4 | Goi `EnsembleAgent.price()` cho moi deal |
-| `plan()` | ALL | Chay 4 buoc, log timer, auto-notify |
+**`gradio_helpers.py`** — `QueueHandler`, `setup_logging`, `html_for_logs`, `opportunities_to_html`.
 
-**Dependencies:** `bestbuy_deals`, `amazon_deals`, `unified_deal`, `multi_source_scanner_agent`, `ensemble_agent`, `messaging_agent`
+### Tầng ước giá
 
----
-
-### Tang Scraping
-
-#### `bestbuy_deals.py` (~193 dong)
-
-Scrape BestBuy bang `curl_cffi` + internal APIs. **KHONG dung Playwright**.
-
-| Ham | Chuc nang |
-|-----|-----------|
-| `_init_session()` | curl_cffi session (impersonate Chrome) + bypass country selection |
-| `search_bestbuy(session, keyword)` | GET `/site/searchpage.jsp`, parse Apollo SSR cache -> list `{skuId, pdpUrl}` |
-| `get_price_blocks(session, sku_ids)` | GET `/api/3.0/priceBlocks` (toi da 25 SKU/request -> goi theo lo 25) -> price, brand, name, onSale |
-| `get_product_details(session, sku_id)` | GET `/api/v2/product/<skuId>` -> features, clean URL |
-| `search_filter_scrape_bestbuy(keyword, max_results)` | **Pipeline gop:** search -> filter onSale -> scrape details -> `List[ScrapedBestBuyDeal]` |
-
-**Class:** `ScrapedBestBuyDeal` (title, brand, price, features, url)
-
-**Thoi gian:** ~4-8s cho 6 san pham sale
-
----
-
-#### `amazon_deals.py` (~257 dong)
-
-Scrape Amazon theo cach **lai**: Playwright (Chromium chay ngam) mo trang chu 1 lan de vuot AWS WAF JS challenge, lay cookie `aws-waf-token`; sau do `curl_cffi` dung cookie do de tim kiem + mo trang san pham (nhanh). Can cai: `uv run playwright install chromium`. (Cap nhat 2026-10-28: Amazon bat AWS WAF, curl_cffi mot minh bi chan.)
-
-| Ham | Chuc nang |
-|-----|-----------|
-| `_get_waf_cookies()` | Playwright headless mo amazon.com, cho WAF cap `aws-waf-token`, tra cookies (~3-7s) |
-| `init_amazon_session()` | curl_cffi session + cookies tu browser + cookie `i18n-prefs=USD` (ep gia USD) |
-| `parse_search_results(html)` | Parse search page HTML -> list product dicts (ASIN, title, price, specs) |
-| `search_amazon(session, keyword)` | GET `/s?k=...&ref=nb_sb_noss` + Referer, check CAPTCHA / WAF block, parse results |
-| `scrape_product_page(session, url)` | **Approach B fallback:** GET product page -> #feature-bullets, #bylineInfo |
-| `search_filter_scrape_amazon(keyword, max_results)` | **Pipeline gop:** init -> search -> filter on_sale -> scrape features -> `List[ScrapedAmazonDeal]` |
-
-**Class:** `ScrapedAmazonDeal` (title, brand, price, features, url)
-
-**2 Approach:**
-
-| Approach | Khi nao | Toc do |
-|----------|---------|--------|
-| A: Search page only | specs >= 50 chars (laptop, TV, phone) | ~0s them |
-| B: GET product page | specs < 50 chars (headphones, accessories) | ~2-3s/product |
-
-**Thoi gian:** ~2s (Approach A), ~14s (Approach B)
-
----
-
-### Tang Utilities
-
-#### `bestbuy_untils/unified_deal.py` (~133 dong)
-
-Chuan hoa deals tu 2 nguon ve 1 format chung.
-
-| Method | Chuc nang |
-|--------|-----------|
-| `UnifiedScrapedDeal.from_bestbuy(deal)` | Convert `ScrapedBestBuyDeal` -> unified (source="BestBuy") |
-| `UnifiedScrapedDeal.from_amazon(deal)` | Convert `ScrapedAmazonDeal` -> unified (source="Amazon") |
-| `describe()` | Format cho LLM prompt (Source, Title, Brand, Price, Features, URL) |
-
----
-
-#### `bestbuy_untils/multi_source_scanner_agent.py` (~91 dong)
-
-Chon top 3 deals tu pool chung.
-
-| Thanh phan | Chuc nang |
-|------------|-----------|
-| `MODEL` | `gpt-6-luna` (tu 29/10; luna khong nhan `"minimal"`) |
-| `scan(unified_deals)` | gop hang trung (`dedupe_deals`) -> luna tra `deal_number` + tom tat (`PickedDeals`) -> code lay gia/URL tu pool, ghep `[Nguon] <ten goc>. <tom tat>` -> `DealSelection` (toi da 3) |
-| `reasoning_effort` | `"none"` (do 29/10: none 4,2-4,3 s, low 4,6-5,3 s, ca hai 6/6 du 3 deal khac nhau) |
-
-**Prompt:** Yeu cau GPT chon 3 deals co description chi tiet nhat, prefix [BestBuy] hoac [Amazon].
-
----
-
-#### `bestbuy_untils/gradio_helpers.py` (~184 dong)
-
-Helper functions cho Gradio UI.
-
-| Ham | Chuc nang |
-|-----|-----------|
-| `QueueHandler` | Custom logging handler, dua logs vao queue |
-| `setup_logging(log_queue)` | Cau hinh root logger dung QueueHandler |
-| `html_for_logs(log_data)` | Convert log messages -> styled HTML (dark theme) |
-| `opportunities_to_html(opps)` | Convert opportunities -> HTML table voi URL clickable |
-| `format_questions_html(questions)` | Format clarification questions (hien KHONG dung) |
-
----
-
-#### `bestbuy_untils/clarification_agent.py`
-
-Sinh 3 cau hoi lam ro nhu cau nguoi dung. **Hien KHONG duoc goi trong pipeline** (da bo clarification flow). Chi duoc import boi `gradio_helpers.py` de lay class `ClarificationQuestion`.
-
----
-
-### Tang AI Estimation
-
-#### `ensemble_agent.py` (~41 dong)
-
-Ket hop 3 models du doan gia.
+**`ensemble_agent.py`**
 
 ```
 EnsembleAgent.price(description):
     rewrite = Preprocessor.preprocess(description)
-    frontier = FrontierAgent.price(rewrite)       # 80%
-    specialist = SpecialistAgent.price(rewrite)   # 10%
-    neural = NeuralNetworkAgent.price(rewrite)    # 10%
-    return frontier * 0.8 + specialist * 0.1 + neural * 0.1
+    song song: specialist / frontier / neural_network = _safe_price(...)   # lỗi → None
+    combine(): chỉ lấy giá > 0; trọng số 0.8 / 0.1 / 0.1 chia lại trên các mô hình còn lại; không mô hình nào → ValueError
 ```
 
-| Model | Class | Weight | Resource |
-|-------|-------|--------|----------|
-| Frontier | `FrontierAgent` | 80% | OpenAI gpt-6-luna reasoning low (tu 29/10, truoc la GPT-5.1) + ChromaDB RAG (5 similar products) |
-| Specialist | `SpecialistAgent` | 10% | Fine-tuned Llama-3.2-3B tren Modal (remote call) |
-| Neural Network | `NeuralNetworkAgent` | 10% | PyTorch DNN local (`deep_neural_network.pth`) |
+| Mô hình | Class | Trọng số | Ghi chú |
+|---|---|---|---|
+| Frontier | `FrontierAgent` | 80 % | gpt-6-luna reasoning `low` + 5 sản phẩm giống nhất trong ChromaDB (encode + query có khoá) |
+| Specialist | `SpecialistAgent` | 10 % | Llama-3.2-3B QLoRA, app Modal `pricer-service`; `spawn()` + `get(timeout)` |
+| Neural Network | `NeuralNetworkAgent` | 10 % | DNN PyTorch chạy trên máy (có khoá) |
 
-**Luu y (29/10):** 3 deal chay song song, trong moi deal 3 model chay song song (ThreadPoolExecutor). Model loi / tra 0 bi bo, chia lai trong so. Llama cho toi da 10 s (search_key), qua thi bo Llama o deal do.
+Frontier đo 29/10 trên 200 mẫu test `SeanSunny/items_full`, 1 lượt / cấu hình: gpt-5.1 none MAE $31,16 · luna none
+$31,42 · **luna low $29,69** · terra none $28,51 — chênh lệch chưa vượt nhiễu; chọn luna low (không kém, rẻ hơn).
 
----
+**`specialist_agent.py`** — Modal tự tắt máy sau 60 s rảnh (khởi động lại mất 32–46 s):
 
-#### `preprocessor.py` (~49 dong)
+| Thành phần | Giá trị / chức năng |
+|---|---|
+| `timeout_seconds` | `None` = chờ như cũ (price_is_right); search_key truyền 10 s |
+| `COLD_SKIP_SECONDS = 45` | vừa quá giờ → 45 s sau bỏ qua Llama luôn (kiểm bên trong khoá) |
+| `PING_SECONDS = 50`, `KEEP_WARM_IDLE_STOP = 900` | ping giữ ấm; dừng sau 15 phút không có lượt tìm, tự bật lại khi tìm |
+| `wake_up_modal()` | gửi một lượt gọi không chờ kết quả để Modal bật máy sớm |
 
-Lam sach text truoc khi estimate. Dung LiteLLM.
+Đo thật 29/10: máy nguội → báo quá giờ sau 14,2 s (trước phải chờ 32–46 s); 3 lời gọi song song lúc nguội: 12,7 s cả nhóm;
+giữ ấm, rảnh 150 s → 0,9 s. App Modal mới (giữ ấm phía server) chưa deploy được vì Modal đòi gắn thẻ.
 
-| Thanh phan | Chuc nang |
-|------------|-----------|
-| `MODEL` | `PRICER_PREPROCESSOR_MODEL` env var, default `ollama/llama3.2` |
-| `preprocess(text)` | Rewrite text thanh format: Title, Category, Brand, Description, Details |
+**`preprocessor.py`** — LiteLLM viết lại mô tả theo khuôn `Title / Category / Brand / Description / Details`; mô hình lấy
+từ `PRICER_PREPROCESSOR_MODEL` (`.env` đang đặt `groq/openai/gpt-oss-20b`; mặc định trong code `ollama/llama3.2`); lỗi →
+trả lại chữ gốc.
 
----
+**`messaging_agent.py`**
 
-#### `messaging_agent.py` (~73 dong)
-
-Gui push notification qua Pushover API.
-
-| Method | Chuc nang |
-|--------|-----------|
-| `push(text)` | POST Pushover API |
-| `craft_message(...)` | gpt-6-luna (reasoning none) viet message vui, FOMO |
-| `notify(description, price, estimate, url)` | Craft message + push |
-| `alert(opportunity)` | Format va push (dung boi price_is_right.py) |
-
----
-
-### Tang Base va Data Models
-
-#### `agent.py` (~33 dong)
-
-Base class cho tat ca agents. Cung cap ANSI color-coded logging.
-
-```python
-class Agent:
-    RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = ...
-    name: str
-    color: str
-    def log(self, message):  # logging.info voi color code
-```
+| Method | Chức năng |
+|---|---|
+| `craft_message(...)` | gpt-6-luna reasoning none qua LiteLLM (`allowed_openai_params=["reasoning_effort"]`) |
+| `push(text)` | POST Pushover, `timeout=15`, HTTP ≠ 200 → RuntimeError |
+| `notify(...)` | viết tin + gửi |
 
 ---
 
-#### `deals.py` (~152 dong)
+## Nên thử từ khoá nào
 
-Data models. Bao gom ca logic RSS fetch (dung boi `price_is_right.py`).
+Mô hình học từ **8 nhóm hàng Amazon năm 2023** (Automotive, Electronics, Office Products, Tools & Home Improvement, Cell
+Phones & Accessories, Toys & Games, Appliances, Musical Instruments), **giá $0,5–$999,49**, đa số $10–$200
+(`scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md`). Kiểm 29/10 bằng
+`scripts/do_luong/probe_keywords.py` (20 sản phẩm gần nhất trong ChromaDB):
 
-| Class | Dung boi | Fields |
-|-------|----------|--------|
-| `ScrapedDeal` | price_is_right.py (RSS) | category, title, summary, url, details, features |
-| `Deal` (Pydantic) | Ca 2 apps | product_description, price, url |
-| `DealSelection` (Pydantic) | Ca 2 apps | deals: List[Deal] |
-| `Opportunity` (Pydantic) | Ca 2 apps | deal, estimate, discount |
+| Nhóm | Từ khoá | Vì sao |
+|---|---|---|
+| Nên thử | `noise cancelling headphones` ($175), `soundbar` ($215), `gaming monitor` ($235), `action camera` ($175), `digital piano` ($315), `electric guitar` ($425), `cordless drill` ($111) | sản phẩm gần nhất đúng loại, giá trung vị $100–$500 → dễ có discount > $100 |
+| Tránh | `laptop`, `gaming laptop`, `smart tv` | nhiều hàng > $999 (6/20 sản phẩm gần nhất của "gaming laptop" ≥ $900) → ensemble ước thấp; giá phụ thuộc thông số |
+| Tránh | `air fryer`, `coffee maker`, `microwave`, `blender` | không có nhóm đồ bếp: sản phẩm gần nhất của "air fryer" là rơ-le điện, của "blender" là phần mềm FL Studio |
+| Ít lợi | `phone case`, `wireless earbuds`, `smartwatch` | giá trung vị $21–$42, hiếm khi giảm > $100 |
 
----
-
-## Lien ket giua cac files
-
-```
-search_key.py
-    |
-    v
-multi_source_framework.py
-    |                     \
-    v                      v
-multi_source_planning_agent.py          deals.py (Opportunity)
-    |
-    +-- bestbuy_deals.py ---------> ScrapedBestBuyDeal
-    +-- amazon_deals.py ----------> ScrapedAmazonDeal
-    |                                    |
-    +-- unified_deal.py <--------- from_bestbuy() / from_amazon()
-    |                                    |
-    +-- multi_source_scanner_agent.py    v
-    |       |                       UnifiedScrapedDeal
-    |       v
-    |   DealSelection (top 3 Deal)
-    |
-    +-- ensemble_agent.py
-    |       |-- preprocessor.py (LiteLLM)
-    |       |-- frontier_agent.py (gpt-6-luna + ChromaDB)
-    |       |-- specialist_agent.py (Modal Llama)
-    |       |-- neural_network_agent.py (PyTorch DNN)
-    |       v
-    |   float (estimated price)
-    |
-    +-- messaging_agent.py (Pushover)
-    |
-    v
-List[Opportunity] -> Gradio HTML table
-```
+(Giá trong ngoặc = giá trung vị của 20 sản phẩm gần nhất. BestBuy có thể không bán nhạc cụ — chưa kiểm; khi đó chỉ có deal Amazon.)
 
 ---
 
-## Setup va Chay
-
-### Yeu cau
-
-- Python 3.12, `uv` package manager
-- API keys: `OPENAI_API_KEY` (bat buoc), `PUSHOVER_USER` + `PUSHOVER_TOKEN` (tuy chon)
-- ChromaDB vectorstore da co san (800K+ products)
-
-### Cai dat
+## Cài đặt và chạy
 
 ```bash
-cd tech2ai
-uv sync
+cd tech2ai && uv sync && uv run playwright install chromium
+cd segment4 && uv run search_key.py      # http://127.0.0.1:7860
 ```
 
-### Chay
-
-```bash
-cd segment4
-uv run search_key.py
-# Mo browser tai http://127.0.0.1:7860
-```
-
-### Environment Variables (`.env` trong `segment4/`)
-
-```env
-OPENAI_API_KEY=sk-xxx              # Bat buoc
-PUSHOVER_USER=xxx                  # Tuy chon (push notification)
-PUSHOVER_TOKEN=xxx                 # Tuy chon
-PRICER_PREPROCESSOR_MODEL=ollama/llama3.2  # Tuy chon (default)
-```
+`.env` ở **`tech2ai/.env`**: `OPENAI_API_KEY`, `GROQ_API_KEY`, `PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b`,
+`PUSHOVER_USER` / `PUSHOVER_TOKEN` (tuỳ chọn), `HF_TOKEN`. Token Modal: `~/.modal.toml`.
 
 ---
 
-## Thoi gian thuc thi (do that 29/10, Modal da duoc danh thuc khi mo app)
+## Thời gian chạy (đo thật 29/10, Modal đã được đánh thức khi mở app)
 
 ```
-Total: ~21-34s (truoc toi uu 69,5-106,7s cung 2 tu khoa)
+Tổng: ~21–34 s (trước tối ưu 69,5–106,7 s cùng 2 từ khoá); User chạy app thật ("laptop"): 27,1 s
 
-  |-- Step 1: Search+Filter+Scrape (parallel)  ~12-26s
-  |     |-- BestBuy (curl_cffi + APIs)          ~7-12s
-  |     |-- Amazon (cookie WAF ~5s + 6 trang chi tiet tuan tu 0,5-4s/trang)
-  |
-  |-- Step 2: Combine                           <1s
-  |
-  |-- Step 3: Select top 3 (gpt-6-luna)        ~4-5s
-  |
-  |-- Step 4: Estimate (song song)             ~4s (Modal nguoi: Llama bi bo sau ~10-14s)
+  |-- Mở app (luồng nền, không rơi vào lần Search đầu)   nạp mô hình ~9–20 s
+  |-- Bước 1: cào song song                              ~11–26 s
+  |     |-- BestBuy                                        ~7–12 s
+  |     |-- Amazon (cookie ~5 s + trang chi tiết lần lượt)  ~9–28 s
+  |-- Bước 2: gộp                                        < 1 s
+  |-- Bước 3: gpt-6-luna chọn deal                       ~4–5 s
+  |-- Bước 4: ước giá song song                          ~4–8 s (Modal nguội: bỏ Llama sau ~10–14 s)
 ```
-Lan mo app dau: nap mo hinh (~20s) chay nen luc mo app, khong con roi vao lan bam Search dau.
+
+RAM đỉnh ~3,9 GB. Số đo chi tiết: `session_prompt/archive/SESSION_HANDOFF_OPTIMIZE.md` mục 3.4; script đo: `scripts/do_luong/`.
 
 ---
 
-## Luu y ky thuat
+## Lưu ý kỹ thuật
 
-- `curl_cffi` voi `impersonate="chrome"` la BAT BUOC cho ca BestBuy va Amazon tu WSL2
-- BestBuy product pages bi block tu WSL2 (HTTP/2 + Akamai CDN) -> dung internal APIs thay vi scrape
-- Amazon: IP Viet Nam -> Amazon hien gia VND; cookie `i18n-prefs=USD` ep ve USD. `_parse_price` bo qua gia khong co `$`
-- Amazon: vao thang `/s?k=` khong co `ref` + `Referer` -> WAF tra 503; neu tim lan dau rong -> thu lai 1 lan voi cookie moi
-- `ThreadPoolExecutor(max_workers=2)` chay BestBuy + Amazon song song
-- Structured Outputs: `response_format=DealSelection` dam bao GPT tra ve JSON hop le
-- Log streaming: `QueueHandler` -> `queue.Queue` -> Gradio yield moi 0.1s
-- Auto-notify: neu deal tot nhat co discount > $100, tu dong gui Pushover
-
----
-
-*Cap nhat: 2026-04-06*
+- `curl_cffi` với `impersonate="chrome"` là BẮT BUỘC cho cả hai nguồn từ WSL2; trang sản phẩm BestBuy bị chặn → dùng API nội bộ.
+- Amazon: vào thẳng `/s?k=` mà thiếu `ref=nb_sb_noss` + `Referer` → 503; giá không có `$` → 0 (bị lọc, không đưa giá VND vào
+  ensemble); gửi request thưa, có nghỉ, nếu không dễ bị chặn IP / trả trang 200 rỗng.
+- gpt-6-luna không nhận `reasoning_effort="minimal"`.
+- Structured Outputs: `response_format=PickedDeals` (Bước 3).
+- Log: `QueueHandler` → `queue.Queue` → Gradio cập nhật mỗi 0,1 s.
+- Chạy app thật là gửi Pushover thật khi discount > $100.

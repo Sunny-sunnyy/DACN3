@@ -1,6 +1,6 @@
 # CURRENT_HANDOFF — phiên gần nhất (≤ 60 dòng; khối cũ ⇒ `archive/`)
 
-**Cập nhật lần cuối: 13:20, ngày 29/10/2026** — phiên Claude Code (Opus), cả ngày 29/10.
+**Cập nhật lần cuối: 13:46, ngày 29/10/2026** — phiên Claude Code (Opus), cả ngày 29/10.
 
 ## Hệ thống lúc kết phiên
 - Nhánh **`toi-uu-search-key`** (chưa gộp vào `claudedev`, chưa push). Tag quay lại: **`moc-truoc-toi-uu-2026-10-29`**
@@ -17,13 +17,18 @@
 - Frontier GPT-5.1 ⇒ luna low (MAE $31,16 ⇒ $29,69 / 200 mẫu, không kém; rẻ hơn GPT-5.1 ~10 lần, rẻ hơn terra ~7 lần).
 - Cách làm việc: `CACH_LAM_VIEC.md`, `START_SESSION.md`, `AGENTS.md`, 6 skill trong `.claude/skills/`, `docs/changelog/`,
   `SO_CAI_TIEN.md`, `hoc/NHAT_KY_TU_GIAI_THICH.md`, script đo `scripts/do_luong/`.
+- Tài liệu viết lại theo code hiện tại, tiếng Việt có dấu, bỏ icon: `README.md`, `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`;
+  `DOCUMENTATION_PRICE_IS_RIGHT.md` sửa mô hình / mặc định PlanningAgent / bỏ icon.
+- **Từ khoá nên thử** (dữ liệu huấn luyện: 8 nhóm Amazon 2023, giá ≤ $999; kiểm bằng `scripts/do_luong/probe_keywords.py`):
+  `noise cancelling headphones`, `soundbar`, `gaming monitor`, `action camera`, `digital piano`, `cordless drill`.
+  Tránh `laptop` / `smart tv` (> $999), đồ bếp (`air fryer`… không có trong dữ liệu), hàng < $50.
 
 ## Việc đang chờ (thứ tự đề xuất)
 1. **User chạy app sau khi đổi Frontier sang luna low** (`cd segment4 && uv run search_key.py`, 1 từ khoá) — pipeline đầy
    đủ chưa chạy lại sau thay đổi này.
 2. **Gộp `toi-uu-search-key` vào `claudedev`** khi User thấy ổn; push khi User cho phép (repo công khai).
 3. Chạy thử `price_is_right.py` một lần (dùng chung Ensemble / Frontier / Specialist đã đổi; gửi Pushover thật nếu có deal).
-4. Tuỳ User: mở song song trang chi tiết Amazon (P4, ~13–19 s còn lại ở Bước 1); nhận dạng trang Amazon 200 rỗng
+4. Tuỳ User: cào thử 6 từ khoá nên thử (không gọi LLM) xem BestBuy / Amazon có bao nhiêu deal sale; mở song song trang chi tiết Amazon (P4, ~13–19 s còn lại ở Bước 1); nhận dạng trang Amazon 200 rỗng
    (log "Page without results"); thước đo chất lượng trên hàng cào thật; mốc không dùng LLM cho Bước 3; thử bỏ Llama.
 
 ## Câu hỏi đang chờ User (hỏi mỗi lần một câu)

@@ -1,19 +1,19 @@
-# 🎯 THE PRICE IS RIGHT - AUTONOMOUS DEAL HUNTER
+# THE PRICE IS RIGHT - AUTONOMOUS DEAL HUNTER
 
-## 📌 Tổng quan dự án
+## Tổng quan dự án
 
 **Tên dự án:** The Price is Right - Autonomous Agent Framework  
 **Tên file chính:** `price_is_right.py`  
 **Phiên bản:** v4.0 (Original Architecture)  
-**Ngày cập nhật:** 2026-02-07  
-**Ngôn ngữ:** Python 3.10+
+**Ngày cập nhật:** 29/10/2026 (đổi mô hình sang gpt-6-luna; bỏ icon) — bản gốc 07/02/2026  
+**Ngôn ngữ:** Python 3.12 + `uv`
 
 ### Mục tiêu dự án
 
 Dự án này là một **hệ thống Autonomous AI Agent** tự động:
 
 1. **Quét RSS feeds** từ DealNews.com mỗi 5 phút
-2. **Lọc và chọn** 5 deals tốt nhất bằng GPT-5-mini
+2. **Lọc và chọn** 5 deals tốt nhất bằng gpt-6-luna
 3. **Ước lượng giá trị thực** bằng Ensemble AI (3 models)
 4. **Tự động gửi notification** qua Pushover khi phát hiện deal tốt
 5. **Lưu trữ lịch sử** vào memory.json và ghi file deals.md
@@ -22,7 +22,7 @@ Dự án này là một **hệ thống Autonomous AI Agent** tự động:
 
 ---
 
-## 🎯 Đầu vào và Đầu ra
+## Đầu vào và Đầu ra
 
 ### Đầu vào (Input)
 
@@ -66,7 +66,7 @@ Dự án này là một **hệ thống Autonomous AI Agent** tự động:
 
 ---
 
-## 🔄 Workflow - Luồng hoạt động
+## Workflow - Luồng hoạt động
 
 ### Sơ đồ tổng quan
 
@@ -80,14 +80,14 @@ Dự án này là một **hệ thống Autonomous AI Agent** tự động:
 │      ▼                                                                        │
 │  ╔══════════════════════════════════════╗                                    │
 │  ║  0. LOAD RESOURCES                   ║                                    │
-│  ║  ├── ChromaDB (400K products)        ║                                    │
+│  ║  ├── ChromaDB (800K products)        ║                                    │
 │  ║  ├── memory.json (deals đã xử lý)    ║                                    │
 │  ║  └── t-SNE 3D visualization          ║                                    │
 │  ╚══════════════════════════════════════╝                                    │
 │      │                                                                        │
 │      ▼                                                                        │
 │  ╔══════════════════════════════════════╗                                    │
-│  ║  1. SCAN RSS FEEDS                   ║  ← ScannerAgent (GPT-5-mini)       │
+│  ║  1. SCAN RSS FEEDS                   ║  ← ScannerAgent (gpt-6-luna)       │
 │  ║  ├── Fetch từ 5 DealNews categories  ║                                    │
 │  ║  ├── Loại bỏ URLs đã có trong memory ║                                    │
 │  ║  └── GPT chọn top 5 deals            ║                                    │
@@ -97,7 +97,7 @@ Dự án này là một **hệ thống Autonomous AI Agent** tự động:
 │  ╔══════════════════════════════════════╗                                    │
 │  ║  2. ESTIMATE PRICES                  ║  ← EnsembleAgent (3 models)        │
 │  ║  ├── Preprocessor (chuẩn hóa text)   ║                                    │
-│  ║  ├── FrontierAgent: GPT-5.1 + RAG    ║  → 80% weight                      │
+│  ║  ├── FrontierAgent: luna + RAG       ║  → 80% weight                      │
 │  ║  ├── SpecialistAgent: Llama (Modal)  ║  → 10% weight                      │
 │  ║  └── NeuralNetworkAgent: PyTorch DNN ║  → 10% weight                      │
 │  ╚══════════════════════════════════════╝                                    │
@@ -176,27 +176,27 @@ AutonomousPlanningAgent.plan()
 
 ---
 
-## 📁 Cấu trúc thư mục và Files
+## Cấu trúc thư mục và Files
 
 ### Sơ đồ thư mục
 
 ```
 segment4/
 │
-├── price_is_right.py                    # 🎯 ENTRY POINT - Gradio UI
-├── deal_agent_framework.py              # 📦 FRAMEWORK - Điều phối trung tâm
-├── pricer_service2.py                   # ☁️ MODAL SERVICE - Fine-tuned Llama
+├── price_is_right.py                    # ENTRY POINT - Gradio UI
+├── deal_agent_framework.py              # FRAMEWORK - Điều phối trung tâm
+├── pricer_service2.py                   # MODAL SERVICE - Fine-tuned Llama
 │
-├── memory.json                          # 💾 PERSISTENT MEMORY - Deals đã xử lý
-├── deep_neural_network.pth              # 🧠 MODEL WEIGHTS - PyTorch DNN
+├── memory.json                          # PERSISTENT MEMORY - Deals đã xử lý
+├── deep_neural_network.pth              # MODEL WEIGHTS - PyTorch DNN
 │
-├── sandbox/                             # 📂 SANDBOX cho MCP Filesystem
+├── sandbox/                             # SANDBOX cho MCP Filesystem
 │   └── deals.md                         # File markdown (Autonomous mode)
 │
-├── products_vectorstore/                # 📊 CHROMADB - 400K products
+├── products_vectorstore/                # CHROMADB - 800K products
 │   └── chroma.sqlite3
 │
-├── price_agents/                        # 🤖 THƯ MỤC CHỨA TẤT CẢ AGENTS
+├── price_agents/                        # THƯ MỤC CHỨA TẤT CẢ AGENTS
 │   ├── __init__.py
 │   ├── agent.py                         # Base class cho tất cả agents
 │   ├── deals.py                         # Data classes (Deal, Opportunity)
@@ -209,17 +209,17 @@ segment4/
 │   ├── ensemble_agent.py                # Kết hợp 3 models dự đoán giá
 │   ├── messaging_agent.py               # Gửi push notification
 │   │
-│   ├── frontier_agent.py                # GPT-5.1 + RAG
+│   ├── frontier_agent.py                # gpt-6-luna (low) + RAG
 │   ├── specialist_agent.py              # Fine-tuned Llama (Modal)
 │   ├── neural_network_agent.py          # Wrapper cho PyTorch DNN
 │   └── deep_neural_network.py           # PyTorch model architecture
 │
-└── log_utils.py                         # 🔧 Utility - Log formatting
+└── log_utils.py                         # Utility - Log formatting
 ```
 
 ---
 
-## 📄 Chi tiết từng File
+## Chi tiết từng File
 
 ### 1. Tầng UI (User Interface)
 
@@ -287,9 +287,9 @@ class DealAgentFramework:
         # 5. planner = None (lazy init)
     
     def init_agents_as_needed(self):
-        """Lazy init AutonomousPlanningAgent."""
+        """Lazy init PlanningAgent (dòng AutonomousPlanningAgent đang bị comment — 29/10)."""
         if not self.planner:
-            self.planner = AutonomousPlanningAgent(self.collection)
+            self.planner = PlanningAgent(self.collection)
     
     def read_memory() → List[Opportunity]
         """Load deals từ memory.json."""
@@ -428,7 +428,7 @@ async with MCPServerStdio(params=files_params) as server:
 class ScannerAgent(Agent):
     """Scan RSS feeds và select deals."""
     
-    MODEL = "gpt-5-mini"
+    MODEL = "gpt-6-luna"   # trước 29/10: dòng "gpt-5-mini" bị dòng "gpt-5-nano" ghi đè
     
     SYSTEM_PROMPT = """
     You identify and summarize the 5 most detailed deals...
@@ -446,7 +446,7 @@ class ScannerAgent(Agent):
         return [s for s in scraped if s.url not in urls]
     
     def scan(memory) → Optional[DealSelection]:
-        """GPT-5-mini chọn top 5:
+        """gpt-6-luna (reasoning none) chọn top 5:
         1. fetch_deals()
         2. Tạo prompt với deal descriptions
         3. Call OpenAI Structured Outputs
@@ -499,13 +499,14 @@ class EnsembleAgent(Agent):
 
 #### `price_agents/frontier_agent.py` - GPT + RAG (~97 dòng)
 
-**Mục đích:** Dùng GPT-5.1 với RAG từ ChromaDB.
+**Mục đích:** Dùng gpt-6-luna (reasoning `low`, từ 29/10; trước là GPT-5.1) với RAG từ ChromaDB.
 
 ```python
 class FrontierAgent(Agent):
-    """GPT-5.1 + RAG với 5 similar products."""
+    """gpt-6-luna + RAG với 5 similar products."""
     
-    MODEL = "gpt-5.1"
+    MODEL = "gpt-6-luna"
+    REASONING_EFFORT = "low"
     
     def __init__(self, collection):
         self.client = OpenAI()
@@ -521,7 +522,7 @@ class FrontierAgent(Agent):
     def price(description) → float:
         """1. Tìm 5 similar products
            2. Tạo prompt với context
-           3. Call GPT-5.1
+           3. Call gpt-6-luna
            4. Extract price từ response
         """
 ```
@@ -631,7 +632,7 @@ class DeepNeuralNetworkInference:
 class MessagingAgent(Agent):
     """Push notification via Pushover API."""
     
-    MODEL = "gpt-5-nano"  # Cho craft_message
+    MODEL = "gpt-6-luna"  # Cho craft_message (reasoning none)
     
     def __init__(self):
         self.pushover_user = os.getenv("PUSHOVER_USER")
@@ -650,7 +651,7 @@ class MessagingAgent(Agent):
         """Format và gửi alert đơn giản."""
     
     def craft_message(description, price, estimate) → str:
-        """Dùng GPT-5-nano viết message vui nhộn với FOMO."""
+        """Dùng gpt-6-luna viết message vui nhộn với FOMO."""
     
     def notify(description, price, estimate, url):
         """Craft message rồi push."""
@@ -712,7 +713,7 @@ class Opportunity(BaseModel):
 class Preprocessor:
     """Chuẩn hóa text trước khi estimate."""
     
-    MODEL = "ollama/llama3.2"  # Hoặc GPT
+    MODEL = os.getenv("PRICER_PREPROCESSOR_MODEL", "ollama/llama3.2")  # .env đang đặt groq/openai/gpt-oss-20b
     
     SYSTEM_PROMPT = """
     Create a concise description:
@@ -729,7 +730,7 @@ class Preprocessor:
 
 ---
 
-## 🔗 Sơ đồ liên kết giữa các Files
+## Sơ đồ liên kết giữa các Files
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -751,7 +752,7 @@ class Preprocessor:
 │  │    ┌────────────────────────┴────────────────────────┐                  │   │
 │  │    ▼                                                 ▼                  │   │
 │  │  planning_agent.py                   autonomous_planning_agent.py       │   │
-│  │  (Simple mode)                       (Autonomous mode - DEFAULT)        │   │
+│  │  (Simple mode - ĐANG DÙNG)           (Autonomous mode - không chạy)     │   │
 │  └─────────────────────────────────────────────────────────────────────────┘   │
 │                                │                                                │
 │                        imports ↓                                               │
@@ -766,7 +767,7 @@ class Preprocessor:
 │  │    │              │                                 │                   │   │
 │  │    │              ├──► preprocessor.py              │                   │   │
 │  │    │              │                                 │                   │   │
-│  │    │              ├──► frontier_agent.py ───► ChromaDB + GPT-5.1       │   │
+│  │    │              ├──► frontier_agent.py ───► ChromaDB + luna          │   │
 │  │    │              │                                 │                   │   │
 │  │    │              ├──► specialist_agent.py ──► Modal (Llama)           │   │
 │  │    │              │                                 │                   │   │
@@ -784,8 +785,8 @@ class Preprocessor:
 │  │  └────────────────┘  └────────────────┘  └────────────────┘            │   │
 │  │                                                                          │   │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐            │   │
-│  │  │   OpenAI       │  │   ChromaDB     │  │   Ollama       │            │   │
-│  │  │   GPT-5.1/mini │  │   (400K docs)  │  │   (Llama local)│            │   │
+│  │  │   OpenAI       │  │   ChromaDB     │  │   Groq         │            │   │
+│  │  │   gpt-6-luna   │  │   (800K docs)  │  │   gpt-oss-20b  │            │   │
 │  │  └────────────────┘  └────────────────┘  └────────────────┘            │   │
 │  └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                 │
@@ -794,11 +795,11 @@ class Preprocessor:
 
 ---
 
-## ⚙️ Cách Setup và Chạy
+## Cách Setup và Chạy
 
 ### 1. Yêu cầu hệ thống
 
-- Python 3.10+
+- Python 3.12, `uv`
 - Node.js 18+ (cho MCP servers)
 - GPU recommended (cho Neural Network)
 - Modal account (cho SpecialistAgent)
@@ -817,7 +818,7 @@ modal deploy pricer_service2.py
 
 ### 3. Cấu hình Environment Variables
 
-Tạo file `.env` trong folder `segment4/`:
+Tạo file `.env` ở **`tech2ai/.env`** (thư mục gốc repo):
 
 ```env
 # OpenAI API Key (bắt buộc)
@@ -831,7 +832,8 @@ PUSHOVER_TOKEN=xxx
 HF_TOKEN=hf_xxx...
 
 # Preprocessor Model (tùy chọn)
-PRICER_PREPROCESSOR_MODEL=ollama/llama3.2
+GROQ_API_KEY=xxx
+PRICER_PREPROCESSOR_MODEL=groq/openai/gpt-oss-20b
 ```
 
 ### 4. Chạy ứng dụng
@@ -849,17 +851,17 @@ uv run price_is_right.py
 
 ---
 
-## 🕐 Thời gian thực thi (Latency per Cycle)
+## Thời gian thực thi (Latency per Cycle)
 
 ```
 Total Cycle Time: ~60-90 giây
 
   ├── Fetch RSS feeds:                    5-10s
-  ├── GPT-5-mini select top 5:            3-5s
+  ├── gpt-6-luna select top 5:            3-5s
   ├── Preprocess (5 deals × local LLM):   15-20s
   ├── FrontierAgent (5 deals):            10-15s
   │   ├── RAG search ChromaDB:            1-2s each
-  │   └── GPT-5.1 estimate:               2-3s each
+  │   └── luna estimate:                  1-2s each
   ├── SpecialistAgent (5 deals, Modal):   10-20s
   │   └── Cold start: +30-60s lần đầu
   ├── NeuralNetworkAgent (5 deals, local): 1-2s
@@ -868,15 +870,15 @@ Total Cycle Time: ~60-90 giây
 
 ---
 
-## 💰 Chi phí ước tính (Cost)
+## Chi phí ước tính (Cost)
 
 | Component | Model | Cost per Cycle |
 |-----------|-------|----------------|
-| Scanner | GPT-5-mini | ~$0.002 |
-| Frontier (5 calls) | GPT-5.1 | ~$0.01 |
+| Scanner | gpt-6-luna | (chưa đo lại) |
+| Frontier (5 calls) | gpt-6-luna low | ~$0.0005 (đo 29/10: $0,018 / 200 lời gọi) |
 | Specialist (5 calls) | Modal T4 | ~$0.01 |
-| Messaging | GPT-5-nano | ~$0.001 |
-| Preprocess | Ollama local | $0 |
+| Messaging | gpt-6-luna | (chưa đo lại) |
+| Preprocess | Groq gpt-oss-20b | (chưa đo) |
 | Neural Network | Local | $0 |
 | **Total per cycle** | | **~$0.023** |
 | **Daily (288 cycles)** | | **~$6.62** |
@@ -884,7 +886,7 @@ Total Cycle Time: ~60-90 giây
 
 ---
 
-## 📊 So sánh 2 Modes
+## So sánh 2 Modes
 
 | Feature | PlanningAgent | AutonomousPlanningAgent |
 |---------|---------------|-------------------------|
@@ -894,28 +896,28 @@ Total Cycle Time: ~60-90 giây
 | **File Writing** | No | Yes (deals.md) |
 | **Cost** | Lower | Higher (+GPT-5.1) |
 | **Debugging** | Easier | Harder |
-| **Current Default** | ❌ | ✅ |
+| **Đang dùng** (`deal_agent_framework.py`) | **Có** | Không (dòng khởi tạo đang bị comment) |
 
 ---
 
-## 🎯 Tóm tắt
+## Tóm tắt
 
 | Mục | Chi tiết |
 |-----|----------|
 | **Mục tiêu** | Tự động tìm deals từ RSS feeds |
 | **Input** | RSS feeds từ DealNews.com |
 | **Output** | Push notification + Dashboard + memory.json |
-| **Công nghệ AI** | GPT-5.1, GPT-5-mini, Llama-3.2-3B, PyTorch DNN |
+| **Công nghệ AI** | gpt-6-luna (scanner, frontier, tin nhắn), GPT-5.1 (chỉ chế độ Autonomous, không chạy), Llama-3.2-3B, PyTorch DNN |
 | **Ensemble** | 80% Frontier + 10% Specialist + 10% Neural |
 | **Threshold** | Notify nếu discount > $50 |
-| **Database** | ChromaDB (400K products) |
+| **Database** | ChromaDB (800K products) |
 | **UI** | Gradio với 3D visualization |
 | **Frequency** | Auto-run mỗi 5 phút |
-| **Cost** | ~$0.02/cycle, ~$200/month |
+| **Cost** | ước cũ 02/2026 (~$0.02/cycle với GPT-5.x) — chưa đo lại sau khi đổi sang luna |
 
 ---
 
-## 📚 Files Training Data (Reference)
+## Files Training Data (Reference)
 
 Các files này được sử dụng để train models (không nằm trong runtime):
 
@@ -923,7 +925,7 @@ Các files này được sử dụng để train models (không nằm trong runt
 |------|---------|
 | `train_price_predictor.ipynb` | Train PyTorch DNN |
 | `train_llama_lora.ipynb` | Fine-tune Llama-3.2-3B với LoRA |
-| `build_vectorstore.ipynb` | Build ChromaDB từ 400K products |
+| `build_vectorstore.ipynb` | Build ChromaDB từ 800K products |
 | `data/labeled_data.pkl` | Dataset cho training |
 
 ---
