@@ -143,6 +143,7 @@ trong lúc có người dùng (dừng sau 15 phút không tìm).
 
 ## Tài liệu chi tiết
 
+- [`scraping_data_tv/Data_processing_for_English_data/report_system3.html`](scraping_data_tv/Data_processing_for_English_data/report_system3.html) (nguồn: `report_system3.md`) — **báo cáo hệ thống bản 3** (29/10/2026): bài toán, kiến trúc, từng khâu, đợt tối ưu, kết quả, giới hạn
 - [`segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`](segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md) — Multi-Source Deal Finder
 - [`segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md`](segment4/mo_ta_du_an/DOCUMENTATION_PRICE_IS_RIGHT.md) — Autonomous Deal Hunter
 - [`scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md`](scraping_data_tv/Data_processing_for_English_data/Report_data_processing_v2.md) — dữ liệu, mô hình truyền thống, DNN

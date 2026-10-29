@@ -1,6 +1,6 @@
 # CURRENT_HANDOFF — phiên gần nhất (≤ 60 dòng; khối cũ ⇒ `archive/`)
 
-**Cập nhật lần cuối: 13:53, ngày 29/10/2026** — phiên Claude Code (Opus), cả ngày 29/10.
+**Cập nhật lần cuối: 14:28, ngày 29/10/2026** — phiên Claude Code (Opus), cả ngày 29/10.
 
 ## Hệ thống lúc kết phiên
 - Nhánh **`claudedev`** — đã gộp (fast-forward) `toi-uu-search-key` lúc kết phiên 29/10 sau khi User chạy app ổn; **chưa push**
@@ -20,6 +20,9 @@
   `SO_CAI_TIEN.md`, `hoc/NHAT_KY_TU_GIAI_THICH.md`, script đo `scripts/do_luong/`.
 - Tài liệu viết lại theo code hiện tại, tiếng Việt có dấu, bỏ icon: `README.md`, `segment4/mo_ta_du_an/DOCUMENTATION_SEARCHKEY.md`;
   `DOCUMENTATION_PRICE_IS_RIGHT.md` sửa mô hình / mặc định PlanningAgent / bỏ icon.
+- **Báo cáo hệ thống bản 3:** `scraping_data_tv/Data_processing_for_English_data/report_system3.md` → `report_system3.html`
+  (giao diện nền sáng, sinh bằng `uv run python gen_report_html.py report_system3.md report_system3.html` trong thư mục đó;
+  sửa .md rồi sinh lại, không sửa tay .html). Bản 1–2 (nền tối, `gen_report_system.py`) giữ nguyên.
 - **Từ khoá nên thử** (dữ liệu huấn luyện: 8 nhóm Amazon 2023, giá ≤ $999; kiểm bằng `scripts/do_luong/probe_keywords.py`):
   `noise cancelling headphones`, `soundbar`, `gaming monitor`, `action camera`, `digital piano`, `cordless drill`.
   Tránh `laptop` / `smart tv` (> $999), đồ bếp (`air fryer`… không có trong dữ liệu), hàng < $50.

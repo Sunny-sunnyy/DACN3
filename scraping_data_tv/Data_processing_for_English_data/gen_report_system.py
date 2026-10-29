@@ -1,13 +1,21 @@
-"""Generate report_system.html from report_system.md with gradient glassmorphism theme."""
+"""Generate report_system.html from report_system.md with gradient glassmorphism theme.
+
+Dùng cho bản khác: uv run python gen_report_system.py <file.md> <file.html> "<dòng phụ đề sidebar>"
+Nếu file .md có dòng "**Nhãn:** a · b · c" thì phần đầu trang (tiêu đề, Mục đích, Phạm vi, nhãn) lấy từ file .md;
+không có thì giữ phần đầu trang cũ (bản 1).
+"""
+import html
 import re
+import sys
 from pathlib import Path
 import markdown
 from markdown.extensions.fenced_code import FencedCodeExtension
 from markdown.extensions.tables import TableExtension
 from markdown.extensions.toc import TocExtension
 
-MD_PATH = Path(__file__).parent / "report_system.md"
-HTML_PATH = Path(__file__).parent / "report_system.html"
+MD_PATH = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent / "report_system.md"
+HTML_PATH = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parent / "report_system.html"
+SIDEBAR_SUBTITLE = sys.argv[3] if len(sys.argv) > 3 else "AI Price Intelligence — Week 8"
 
 md_text = MD_PATH.read_text(encoding="utf-8")
 
@@ -27,7 +35,7 @@ toc_html = md.toc
 # Parse toc items to build sidebar nav
 toc_items = re.findall(r'<li><a href="(#[^"]+)">([^<]+)</a>', toc_html)
 
-MAIN_PREFIXES = ("#phan-", "#hanh-trinh", "#chi-tiet", "#tong-ket")
+MAIN_PREFIXES = ("#phan-", "#hanh-trinh", "#chi-tiet", "#tong-ket", "#phu-luc")
 
 nav_links = ""
 for href, title in toc_items:
@@ -40,7 +48,7 @@ TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Báo cáo: AI Price Intelligence System — The Price Is Right</title>
+<title>{PAGE_TITLE}</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -399,6 +407,9 @@ TEMPLATE = """<!DOCTYPE html>
     padding-left: 24px;
     margin: 12px 0;
   }
+  /* Tailwind (CDN) reset đặt list-style: none ⇒ mất dấu đầu dòng / số thứ tự */
+  #content ul { list-style: disc; }
+  #content ol { list-style: decimal; }
 
   #content li {
     color: #cbd5e1;
@@ -489,7 +500,7 @@ TEMPLATE = """<!DOCTYPE html>
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-title">The Price Is Right</div>
-    <div class="sidebar-subtitle">AI Price Intelligence — Week 8</div>
+    <div class="sidebar-subtitle">{SIDEBAR_SUBTITLE}</div>
   </div>
   {NAV_LINKS}
 </nav>
@@ -497,21 +508,7 @@ TEMPLATE = """<!DOCTYPE html>
 <!-- Main content -->
 <main id="main">
   <!-- Hero header -->
-  <div class="hero">
-    <h1>Báo cáo: Xây dựng Hệ thống AI Price Intelligence — "The Price Is Right"</h1>
-    <blockquote>
-      <p><strong>Mục đích:</strong> Tài liệu chi tiết về quá trình xây dựng toàn bộ hệ thống production, từ việc triển khai mô hình đã fine-tune lên cloud cho đến hai ứng dụng hoàn chỉnh.</p>
-      <p><strong>Phạm vi:</strong> Week 8 (Day 1–5) — từ Specialist Agent đầu tiên đến Multi-Source Deal Finder hoàn chỉnh</p>
-    </blockquote>
-    <div class="meta-badges">
-      <span class="badge badge-purple">📅 2026-05-11</span>
-      <span class="badge badge-cyan">📂 segment4/</span>
-      <span class="badge badge-pink">🤖 price_is_right.py</span>
-      <span class="badge badge-green">🔍 search_key.py</span>
-    </div>
-  </div>
-
-  <div id="content">
+{HERO_HTML}  <div id="content">
     {BODY_HTML}
   </div>
 </main>
@@ -612,25 +609,55 @@ document.addEventListener('DOMContentLoaded', () => {
 </html>
 """
 
-final_html = TEMPLATE.replace("{NAV_LINKS}", nav_links).replace("{BODY_HTML}", body_html)
+OLD_HERO = """  <div class="hero">
+    <h1>Báo cáo: Xây dựng Hệ thống AI Price Intelligence — "The Price Is Right"</h1>
+    <blockquote>
+      <p><strong>Mục đích:</strong> Tài liệu chi tiết về quá trình xây dựng toàn bộ hệ thống production, từ việc triển khai mô hình đã fine-tune lên cloud cho đến hai ứng dụng hoàn chỉnh.</p>
+      <p><strong>Phạm vi:</strong> Week 8 (Day 1–5) — từ Specialist Agent đầu tiên đến Multi-Source Deal Finder hoàn chỉnh</p>
+    </blockquote>
+    <div class="meta-badges">
+      <span class="badge badge-purple">📅 2026-05-11</span>
+      <span class="badge badge-cyan">📂 segment4/</span>
+      <span class="badge badge-pink">🤖 price_is_right.py</span>
+      <span class="badge badge-green">🔍 search_key.py</span>
+    </div>
+  </div>
 
-# Remove the duplicate H1 from converted body (we have it in hero)
-final_html = re.sub(
-    r'<h1[^>]*>Báo cáo: Xây dựng Hệ thống AI Price Intelligence.*?</h1>\s*',
-    '',
-    final_html,
-    count=1,
-    flags=re.DOTALL
-)
+"""
 
-# Remove the opening blockquote that was in the .md header (already in hero)
+labels_match = re.search(r"^\*\*Nhãn:\*\*\s*(.+)$", md_text, flags=re.MULTILINE)
+title_match = re.search(r"^# (.+)$", md_text, flags=re.MULTILINE)
+page_title = title_match.group(1).strip() if title_match else "Báo cáo"
+if labels_match:
+    # Phần đầu trang lấy từ .md: tiêu đề H1, các dòng "**Mục đích:**" / "**Phạm vi:**" trong blockquote đầu, nhãn
+    quote_lines = re.findall(r"^> \*\*(Mục đích|Phạm vi):\*\*\s*(.+)$", md_text, flags=re.MULTILINE)
+    quote_html = "".join(f"      <p><strong>{k}:</strong> {html.escape(v)}</p>\n" for k, v in quote_lines)
+    badge_classes = ["badge-purple", "badge-cyan", "badge-pink", "badge-green"]
+    badges = [b.strip() for b in labels_match.group(1).split("·") if b.strip()]
+    badge_html = "".join(f'      <span class="badge {badge_classes[i % 4]}">{html.escape(b)}</span>\n' for i, b in enumerate(badges))
+    hero_html = (f'  <div class="hero">\n    <h1>{html.escape(page_title)}</h1>\n    <blockquote>\n{quote_html}    </blockquote>\n'
+                 f'    <div class="meta-badges">\n{badge_html}    </div>\n  </div>\n\n  ')
+else:
+    hero_html = OLD_HERO
+
+final_html = (TEMPLATE.replace("{NAV_LINKS}", nav_links).replace("{BODY_HTML}", body_html)
+              .replace("{HERO_HTML}", hero_html).replace("{SIDEBAR_SUBTITLE}", SIDEBAR_SUBTITLE)
+              .replace("{PAGE_TITLE}", html.escape(page_title if labels_match else "Báo cáo: AI Price Intelligence System — The Price Is Right")))
+
+# Bỏ H1 trùng trong phần thân (đã có ở phần đầu trang)
+final_html = re.sub(r'(<div id="content">\s*)<h1[^>]*>.*?</h1>\s*', r"\1", final_html, count=1, flags=re.DOTALL)
+
+# Bỏ blockquote "Mục đích" đầu file .md (đã có ở phần đầu trang)
 final_html = re.sub(
     r'<blockquote>\s*<p><strong>Mục đích:</strong>.*?</blockquote>\s*',
     '',
-    final_html,
+    final_html.replace(hero_html, "{HERO_KEEP}", 1),
     count=1,
     flags=re.DOTALL
-)
+).replace("{HERO_KEEP}", hero_html, 1)
+
+# Bỏ dòng "Nhãn" (đã thành huy hiệu ở phần đầu trang)
+final_html = re.sub(r"<p><strong>Nhãn:</strong>.*?</p>\s*", "", final_html, count=1, flags=re.DOTALL)
 
 HTML_PATH.write_text(final_html, encoding="utf-8")
 print(f"Generated: {HTML_PATH}")
