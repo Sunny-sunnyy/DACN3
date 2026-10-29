@@ -186,3 +186,6 @@ day_mcp/
 
 # Ignore large fine-tune data files (800MB+ JSONL output)
 fine_tune_qwen/
+
+# Ghi chép lấy từ dự án MekongAI (công ty) — không đẩy lên GitHub công khai
+session_prompt/tu_mekongai/
